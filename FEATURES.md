@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 5 / 4140**
+**Progress: 59 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -21,81 +21,81 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Rendering
 
-- [ ] WebGL2 context, resize handling, device-pixel-ratio aware canvas <!--p1:webgl2_context_resize_handling_device_pixel_ratio_aware_canvas-->
-- [ ] Shader program system (compile, link, uniform cache) <!--p1:shader_program_system_compile_link_uniform_cache-->
-- [ ] 2D texture array for block textures with nearest filtering and mipmaps <!--p1:2d_texture_array_for_block_textures_with_nearest_filtering_and_mipmaps-->
-- [ ] Chunk sections 16×16×16 with paletted storage <!--p1:chunk_sections_16_16_16_with_paletted_storage-->
-- [ ] Chunk column storage (world height 0–255, 16 sections) <!--p1:chunk_column_storage_world_height_0_255_16_sections-->
-- [ ] Chunk loading/unloading by render distance (spiral order) <!--p1:chunk_loading_unloading_by_render_distance_spiral_order-->
-- [ ] Meshing in Web Workers (worker pool, transferable buffers) <!--p1:meshing_in_web_workers_worker_pool_transferable_buffers-->
-- [ ] Face culling between opaque neighbors, cross-section neighbor lookup <!--p1:face_culling_between_opaque_neighbors_cross_section_neighbor_lookup-->
-- [ ] Opaque / cutout / translucent render passes <!--p1:opaque_cutout_translucent_render_passes-->
-- [ ] Translucent faces sorted back-to-front <!--p1:translucent_faces_sorted_back_to_front-->
-- [ ] Frustum culling of chunk sections <!--p1:frustum_culling_of_chunk_sections-->
-- [ ] Cave/occlusion culling (section visibility graph flood fill) <!--p1:cave_occlusion_culling_section_visibility_graph_flood_fill-->
-- [ ] Incremental GPU mesh upload with per-frame budget <!--p1:incremental_gpu_mesh_upload_with_per_frame_budget-->
+- [x] WebGL2 context, resize handling, device-pixel-ratio aware canvas <!--p1:webgl2_context_resize_handling_device_pixel_ratio_aware_canvas-->
+- [x] Shader program system (compile, link, uniform cache) <!--p1:shader_program_system_compile_link_uniform_cache-->
+- [x] 2D texture array for block textures with nearest filtering and mipmaps <!--p1:2d_texture_array_for_block_textures_with_nearest_filtering_and_mipmaps-->
+- [x] Chunk sections 16×16×16 with paletted storage <!--p1:chunk_sections_16_16_16_with_paletted_storage-->
+- [x] Chunk column storage (world height 0–255, 16 sections) <!--p1:chunk_column_storage_world_height_0_255_16_sections-->
+- [x] Chunk loading/unloading by render distance (spiral order) <!--p1:chunk_loading_unloading_by_render_distance_spiral_order-->
+- [x] Meshing in Web Workers (worker pool, transferable buffers) <!--p1:meshing_in_web_workers_worker_pool_transferable_buffers-->
+- [x] Face culling between opaque neighbors, cross-section neighbor lookup <!--p1:face_culling_between_opaque_neighbors_cross_section_neighbor_lookup-->
+- [x] Opaque / cutout / translucent render passes <!--p1:opaque_cutout_translucent_render_passes-->
+- [x] Translucent faces sorted back-to-front <!--p1:translucent_faces_sorted_back_to_front-->
+- [x] Frustum culling of chunk sections <!--p1:frustum_culling_of_chunk_sections-->
+- [x] Cave/occlusion culling (section visibility graph flood fill) <!--p1:cave_occlusion_culling_section_visibility_graph_flood_fill-->
+- [x] Incremental GPU mesh upload with per-frame budget <!--p1:incremental_gpu_mesh_upload_with_per_frame_budget-->
 - [ ] Pooled vertex buffers; no per-frame allocations in render loop <!--p1:pooled_vertex_buffers_no_per_frame_allocations_in_render_loop-->
-- [ ] Block model system: own JSON format (cubes, per-face UVs, rotations, multipart) <!--p1:block_model_system_own_json_format_cubes_per_face_uvs_rotations_multipart-->
-- [ ] Models: full cube, slab, stairs (all shapes), fence, wall, pane, door, trapdoor, torch, rail, cross plant, crop, carpet, pressure plate, button, lever, ladder, vine, snow layers, farmland/path, cactus, fluid <!--p1:models_full_cube_slab_stairs_all_shapes_fence_wall_pane_door_trapdoor_torch_rail_cross_plant_crop_carpet_pressure_plate_button_lever_ladder_vine_snow_layers_farmland_path_cactus_fluid-->
-- [ ] Biome tint (grass, foliage, water) via generated colormaps <!--p1:biome_tint_grass_foliage_water_via_generated_colormaps-->
-- [ ] Animated textures (frame strips + timing metadata) <!--p1:animated_textures_frame_strips_timing_metadata-->
-- [ ] Smooth lighting with ambient occlusion <!--p1:smooth_lighting_with_ambient_occlusion-->
-- [ ] Flat lighting (smooth lighting off) <!--p1:flat_lighting_smooth_lighting_off-->
-- [ ] Block outline box on targeted block <!--p1:block_outline_box_on_targeted_block-->
-- [ ] Block crack overlay (10 stages) <!--p1:block_crack_overlay_10_stages-->
-- [ ] Fast / Fancy graphics (leaves opacity, etc.) <!--p1:fast_fancy_graphics_leaves_opacity_etc-->
-- [ ] Mipmap levels setting (0–4) <!--p1:mipmap_levels_setting_0_4-->
+- [x] Block model system: own JSON format (cubes, per-face UVs, rotations, multipart) <!--p1:block_model_system_own_json_format_cubes_per_face_uvs_rotations_multipart-->
+- [x] Models: full cube, slab, stairs (all shapes), fence, wall, pane, door, trapdoor, torch, rail, cross plant, crop, carpet, pressure plate, button, lever, ladder, vine, snow layers, farmland/path, cactus, fluid <!--p1:models_full_cube_slab_stairs_all_shapes_fence_wall_pane_door_trapdoor_torch_rail_cross_plant_crop_carpet_pressure_plate_button_lever_ladder_vine_snow_layers_farmland_path_cactus_fluid-->
+- [x] Biome tint (grass, foliage, water) via generated colormaps <!--p1:biome_tint_grass_foliage_water_via_generated_colormaps-->
+- [x] Animated textures (frame strips + timing metadata) <!--p1:animated_textures_frame_strips_timing_metadata-->
+- [x] Smooth lighting with ambient occlusion <!--p1:smooth_lighting_with_ambient_occlusion-->
+- [x] Flat lighting (smooth lighting off) <!--p1:flat_lighting_smooth_lighting_off-->
+- [x] Block outline box on targeted block <!--p1:block_outline_box_on_targeted_block-->
+- [x] Block crack overlay (10 stages) <!--p1:block_crack_overlay_10_stages-->
+- [x] Fast / Fancy graphics (leaves opacity, etc.) <!--p1:fast_fancy_graphics_leaves_opacity_etc-->
+- [x] Mipmap levels setting (0–4) <!--p1:mipmap_levels_setting_0_4-->
 
 ### Lighting engine
 
-- [ ] Sky light propagation (0–15) with flood fill <!--p1:sky_light_propagation_0_15_with_flood_fill-->
-- [ ] Block light propagation (0–15) with flood fill and removal <!--p1:block_light_propagation_0_15_with_flood_fill_and_removal-->
-- [ ] Per-block light emission and opacity from data <!--p1:per_block_light_emission_and_opacity_from_data-->
-- [ ] Light updates on block place/break across chunk borders <!--p1:light_updates_on_block_place_break_across_chunk_borders-->
+- [x] Sky light propagation (0–15) with flood fill <!--p1:sky_light_propagation_0_15_with_flood_fill-->
+- [x] Block light propagation (0–15) with flood fill and removal <!--p1:block_light_propagation_0_15_with_flood_fill_and_removal-->
+- [x] Per-block light emission and opacity from data <!--p1:per_block_light_emission_and_opacity_from_data-->
+- [x] Light updates on block place/break across chunk borders <!--p1:light_updates_on_block_place_break_across_chunk_borders-->
 
 ### Textures
 
-- [ ] Deterministic texture generator /tools/texgen → /client/public/textures <!--p1:deterministic_texture_generator_tools_texgen_client_public_textures-->
-- [ ] Palette + pixel-grid / seeded-noise texture DSL <!--p1:palette_pixel_grid_seeded_noise_texture_dsl-->
-- [ ] Grayscale grass/leaves/water + generated grass/foliage colormaps <!--p1:grayscale_grass_leaves_water_generated_grass_foliage_colormaps-->
-- [ ] Ore texture builder (stone base + 2–4 px clusters) <!--p1:ore_texture_builder_stone_base_2_4_px_clusters-->
-- [ ] Animated textures: water, lava, fire, soul fire, nether portal, sea lantern, magma, prismarine, kelp, seagrass, etc. <!--p1:animated_textures_water_lava_fire_soul_fire_nether_portal_sea_lantern_magma_prismarine_kelp_seagrass_etc-->
+- [x] Deterministic texture generator /tools/texgen → /client/public/textures <!--p1:deterministic_texture_generator_tools_texgen_client_public_textures-->
+- [x] Palette + pixel-grid / seeded-noise texture DSL <!--p1:palette_pixel_grid_seeded_noise_texture_dsl-->
+- [x] Grayscale grass/leaves/water + generated grass/foliage colormaps <!--p1:grayscale_grass_leaves_water_generated_grass_foliage_colormaps-->
+- [x] Ore texture builder (stone base + 2–4 px clusters) <!--p1:ore_texture_builder_stone_base_2_4_px_clusters-->
+- [x] Animated textures: water, lava, fire, soul fire, nether portal, sea lantern, magma, prismarine, kelp, seagrass, etc. <!--p1:animated_textures_water_lava_fire_soul_fire_nether_portal_sea_lantern_magma_prismarine_kelp_seagrass_etc-->
 - [ ] Texture overrides from /client/public/textures/overrides/ <!--p1:texture_overrides_from_client_public_textures_overrides-->
-- [ ] Atlas viewer /tools/atlas-viewer.html (8× zoom) <!--p1:atlas_viewer_tools_atlas_viewer_html_8_zoom-->
+- [x] Atlas viewer /tools/atlas-viewer.html (8× zoom) <!--p1:atlas_viewer_tools_atlas_viewer_html_8_zoom-->
 
 ### Sky, fog, weather visuals
 
-- [ ] 24000-tick day cycle driving sky color <!--p1:24000_tick_day_cycle_driving_sky_color-->
-- [ ] Sun and moon with 8 moon phases <!--p1:sun_and_moon_with_8_moon_phases-->
-- [ ] Stars <!--p1:stars-->
-- [ ] Sunrise/sunset fog colors <!--p1:sunrise_sunset_fog_colors-->
-- [ ] Clouds: off / fast / fancy <!--p1:clouds_off_fast_fancy-->
-- [ ] Distance fog matched to render distance <!--p1:distance_fog_matched_to_render_distance-->
-- [ ] Biome-dependent sky and fog colors <!--p1:biome_dependent_sky_and_fog_colors-->
-- [ ] Rain particles and rain sheet rendering <!--p1:rain_particles_and_rain_sheet_rendering-->
+- [x] 24000-tick day cycle driving sky color <!--p1:24000_tick_day_cycle_driving_sky_color-->
+- [x] Sun and moon with 8 moon phases <!--p1:sun_and_moon_with_8_moon_phases-->
+- [x] Stars <!--p1:stars-->
+- [x] Sunrise/sunset fog colors <!--p1:sunrise_sunset_fog_colors-->
+- [x] Clouds: off / fast / fancy <!--p1:clouds_off_fast_fancy-->
+- [x] Distance fog matched to render distance <!--p1:distance_fog_matched_to_render_distance-->
+- [x] Biome-dependent sky and fog colors <!--p1:biome_dependent_sky_and_fog_colors-->
+- [x] Rain particles and rain sheet rendering <!--p1:rain_particles_and_rain_sheet_rendering-->
 - [ ] Snow rendering <!--p1:snow_rendering-->
 - [ ] Thunderstorm darkening and lightning flashes <!--p1:thunderstorm_darkening_and_lightning_flashes-->
 - [ ] Underwater fog and view <!--p1:underwater_fog_and_view-->
-- [ ] Lava fog <!--p1:lava_fog-->
+- [x] Lava fog <!--p1:lava_fog-->
 
 ### Frame loop & settings basics
 
-- [ ] Fixed 20 TPS simulation loop with interpolated rendering <!--p1:fixed_20_tps_simulation_loop_with_interpolated_rendering-->
-- [ ] Frame rate limit: VSync / 30 / 60 / 120 / Unlimited <!--p1:frame_rate_limit_vsync_30_60_120_unlimited-->
-- [ ] Render distance 2–32 <!--p1:render_distance_2_32-->
+- [x] Fixed 20 TPS simulation loop with interpolated rendering <!--p1:fixed_20_tps_simulation_loop_with_interpolated_rendering-->
+- [x] Frame rate limit: VSync / 30 / 60 / 120 / Unlimited <!--p1:frame_rate_limit_vsync_30_60_120_unlimited-->
+- [x] Render distance 2–32 <!--p1:render_distance_2_32-->
 - [ ] Simulation distance setting <!--p1:simulation_distance_setting-->
 - [ ] Entity distance setting <!--p1:entity_distance_setting-->
-- [ ] FOV setting (default 70) <!--p1:fov_setting_default_70-->
-- [ ] Brightness (gamma) setting <!--p1:brightness_gamma_setting-->
-- [ ] GUI scale setting <!--p1:gui_scale_setting-->
+- [x] FOV setting (default 70) <!--p1:fov_setting_default_70-->
+- [x] Brightness (gamma) setting <!--p1:brightness_gamma_setting-->
+- [x] GUI scale setting <!--p1:gui_scale_setting-->
 - [ ] View bobbing toggle <!--p1:view_bobbing_toggle-->
 - [ ] Particles: all / decreased / minimal <!--p1:particles_all_decreased_minimal-->
-- [ ] Settings persisted to localStorage <!--p1:settings_persisted_to_localstorage-->
-- [ ] Performance benchmark /tools/bench (avg FPS, 1% lows, chunk build time) <!--p1:performance_benchmark_tools_bench_avg_fps_1_lows_chunk_build_time-->
-- [ ] F3 debug screen <!--p1:f3_debug_screen-->
-- [ ] F1 hide HUD <!--p1:f1_hide_hud-->
-- [ ] F11 fullscreen <!--p1:f11_fullscreen-->
-- [ ] Pointer lock handling <!--p1:pointer_lock_handling-->
+- [x] Settings persisted to localStorage <!--p1:settings_persisted_to_localstorage-->
+- [x] Performance benchmark /tools/bench (avg FPS, 1% lows, chunk build time) <!--p1:performance_benchmark_tools_bench_avg_fps_1_lows_chunk_build_time-->
+- [x] F3 debug screen <!--p1:f3_debug_screen-->
+- [x] F1 hide HUD <!--p1:f1_hide_hud-->
+- [x] F11 fullscreen <!--p1:f11_fullscreen-->
+- [x] Pointer lock handling <!--p1:pointer_lock_handling-->
 
 ## Phase 2 — Player
 

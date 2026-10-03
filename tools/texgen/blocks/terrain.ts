@@ -1,15 +1,19 @@
 /** Natural terrain textures: stone family, soils, sands, ores, fluids. */
-import { Tex, pal, hex, noiseTex, ore, cells, strip, gray, shade, mix, rng, fbm, tileNoise, CLEAR, type Palette } from '../lib';
+import { Tex, pal, hex, noiseTex, ore, cells, strip, gray, shade, mix, rng, fbm, tileNoise, grain, paint, CLEAR, type Palette } from '../lib';
 import type { TexDef } from '../registry';
 
-const STONE: Palette = pal('#55565a', '#66676b', '#737478', '#7f8084', '#8c8d90', '#9a9b9e');
+const STONE: Palette = pal('#5a5a5d', '#666669', '#717174', '#7b7b7e', '#858588', '#919194');
 const DEEPSLATE: Palette = pal('#2a2a30', '#34343b', '#3d3d45', '#47474f', '#52525a', '#5c5c65');
-const DIRT: Palette = pal('#5a3c24', '#6b4a2e', '#7a5636', '#8a6340', '#99704a');
+const DIRT: Palette = pal('#5b3d25', '#6a492d', '#795535', '#86603d', '#946c46');
 const SAND: Palette = pal('#c8b47c', '#d4c08a', '#ddca95', '#e6d4a2', '#efdeb0');
 const RED_SAND: Palette = pal('#9a4f1d', '#ab5a23', '#b9652a', '#c77233', '#d27f3d');
 
 export function stone(): Tex {
-  return noiseTex(STONE, { seed: 11, octaves: [2, 4, 8, 16], weights: [0.35, 0.3, 0.2, 0.15], emboss: 2, dither: 0.7, contrast: 0.75 });
+  const t = paint(grain(11, [0.55, 0.3, 0.15]), STONE, { emboss: 1.4, contrast: 0.95, dither: 0.5, seed: 11 });
+  // a few darker flecks and lighter chips, hand-placed for character
+  const flecks: [number, number, number][] = [[3, 4, 0], [4, 4, 1], [11, 2, 0], [12, 9, 0], [12, 10, 1], [6, 12, 0], [1, 9, 5], [8, 7, 5], [14, 14, 5]];
+  for (const [x, y, i] of flecks) t.set(x, y, STONE[i]!);
+  return t;
 }
 
 export function deepslate(): Tex {
@@ -27,19 +31,19 @@ export function deepslate(): Tex {
 }
 
 export function dirt(): Tex {
-  const t = noiseTex(DIRT, { seed: 21, octaves: [4, 8, 16], weights: [0.3, 0.4, 0.3], emboss: 1.5, dither: 1.4 });
-  // a few lighter pebbles
+  const t = paint(grain(21, [0.6, 0.28, 0.12]), DIRT, { emboss: 1, contrast: 1.1, dither: 0.7, seed: 21 });
+  // pebbles: a light pixel with a shadow below-right
   const r = rng(22);
-  for (let i = 0; i < 6; i++) {
-    const x = Math.floor(r() * 16), y = Math.floor(r() * 16);
-    t.set(x, y, hex('#a8825c'));
-    t.set(x + 1, y + 1, hex('#4e331e'));
+  for (let i = 0; i < 7; i++) {
+    const x = Math.floor(r() * 15), y = Math.floor(r() * 15);
+    t.set(x, y, hex('#a07a54'));
+    t.set(x + 1, y + 1, hex('#4a311d'));
   }
   return t;
 }
 
 export function sand(palette = SAND, seed = 31): Tex {
-  return noiseTex(palette, { seed, octaves: [4, 8, 16], weights: [0.25, 0.35, 0.4], emboss: 1, dither: 1.6 });
+  return paint(grain(seed, [0.65, 0.25, 0.1]), palette, { emboss: 0.8, contrast: 1, dither: 0.9, seed });
 }
 
 export function gravel(): Tex {
@@ -69,23 +73,45 @@ export function bedrock(): Tex {
   });
 }
 
-export function cobblestone(palette: Palette = pal('#4d4d4f', '#5f5f62', '#717174', '#838386', '#959598', '#a9a9ac'), seed = 71): Tex {
-  const c = cells(seed, 9);
-  const n = fbm(seed + 1, [4, 8], [0.6, 0.4]);
+export function cobblestone(palette: Palette = pal('#3e3e40', '#535356', '#68686b', '#7b7b7e', '#8f8f92', '#a5a5a8'), seed = 71): Tex {
+  // irregular rounded stones: each Voronoi cell is shaded like a bump lit from the top-left
+  const w = 16;
+  const r = rng(seed);
+  const pts: [number, number][] = [];
+  for (let i = 0; i < 8; i++) pts.push([r() * 16, r() * 16]);
+  const id = new Int32Array(256), edge = new Float32Array(256);
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      let best = Infinity, second = Infinity, bi = 0;
+      pts.forEach(([px, py], i) => {
+        for (let oy = -1; oy <= 1; oy++)
+          for (let ox = -1; ox <= 1; ox++) {
+            const d = Math.hypot(x + 0.5 - (px + ox * 16), y + 0.5 - (py + oy * 16));
+            if (d < best) { second = best; best = d; bi = i; } else if (d < second) second = d;
+          }
+      });
+      id[y * w + x] = bi;
+      edge[y * w + x] = second - best;
+    }
+  const tone = pts.map(() => Math.floor(r() * 2));
+  const n = grain(seed + 1, [0.6, 0.3, 0.1]);
   const t = new Tex();
   for (let y = 0; y < 16; y++)
     for (let x = 0; x < 16; x++) {
-      const i = y * 16 + x;
-      if (c.edge[i]) {
+      const i = y * w + x;
+      const e = edge[i]!;
+      if (e < 0.75) {
         t.set(x, y, palette[0]!);
         continue;
       }
-      const id = c.id[i]!;
-      const left = c.id[y * 16 + ((x + 15) % 16)] !== id || c.edge[y * 16 + ((x + 15) % 16)];
-      const up = c.id[((y + 15) % 16) * 16 + x] !== id || c.edge[((y + 15) % 16) * 16 + x];
-      let v = 2 + Math.round(n[i]! * 2);
-      if (left || up) v += 1;
-      t.set(x, y, palette[Math.min(palette.length - 1, v)]!);
+      // light from the top-left: compare with the pixel up-left; shade the down-right rim
+      const ul = edge[((y + 15) % 16) * w + ((x + 15) % 16)]!;
+      const dr = edge[((y + 1) % 16) * w + ((x + 1) % 16)]!;
+      let v = 3 + tone[id[i]!]! + Math.round((n[i]! - 0.5) * 1.4);
+      if (ul < 1.2) v += 1;
+      if (dr < 1.2) v -= 1;
+      if (e > 2.5) v += 0;
+      t.set(x, y, palette[Math.max(1, Math.min(palette.length - 1, v))]!);
     }
   return t;
 }
@@ -144,14 +170,14 @@ export function ice(): Tex {
 const STONE_TEX = () => stone();
 const DEEP_TEX = () => deepslate();
 export const ORE_COLORS: Record<string, Palette> = {
-  coal: pal('#1a1a1a', '#2b2b2b', '#3e3e3e'),
-  iron: pal('#a7704e', '#d39b74', '#e8c0a0'),
-  copper: pal('#7c4a2f', '#c06c45', '#5fa38c', '#e39a6e'),
-  gold: pal('#a07a16', '#e4c22f', '#fff38a'),
-  redstone: pal('#7a0000', '#c40e0e', '#ff4a3d'),
-  emerald: pal('#0b6b31', '#17c45c', '#9ef5b8'),
-  lapis: pal('#102f8a', '#1e4fc9', '#4f7ff0'),
-  diamond: pal('#16867e', '#3fe0d4', '#bffbf6'),
+  coal: pal('#0f0f10', '#1e1e20', '#2c2c2f', '#4a4a4e'),
+  iron: pal('#8a5a3c', '#b78462', '#d6a585', '#efcfb6'),
+  copper: pal('#6d3c24', '#a8593a', '#c97148', '#4f9d83', '#ec9c6f'),
+  gold: pal('#8a6510', '#c79a1d', '#ecc932', '#fff59a'),
+  redstone: pal('#650000', '#a30a0a', '#d91414', '#ff5a4a'),
+  emerald: pal('#06592a', '#0f9446', '#1fc461', '#a6f7c3'),
+  lapis: pal('#0b2672', '#163fae', '#2559da', '#6d97f5'),
+  diamond: pal('#0f6f69', '#22b3a9', '#4be6da', '#d3fdf9'),
 };
 
 export const terrainTextures: TexDef[] = [
@@ -166,7 +192,15 @@ export const terrainTextures: TexDef[] = [
   { name: 'gravel', make: gravel },
   { name: 'bedrock', make: bedrock },
   { name: 'cobblestone', make: () => cobblestone() },
-  { name: 'mossy_cobblestone', make: () => { const t = cobblestone(); const n = fbm(74, [2, 4], [0.6, 0.4]); return t.map((c, x, y) => (n[y * 16 + x]! > 0.55 ? mix(c, hex('#4f7a2b'), 0.75) : c)); } },
+  { name: 'mossy_cobblestone', make: () => {
+    const t = cobblestone();
+    const n = fbm(74, [4, 8, 16], [0.45, 0.35, 0.2]);
+    const moss = pal('#34501f', '#41622a', '#4e7332', '#5d843a');
+    return t.map((c, x, y) => {
+      const v = n[y * 16 + x]!;
+      return v > 0.6 ? moss[Math.min(3, Math.floor((v - 0.6) * 12) + ((x + y) % 3 === 0 ? 1 : 0))]! : c;
+    });
+  } },
   { name: 'grass_block_top', make: grassTop, tint: 'grass' },
   { name: 'grass_block_side', make: grassSide },
   { name: 'grass_block_side_overlay', make: grassSideOverlay, tint: 'grass', cutout: true },
@@ -174,7 +208,7 @@ export const terrainTextures: TexDef[] = [
   { name: 'snow', make: snow },
   { name: 'clay', make: clay },
   { name: 'ice', make: ice, translucent: true },
-  { name: 'coal_ore', make: () => ore(STONE_TEX(), ORE_COLORS.coal!, 101, 6) },
+  { name: 'coal_ore', make: () => ore(STONE_TEX(), ORE_COLORS.coal!, 101, 5) },
   { name: 'iron_ore', make: () => ore(STONE_TEX(), ORE_COLORS.iron!, 102, 5) },
   { name: 'copper_ore', make: () => ore(STONE_TEX(), ORE_COLORS.copper!, 103, 6) },
   { name: 'gold_ore', make: () => ore(STONE_TEX(), ORE_COLORS.gold!, 104, 5) },
@@ -190,11 +224,87 @@ export const terrainTextures: TexDef[] = [
   { name: 'deepslate_emerald_ore', make: () => ore(DEEP_TEX(), ORE_COLORS.emerald!, 116, 4) },
   { name: 'deepslate_lapis_ore', make: () => ore(DEEP_TEX(), ORE_COLORS.lapis!, 117, 6) },
   { name: 'deepslate_diamond_ore', make: () => ore(DEEP_TEX(), ORE_COLORS.diamond!, 118, 5) },
-  { name: 'water_still', make: () => fluid(201, 32, pal('#8a8a8a', '#9a9a9a', '#a8a8a8', '#b6b6b6', '#c6c6c6'), 2, 0.75), frametime: 2, tint: 'water', translucent: true },
+  { name: 'water_still', make: () => waterStill(201, 32), frametime: 2, tint: 'water', translucent: true },
   { name: 'water_flow', make: () => fluidFlow(202, 32, pal('#8a8a8a', '#9a9a9a', '#a8a8a8', '#b6b6b6', '#c6c6c6'), 0.75), frametime: 1, tint: 'water', translucent: true },
-  { name: 'lava_still', make: () => fluid(203, 20, pal('#b33a05', '#d65a0a', '#ec7d12', '#f7a225', '#ffc94a', '#fff08a'), 2, 1), frametime: 3 },
-  { name: 'lava_flow', make: () => fluidFlow(204, 16, pal('#b33a05', '#d65a0a', '#ec7d12', '#f7a225', '#ffc94a', '#fff08a'), 1), frametime: 3 },
+  { name: 'lava_still', make: () => lava(203, 20), frametime: 2 },
+  { name: 'lava_flow', make: () => lavaFlow(204, 32), frametime: 1 },
 ];
+
+const LAVA: Palette = pal('#8f1f05', '#b3330a', '#cf4b0e', '#e26812', '#f2891c', '#fbab2c', '#ffcc49', '#fff07c');
+
+/**
+ * Animated lava: granular orange with dark crust patches and bright yellow speckles that
+ * churn slowly. Two grainy fields drift in opposite circles and cross-fade over the loop.
+ */
+function lava(seed: number, frames: number): Tex {
+  const A = fbm(seed, [8, 4, 16], [0.45, 0.35, 0.2]);
+  const B = fbm(seed + 9, [8, 4, 16], [0.45, 0.35, 0.2]);
+  const sp = rng(seed + 3);
+  const speck = new Float32Array(256).map(() => sp());
+  const fs: Tex[] = [];
+  for (let f = 0; f < frames; f++) {
+    const ph = (f / frames) * Math.PI * 2;
+    const ax = Math.round(Math.cos(ph) * 3), ay = Math.round(Math.sin(ph) * 3);
+    const t = new Tex();
+    for (let y = 0; y < 16; y++)
+      for (let x = 0; x < 16; x++) {
+        const a = A[((y + ay + 32) % 16) * 16 + ((x + ax + 32) % 16)]!;
+        const b = B[((y - ay + 32) % 16) * 16 + ((x - ax + 32) % 16)]!;
+        const k = 0.5 + 0.5 * Math.cos(ph);
+        let v = a * k + b * (1 - k);
+        // bright speckles flicker on the hottest areas
+        if (v > 0.55 && speck[((y * 16 + x + f * 37) % 256)]! > 0.9) v += 0.25;
+        const idx = Math.max(0, Math.min(LAVA.length - 1, Math.round(Math.pow(Math.max(0, v - 0.1) / 0.9, 1.6) * (LAVA.length - 1) + 0.6)));
+        t.set(x, y, LAVA[idx]!);
+      }
+    fs.push(t);
+  }
+  return strip(fs);
+}
+
+/** Flowing lava: the grainy field scrolls down one pixel every other frame. */
+function lavaFlow(seed: number, frames: number): Tex {
+  const A = fbm(seed, [8, 4, 16], [0.45, 0.35, 0.2]);
+  const fs: Tex[] = [];
+  for (let f = 0; f < frames; f++) {
+    const t = new Tex();
+    const off = Math.floor((f * 16) / frames);
+    for (let y = 0; y < 16; y++)
+      for (let x = 0; x < 16; x++) {
+        const v = A[((y - off + 32) % 16) * 16 + x]!;
+        const idx = Math.max(0, Math.min(LAVA.length - 1, Math.round(Math.pow(Math.max(0, v - 0.1) / 0.9, 1.6) * (LAVA.length - 1) + 0.6)));
+        t.set(x, y, LAVA[idx]!);
+      }
+    fs.push(t);
+  }
+  return strip(fs);
+}
+
+/**
+ * Still water: grayscale (biome tinted), mostly flat with lighter wavy ripple lines that
+ * drift diagonally, and subtle darker troughs.
+ */
+function waterStill(seed: number, frames: number): Tex {
+  const p = pal('#7e7e7e', '#8c8c8c', '#999999', '#a7a7a7', '#b8b8b8', '#cfcfcf');
+  const base = fbm(seed, [4, 8], [0.6, 0.4]);
+  const fs: Tex[] = [];
+  for (let f = 0; f < frames; f++) {
+    const t = new Tex();
+    const ph = (f / frames) * Math.PI * 2;
+    for (let y = 0; y < 16; y++)
+      for (let x = 0; x < 16; x++) {
+        // ripples: sine bands along a diagonal, phase-shifted over the loop and warped by noise
+        const b = base[((y + Math.round(Math.sin(ph) * 2) + 16) % 16) * 16 + ((x + Math.round(Math.cos(ph) * 2) + 16) % 16)]!;
+        const band = Math.sin(((x + y * 2) / 16) * Math.PI * 4 + ph * 2 + b * 3);
+        let v = 1.6 + b * 1.4 + (band > 0.8 ? 2 : band > 0.55 ? 1 : band < -0.85 ? -1 : 0);
+        v = Math.max(0, Math.min(5, Math.round(v)));
+        const c = p[v]!;
+        t.set(x, y, [c[0], c[1], c[2], 180]);
+      }
+    fs.push(t);
+  }
+  return strip(fs);
+}
 
 /** Looping animated fluid surface: two noise fields cross-faded over the cycle. */
 function fluid(seed: number, frames: number, p: Palette, cellsN: number, alpha: number): Tex {

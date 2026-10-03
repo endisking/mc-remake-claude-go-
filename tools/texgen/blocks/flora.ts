@@ -77,32 +77,40 @@ export function logSide(w: WoodColors, seed: number, birch = false): Tex {
 export function logTop(w: WoodColors, seed: number): Tex {
   const t = new Tex();
   const r = rng(seed);
+  const n = fbm(seed + 7, [4, 8], [0.6, 0.4]);
   for (let y = 0; y < 16; y++)
     for (let x = 0; x < 16; x++) {
-      const edge = x === 0 || y === 0 || x === 15 || y === 15;
-      if (edge) {
-        t.set(x, y, w.bark[1 + Math.floor(r() * 2)]!);
+      if (x === 0 || y === 0 || x === 15 || y === 15) {
+        t.set(x, y, w.bark[1 + Math.floor(r() * 3)]!);
         continue;
       }
-      // concentric square-ish rings (pixel art style), wobbling slightly
-      const d = Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5)) + (r() - 0.5) * 0.4;
-      const ring = Math.floor(d) % 2;
-      t.set(x, y, w.ring[ring === 0 ? 2 : 1]!);
-      if (Math.floor(d) === 6) t.set(x, y, w.ring[0]!);
+      // rounded, slightly wobbly growth rings (between square and circle), 2 px apart
+      const dx = x - 7.5, dy = y - 7.5;
+      const d = Math.max(Math.abs(dx), Math.abs(dy)) * 0.55 + Math.hypot(dx, dy) * 0.45 + (n[y * 16 + x]! - 0.5) * 1.2;
+      const ring = Math.floor(d / 1.6);
+      let c = w.ring[ring % 2 === 0 ? 2 : 1]!;
+      if (ring >= 5) c = w.ring[0]!;
+      if (d < 1.2) c = w.ring[0]!; // pith
+      if (r() < 0.08) c = shade(c, 0.92);
+      t.set(x, y, c);
     }
   return t;
 }
 
 /** Leaves: grayscale (biome-tinted) with transparent gaps for Fancy graphics. */
-export function leaves(seed: number, density = 0.82, base = pal('#5c5c5c', '#767676', '#8e8e8e', '#a6a6a6', '#bebebe')): Tex {
+export function leaves(seed: number, density = 0.7, base = pal('#4e4e4e', '#686868', '#828282', '#9a9a9a', '#b4b4b4')): Tex {
+  // leaf clumps: 2–4 px blobs lit top-left, with see-through gaps between them
   const t = new Tex();
   const r = rng(seed);
-  const n = fbm(seed + 1, [4, 8], [0.5, 0.5]);
+  const n = fbm(seed + 1, [8, 16, 4], [0.45, 0.35, 0.2]);
+  const holeCut = 1 - density;
   for (let y = 0; y < 16; y++)
     for (let x = 0; x < 16; x++) {
       const v = n[y * 16 + x]!;
-      if (r() > density && v < 0.6) continue; // holes
-      const idx = Math.max(0, Math.min(4, Math.round(v * 4 + (r() - 0.5) * 1.5)));
+      if (v < holeCut + 0.08 && r() < 0.85) continue;
+      const ul = n[((y + 15) % 16) * 16 + ((x + 15) % 16)]!;
+      let idx = Math.round(v * 3 + (v - ul) * 2.5 + (r() - 0.5));
+      idx = Math.max(0, Math.min(4, idx));
       t.set(x, y, base[idx]!);
     }
   return t;
@@ -115,17 +123,18 @@ export function opaqueOf(src: Tex, fill: RGBA): Tex {
 
 export function grassPlant(): Tex {
   const t = new Tex();
-  const r = rng(301);
-  const p = pal('#5a5a5a', '#727272', '#8a8a8a', '#a2a2a2');
-  // 9 blades of varying height, leaning a little
-  const xs = [1, 3, 4, 6, 8, 9, 11, 13, 14];
+  const r = rng(303);
+  const tones = [pal('#4a4a4a', '#5f5f5f', '#767676', '#8d8d8d'), pal('#565656', '#6d6d6d', '#848484', '#a0a0a0'), pal('#3f3f3f', '#585858', '#707070', '#868686')];
+  // thin 1 px blades, taller toward the middle; tips bend outward one pixel
+  const xs = [1, 2, 4, 5, 6, 8, 9, 10, 11, 13, 14];
   for (const bx of xs) {
-    const h = 6 + Math.floor(r() * 9);
-    const lean = r() < 0.5 ? -1 : 1;
+    const centre = 1 - Math.abs(bx - 7.5) / 8;
+    const h = Math.min(15, Math.round(6 + centre * 7 + r() * 3));
+    const tone = tones[Math.floor(r() * tones.length)]!;
+    const bend = bx < 7 ? -1 : bx > 8 ? 1 : 0;
     for (let i = 0; i < h; i++) {
-      const x = bx + (i > h * 0.6 ? lean : 0);
-      const y = 15 - i;
-      t.set(x, y, p[Math.min(3, Math.floor((i / h) * 4))]!);
+      const x = bx + (i >= h - 2 ? bend : 0);
+      t.set(x, 15 - i, tone[Math.min(3, Math.floor((i / h) * 4))]!);
     }
   }
   return t;
@@ -222,12 +231,12 @@ export const floraTextures: TexDef[] = [
       { name: `${log}_top`, make: () => logTop(w, 402 + i * 10) },
     ];
   }),
-  { name: 'oak_leaves', make: () => leaves(501), tint: 'foliage', cutout: true },
-  { name: 'spruce_leaves', make: () => leaves(502, 0.86), tint: 'foliage', cutout: true },
-  { name: 'birch_leaves', make: () => leaves(503, 0.8), tint: 'foliage', cutout: true },
-  { name: 'jungle_leaves', make: () => leaves(504, 0.88), tint: 'foliage', cutout: true },
-  { name: 'acacia_leaves', make: () => leaves(505, 0.8), tint: 'foliage', cutout: true },
-  { name: 'dark_oak_leaves', make: () => leaves(506, 0.86), tint: 'foliage', cutout: true },
+  { name: 'oak_leaves', make: () => leaves(501, 0.7), tint: 'foliage', cutout: true },
+  { name: 'spruce_leaves', make: () => leaves(502, 0.74), tint: 'foliage', cutout: true },
+  { name: 'birch_leaves', make: () => leaves(503, 0.68), tint: 'foliage', cutout: true },
+  { name: 'jungle_leaves', make: () => leaves(504, 0.76), tint: 'foliage', cutout: true },
+  { name: 'acacia_leaves', make: () => leaves(505, 0.66), tint: 'foliage', cutout: true },
+  { name: 'dark_oak_leaves', make: () => leaves(506, 0.74), tint: 'foliage', cutout: true },
   { name: 'grass', make: grassPlant, tint: 'grass', cutout: true },
   { name: 'poppy', make: () => POPPY, cutout: true },
   { name: 'dandelion', make: () => DANDELION, cutout: true },

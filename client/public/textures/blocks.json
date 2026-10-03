@@ -161,12 +161,12 @@
   {
    "name": "lava_still",
    "frames": 20,
-   "frametime": 3
+   "frametime": 2
   },
   {
    "name": "lava_flow",
-   "frames": 16,
-   "frametime": 3
+   "frames": 32,
+   "frametime": 1
   },
   {
    "name": "oak_planks",
@@ -430,6 +430,76 @@
   {
    "name": "glass_pane_top",
    "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "fire_0",
+   "frames": 32,
+   "cutout": true
+  },
+  {
+   "name": "fire_1",
+   "frames": 32,
+   "cutout": true
+  },
+  {
+   "name": "soul_fire_0",
+   "frames": 32,
+   "cutout": true
+  },
+  {
+   "name": "soul_fire_1",
+   "frames": 32,
+   "cutout": true
+  },
+  {
+   "name": "nether_portal",
+   "frames": 32,
+   "translucent": true
+  },
+  {
+   "name": "sea_lantern",
+   "frames": 5,
+   "frametime": 5
+  },
+  {
+   "name": "magma",
+   "frames": 3,
+   "frametime": 8
+  },
+  {
+   "name": "prismarine",
+   "frames": 22,
+   "frametime": 300
+  },
+  {
+   "name": "kelp",
+   "frames": 20,
+   "frametime": 2,
+   "cutout": true
+  },
+  {
+   "name": "kelp_plant",
+   "frames": 20,
+   "frametime": 2,
+   "cutout": true
+  },
+  {
+   "name": "seagrass",
+   "frames": 18,
+   "frametime": 2,
+   "cutout": true
+  },
+  {
+   "name": "tall_seagrass_top",
+   "frames": 18,
+   "frametime": 2,
+   "cutout": true
+  },
+  {
+   "name": "tall_seagrass_bottom",
+   "frames": 18,
+   "frametime": 2,
    "cutout": true
   },
   {

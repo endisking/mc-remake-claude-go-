@@ -13,7 +13,9 @@ import type { TexDef } from './registry';
 import { terrainTextures } from './blocks/terrain';
 import { floraTextures } from './blocks/flora';
 import { miscTextures } from './blocks/misc';
+import { animatedTextures } from './blocks/animated';
 import { grassColormap, foliageColormap } from './colormap';
+import { widgets, optionsBackground } from './gui';
 import { sun, moonPhases, clouds, rain, snowflakes, destroyStages } from './environment';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -33,6 +35,7 @@ export const ALL_BLOCK_TEXTURES: TexDef[] = [
   ...terrainTextures,
   ...floraTextures,
   ...miscTextures,
+  ...animatedTextures,
   ...destroyStages().map((t, i): TexDef => ({ name: `destroy_stage_${i}`, make: () => t, cutout: true })),
 ];
 
@@ -74,6 +77,9 @@ function main(): void {
   writePng(join(outDir, 'environment', 'moon_phases.png'), moonPhases());
   writePng(join(outDir, 'environment', 'clouds.png'), clouds());
   writePng(join(outDir, 'environment', 'rain.png'), rain());
+  mkdirSync(join(outDir, 'gui'), { recursive: true });
+  writePng(join(outDir, 'gui', 'widgets.png'), widgets());
+  writePng(join(outDir, 'gui', 'options_background.png'), optionsBackground());
   writePng(join(outDir, 'environment', 'snow.png'), snowflakes());
   const overrides = existsSync(join(outDir, 'overrides')) ? readdirSync(join(outDir, 'overrides')).filter((f) => f.endsWith('.png')) : [];
   console.log(`texgen: ${entries.length} textures (${totalFrames} frames), ${overrides.length} overrides present`);

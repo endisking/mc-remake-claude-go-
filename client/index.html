@@ -6,26 +6,14 @@
 <title>Blockcraft</title>
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
-  #game { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
-  #ui { position: fixed; inset: 0; pointer-events: none; font: 16px/1.15 monospace; color: #fff; }
-  #debug { position: absolute; left: 2px; top: 2px; white-space: pre; text-shadow: 2px 2px 0 #3f3f3f; }
-  #debug span { background: rgba(80, 80, 80, 0.56); padding: 0 2px; }
-  #crosshair { position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; mix-blend-mode: difference; }
-  #crosshair::before, #crosshair::after { content: ''; position: absolute; background: #fff; }
-  #crosshair::before { left: 8px; top: 0; width: 2px; height: 18px; }
-  #crosshair::after { left: 0; top: 8px; width: 18px; height: 2px; }
-  #click { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: auto;
-    background: rgba(0, 0, 0, 0.45); font-size: 20px; cursor: pointer; text-shadow: 2px 2px 0 #3f3f3f; }
-  .hidden { display: none !important; }
+  canvas { display: block; position: fixed; inset: 0; width: 100vw; height: 100vh; image-rendering: pixelated; }
+  #gui { pointer-events: none; }
+  #gui.interactive { pointer-events: auto; }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="ui">
-  <div id="debug"></div>
-  <div id="crosshair"></div>
-  <div id="click">Click to play</div>
-</div>
+<canvas id="gui"></canvas>
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

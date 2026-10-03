@@ -77,12 +77,12 @@ export function rain(): Tex {
   const t = new Tex(64, 256);
   const r = rng(301);
   for (let col = 0; col < 4; col++)
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 9; i++) {
       const x = col * 16 + Math.floor(r() * 16);
-      const y0 = Math.floor(r() * 256), len = 6 + Math.floor(r() * 10);
+      const y0 = Math.floor(r() * 256), len = 10 + Math.floor(r() * 14);
       for (let k = 0; k < len; k++) {
-        const a = Math.round(140 + 90 * (k / len));
-        t.set(x, (y0 + k) & 255, [92 + Math.floor(r() * 30), 132 + Math.floor(r() * 30), 220, a]);
+        const a = Math.round(90 + 120 * (k / len));
+        t.set(x, (y0 + k) & 255, [120 + Math.floor(r() * 30), 150 + Math.floor(r() * 30), 230, a]);
       }
     }
   return t;

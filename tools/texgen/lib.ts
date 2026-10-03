@@ -191,39 +191,48 @@ export function grid(rows: string[], key: Record<string, RGBA | string>): Tex {
   return t;
 }
 
-/** Scatter ore clusters of 2–4 pixels on a base texture, shaded top-left. */
+/**
+ * Scatter ore clusters on a base texture. Each cluster is a 4–7 pixel blob: a light
+ * highlight on its top-left pixels, mid tones inside, and a dark rim on the bottom-right,
+ * with a darkened stone pixel beneath for depth.
+ */
 export function ore(base: Tex, colors: Palette, seed: number, clusters = 5): Tex {
   const t = base.clone();
   const r = rng(seed);
-  // pick well separated cluster centres
-  const centres: [number, number][] = [];
-  let tries = 0;
-  while (centres.length < clusters && tries++ < 400) {
-    const cx = 1 + Math.floor(r() * 14), cy = 1 + Math.floor(r() * 14);
-    if (centres.every(([x, y]) => Math.abs(x - cx) + Math.abs(y - cy) > 4)) centres.push([cx, cy]);
-  }
   const shapes: [number, number][][] = [
-    [[0, 0], [1, 0], [0, 1]],
-    [[0, 0], [1, 0], [1, 1], [0, 1]],
-    [[0, 0], [1, 1]],
-    [[0, 0], [1, 0], [2, 1], [1, 1]],
-    [[0, 0], [0, 1], [1, 1]],
+    [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]],
+    [[0, 0], [1, 0], [0, 1], [1, 1], [2, 1]],
+    [[1, 0], [2, 0], [0, 1], [1, 1], [1, 2], [2, 2]],
+    [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2]],
+    [[0, 0], [1, 0], [2, 0], [1, 1]],
+    [[0, 0], [0, 1], [1, 1], [1, 2], [2, 2], [2, 1]],
     [[1, 0], [0, 1], [1, 1], [2, 1]],
   ];
-  const dark = colors[0]!, mid = colors[Math.floor(colors.length / 2)]!, light = colors[colors.length - 1]!;
+  const centres: [number, number][] = [];
+  let tries = 0;
+  while (centres.length < clusters && tries++ < 600) {
+    const cx = Math.floor(r() * 13), cy = Math.floor(r() * 13);
+    if (centres.every(([x, y]) => Math.max(Math.abs(x - cx), Math.abs(y - cy)) > 3)) centres.push([cx, cy]);
+  }
+  const dark = colors[0]!, light = colors[colors.length - 1]!;
+  const mids = colors.slice(1, -1).length ? colors.slice(1, -1) : [colors[0]!];
   for (const [cx, cy] of centres) {
     const s = shapes[Math.floor(r() * shapes.length)]!;
     const cells = new Set(s.map(([dx, dy]) => `${cx + dx},${cy + dy}`));
+    // shadow on stone below-right of the blob
+    for (const [dx, dy] of s) {
+      const sx = cx + dx + 1, sy = cy + dy + 1;
+      if (!cells.has(`${sx},${sy}`)) t.set(sx, sy, shade(t.get(sx, sy), 0.72));
+    }
     for (const [dx, dy] of s) {
       const x = cx + dx, y = cy + dy;
-      const hasTL = cells.has(`${x - 1},${y}`) || cells.has(`${x},${y - 1}`);
-      const hasBR = cells.has(`${x + 1},${y}`) || cells.has(`${x},${y + 1}`);
-      t.set(x, y, !hasTL ? light : !hasBR ? dark : mid);
+      const open = (ex: number, ey: number) => !cells.has(`${x + ex},${y + ey}`);
+      let c: RGBA;
+      if (open(-1, 0) && open(0, -1)) c = light;
+      else if (open(1, 0) && open(0, 1)) c = dark;
+      else c = mids[Math.floor(r() * mids.length)]!;
+      t.set(x, y, c);
     }
-    // dark rim pixel bottom-right of the cluster for depth
-    const [lx, ly] = s.reduce((a, b) => (b[0] + b[1] > a[0] + a[1] ? b : a));
-    const rx = cx + lx! + 1, ry = cy + ly!;
-    if (!cells.has(`${rx},${ry}`)) t.set(rx, ry, shade(t.get(rx, ry), 0.7));
   }
   return t;
 }
@@ -280,5 +289,31 @@ export function flipX(src: Tex): Tex {
 export function rotate90(src: Tex): Tex {
   const t = new Tex(src.h, src.w);
   for (let y = 0; y < src.h; y++) for (let x = 0; x < src.w; x++) t.set(src.h - 1 - y, x, src.get(x, y));
+  return t;
+}
+
+/**
+ * Grainy pixel-art noise: mostly per-pixel variation with some 2×2 and 4×4 clumping,
+ * which reads as the classic blocky texture look (rather than smooth blobs).
+ */
+export function grain(seed: number, w = [0.5, 0.32, 0.18], width = 16, height = 16): Float32Array {
+  return fbm(seed, [16, 8, 4], w, width, height);
+}
+
+/** Map a 0..1 field onto a palette with top-left emboss and dithering. */
+export function paint(field: Float32Array, palette: Palette, o: { emboss?: number; dither?: number; contrast?: number; bias?: number; seed?: number } = {}, w = 16, h = 16): Tex {
+  const t = new Tex(w, h);
+  const r = rng((o.seed ?? 1) ^ 0x51ed);
+  const P = palette.length;
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const v0 = field[y * w + x]!;
+      const v = (v0 - 0.5) * (o.contrast ?? 1) + 0.5 + (o.bias ?? 0);
+      const br = field[((y + 1) % h) * w + ((x + 1) % w)]!;
+      const em = (v0 - br) * (o.emboss ?? 0);
+      const d = (r() - 0.5) * (o.dither ?? 0);
+      const idx = Math.max(0, Math.min(P - 1, Math.round(v * (P - 1) + em + d)));
+      t.set(x, y, palette[idx]!);
+    }
   return t;
 }

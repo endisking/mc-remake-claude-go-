@@ -499,7 +499,7 @@ export class ChunkRenderer {
   stats(): ChunkRenderStats {
     let pending = 0, building = 0, quads = 0;
     for (const s of this.sections.values()) {
-      if (s.dirty) pending++;
+      if (s.dirty && this.canBuild(s)) pending++;
       if (s.building) building++;
     }
     for (const s of this.visible) quads += s.quads[0]! + s.quads[1]! + s.quads[2]!;

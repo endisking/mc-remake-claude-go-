@@ -8,12 +8,20 @@ Work loop: see `CLAUDE.md` §0. Each entry: what was done, deviations from vanil
 
 ## Known gaps vs vanilla
 
-(none logged yet)
+- Underwater fog uses vanilla's default dark navy colour but no "water vision" ramp yet (needs the Phase 2 player).
+- Block outline draws every box of a shape; vanilla merges edges of multi-box shapes (stairs show an inner edge).
+- Weighted random model variants (e.g. grass block top rotation) use our own position hash, not vanilla's exact
+  per-position random, so a given block may show a different rotation than in vanilla (purely cosmetic).
+- Fluid surfaces use our implementation of the vanilla corner-height averaging; flow texture rotation is derived
+  from the height gradient instead of the server flow vector.
+- Chunk storage keeps flat 16-bit arrays per non-empty section (empty sections store nothing); palette compression
+  is used only on the wire and in saves.
 
 ## Benchmarks
 
 | Date | Phase | Avg FPS | 1% low | Chunk build (ms) | Notes |
 |---|---|---|---|---|---|
+| 2026-10-03 | 1 | 9.3 | 4.6 | 0.50 | RD 6, 1280×720, SwiftShader (software GL in the CI container). JS CPU per frame 2.2 ms, 304 visible sections. |
 
 ---
 
@@ -44,3 +52,37 @@ Decisions / deviations:
 - Invented brand-character names are renamed (see `NAMES.md`); mechanics unchanged.
 
 Next: Phase 1 — WebGL2 renderer, chunk storage, meshing workers, lighting, texture generator.
+
+## 2026-10-03 — Phase 1: engine core (in progress)
+
+Done (each verified with unit tests and/or Playwright screenshots in `tools/bench/out/shots/`):
+- Light engine (`shared/src/world/light.ts`): sky + block light flood fill and removal, vanilla rules (15 straight
+  down, max(1, opacity) loss, shape occlusion for slabs/stairs/snow). Test: random edits match a full recompute.
+- Binary protocol (`shared/src/protocol`), paletted chunk codec, integrated server in a Web Worker
+  (`client/src/server.worker.ts`) running `server/src/game/server.ts` at 20 TPS with a weather cycle.
+- Texture generator (`tools/texgen`, 119 textures, animated strips incl. water, lava, fire, soul fire, portal, sea
+  lantern, magma, prismarine, kelp, seagrass), generated colormaps, atlas viewer (`pnpm atlas`).
+  Second texture pass after feedback: grainy pixel noise instead of smooth blobs, new lava, rounded cobblestone,
+  bigger shaded ore clusters, rippled water, wobbly log rings, leafier leaves, thin grass blades.
+- Model system: own JSON format (`client/src/models/format.ts`), base library (cubes, cross plants, torches,
+  slabs, stairs, fences, walls, panes, doors, trapdoors, rails, ladders, vines, crops, carpets, plates, buttons,
+  levers, snow layers, cactus, farmland), blockstate variants + multipart, baking with element/state rotations and
+  uvlock.
+- Mesher in workers: culling incl. border cells, solid/cutout/translucent passes, vanilla AO + smooth lighting,
+  biome tint blending, fluids (corner heights, flow textures), cave-culling visibility graph.
+- WebGL2 renderer: texture array with alpha-aware mipmaps, vanilla lightmap formula, frustum + cave culling,
+  translucent back-to-front sorting, sky (sky/fog colour formulas, sunrise fan, sun, 8 moon phases, stars), clouds
+  (fast/fancy), rain/snow sheets, block outline (screen-space lines), crack overlay.
+- GUI layer: original bitmap font (`tools/fontgen`), vanilla GUI scale, buttons/sliders, pause menu, Options, Video
+  Settings; F3 debug screen with targeted block state; F1, F11.
+- Benchmark tool (`pnpm bench`), screenshot runner (`tools/shots.ts`), contact sheets (`tools/contact.ts`).
+- Multiplayer groundwork pulled forward at the user's request (LAN is a priority): Node dedicated server with
+  WebSocket rooms + static hosting (`pnpm server`), WebRTC "Open to LAN" host/guest transports with a signaling
+  relay, tested with two in-process clients and a real WebSocket client.
+
+Deviations / notes:
+- The dev terrain (`shared/src/worldgen/devgen.ts`) is a stand-in until the Phase 3 generator.
+- Showcase scene `?scene=models` places one of every model shape for visual checks.
+
+Remaining Phase 1: pooled buffers in all render paths, texture override verification, snow check in a cold biome,
+lightning flashes, simulation/entity distance, view bobbing, particle setting (the last few depend on Phase 2).

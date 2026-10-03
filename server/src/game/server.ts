@@ -264,12 +264,13 @@ export class GameServer {
     let budget = this.chunkGenBudget;
     for (const p of this.players) {
       const pcx = Math.floor(p.x) >> 4, pcz = Math.floor(p.z) >> 4;
-      const r = p.viewDistance;
+      // vanilla ChunkMap sends one ring beyond the client's view distance so edge chunks have neighbours
+      const r = p.viewDistance + 1;
       // unload far chunks
       for (const key of p.sent) {
         const cx = Math.floor(key / 0x400000) - 0x200000;
         const cz = (key % 0x400000) - 0x200000;
-        if (Math.abs(cx - pcx) > r + 1 || Math.abs(cz - pcz) > r + 1) {
+        if (Math.abs(cx - pcx) > r || Math.abs(cz - pcz) > r) {
           p.sent.delete(key);
           this.send(p, { t: 'unloadChunk', cx, cz });
         }
@@ -283,6 +284,8 @@ export class GameServer {
         const c = this.prepareChunk(cx, cz);
         p.sent.add(key);
         this.send(p, { t: 'chunk', chunk: c });
+        // the chunk packet already carries current light for this column
+        for (let sy = 0; sy < 16; sy++) this.lightDirty.delete(key * 16 + sy);
         budget--;
       }
     }
@@ -291,7 +294,7 @@ export class GameServer {
       for (const c of [...this.world.chunks.values()]) {
         const needed = this.players.some((p) => {
           const pcx = Math.floor(p.x) >> 4, pcz = Math.floor(p.z) >> 4;
-          return Math.abs(c.x - pcx) <= p.viewDistance + 2 && Math.abs(c.z - pcz) <= p.viewDistance + 2;
+          return Math.abs(c.x - pcx) <= p.viewDistance + 3 && Math.abs(c.z - pcz) <= p.viewDistance + 3;
         });
         if (!needed) this.world.removeChunk(c.x, c.z);
       }

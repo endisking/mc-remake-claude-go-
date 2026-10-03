@@ -22,10 +22,15 @@ import { CrackRenderer } from './render/overlay';
 import { bakeBlockModels } from './render/blockmodels';
 import { raycastBlocks, type BlockHit } from '@shared/world/raycast';
 import { outlineBoxes } from '@shared/world/shapes';
+import { blockNameOf, propsOf } from '@shared/world/blockstate';
 import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes } from './render/math';
 import type { TextureManifest } from './render/blockmodels';
+import { Gui } from './gui/gui';
+import type { Screen } from './gui/screen';
+import { PauseScreen, type ScreenHost } from './gui/screens';
+import { saveSettings } from './settings';
 
-export class Game {
+export class Game implements ScreenHost {
   readonly gl: WebGL2RenderingContext;
   readonly world = new ClientWorld();
   readonly input: Input;
@@ -44,6 +49,13 @@ export class Game {
   /** Block the crosshair points at (reach 5 in creative, 4.5 survival). */
   target: BlockHit | null = null;
   reach = 5;
+  readonly gui: Gui;
+  integrated: import('./net/connection').IntegratedServer | null = null;
+  lanHost: import('./net/lan').LanHost | null = null;
+  lanStatus = '';
+  screen: Screen | null = null;
+  private mouseGX = 0;
+  private mouseGY = 0;
   private biomes = new BiomeColors();
   private manifest!: TextureManifest;
 
@@ -67,6 +79,7 @@ export class Game {
   private lastRender = 0;
   private frameTimes: number[] = [];
   fps = 0;
+  cpuFrameMs = 0;
   private fpsCount = 0;
   private fpsTime = 0;
 
@@ -83,20 +96,98 @@ export class Game {
     const q = new URLSearchParams(location.search);
     this.settings = applyQueryOverrides(loadSettings(), q);
     this.showDebug = q.get('debug') === '1';
-    const click = document.getElementById('click')!;
-    click.addEventListener('click', () => this.input.lock());
-    this.input.onLockChange = (l) => click.classList.toggle('hidden', l || q.get('nolock') === '1');
-    if (q.get('nolock') === '1') click.classList.add('hidden');
+    const guiCanvas = document.getElementById('gui') as HTMLCanvasElement;
+    this.gui = new Gui(guiCanvas);
+    const toGui = (e: MouseEvent) => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      this.mouseGX = (e.clientX * dpr) / this.gui.scale;
+      this.mouseGY = (e.clientY * dpr) / this.gui.scale;
+    };
+    guiCanvas.addEventListener('mousedown', (e) => {
+      toGui(e);
+      if (e.button === 0) this.screen?.mouseDown(this.mouseGX, this.mouseGY);
+    });
+    guiCanvas.addEventListener('mousemove', (e) => {
+      toGui(e);
+      this.screen?.mouseMove(this.mouseGX, this.mouseGY);
+    });
+    window.addEventListener('mouseup', () => this.screen?.mouseUp());
+    window.addEventListener('keydown', (e) => {
+      if (this.screen) {
+        if (this.screen.keyDown(e.code)) e.preventDefault();
+      }
+    });
+    this.input.onLockChange = (locked) => {
+      // losing the pointer (Escape, alt-tab) opens the pause menu like vanilla
+      if (!locked && !this.screen && this.loggedIn) this.setScreen(new PauseScreen(this));
+    };
+    // clicking the world while no screen is open grabs the mouse again
+    canvas.addEventListener('mousedown', () => {
+      if (!this.screen && !this.input.locked) this.input.lock();
+    });
+  }
+
+  // ------------------------------------------------------------------ screens (ScreenHost)
+  setScreen(s: Screen | null): void {
+    this.screen?.onClose();
+    this.screen = s;
+    if (s) {
+      s.init();
+      this.gui.canvas.classList.add('interactive');
+      if (this.input.locked) document.exitPointerLock();
+    } else {
+      this.gui.canvas.classList.remove('interactive');
+      if (new URLSearchParams(location.search).get('nolock') !== '1') this.input.lock();
+    }
+  }
+
+  private loadedMipLevels = -1;
+
+  applySettings(reloadChunks: boolean): void {
+    saveSettings(this.settings);
+    if (this.textures && this.settings.mipmapLevels !== this.loadedMipLevels) {
+      const levels = this.settings.mipmapLevels;
+      this.loadedMipLevels = levels;
+      void BlockTextureArray.load(this.gl, this.manifest, levels).then((t) => {
+        this.gl.deleteTexture(this.textures.tex);
+        this.textures = t;
+      });
+    }
+    this.biomes.blendRadius = this.settings.biomeBlend;
+    if (this.loggedIn) this.send({ t: 'settings', viewDistance: this.settings.renderDistance });
+    if (reloadChunks) {
+      this.chunks.setMesherOptions({ smoothLighting: this.settings.smoothLighting, fancy: this.settings.graphics === 'fancy' }, this.manifest);
+    }
+  }
+
+  /** Open the integrated world to other players (WebRTC); returns the room code. */
+  async openToLan(code?: string): Promise<string | null> {
+    if (!this.integrated) return null;
+    if (this.lanHost) return this.lanHost.code;
+    const { LanHost, randomRoomCode, signalingUrl } = await import('./net/lan');
+    const c = code ?? randomRoomCode();
+    this.lanHost = new LanHost(this.integrated, c, signalingUrl(new URLSearchParams(location.search).get('signal')));
+    this.lanHost.onStatus = (msg) => {
+      this.lanStatus = msg;
+      console.info('[LAN]', msg);
+    };
+    return c;
+  }
+
+  quitToTitle(): void {
+    location.reload();
   }
 
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
+    await this.gui.load();
     this.manifest = await loadManifest();
     const [tex] = await Promise.all([
       BlockTextureArray.load(this.gl, this.manifest, this.settings.mipmapLevels),
       this.biomes.load(),
     ]);
     this.textures = tex;
+    this.loadedMipLevels = this.settings.mipmapLevels;
     this.biomes.blendRadius = this.settings.biomeBlend;
     this.lightmap = new Lightmap(this.gl);
     this.sky = new SkyRenderer(this.gl);
@@ -115,9 +206,23 @@ export class Game {
     });
     this.chunks.renderDistance = this.settings.renderDistance;
 
-    const seed = BigInt(q.get('seed') ?? '12345');
-    const { transport } = await startIntegratedServer(seed, q.get('scene') ?? '');
-    this.connect(transport);
+    if (q.has('server')) {
+      // multiplayer: dedicated server over WebSocket
+      const { WebSocketTransport, playUrl } = await import('./net/websocket');
+      this.connect(new WebSocketTransport(playUrl(q.get('server')!, q.get('room') ?? 'default')));
+    } else {
+      if (q.has('join')) {
+        // LAN guest: join a browser-hosted world by room code
+        const { LanGuestTransport, signalingUrl } = await import('./net/lan');
+        this.connect(new LanGuestTransport(q.get('join')!, signalingUrl(q.get('signal'))));
+      } else {
+        const seed = BigInt(q.get('seed') ?? '12345');
+        const { server, transport } = await startIntegratedServer(seed, q.get('scene') ?? '');
+        this.integrated = server;
+        this.connect(transport);
+        if (q.has('host')) this.openToLan(q.get('host') || undefined);
+      }
+    }
     requestAnimationFrame((t) => this.frame(t));
   }
 
@@ -125,7 +230,7 @@ export class Game {
     this.transport = t;
     t.onMessage = (d) => this.handle(decodeS2C(d));
     t.onClose = (r) => console.warn('disconnected', r);
-    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: 'Player', viewDistance: this.settings.renderDistance });
+    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance });
   }
 
   send(p: C2S): void {
@@ -142,6 +247,12 @@ export class Game {
         this.pitch = p.pitch;
         this.loggedIn = true;
         this.applyTestParams();
+        if (!this.input.locked && new URLSearchParams(location.search).get('nolock') !== '1') this.setScreen(new PauseScreen(this));
+        {
+          const sc = new URLSearchParams(location.search).get('screen');
+          if (sc === 'video') import('./gui/screens').then((m) => this.setScreen(new m.VideoSettingsScreen(this, new m.PauseScreen(this))));
+          else if (sc === 'pause') this.setScreen(new PauseScreen(this));
+        }
         break;
       case 'chunk':
         this.world.loadChunk(p.chunk);
@@ -201,6 +312,14 @@ export class Game {
     }
     if (n('yaw') !== undefined) this.yaw = n('yaw')!;
     if (n('pitch') !== undefined) this.pitch = n('pitch')!;
+    if (q.has('lookat')) {
+      // aim the eye (feet position + 1.62) at a world point
+      const [tx, ty, tz] = q.get('lookat')!.split(',').map(Number) as [number, number, number];
+      const ex = n('x') ?? this.x, ey = (n('y') ?? this.y - 1.62) + 1.62, ez = n('z') ?? this.z;
+      const dx = tx - ex, dy = ty - ey, dz = tz - ez;
+      this.yaw = (Math.atan2(-dx, dz) * 180) / Math.PI;
+      this.pitch = (-Math.atan2(dy, Math.hypot(dx, dz)) * 180) / Math.PI;
+    }
     if (q.has('weather')) this.send({ t: 'chat', message: `/weather ${q.get('weather')}` });
     if (n('time') !== undefined) {
       this.send({ t: 'chat', message: '/gamerule doDaylightCycle false' });
@@ -254,7 +373,10 @@ export class Game {
     }
     const partial = this.tickAccum / 50;
     this.handleFrameInput();
+    const c0 = performance.now();
     this.render(partial);
+    // CPU time spent issuing the frame (excludes GPU work); tracked for the benchmark
+    this.cpuFrameMs = this.cpuFrameMs * 0.95 + (performance.now() - c0) * 0.05;
     this.input.endFrame();
     // fps
     this.fpsCount++;
@@ -269,6 +391,7 @@ export class Game {
 
   private handleFrameInput(): void {
     const i = this.input;
+    if (this.screen) return;
     const sens = this.settings.mouseSensitivity * 0.6 + 0.2;
     const k = sens * sens * sens * 8 * 0.15;
     this.yaw += i.mouseDX * k;
@@ -376,39 +499,96 @@ export class Game {
     if (medium === 'air') {
       this.clouds.render(this.viewProj, cx, cy, cz, this.clientTicks + partial, s.clouds, s.renderDistance, cloudColor(tod, this.world.rain, this.world.thunder), fog);
     }
-    this.updateHud(cx, cy, cz);
+    this.renderGui(cx, cy, cz);
   }
 
-  private updateHud(x: number, y: number, z: number): void {
-    const dbg = document.getElementById('debug')!;
-    document.getElementById('crosshair')!.classList.toggle('hidden', this.hideHud);
-    if (!this.showDebug || this.hideHud) {
-      if (dbg.textContent) dbg.textContent = '';
-      return;
+  private renderGui(x: number, y: number, z: number): void {
+    const g = this.gui;
+    g.begin(this.settings.guiScale);
+    if (!this.hideHud) {
+      if (this.showDebug) this.renderDebug(x, y, z);
+      else {
+        // crosshair: inverted colours like vanilla
+        const ctx = g.ctx;
+        ctx.save();
+        ctx.globalCompositeOperation = 'difference';
+        ctx.fillStyle = '#fff';
+        const cx = Math.floor(g.width / 2), cy = Math.floor(g.height / 2);
+        ctx.fillRect(cx - 7, cy, 15, 1);
+        ctx.fillRect(cx, cy - 7, 1, 7);
+        ctx.fillRect(cx, cy + 1, 1, 7);
+        ctx.restore();
+      }
     }
-    if (this.clientTicks % 2 !== 0 && dbg.textContent) return;
+    if (this.screen) this.screen.render(this.mouseGX, this.mouseGY);
+  }
+
+  private debugLines(x: number, y: number, z: number): { left: string[]; right: string[] } {
     const st = this.chunks.stats();
     const sorted = [...this.frameTimes].sort((a, b) => b - a);
     const low1 = sorted.length ? 1000 / sorted[Math.max(0, Math.floor(sorted.length * 0.01))]! : 0;
-    const bx = Math.floor(x), by = Math.floor(y), bz = Math.floor(z);
-    const facing = ['south (Towards positive Z)', 'west (Towards negative X)', 'north (Towards negative Z)', 'east (Towards positive X)'][Math.floor((((this.yaw % 360) + 360) % 360) / 90 + 0.5) & 3];
-    const light = this.world.getLight(bx, by, bz);
+    const feetY = y - 1.62;
+    const bx = Math.floor(x), by = Math.floor(feetY), bz = Math.floor(z);
+    const yawN = (((this.yaw + 180) % 360) + 360) % 360 - 180;
+    const dirIdx = Math.floor((((this.yaw % 360) + 360) % 360) / 90 + 0.5) & 3;
+    const facing = ['south (Towards positive Z)', 'west (Towards negative X)', 'north (Towards negative Z)', 'east (Towards positive X)'][dirIdx];
+    const light = this.world.getLight(bx, Math.floor(y), bz);
     const biome = BIOMES[this.world.getBiome(bx, by, bz)];
-    const lines = [
-      `Blockcraft 1.17.1 (${this.fps} fps, 1% low ${low1.toFixed(0)})`,
-      `C: ${st.visible}/${st.sections} sections, ${st.pending} pending, ${st.building} building, ${st.avgBuildMs.toFixed(1)} ms/build`,
-      `Quads: ${st.quads}`,
+    const chunk = this.world.getChunk(bx >> 4, bz >> 4);
+    const s = this.settings;
+    const fpsCap = s.maxFps === -1 ? 'vsync' : s.maxFps === 0 ? 'inf' : String(s.maxFps);
+    const left = [
+      'Blockcraft 1.17.1 (1.17.1/blockcraft)',
+      `${this.fps} fps T: ${fpsCap} ${s.graphics} ${s.clouds === 'off' ? '' : s.clouds + '-clouds'} B: ${s.biomeBlend}  1%: ${low1.toFixed(0)}`,
+      `C: ${st.visible}/${st.sections} (s) D: ${s.renderDistance}, pC: ${String(st.building).padStart(3, '0')}, pU: ${String(st.pending).padStart(2, '0')}, ${st.avgBuildMs.toFixed(1)} ms/build`,
+      `Q: ${st.quads}`,
+      `Client Chunk Cache: ${this.world.chunks.size}`,
+      'minecraft:overworld',
       '',
-      `XYZ: ${x.toFixed(3)} / ${(y - 1.62).toFixed(5)} / ${z.toFixed(3)}`,
-      `Block: ${bx} ${Math.floor(y - 1.62)} ${bz}`,
+      `XYZ: ${x.toFixed(3)} / ${feetY.toFixed(5)} / ${z.toFixed(3)}`,
+      `Block: ${bx} ${by} ${bz}`,
       `Chunk: ${bx & 15} ${by & 15} ${bz & 15} in ${bx >> 4} ${by >> 4} ${bz >> 4}`,
-      `Facing: ${facing} (${(((this.yaw + 180) % 360 + 360) % 360 - 180).toFixed(1)} / ${this.pitch.toFixed(1)})`,
-      `Light: ${Math.max(light >> 4, light & 15)} (${light >> 4} sky, ${light & 15} block)`,
+      `Facing: ${facing} (${yawN.toFixed(1)} / ${this.pitch.toFixed(1)})`,
+      `Client Light: ${Math.max(light >> 4, light & 15)} (${light >> 4} sky, ${light & 15} block)`,
+      chunk ? `CH M: ${chunk.motionBlocking[(bz & 15) * 16 + (bx & 15)]}` : 'Waiting for chunk...',
       `Biome: minecraft:${biome?.name ?? '?'}`,
-      `Day ${Math.floor(this.world.dayTime / 24000)}, time ${Math.floor(this.world.dayTime % 24000)}`,
-      `Loaded chunks: ${this.world.chunks.size} (key ${chunkKey(bx >> 4, bz >> 4)})`,
-      this.target ? `Targeted Block: ${this.target.x}, ${this.target.y}, ${this.target.z}` : '',
+      `Day ${Math.floor(this.world.dayTime / 24000)} (${Math.floor(((this.world.dayTime % 24000) + 24000) % 24000)})`,
     ];
-    dbg.innerHTML = lines.map((l) => (l ? `<span>${l.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</span>` : '')).join('\n');
+    const mem = (performance as unknown as { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
+    const right = [
+      'JS: browser',
+      mem ? `Mem: ${Math.round((mem.usedJSHeapSize / mem.jsHeapSizeLimit) * 100)}% ${Math.round(mem.usedJSHeapSize / 1048576)}/${Math.round(mem.jsHeapSizeLimit / 1048576)}MB` : 'Mem: n/a',
+      `CPU: ${navigator.hardwareConcurrency || '?'}x`,
+      '',
+      `Display: ${this.canvas.width}x${this.canvas.height} (WebGL2)`,
+    ];
+    if (this.target) {
+      const t = this.target;
+      right.push('', `§nTargeted Block: ${t.x}, ${t.y}, ${t.z}`, `minecraft:${blockNameOf(t.state)}`);
+      const props = propsOf(t.state);
+      for (const [k, v] of Object.entries(props)) {
+        const val = String(v);
+        right.push(`${k}: ${val === 'true' ? '§a' : val === 'false' ? '§c' : ''}${val}`);
+      }
+    }
+    return { left, right };
+  }
+
+  private renderDebug(x: number, y: number, z: number): void {
+    const g = this.gui;
+    const { left, right } = this.debugLines(x, y, z);
+    left.forEach((l, i) => {
+      if (!l) return;
+      const w = g.font.width(l);
+      g.fill(1, 2 + i * 9 - 1, w + 1, 9, 0x90505050);
+      g.text(l, 2, 2 + i * 9, 0xe0e0e0, false);
+    });
+    right.forEach((l, i) => {
+      if (!l) return;
+      const w = g.font.width(l);
+      const rx = g.width - 2 - w;
+      g.fill(rx - 1, 2 + i * 9 - 1, w + 1, 9, 0x90505050);
+      g.text(l, rx, 2 + i * 9, 0xe0e0e0, false);
+    });
   }
 }

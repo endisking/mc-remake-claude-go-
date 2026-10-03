@@ -24,14 +24,15 @@ await page.waitForFunction(() => (window as any).game?.loggedIn && (window as an
 // let the initial area load
 await page.waitForFunction(() => { const s = (window as any).game.chunks.stats(); return s.sections > 100 && s.pending < 20; }, undefined, { timeout: 180000 }).catch(() => {});
 
-const result = await page.evaluate(async (seconds) => {
-  const g = (window as any).game;
-  const times: number[] = [];
+// passed as a string: tsx's transpiled helpers (__name) don't exist in the page
+const result = (await page.evaluate(`(async () => {
+  const seconds = ${seconds};
+  const g = window.game;
+  const times = [];
   const start = performance.now();
   let last = start;
-  // fixed path: a slow circle of radius 60 at y=100 while yawing
-  await new Promise<void>((resolve) => {
-    const step = (t: number) => {
+  await new Promise((resolve) => {
+    function step(t) {
       const el = (t - start) / 1000;
       times.push(t - last);
       last = t;
@@ -39,16 +40,16 @@ const result = await page.evaluate(async (seconds) => {
       g.setCamera(Math.cos(a) * 60, 100, Math.sin(a) * 60, (a * 180) / Math.PI + 90, 20);
       if (el < seconds) requestAnimationFrame(step);
       else resolve();
-    };
+    }
     requestAnimationFrame(step);
   });
   times.shift();
   const sorted = [...times].sort((a, b) => b - a);
   const avgMs = times.reduce((a, b) => a + b, 0) / times.length;
-  const p1 = sorted[Math.max(0, Math.floor(sorted.length * 0.01))]!;
+  const p1 = sorted[Math.max(0, Math.floor(sorted.length * 0.01))];
   const st = g.chunks.stats();
-  return { frames: times.length, avgFps: 1000 / avgMs, low1Fps: 1000 / p1, chunkBuildMs: st.avgBuildMs, sections: st.sections };
-}, seconds);
+  return { frames: times.length, avgFps: 1000 / avgMs, low1Fps: 1000 / p1, chunkBuildMs: st.avgBuildMs, cpuFrameMs: g.cpuFrameMs, sections: st.sections, visible: st.visible };
+})()`)) as Record<string, number>;
 
 const rec = { date: new Date().toISOString(), rd, seconds, gpu: process.env.BENCH_GPU ? 'hardware' : 'swiftshader', ...result };
 console.log(JSON.stringify(rec, null, 1));

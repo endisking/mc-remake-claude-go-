@@ -74,13 +74,14 @@ function vine(): Tex {
   const r = rng(621);
   const p = pal('#4a4a4a', '#6a6a6a', '#8a8a8a', '#a8a8a8');
   // wandering stems with leaves
-  for (let k = 0; k < 6; k++) {
-    let x = Math.floor(r() * 16);
+  for (let k = 0; k < 4; k++) {
+    let x = 1 + k * 4 + Math.floor(r() * 2);
     for (let y = 0; y < 16; y++) {
-      t.set(x, y, p[1]!);
-      if (r() < 0.35) t.set(x + 1, y, p[3]!);
-      if (r() < 0.35) t.set(x - 1, y, p[2]!);
-      if (r() < 0.25) x = (x + (r() < 0.5 ? 1 : 15)) % 16;
+      t.set(x, y, p[0]!);
+      // small leaves budding off the stem
+      if (r() < 0.3) { t.set(x + 1, y, p[3]!); t.set(x + 2, y, p[2]!); t.set(x + 1, y + 1, p[1]!); }
+      if (r() < 0.3) { t.set(x - 1, y, p[2]!); t.set(x - 1, y + 1, p[1]!); }
+      if (r() < 0.2) x = Math.max(0, Math.min(15, x + (r() < 0.5 ? 1 : -1)));
     }
   }
   return t;

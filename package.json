@@ -21,9 +21,9 @@
   "devDependencies": {
     "@playwright/test": "1.56.1",
     "@types/node": "^22.10.0",
+    "@types/pngjs": "^6.0.5",
     "minecraft-data": "3.117.0",
     "pngjs": "^7.0.0",
-    "@types/pngjs": "^6.0.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vite": "^7.1.0",
@@ -33,5 +33,9 @@
     "onlyBuiltDependencies": [
       "esbuild"
     ]
+  },
+  "dependencies": {
+    "@types/ws": "^8.18.2",
+    "ws": "^8.22.0"
   }
 }
