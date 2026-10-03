@@ -34,6 +34,10 @@ export class RemotePlayer {
   swinging = false;
   attackAnim = 0;
   attackAnimO = 0;
+  /** red hurt tint ticks (LivingEntity.hurtTime) */
+  hurtTime = 0;
+  /** shared flag: on fire */
+  onFire = false;
   tickCount = 0;
 
   constructor(
@@ -115,6 +119,7 @@ export class RemotePlayer {
     this.animationPosition += this.animationSpeed;
     // arm swing (6 ticks)
     this.attackAnimO = this.attackAnim;
+    if (this.hurtTime > 0) this.hurtTime--;
     if (this.swinging) {
       this.swingTime++;
       if (this.swingTime >= 6) {

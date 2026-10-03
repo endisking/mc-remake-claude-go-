@@ -24,7 +24,7 @@ import { raycastBlocks, type BlockHit } from '@shared/world/raycast';
 import { outlineBoxes } from '@shared/world/shapes';
 import { blockNameOf, propsOf } from '@shared/world/blockstate';
 import { PlayerPhysics, type MoveInput } from '@shared/entity/playerphysics';
-import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes } from './render/math';
+import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes, type Mat4 } from './render/math';
 import type { TextureManifest } from './render/blockmodels';
 import { Gui } from './gui/gui';
 import { RemotePlayer } from './world/entities';
@@ -32,6 +32,8 @@ import { Interaction } from './interaction';
 import { ParticleEngine } from './render/particles';
 import { BlockItemRenderer } from './render/blockitem';
 import { HandRenderer, attackSpeedOf } from './render/hand';
+import { Hud, type HudPlayer } from './gui/hud';
+import { DeathScreen } from './gui/deathscreen';
 import { blockForItem } from '@shared/game/loot';
 import { BLOCKS_BY_NAME, ITEMS_BY_ID } from '@shared/data';
 import { itemName } from '@shared/item/stack';
@@ -61,6 +63,21 @@ export class Game implements ScreenHost {
   readonly players = new Map<number, RemotePlayer>();
   private sentState = { sneaking: false, sprinting: false, flying: false };
   interaction!: Interaction;
+  private readonly hud = new Hud();
+  // local player survival state (LocalPlayer)
+  health = 20;
+  food = 20;
+  saturation = 5;
+  air = 300;
+  xpProgress = 0;
+  xpLevel = 0;
+  xpTotal = 0;
+  hurtTime = 0;
+  private hurtDuration = 10;
+  invulnerableTime = 0;
+  deathTime = 0;
+  private flashOnSetHealth = false;
+  onFire = false;
   private hand!: HandRenderer;
   // ItemInHandRenderer / LocalPlayer state for the first-person hand
   private xBob = 0;
@@ -79,9 +96,6 @@ export class Game implements ScreenHost {
   entityId = 0;
   /** Other players' digging cracks: player id → position + stage. */
   private otherCracks = new Map<number, { x: number; y: number; z: number; stage: number }>();
-  health = 20;
-  food = 20;
-  saturation = 5;
   private crack!: CrackRenderer;
   /** Current block-breaking progress stage (-1 none, 0..9). Driven by mining in Phase 2. */
   breakStage = -1;
@@ -235,7 +249,7 @@ export class Game implements ScreenHost {
 
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
-    await this.gui.load();
+    await Promise.all([this.gui.load(), this.hud.load()]);
     this.manifest = await loadManifest();
     const [tex] = await Promise.all([
       BlockTextureArray.load(this.gl, this.manifest, this.settings.mipmapLevels),
@@ -261,7 +275,7 @@ export class Game implements ScreenHost {
       const t = flatItemTexture(blockNameOf(st));
       return t === null ? null : (mainBake.textures.get(t)?.layer ?? mainBake.textures.get('missing')!.layer);
     }, (layer) => this.textures.alpha[layer]);
-    this.hand = new HandRenderer(this.gl, this.entityRenderer, this.blockItems);
+    this.hand = new HandRenderer(this.gl, this.entityRenderer, this.blockItems, () => this.textures.tex, mainBake.textures.get('fire_1')!.layer);
     this.interaction = new Interaction({
       world: this.world,
       player: this.player,
@@ -391,6 +405,10 @@ export class Game implements ScreenHost {
         break;
       }
       case 'entityState': {
+        if (p.id === this.entityId) {
+          this.onFire = (p.flags & 1) !== 0;
+          break;
+        }
         const rp = this.players.get(p.id);
         if (rp) {
           rp.flags = p.flags;
@@ -400,6 +418,10 @@ export class Game implements ScreenHost {
       }
       case 'animate':
         if (p.action === 0 || p.action === 3) this.players.get(p.id)?.swing();
+        else if (p.action === 1) {
+          const rp = this.players.get(p.id);
+          if (rp) rp.hurtTime = 10;
+        }
         break;
       case 'gameMode':
         this.setGameMode(p.mode);
@@ -410,10 +432,32 @@ export class Game implements ScreenHost {
         this.player.abilities.flySpeed = p.flySpeed;
         break;
       case 'health':
-        this.health = p.health;
+        this.hurtTo(p.health);
         this.food = p.food;
         this.saturation = p.saturation;
         this.player.foodLevel = p.food;
+        break;
+      case 'air':
+        this.air = p.air;
+        break;
+      case 'experience':
+        this.xpProgress = p.progress;
+        this.xpLevel = p.level;
+        this.xpTotal = p.total;
+        break;
+      case 'playerDied':
+        this.interaction.stopDestroy();
+        this.setScreen(new DeathScreen(this, p.message, p.score));
+        break;
+      case 'respawn':
+        this.health = 20;
+        this.deathTime = 0;
+        this.hurtTime = 0;
+        this.flashOnSetHealth = false;
+        this.air = 300;
+        this.onFire = false;
+        this.setGameMode(p.gameMode);
+        if (this.screen instanceof DeathScreen) this.setScreen(null);
         break;
       case 'setSlot':
         this.interaction.inventory.set(p.slot, p.item > 0 && p.count > 0 ? { id: p.item, count: p.count, damage: p.damage } : null);
@@ -535,7 +579,7 @@ export class Game implements ScreenHost {
     pl.yaw = this.yaw;
     pl.pitch = this.pitch;
     const i = this.input;
-    const active = !this.screen && (this.input.locked || new URLSearchParams(location.search).get('nolock') === '1');
+    const active = !this.screen && !this.dead && (this.input.locked || new URLSearchParams(location.search).get('nolock') === '1');
     const k = (code: string) => active && i.down.has(code);
     const move: MoveInput = {
       forward: (k('KeyW') ? 1 : 0) - (k('KeyS') ? 1 : 0),
@@ -577,8 +621,9 @@ export class Game implements ScreenHost {
     }
     this.particles.tick();
     this.swingTick();
-    this.tickHighlight();
+    this.hud.tick(this.interaction.inventory);
     this.tickHand();
+    this.tickLiving();
     // mouse buttons (vanilla handleKeybinds: attack, use, pick block)
     if (active && this.loggedIn) {
       const ia = this.interaction;
@@ -692,6 +737,83 @@ export class Game implements ScreenHost {
     this.attackAnim = this.swingTime / 6;
   }
 
+  /** LocalPlayer.hurtTo: health from the server; a drop plays the hurt animation. */
+  private hurtTo(health: number): void {
+    if (this.flashOnSetHealth) {
+      const f = this.health - health;
+      if (f <= 0) {
+        this.health = health;
+        if (f < 0) this.invulnerableTime = 10;
+      } else {
+        this.health = health;
+        this.invulnerableTime = 20;
+        this.hurtDuration = 10;
+        this.hurtTime = this.hurtDuration;
+      }
+    } else {
+      this.health = health;
+      this.flashOnSetHealth = true;
+    }
+  }
+
+  get dead(): boolean {
+    return this.health <= 0;
+  }
+
+  respawn(): void {
+    this.send({ t: 'respawn' });
+  }
+
+  private tickLiving(): void {
+    if (this.hurtTime > 0) this.hurtTime--;
+    if (this.invulnerableTime > 0) this.invulnerableTime--;
+    if (this.dead) this.deathTime = Math.min(20, this.deathTime + 1);
+    if (this.screen && 'tick' in this.screen && typeof (this.screen as { tick?: unknown }).tick === 'function') (this.screen as unknown as { tick(): void }).tick();
+  }
+
+  private hudState(): HudPlayer {
+    return {
+      gameMode: this.gameMode,
+      health: this.health,
+      maxHealth: 20,
+      absorption: 0,
+      armor: 0,
+      food: this.food,
+      saturation: this.saturation,
+      air: this.air,
+      maxAir: 300,
+      eyeInWater: this.player.isUnderWater,
+      invulnerableTime: this.invulnerableTime,
+      xpProgress: this.xpProgress,
+      xpLevel: this.xpLevel,
+      inventory: this.interaction.inventory,
+      heartType: 'normal',
+      hardcore: false,
+      regeneration: false,
+      hungerEffect: false,
+    };
+  }
+
+  private readonly hurtMat = mat4();
+  /** Vanilla GameRenderer.bobHurt: hurt tilt (hurtDir is always 0 in 1.17) and the death roll. */
+  private applyHurtBob(target: Mat4, partial: number): void {
+    let deg = 0;
+    if (this.dead) {
+      const f1 = Math.min(this.deathTime + partial, 20);
+      deg += 40 - 8000 / (f1 + 200);
+    }
+    const f = this.hurtTime - partial;
+    if (f >= 0) {
+      const t = f / this.hurtDuration;
+      deg += -Math.sin(t * t * t * t * Math.PI) * 14;
+    }
+    if (deg === 0) return;
+    const a = (deg * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
+    const m = this.hurtMat;
+    m.set([c, sn, 0, 0, -sn, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+    multiply(target, target, m);
+  }
+
   /** Test hook: default state of a block by name. */
   stateOfName(name: string): number {
     return BLOCKS_BY_NAME.get(name)?.defaultState ?? 0;
@@ -731,8 +853,16 @@ export class Game implements ScreenHost {
     this.attackStrengthTicker = 0;
   }
 
+  private readonly handBob = mat4();
   private renderHand(partial: number, medium: string): void {
-    if (this.hideHud || this.gameMode === 3) return;
+    const showHand = !this.hideHud && this.gameMode !== 3;
+    const fire = this.onFire && this.gameMode !== 3;
+    if (!showHand && !fire) return;
+    // bobHurt then bobView, like the level camera
+    const hb = this.handBob;
+    hb.set(IDENTITY4);
+    this.applyHurtBob(hb, partial);
+    if (this.settings.viewBobbing && !this.player.abilities.flying) multiply(hb, hb, this.bobMat);
     const st = this.handItem;
     const block = st ? blockForItem(st.id) : null;
     const sw = this.attackAnim - this.attackAnimO;
@@ -750,8 +880,10 @@ export class Game implements ScreenHost {
       skinName: new URLSearchParams(location.search).get('name') ?? 'Player',
       aspect: this.canvas.width / Math.max(1, this.canvas.height),
       fluidFov: medium === 'air' ? 1 : 0.85714287,
-      bob: this.settings.viewBobbing && !this.player.abilities.flying ? this.bobMat : null,
+      bob: hb,
       viewRot: this.view,
+      showHand,
+      onFire: fire,
     }, this.lightmap.tex);
   }
 
@@ -896,6 +1028,7 @@ export class Game implements ScreenHost {
     let fov = s.fov * (this.oFov + (this.fovModifier - this.oFov) * partial);
     if (medium === 'water') fov *= 0.85714287;
     perspective(this.proj, (fov * Math.PI) / 180, aspect, 0.05, Math.max(renderDist * 4, 512));
+    this.applyHurtBob(this.proj, partial);
     if (s.viewBobbing && !this.player.abilities.flying) this.applyViewBob(partial);
     viewRotation(this.view, this.yaw, this.pitch);
     this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
@@ -963,32 +1096,9 @@ export class Game implements ScreenHost {
         ctx.fillRect(cx, cy + 1, 1, 7);
         ctx.restore();
       }
-      if (this.gameMode !== 3) this.renderHotbar();
+      this.hud.render(g, this.hudState(), (id, c, x, y) => this.renderGuiItem(id, c, x, y));
     }
     if (this.screen) this.screen.render(this.mouseGX, this.mouseGY);
-  }
-
-  /** Vanilla Gui.renderHotbar + renderSelectedItemName. */
-  private renderHotbar(): void {
-    const g = this.gui;
-    const inv = this.interaction.inventory;
-    const mid = Math.floor(g.width / 2);
-    g.blit(g.widgets, 0, 80, 182, 22, mid - 91, g.height - 22);
-    g.blit(g.widgets, 0, 104, 24, 22, mid - 91 - 1 + inv.selected * 20, g.height - 22 - 1);
-    for (let i = 0; i < 9; i++) {
-      const st = inv.get(i);
-      if (st) this.renderGuiItem(st.id, st.count, mid - 90 + i * 20 + 2, g.height - 16 - 3);
-    }
-    if (this.highlightTimer > 0 && this.highlightName) {
-      const k = g.height - 59 + (this.gameMode === 1 || this.gameMode === 3 ? 14 : 0);
-      const alpha = Math.min(255, Math.floor((this.highlightTimer * 256) / 10));
-      if (alpha > 0) {
-        g.ctx.save();
-        g.ctx.globalAlpha = alpha / 255;
-        g.centeredText(this.highlightName, mid, k, 0xffffff);
-        g.ctx.restore();
-      }
-    }
   }
 
   /** A 16×16 item in the GUI with its stack count (vanilla ItemRenderer.renderGuiItem + decorations). */
@@ -1008,21 +1118,6 @@ export class Game implements ScreenHost {
       const s = String(count);
       g.text(s, x + 19 - 2 - g.font.width(s), y + 6 + 3, 0xffffff, true);
     }
-  }
-
-  private highlightTimer = 0;
-  private highlightName = '';
-  private lastHighlight = '';
-  /** Vanilla Gui.tick: show the selected item's name for 2 s when it changes. */
-  private tickHighlight(): void {
-    const st = this.interaction.inventory.selectedStack;
-    const key = st ? String(st.id) : '';
-    if (!st) this.highlightTimer = 0;
-    else if (key !== this.lastHighlight) {
-      this.highlightName = ITEMS_BY_ID[st.id]?.displayName ?? itemName(st.id);
-      this.highlightTimer = 40;
-    } else if (this.highlightTimer > 0) this.highlightTimer--;
-    this.lastHighlight = key;
   }
 
   private debugLines(x: number, y: number, z: number): { left: string[]; right: string[] } {
@@ -1094,6 +1189,8 @@ export class Game implements ScreenHost {
     });
   }
 }
+
+const IDENTITY4 = mat4();
 
 /** Default item tints (vanilla ItemColors): grass and leaves in item form. */
 function itemTint(state: number): [number, number, number] {

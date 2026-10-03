@@ -182,6 +182,8 @@ export class EntityRenderer {
       const light = world.getLight(Math.floor(p.x), Math.floor(p.y + 1.62), Math.floor(p.z));
       gl.uniform2f(this.u.get('uLight'), ((light & 15) + 0.5) / 16, ((light >> 4) + 0.5) / 16);
       gl.bindTexture(gl.TEXTURE_2D, this.skins.get(this.skinFor(p.name, p.skin)) ?? null);
+      // OverlayTexture: hurt entities are tinted 30% red
+      gl.uniform4f(this.u.get('uOverlay'), 1, 0, 0, p.hurtTime > 0 ? 0.3 : 0);
       model.baked.parts.forEach((part, i) => {
         const pose = poses![part.def.name]!;
         if (!pose.visible) return;

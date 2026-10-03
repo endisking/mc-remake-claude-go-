@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 94 / 4140**
+**Progress: 111 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -143,8 +143,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Q drop / Ctrl+Q drop stack <!--p2:q_drop_ctrl_q_drop_stack-->
 - [ ] F swap offhand <!--p2:f_swap_offhand-->
 - [x] Middle-click pick block <!--p2:middle_click_pick_block-->
-- [ ] Hurt camera tilt and red flash <!--p2:hurt_camera_tilt_and_red_flash-->
-- [ ] Hunger HUD shake <!--p2:hunger_hud_shake-->
+- [x] Hurt camera tilt and red flash <!--p2:hurt_camera_tilt_and_red_flash-->
+- [x] Hunger HUD shake <!--p2:hunger_hud_shake-->
 - [ ] First-person hand and held item rendering <!--p2:first_person_hand_and_held_item_rendering-->
 - [ ] Nausea/portal screen wobble <!--p2:nausea_portal_screen_wobble-->
 
@@ -167,31 +167,31 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Health, food, XP
 
-- [ ] Health (20 HP) and HUD hearts (incl. absorption, poison, wither, frozen variants) <!--p2:health_20_hp_and_hud_hearts_incl_absorption_poison_wither_frozen_variants-->
-- [ ] Natural regeneration (saturation-based fast regen, food ≥18 slow regen) <!--p2:natural_regeneration_saturation_based_fast_regen_food_18_slow_regen-->
-- [ ] Hunger (food level), saturation, exhaustion values per action <!--p2:hunger_food_level_saturation_exhaustion_values_per_action-->
-- [ ] Starvation damage by difficulty <!--p2:starvation_damage_by_difficulty-->
+- [x] Health (20 HP) and HUD hearts (incl. absorption, poison, wither, frozen variants) <!--p2:health_20_hp_and_hud_hearts_incl_absorption_poison_wither_frozen_variants-->
+- [x] Natural regeneration (saturation-based fast regen, food ≥18 slow regen) <!--p2:natural_regeneration_saturation_based_fast_regen_food_18_slow_regen-->
+- [x] Hunger (food level), saturation, exhaustion values per action <!--p2:hunger_food_level_saturation_exhaustion_values_per_action-->
+- [x] Starvation damage by difficulty <!--p2:starvation_damage_by_difficulty-->
 - [ ] Eating (32 ticks, particles, sounds) <!--p2:eating_32_ticks_particles_sounds-->
-- [ ] XP levels formula and XP bar <!--p2:xp_levels_formula_and_xp_bar-->
-- [ ] Breathing / air bubbles / drowning <!--p2:breathing_air_bubbles_drowning-->
+- [x] XP levels formula and XP bar <!--p2:xp_levels_formula_and_xp_bar-->
+- [x] Breathing / air bubbles / drowning <!--p2:breathing_air_bubbles_drowning-->
 - [ ] Fall damage (incl. water, hay bale, slime, honey, bed, powder snow, feather falling) <!--p2:fall_damage_incl_water_hay_bale_slime_honey_bed_powder_snow_feather_falling-->
-- [ ] Fire and burning damage, extinguishing <!--p2:fire_and_burning_damage_extinguishing-->
-- [ ] Lava damage <!--p2:lava_damage-->
-- [ ] Void damage <!--p2:void_damage-->
-- [ ] Suffocation damage <!--p2:suffocation_damage-->
-- [ ] Cactus damage <!--p2:cactus_damage-->
-- [ ] Sweet berry bush damage <!--p2:sweet_berry_bush_damage-->
-- [ ] Magma block damage <!--p2:magma_block_damage-->
+- [x] Fire and burning damage, extinguishing <!--p2:fire_and_burning_damage_extinguishing-->
+- [x] Lava damage <!--p2:lava_damage-->
+- [x] Void damage <!--p2:void_damage-->
+- [x] Suffocation damage <!--p2:suffocation_damage-->
+- [x] Cactus damage <!--p2:cactus_damage-->
+- [x] Sweet berry bush damage <!--p2:sweet_berry_bush_damage-->
+- [x] Magma block damage <!--p2:magma_block_damage-->
 - [ ] Freezing damage (powder snow) <!--p2:freezing_damage_powder_snow-->
 - [ ] Lightning damage <!--p2:lightning_damage-->
-- [ ] Damage immunity frames (10 ticks) <!--p2:damage_immunity_frames_10_ticks-->
+- [x] Damage immunity frames (10 ticks) <!--p2:damage_immunity_frames_10_ticks-->
 
 ### Beds, spawn, death
 
 - [ ] Beds: sleeping, skipping night, phantom reset, "You may not rest now" <!--p2:beds_sleeping_skipping_night_phantom_reset_you_may_not_rest_now-->
 - [ ] Bed explosion in Nether/End <!--p2:bed_explosion_in_nether_end-->
 - [ ] Spawn point setting and world spawn radius <!--p2:spawn_point_setting_and_world_spawn_radius-->
-- [ ] Death screen with score and respawn <!--p2:death_screen_with_score_and_respawn-->
+- [x] Death screen with score and respawn <!--p2:death_screen_with_score_and_respawn-->
 - [ ] Dropped inventory and XP on death <!--p2:dropped_inventory_and_xp_on_death-->
 - [ ] Death messages (all 1.17.1 variants, original text where needed) <!--p2:death_messages_all_1_17_1_variants_original_text_where_needed-->
 

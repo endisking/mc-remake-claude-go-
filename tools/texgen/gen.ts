@@ -15,7 +15,7 @@ import { floraTextures } from './blocks/flora';
 import { miscTextures } from './blocks/misc';
 import { animatedTextures } from './blocks/animated';
 import { grassColormap, foliageColormap } from './colormap';
-import { widgets, optionsBackground } from './gui';
+import { widgets, optionsBackground, icons } from './gui';
 import { allSkins } from './skins';
 import { sun, moonPhases, clouds, rain, snowflakes, destroyStages } from './environment';
 
@@ -81,6 +81,7 @@ function main(): void {
   mkdirSync(join(outDir, 'gui'), { recursive: true });
   writePng(join(outDir, 'gui', 'widgets.png'), widgets());
   writePng(join(outDir, 'gui', 'options_background.png'), optionsBackground());
+  writePng(join(outDir, 'gui', 'icons.png'), icons());
   mkdirSync(join(outDir, 'skins'), { recursive: true });
   const skins = allSkins();
   for (const sk of skins) writePng(join(outDir, 'skins', `${sk.name}.png`), sk.tex);

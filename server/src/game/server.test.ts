@@ -166,3 +166,93 @@ describe('block interaction', () => {
     void server;
   });
 });
+
+describe('survival', () => {
+  function setup() {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, defaultGameMode: 0, scene: 'models' });
+    const a = client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    a.send({ t: 'chat', message: '/tp 31.5 101 7.5' });
+    a.send({ t: 'move', x: 31.5, y: 101, z: 7.5, yaw: 0, pitch: 0, onGround: true });
+    for (let i = 0; i < 61; i++) server.tick(); // spawn invulnerability
+    return { server, a, p };
+  }
+  // like vanilla, the landing tick's own descent isn't counted: falls here count (height − 0.5)
+  const fall = (a: ReturnType<typeof client>, from: number) => {
+    for (let y = 101; y <= from; y += 0.5) a.send({ t: 'move', x: 31.5, y, z: 7.5, yaw: 0, pitch: 0, onGround: false });
+    for (let y = from; y > 101; y -= 0.5) a.send({ t: 'move', x: 31.5, y, z: 7.5, yaw: 0, pitch: 0, onGround: false });
+    a.send({ t: 'move', x: 31.5, y: 101, z: 7.5, yaw: 0, pitch: 0, onGround: true });
+  };
+
+  it('fall damage is ceil(distance − 3), with 10 ticks of invulnerability frames', () => {
+    const { server, a, p } = setup();
+    // no natural regeneration during the test
+    p.living.food.foodLevel = 17;
+    p.living.food.saturationLevel = 0;
+    fall(a, 111); // 10 blocks: ceil(9.5 − 3) = 7
+    expect(p.living.health).toBe(13);
+    server.tick();
+    expect((a.received.filter((m) => m.t === 'health').at(-1) as Extract<S2C, { t: 'health' }>).health).toBe(13);
+    // a smaller hit inside the invulnerability window is ignored, a bigger one deals the difference
+    fall(a, 105); // 4 blocks → 1 damage, ignored
+    expect(p.living.health).toBe(13);
+    fall(a, 113); // 12 blocks → 9, deals 9 − 7 = 2
+    expect(p.living.health).toBe(11);
+    // hay bales reduce fall damage to 20%
+    for (let i = 0; i < 20; i++) server.tick();
+    server.setBlock(31, 100, 7, stateOf('hay_block'));
+    fall(a, 121); // 20 blocks: ceil(17·0.2) = 4
+    expect(p.living.health).toBe(7);
+  });
+
+  it('drowning: 15 s of air, then 2 damage every second', () => {
+    const { server, p } = setup();
+    p.living.food.foodLevel = 17;
+    p.living.food.saturationLevel = 0;
+    server.setBlock(31, 101, 7, stateOf('water'));
+    server.setBlock(31, 102, 7, stateOf('water'));
+    server.setBlock(31, 103, 7, stateOf('water'));
+    for (let i = 0; i < 319; i++) server.tick();
+    expect(p.living.health).toBe(20);
+    server.tick();
+    expect(p.living.health).toBe(18);
+    for (let i = 0; i < 20; i++) server.tick();
+    expect(p.living.health).toBe(16);
+  });
+
+  it('death drops the inventory, shows the death screen and respawns with full health', () => {
+    const { server, a, p } = setup();
+    p.inventory.set(0, { id: ITEMS_BY_NAME.get('stone')!.id, count: 5, damage: 0 });
+    a.send({ t: 'chat', message: '/kill' });
+    expect(p.living.dead).toBe(true);
+    const died = a.received.find((m) => m.t === 'playerDied') as Extract<S2C, { t: 'playerDied' }>;
+    expect(died.message).toBe('A fell out of the world');
+    expect(p.inventory.get(0)).toBeNull();
+    expect([...server.entities.values()].length).toBe(1);
+    // moves are ignored while dead
+    a.send({ t: 'move', x: 33.5, y: 101, z: 7.5, yaw: 0, pitch: 0, onGround: true });
+    expect(p.x).toBe(31.5);
+    a.send({ t: 'respawn' });
+    expect(p.living.health).toBe(20);
+    expect(a.received.some((m) => m.t === 'respawn')).toBe(true);
+  });
+
+  it('lava burns and sets the player on fire; water puts it out', () => {
+    const { server, p } = setup();
+    server.setBlock(31, 101, 7, stateOf('lava'));
+    server.tick();
+    expect(p.living.health).toBe(16);
+    expect(p.living.remainingFireTicks).toBeGreaterThan(200);
+    server.setBlock(31, 101, 7, stateOf('water'));
+    server.tick();
+    expect(p.living.remainingFireTicks).toBeLessThanOrEqual(0);
+  });
+
+  it('creative players take no fall damage', () => {
+    const { a, p } = setup();
+    a.send({ t: 'chat', message: '/gamemode creative' });
+    fall(a, 131);
+    expect(p.living.health).toBe(20);
+  });
+});

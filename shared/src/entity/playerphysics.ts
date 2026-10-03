@@ -261,6 +261,13 @@ export class PlayerPhysics {
     this.wasEyeInWater = h > 0 && by + h > eyeY;
   }
 
+  /** Refresh in-water / in-lava / eye-in-water state at the current position (server side). */
+  updateFluidState(): void {
+    this.wasTouchingWater = this.fluidPush(1, 0.014);
+    this.fluidPush(2, 0.0023333333333333335);
+    this.updateEyeInFluid();
+  }
+
   /** Entity.baseTick fluid part + Player.updateSwimming. */
   private baseTick(): void {
     this.walkDistO = this.walkDist;

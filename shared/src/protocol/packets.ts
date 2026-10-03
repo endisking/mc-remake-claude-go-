@@ -7,7 +7,7 @@ import { ByteReader, ByteWriter } from './buffer';
 import { readChunk, writeChunk, writeSection, readSection } from './chunkcodec';
 import { Chunk, ChunkSection } from '../world/chunk';
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 type FieldType =
   | 'u8' | 'bool' | 'i16' | 'u16' | 'i32' | 'u32' | 'f32' | 'f64' | 'i64' | 'str' | 'varint' | 'svarint'
@@ -59,6 +59,14 @@ const S2C_SCHEMA = {
   /** Inventory slot contents (player inventory numbering, see Inventory). */
   setSlot: [['slot', 'i16'], ['item', 'i16'], ['count', 'u8'], ['damage', 'i16']],
   heldSlot: [['slot', 'u8']],
+  /** Remaining air (300 = full). */
+  air: [['air', 'i16']],
+  /** XP bar progress, level and total points. */
+  experience: [['progress', 'f32'], ['level', 'varint'], ['total', 'varint']],
+  /** The receiving player died (vanilla PlayerCombatKill): show the death screen. */
+  playerDied: [['message', 'str'], ['score', 'varint']],
+  /** Respawned (same dimension): reset client-side player state. */
+  respawn: [['gameMode', 'u8']],
 } as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server
@@ -82,6 +90,8 @@ const C2S_SCHEMA = {
   dropItem: [['all', 'bool']],
   /** Middle click in creative: put the block's item in the hotbar (vanilla pick block). */
   pickBlock: [['x', 'i32'], ['y', 'i16'], ['z', 'i32']],
+  /** Death screen "Respawn" (vanilla ClientCommand PERFORM_RESPAWN). */
+  respawn: [],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;

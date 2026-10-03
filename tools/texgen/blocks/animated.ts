@@ -18,7 +18,7 @@ function fireStrip(seed: number, frames: number, palette: Palette): Tex {
       for (let x = 0; x < W; x++) {
         const below = (y + 1) * W;
         const sum = heat[below + x]! * 2 + heat[below + ((x + W - 1) % W)]! + heat[below + ((x + 1) % W)]! + heat[y * W + x]!;
-        next[y * W + x] = Math.max(0, (sum / 5) * 0.992 - 0.008 - r() * 0.04);
+        next[y * W + x] = Math.max(0, (sum / 5) * 0.995 - 0.004 - r() * 0.036);
       }
     for (let x = 0; x < W; x++) next[(H - 1) * W + x] = heat[(H - 1) * W + x]!;
     heat = next;
@@ -31,8 +31,8 @@ function fireStrip(seed: number, frames: number, palette: Palette): Tex {
     for (let y = 0; y < 16; y++)
       for (let x = 0; x < W; x++) {
         const v = heat[(y + 3) * W + x]!;
-        if (v < 0.3) continue;
-        const idx = Math.min(palette.length - 1, Math.floor((v - 0.3) * palette.length * 1.7));
+        if (v < 0.27) continue;
+        const idx = Math.min(palette.length - 1, Math.floor((v - 0.27) * palette.length * 2.3));
         t.set(x, y, palette[idx]!);
       }
     out.push(t);

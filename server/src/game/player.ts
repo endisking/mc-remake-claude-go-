@@ -3,6 +3,7 @@ import { PlayerPhysics, type Pose } from '@shared/entity/playerphysics';
 import type { BlockWorld } from '@shared/world/world';
 import type { Connection } from './server';
 import { Inventory } from '@shared/item/stack';
+import { LivingState } from './survival';
 
 export class ServerPlayer {
   x = 0;
@@ -21,11 +22,12 @@ export class ServerPlayer {
   sneaking = false;
   sprinting = false;
   pose: Pose = 'standing';
-  health = 20;
-  food = 20;
-  saturation = 5;
-  exhaustion = 0;
+  living = new LivingState();
+  onFire = false;
   fallDistance = 0;
+  /** position at the previous survival tick (sweet berry bush movement check) */
+  prevTickX = 0;
+  prevTickZ = 0;
   /** The world's host in single-player/LAN: exempt from "moved too quickly". */
   isOwner = false;
   /** Chunks this client currently has. */
@@ -61,7 +63,7 @@ export class ServerPlayer {
 
   /** Shared entity flags byte (vanilla DATA_SHARED_FLAGS_ID bits). */
   flags(): number {
-    return (this.pose === 'crouching' ? 2 : 0) | (this.sprinting ? 8 : 0) | (this.pose === 'swimming' ? 16 : 0);
+    return (this.onFire ? 1 : 0) | (this.pose === 'crouching' ? 2 : 0) | (this.sprinting ? 8 : 0) | (this.pose === 'swimming' ? 16 : 0);
   }
 
   /** Recompute the pose from the latest state, as vanilla does server-side. */
