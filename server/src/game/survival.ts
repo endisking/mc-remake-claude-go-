@@ -6,11 +6,11 @@
 import type { GameServer } from './server';
 import type { ServerPlayer } from './player';
 import { FoodData, Difficulty, EXHAUSTION } from '@shared/game/food';
-import { FULL_COLLISION } from '@shared/world/blockinfo';
+import { isSuffocating } from '@shared/world/blockprops';
 import { blockNameOf, getProp } from '@shared/world/blockstate';
 import { CLIMBABLE, STUCK, blockIdAt } from '@shared/entity/blockphysics';
 import { AABB } from '@shared/entity/aabb';
-import { BIOMES } from '@shared/data';
+import { isRainingAt } from '@shared/world/weather';
 import { giveExperienceLevels, giveExperiencePoints } from '@shared/game/experience';
 
 export interface DamageSource {
@@ -121,13 +121,6 @@ export class LivingState {
   get dead(): boolean {
     return this.health <= 0;
   }
-}
-
-/** BlockBehaviour.isSuffocating: full collision cubes, except glass and leaves (isSuffocating(never)). */
-function suffocating(state: number): boolean {
-  if (FULL_COLLISION[state] !== 1) return false;
-  const n = blockNameOf(state);
-  return !(n === 'glass' || n === 'tinted_glass' || n.endsWith('_stained_glass') || n.endsWith('_leaves'));
 }
 
 export class Survival {
@@ -298,15 +291,11 @@ export class Survival {
     }
   }
 
+  /** Entity.isInRain: rain at the feet or the top of the bounding box. */
   private inRain(p: ServerPlayer): boolean {
-    if (!this.s.raining) return false;
+    const r = this.s.isRaining();
     const x = Math.floor(p.x), z = Math.floor(p.z);
-    const chunk = this.s.world.getChunk(x >> 4, z >> 4);
-    if (!chunk) return false;
-    const top = chunk.motionBlocking[(z & 15) * 16 + (x & 15)]!;
-    const check = (y: number) => y >= top && (BIOMES[this.s.world.getBiome(x, y, z)]?.temperature ?? 0.8) >= 0.15;
-    // vanilla isInRain: at the feet or at the top of the bounding box
-    return check(Math.floor(p.y)) || check(Math.floor(p.y + p.phys.height));
+    return isRainingAt(this.s.world, r, x, Math.floor(p.y), z) || isRainingAt(this.s.world, r, x, Math.floor(p.y + p.phys.height), z);
   }
 
   private touchingFireOrLava(p: ServerPlayer): boolean {
@@ -327,7 +316,7 @@ export class Survival {
     for (let x = Math.floor(bb.minX); x <= Math.floor(bb.maxX); x++)
       for (let y = Math.floor(bb.minY); y <= Math.floor(bb.maxY); y++)
         for (let z = Math.floor(bb.minZ); z <= Math.floor(bb.maxZ); z++) {
-          if (suffocating(this.s.world.getState(x, y, z))) return true;
+          if (isSuffocating(this.s.world.getState(x, y, z))) return true;
         }
     return false;
   }

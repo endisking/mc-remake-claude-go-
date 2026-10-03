@@ -14,6 +14,7 @@ export class ServerPlayer {
   headYaw = 0;
   onGround = false;
   viewDistance = 8;
+  simulationDistance = 10;
   name = 'Player';
   skin = '';
   /** 0 survival, 1 creative, 2 adventure, 3 spectator */

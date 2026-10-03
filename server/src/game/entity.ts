@@ -85,3 +85,41 @@ export class ItemEntity extends ServerEntity {
     if (this.age >= 6000) this.removed = true;
   }
 }
+
+/**
+ * Lightning bolt (vanilla LightningBolt): lives 2 ticks plus 1–3 re-flashes; while flashing
+ * it strikes entities within 3 blocks (thunderHit). The client simulates its own flashes.
+ */
+export class LightningBolt extends ServerEntity {
+  readonly type = 'lightning_bolt';
+  readonly width = 0;
+  readonly height = 0;
+  readonly trackRange = 256;
+  life = 2;
+  flashes: number;
+  /** set when the bolt's flash should hit entities this tick */
+  striking = false;
+  firstTick = true;
+  /** fires to place this tick (spawnFire count), −1 for none */
+  fire = -1;
+
+  constructor(id: number, private readonly rand: { nextInt(n: number): number }, readonly visualOnly = false) {
+    super(id);
+    this.flashes = rand.nextInt(3) + 1;
+  }
+
+  tick(): void {
+    this.fire = -1;
+    if (this.life === 2) this.fire = 4;
+    this.life--;
+    if (this.life < 0) {
+      if (this.flashes === 0) this.removed = true;
+      else if (this.life < -this.rand.nextInt(10)) {
+        this.flashes--;
+        this.life = 1;
+        this.fire = 0;
+      }
+    }
+    this.striking = this.life >= 0 && !this.removed && !this.visualOnly;
+  }
+}

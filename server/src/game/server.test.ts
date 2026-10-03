@@ -255,4 +255,31 @@ describe('survival', () => {
     fall(a, 131);
     expect(p.living.health).toBe(20);
   });
+
+  // players have 20 fire-immune ticks, so the strike itself only counts one of them down
+  // (vanilla Entity.thunderHit); they catch fire from the fire blocks the bolt places
+  it('lightning strikes deal 5 damage', () => {
+    const { server, a, p } = setup();
+    p.living.food.foodLevel = 17;
+    p.living.food.saturationLevel = 0;
+    a.send({ t: 'chat', message: '/summon lightning_bolt ~ ~ ~' });
+    server.tick();
+    expect(p.living.health).toBe(15);
+    expect(p.living.remainingFireTicks).toBe(-19);
+    expect(a.received.some((m) => m.t === 'addEntity' && m.type === 'lightning_bolt')).toBe(true);
+  });
+
+  it('entities outside the simulation distance are frozen', () => {
+    const { server, p } = setup();
+    server.simulationDistance = 2;
+    p.isOwner = false;
+    server.popResource(Math.floor(p.x) + 16 * 5, 120, Math.floor(p.z), { id: ITEMS_BY_NAME.get('stone')!.id, count: 1, damage: 0 });
+    const e = [...server.entities.values()].at(-1)!;
+    const y = e.y;
+    for (let i = 0; i < 10; i++) server.tick();
+    expect(e.y).toBe(y);
+    server.simulationDistance = 8;
+    for (let i = 0; i < 10; i++) server.tick();
+    expect(e.y).toBeLessThan(y);
+  });
 });

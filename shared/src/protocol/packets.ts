@@ -73,7 +73,7 @@ const S2C_SCHEMA = {
 const C2S_SCHEMA = {
   hello: [['protocol', 'u16'], ['name', 'str'], ['viewDistance', 'u8'], ['skin', 'str']],
   move: [['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['yaw', 'f32'], ['pitch', 'f32'], ['onGround', 'bool']],
-  settings: [['viewDistance', 'u8']],
+  settings: [['viewDistance', 'u8'], ['simulationDistance', 'u8']],
   chat: [['message', 'str']],
   setBlock: [['x', 'i32'], ['y', 'i16'], ['z', 'i32'], ['state', 'u16']],
   /** Sneak/sprint/flying state changes (vanilla PlayerCommand / abilities). */

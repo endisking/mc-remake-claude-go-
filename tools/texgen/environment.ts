@@ -149,3 +149,26 @@ export function destroyStages(): Tex[] {
   }
   return stages;
 }
+
+/** 64×64 underwater overlay: soft dark tileable blotches (drawn at 10% opacity, scrolled with the view). */
+export function underwater(): Tex {
+  const t = new Tex(64, 64);
+  const r = rng(4242);
+  // a few octaves of tileable value noise
+  const grid = (n: number) => Array.from({ length: n * n }, () => r());
+  const octs = [grid(4), grid(8), grid(16)];
+  const sample = (g: number[], n: number, x: number, y: number) => {
+    const fx = (x / 64) * n, fy = (y / 64) * n;
+    const x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+    const v = (i: number, j: number) => g[((j % n) + n) % n * n + (((i % n) + n) % n)]!;
+    const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+    return (v(x0, y0) * (1 - sx) + v(x0 + 1, y0) * sx) * (1 - sy) + (v(x0, y0 + 1) * (1 - sx) + v(x0 + 1, y0 + 1) * sx) * sy;
+  };
+  for (let y = 0; y < 64; y++)
+    for (let x = 0; x < 64; x++) {
+      const n = sample(octs[0]!, 4, x, y) * 0.5 + sample(octs[1]!, 8, x, y) * 0.3 + sample(octs[2]!, 16, x, y) * 0.2;
+      const v = Math.round(Math.max(0, Math.min(1, n * 1.6 - 0.35)) * 255);
+      t.set(x, y, [v, v, v, 255]);
+    }
+  return t;
+}

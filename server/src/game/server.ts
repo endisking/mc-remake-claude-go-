@@ -11,7 +11,8 @@ import { TICKS_PER_SECOND, DAY_LENGTH } from '@shared/constants';
 import { JavaRandom } from '@shared/util/random';
 import { ServerPlayer } from './player';
 import { AABB, noCollision } from '@shared/entity/aabb';
-import { ItemEntity, type ServerEntity } from './entity';
+import { ItemEntity, LightningBolt, type ServerEntity } from './entity';
+import { isRainingAt } from '@shared/world/weather';
 import { stateForPlacement, updateShape, isReplaceable, companionPlacement, DX, DY, DZ } from '@shared/game/placement';
 import { canSurvive } from '@shared/game/support';
 import { destroyProgress, hardness, canHarvest } from '@shared/game/mining';
@@ -61,6 +62,8 @@ export class GameServer {
   readonly gameRules: GameRules = { ...DEFAULT_GAME_RULES };
   difficulty: Difficulty = Difficulty.Normal;
   readonly survival = new Survival(this);
+  /** Server simulation distance (chunks); the single-player host's setting overrides it. */
+  simulationDistance = 10;
   private nextEntityId = 1;
   private readonly chunkGenBudget: number;
   /** Sections whose light changed this tick: key -> [cx, sy, cz] */
@@ -131,6 +134,90 @@ export class GameServer {
     return p;
   }
 
+  /** Level.isRaining / isThundering (thresholds on the smoothed levels). */
+  isRaining(): boolean {
+    return this.rainLevel > 0.2;
+  }
+  isThundering(): boolean {
+    return this.thunderLevel * this.rainLevel > 0.9;
+  }
+
+  /** Chunks that tick (random ticks, lightning, entities): within simulation distance of a player. */
+  isTickingChunk(cx: number, cz: number): boolean {
+    for (const p of this.players) {
+      const d = this.simulationDistanceFor();
+      if (Math.max(Math.abs((Math.floor(p.x) >> 4) - cx), Math.abs((Math.floor(p.z) >> 4) - cz)) <= d) return true;
+    }
+    return false;
+  }
+
+  /** Simulation distance: the host's setting in single-player/LAN, the server's otherwise. */
+  simulationDistanceFor(): number {
+    const owner = this.players.find((p) => p.isOwner);
+    return owner?.simulationDistance ?? this.simulationDistance;
+  }
+
+  /** ServerLevel.tickChunk thunder part: 1 in 100000 per ticking chunk per tick while thundering. */
+  private tickLightning(): void {
+    if (!(this.isRaining() && this.isThundering())) return;
+    const seen = new Set<number>();
+    for (const p of this.players) {
+      const pcx = Math.floor(p.x) >> 4, pcz = Math.floor(p.z) >> 4;
+      const d = Math.min(this.simulationDistanceFor(), 8);
+      for (let cx = pcx - d; cx <= pcx + d; cx++)
+        for (let cz = pcz - d; cz <= pcz + d; cz++) {
+          const key = chunkKey(cx, cz);
+          if (seen.has(key) || !this.world.getChunk(cx, cz)) continue;
+          seen.add(key);
+          // noPlayersCloseForSpawning: a player within 128 blocks of the chunk centre
+          const dx = cx * 16 + 8 - p.x, dz = cz * 16 + 8 - p.z;
+          if (dx * dx + dz * dz > 128 * 128) continue;
+          if (this.rand.nextInt(100000) !== 0) continue;
+          const [x, y, z] = this.lightningTarget(cx * 16 + this.rand.nextInt(16), cz * 16 + this.rand.nextInt(16));
+          if (isRainingAt(this.world, this.isRaining(), x, y, z)) this.strikeLightning(x + 0.5, y, z + 0.5);
+        }
+    }
+  }
+
+  /** ServerLevel.findLightningTargetAround: the top block, or a player under open sky within 3 blocks. */
+  private lightningTarget(x: number, z: number): [number, number, number] {
+    const c = this.world.getChunk(x >> 4, z >> 4)!;
+    const y = c.motionBlocking[(z & 15) * 16 + (x & 15)]!;
+    const targets = this.players.filter((p) => {
+      if (p.living.dead || Math.abs(p.x - (x + 0.5)) > 3.5 || Math.abs(p.z - (z + 0.5)) > 3.5 || p.y < y - 3) return false;
+      const pc = this.world.getChunk(Math.floor(p.x) >> 4, Math.floor(p.z) >> 4);
+      return !!pc && pc.motionBlocking[(Math.floor(p.z) & 15) * 16 + (Math.floor(p.x) & 15)]! <= Math.floor(p.y);
+    });
+    if (targets.length) {
+      const t = targets[this.rand.nextInt(targets.length)]!;
+      return [Math.floor(t.x), Math.floor(t.y), Math.floor(t.z)];
+    }
+    return [x, y, z];
+  }
+
+  strikeLightning(x: number, y: number, z: number, visualOnly = false): void {
+    const b = new LightningBolt(this.nextEntityId++, this.rand, visualOnly);
+    b.x = x;
+    b.y = y;
+    b.z = z;
+    this.spawnEntity(b);
+  }
+
+  /** LightningBolt.tick server side: strike entities, light fires (needs fire spread, Phase 4). */
+  private tickBolt(b: LightningBolt): void {
+    if (!b.striking) return;
+    for (const p of this.players) {
+      if (Math.abs(p.x - b.x) > 3 + 0.3 || Math.abs(p.z - b.z) > 3 + 0.3 || p.y + 1.8 < b.y - 3 || p.y > b.y + 9) continue;
+      // Entity.thunderHit
+      const l = p.living;
+      if (p.gameMode !== 3) {
+        l.remainingFireTicks++;
+        if (l.remainingFireTicks === 0) this.survival.setOnFire(p, 8);
+      }
+      this.survival.hurt(p, DAMAGE.lightningBolt, 5);
+    }
+  }
+
   /** World spawn: on top of the terrain at the world origin. */
   spawnPosition(): [number, number, number] {
     const spawn = this.ensureChunk(0, 0);
@@ -163,7 +250,6 @@ export class GameServer {
     this.send(p, { t: 'setSlot', slot, item: st?.id ?? 0, count: st?.count ?? 0, damage: st?.damage ?? 0 });
   }
 
-  /** Vanilla Inventory.setPickedItem (creative pick block). */
   /** Vanilla pick block: Inventory.setPickedItem (creative) / pickSlot (survival, item already owned). */
   private pickBlock(p: ServerPlayer, x: number, y: number, z: number): void {
     if (p.gameMode === 3 || !this.inReach(p, x, y, z)) return;
@@ -403,7 +489,10 @@ export class GameServer {
 
   private tickEntities(): void {
     for (const e of this.entities.values()) {
+      // entities outside every player's simulation distance are frozen
+      if (!(e instanceof LightningBolt) && !this.isTickingChunk(Math.floor(e.x) >> 4, Math.floor(e.z) >> 4)) continue;
       e.tick(this.world);
+      if (e instanceof LightningBolt) this.tickBolt(e);
       if (e instanceof ItemEntity && !e.removed) {
         if ((this.gameTime + e.id) % 2 === 0) this.tryMerge(e);
       }
@@ -586,6 +675,7 @@ export class GameServer {
         break;
       case 'settings':
         p.viewDistance = clampViewDistance(m.viewDistance);
+        p.simulationDistance = Math.max(5, Math.min(32, m.simulationDistance));
         break;
       case 'setBlock':
         this.setBlock(m.x, m.y, m.z, m.state);
@@ -636,6 +726,10 @@ export class GameServer {
       if (!b || ![x, y, z].every(Number.isFinite)) return;
       this.setBlock(x, y, z, b.defaultState);
       this.updateNeighbors(x, y, z);
+    } else if (a[0] === 'summon' && a[1]?.replace(/^minecraft:/, '') === 'lightning_bolt') {
+      const rel = (v: string | undefined, base: number) => (v === undefined ? base : v.startsWith('~') ? base + (Number(v.slice(1)) || 0) : Number(v));
+      const x = rel(a[2], p.x), y = rel(a[3], p.y), z = rel(a[4], p.z);
+      if ([x, y, z].every(Number.isFinite)) this.strikeLightning(x, y, z);
     } else if (a[0] === 'kill') {
       this.survival.hurt(p, DAMAGE.outOfWorld, 3.4028235e38);
     } else if (a[0] === 'difficulty' && a[1]) {
@@ -701,6 +795,7 @@ export class GameServer {
       for (const p of this.players) this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     }
     this.advanceWeather();
+    this.tickLightning();
     for (const p of this.players) {
       p.updatePose();
       this.survival.tick(p);

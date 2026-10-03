@@ -34,11 +34,13 @@ import { BlockItemRenderer } from './render/blockitem';
 import { HandRenderer, attackSpeedOf } from './render/hand';
 import { Hud, type HudPlayer } from './gui/hud';
 import { DeathScreen } from './gui/deathscreen';
+import { ClientBolt, LightningRenderer } from './render/lightning';
 import { blockForItem } from '@shared/game/loot';
 import { BLOCKS_BY_NAME, ITEMS_BY_ID } from '@shared/data';
 import { itemName } from '@shared/item/stack';
 import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
+import { isViewBlocking } from '@shared/world/blockprops';
 import { JavaRandom } from '@shared/util/random';
 import { EntityRenderer } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
@@ -78,6 +80,11 @@ export class Game implements ScreenHost {
   deathTime = 0;
   private flashOnSetHealth = false;
   onFire = false;
+  private waterVisionTime = 0;
+  private skyFlashTime = 0;
+  readonly bolts = new Map<number, ClientBolt>();
+  private readonly boltRand = new JavaRandom(BigInt(Date.now()));
+  private lightning!: LightningRenderer;
   private hand!: HandRenderer;
   // ItemInHandRenderer / LocalPlayer state for the first-person hand
   private xBob = 0;
@@ -223,7 +230,7 @@ export class Game implements ScreenHost {
       });
     }
     this.biomes.blendRadius = this.settings.biomeBlend;
-    if (this.loggedIn) this.send({ t: 'settings', viewDistance: this.settings.renderDistance });
+    if (this.loggedIn) this.send({ t: 'settings', viewDistance: this.settings.renderDistance, simulationDistance: this.settings.simulationDistance });
     if (reloadChunks) {
       this.chunks.setMesherOptions({ smoothLighting: this.settings.smoothLighting, fancy: this.settings.graphics === 'fancy' }, this.manifest);
     }
@@ -275,6 +282,7 @@ export class Game implements ScreenHost {
       const t = flatItemTexture(blockNameOf(st));
       return t === null ? null : (mainBake.textures.get(t)?.layer ?? mainBake.textures.get('missing')!.layer);
     }, (layer) => this.textures.alpha[layer]);
+    this.lightning = new LightningRenderer(this.gl);
     this.hand = new HandRenderer(this.gl, this.entityRenderer, this.blockItems, () => this.textures.tex, mainBake.textures.get('fire_1')!.layer);
     this.interaction = new Interaction({
       world: this.world,
@@ -341,6 +349,7 @@ export class Game implements ScreenHost {
         this.yaw = p.yaw;
         this.pitch = p.pitch;
         this.loggedIn = true;
+        this.send({ t: 'settings', viewDistance: this.settings.renderDistance, simulationDistance: this.settings.simulationDistance });
         this.applyTestParams();
         if (!this.input.locked && new URLSearchParams(location.search).get('nolock') !== '1') this.setScreen(new PauseScreen(this));
         {
@@ -391,6 +400,7 @@ export class Game implements ScreenHost {
         for (const id of p.ids) {
           this.players.delete(id);
           this.items.delete(id);
+          this.bolts.delete(id);
         }
         break;
       case 'entityMove': {
@@ -466,7 +476,8 @@ export class Game implements ScreenHost {
         this.interaction.inventory.selected = p.slot;
         break;
       case 'addEntity':
-        if (p.type === 'item') {
+        if (p.type === 'lightning_bolt') this.bolts.set(p.id, new ClientBolt(p.x, p.y, p.z, this.boltRand));
+        else if (p.type === 'item') {
           this.items.set(p.id, { x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z, steps: 0, item: 0, count: 1, age: 0, bobOffs: Math.random() * Math.PI * 2 });
         }
         break;
@@ -624,6 +635,7 @@ export class Game implements ScreenHost {
     this.hud.tick(this.interaction.inventory);
     this.tickHand();
     this.tickLiving();
+    this.tickEnvironment();
     // mouse buttons (vanilla handleKeybinds: attack, use, pick block)
     if (active && this.loggedIn) {
       const ia = this.interaction;
@@ -764,6 +776,24 @@ export class Game implements ScreenHost {
     this.send({ t: 'respawn' });
   }
 
+  /** ClientLevel sky flash + LocalPlayer.waterVisionTime. */
+  private tickEnvironment(): void {
+    if (this.skyFlashTime > 0) this.skyFlashTime--;
+    for (const b of this.bolts.values()) if (b.tick()) this.skyFlashTime = 2;
+    if (this.player.isUnderWater) this.waterVisionTime = Math.min(600, this.waterVisionTime + (this.gameMode === 3 ? 10 : 1));
+    else if (this.waterVisionTime > 0) this.waterVisionTime = Math.max(0, this.waterVisionTime - 10);
+  }
+
+  /** LocalPlayer.getWaterVision: eyes adjust to the water over 30 seconds. */
+  private waterVision(): number {
+    if (!this.player.isUnderWater) return 0;
+    const t = this.waterVisionTime;
+    if (t >= 600) return 1;
+    const f2 = Math.max(0, Math.min(1, t / 100));
+    const f3 = t < 100 ? 0 : Math.max(0, Math.min(1, (t - 100) / 500));
+    return f2 * 0.6 + f3 * 0.39999998;
+  }
+
   private tickLiving(): void {
     if (this.hurtTime > 0) this.hurtTime--;
     if (this.invulnerableTime > 0) this.invulnerableTime--;
@@ -853,11 +883,44 @@ export class Game implements ScreenHost {
     this.attackStrengthTicker = 0;
   }
 
+  /** ScreenEffectRenderer.getViewBlockingState: a view-blocking block around the eye → its texture layer. */
+  private viewBlockingLayer(): number {
+    if (this.player.abilities.noPhysics) return -1;
+    const p = this.player, w = p.width * 0.8, ey = p.y + p.eyeHeight;
+    for (let i = 0; i < 8; i++) {
+      const x = Math.floor(p.x + ((i & 1) - 0.5) * w);
+      const y = Math.floor(ey + (((i >> 1) & 1) - 0.5) * 0.1);
+      const z = Math.floor(p.z + (((i >> 2) & 1) - 0.5) * w);
+      const st = this.world.getState(x, y, z);
+      if (isViewBlocking(st)) return this.particleLayer(st);
+    }
+    return -1;
+  }
+
+  /** LightTexture.getBrightness of the light at the eye (overworld, ambient 0). */
+  private eyeBrightness(): number {
+    const p = this.player;
+    const l = this.world.getLight(Math.floor(p.x), Math.floor(p.y + p.eyeHeight), Math.floor(p.z));
+    const sky = Math.max(0, (l >> 4) - this.skyDarkenLevel()), blk = l & 15;
+    const f = Math.max(sky, blk) / 15;
+    return f / (4 - 3 * f);
+  }
+
+  /** Level.getSkyDarken as an integer light reduction (0..11). */
+  private skyDarkenLevel(): number {
+    const tod = timeOfDay(this.world.dayTime);
+    let d = 1 - (Math.cos(tod * Math.PI * 2) * 2 + 0.5);
+    d = Math.max(0, Math.min(1, d));
+    d = 1 - d;
+    d *= 1 - (this.world.rain * 5) / 16;
+    d *= 1 - (this.world.thunder * 5) / 16;
+    return Math.floor((1 - d) * 11);
+  }
+
   private readonly handBob = mat4();
   private renderHand(partial: number, medium: string): void {
     const showHand = !this.hideHud && this.gameMode !== 3;
     const fire = this.onFire && this.gameMode !== 3;
-    if (!showHand && !fire) return;
     // bobHurt then bobView, like the level camera
     const hb = this.handBob;
     hb.set(IDENTITY4);
@@ -884,6 +947,10 @@ export class Game implements ScreenHost {
       viewRot: this.view,
       showHand,
       onFire: fire,
+      inWallLayer: this.viewBlockingLayer(),
+      underwater: this.gameMode !== 3 && this.player.isUnderWater
+        ? { brightness: this.eyeBrightness(), yaw: this.yaw, pitch: this.pitch }
+        : null,
     }, this.lightmap.tex);
   }
 
@@ -893,6 +960,9 @@ export class Game implements ScreenHost {
   private renderItems(cx: number, cy: number, cz: number, partial: number, fog: [number, number, number], fogStart: number, fogEnd: number): void {
     for (const it of this.items.values()) {
       if (!it.item) continue;
+      // Entity.shouldRenderAtSqrDistance: bounding-box size (0.25) × 64 × entity distance
+      const ed = 0.25 * 64 * this.settings.entityDistance;
+      if ((it.x - cx) ** 2 + (it.y - cy) ** 2 + (it.z - cz) ** 2 >= ed * ed) continue;
       const block = blockForItem(it.item);
       if (!block) continue;
       const state = BLOCKS_BY_NAME.get(block)!.defaultState;
@@ -1000,13 +1070,23 @@ export class Game implements ScreenHost {
     skyState.lookY = lookY;
     skyState.lookZ = lookZ;
     skyState.medium = medium;
+    skyState.flash = this.skyFlashTime > 0 ? this.skyFlashTime - partial : 0;
     const sky = skyColor(skyState, this.skyRgb);
     const fog = fogColor(skyState, sky, this.fogRgb);
     const renderDist = s.renderDistance * 16;
     let fogStart = renderDist * 0.75, fogEnd = renderDist;
     if (medium === 'water') {
+      // FogRenderer: 192 × max(0.25, water vision) × (0.85 in swamps), halved
+      const wv = this.waterVision();
+      let f = 192 * Math.max(0.25, wv);
+      if (biome.category === 'swamp') f *= 0.85;
       fogStart = -8;
-      fogEnd = 96;
+      fogEnd = f * 0.5;
+      // the fog colour brightens toward full saturation as the eyes adjust
+      if (fog[0] > 0 && fog[1] > 0 && fog[2] > 0) {
+        const k = Math.min(1 / fog[0], 1 / fog[1], 1 / fog[2]);
+        for (let i = 0; i < 3; i++) fog[i] = fog[i]! * (1 - wv) + fog[i]! * k * wv;
+      }
     } else if (medium === 'lava') {
       fogStart = 0.25;
       fogEnd = 1;
@@ -1017,7 +1097,7 @@ export class Game implements ScreenHost {
       ambient: 0,
       gamma: s.gamma,
       nightVision: 0,
-      flash: false,
+      flash: this.skyFlashTime > 0,
       end: false,
     });
 
@@ -1042,9 +1122,16 @@ export class Game implements ScreenHost {
       caveCulling: s.caveCulling,
     });
     if (this.players.size) {
-      this.entityRenderer.renderPlayers(this.players.values(), this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
+      // players: bounding-box size 1.0 × 64 blocks × entity distance
+      const ed = 64 * this.settings.entityDistance;
+      const visible = [...this.players.values()].filter((p) => (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2 < ed * ed);
+      this.entityRenderer.renderPlayers(visible, this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
     }
     this.renderItems(cx, cy, cz, partial, fog, fogStart, fogEnd);
+    if (this.bolts.size) {
+      const ed = 64 * this.settings.entityDistance;
+      this.lightning.render([...this.bolts.values()].filter((b) => (b.x - cx) ** 2 + (b.y - cy) ** 2 + (b.z - cz) ** 2 < ed * ed), this.viewProj, cx, cy, cz);
+    }
     for (const c of this.otherCracks.values()) {
       const st = this.world.getState(c.x, c.y, c.z);
       if (st) this.crack.render(this.viewProj, this.textures.tex, c.x, c.y, c.z, st, Math.min(9, c.stage), cx, cy, cz);

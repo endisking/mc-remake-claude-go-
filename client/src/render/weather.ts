@@ -3,6 +3,7 @@
  * radius of 5 (Fast) or 10 (Fancy) columns around the camera, from the precipitation
  * height up to camera+radius, oriented radially, scrolling over time.
  */
+import { temperatureAt } from '@shared/world/weather';
 import { BIOMES } from '@shared/data';
 import { JavaRandom } from '@shared/util/random';
 import type { ClientWorld } from '../world/clientworld';
@@ -45,14 +46,7 @@ for (let i = 0; i < 32; i++)
     SIZE_Z[(i << 5) | j] = f / f2;
   }
 
-/** Biome temperature at a height (vanilla Biome.getTemperature without the noise term above sea level+1). */
-export function temperatureAt(biomeId: number, y: number): number {
-  const b = BIOMES[biomeId];
-  if (!b) return 0.8;
-  let t = b.temperature;
-  if (y > 64) t -= ((y - 64) * 0.05) / 30;
-  return t;
-}
+export { temperatureAt };
 
 export class WeatherRenderer {
   private prog: WebGLProgram;

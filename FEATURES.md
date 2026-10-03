@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 111 / 4140**
+**Progress: 117 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -74,8 +74,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Biome-dependent sky and fog colors <!--p1:biome_dependent_sky_and_fog_colors-->
 - [x] Rain particles and rain sheet rendering <!--p1:rain_particles_and_rain_sheet_rendering-->
 - [x] Snow rendering <!--p1:snow_rendering-->
-- [ ] Thunderstorm darkening and lightning flashes <!--p1:thunderstorm_darkening_and_lightning_flashes-->
-- [ ] Underwater fog and view <!--p1:underwater_fog_and_view-->
+- [x] Thunderstorm darkening and lightning flashes <!--p1:thunderstorm_darkening_and_lightning_flashes-->
+- [x] Underwater fog and view <!--p1:underwater_fog_and_view-->
 - [x] Lava fog <!--p1:lava_fog-->
 
 ### Frame loop & settings basics
@@ -83,12 +83,12 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Fixed 20 TPS simulation loop with interpolated rendering <!--p1:fixed_20_tps_simulation_loop_with_interpolated_rendering-->
 - [x] Frame rate limit: VSync / 30 / 60 / 120 / Unlimited <!--p1:frame_rate_limit_vsync_30_60_120_unlimited-->
 - [x] Render distance 2–32 <!--p1:render_distance_2_32-->
-- [ ] Simulation distance setting <!--p1:simulation_distance_setting-->
-- [ ] Entity distance setting <!--p1:entity_distance_setting-->
+- [x] Simulation distance setting <!--p1:simulation_distance_setting-->
+- [x] Entity distance setting <!--p1:entity_distance_setting-->
 - [x] FOV setting (default 70) <!--p1:fov_setting_default_70-->
 - [x] Brightness (gamma) setting <!--p1:brightness_gamma_setting-->
 - [x] GUI scale setting <!--p1:gui_scale_setting-->
-- [ ] View bobbing toggle <!--p1:view_bobbing_toggle-->
+- [x] View bobbing toggle <!--p1:view_bobbing_toggle-->
 - [ ] Particles: all / decreased / minimal <!--p1:particles_all_decreased_minimal-->
 - [x] Settings persisted to localStorage <!--p1:settings_persisted_to_localstorage-->
 - [x] Performance benchmark /tools/bench (avg FPS, 1% lows, chunk build time) <!--p1:performance_benchmark_tools_bench_avg_fps_1_lows_chunk_build_time-->
@@ -183,7 +183,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Sweet berry bush damage <!--p2:sweet_berry_bush_damage-->
 - [x] Magma block damage <!--p2:magma_block_damage-->
 - [ ] Freezing damage (powder snow) <!--p2:freezing_damage_powder_snow-->
-- [ ] Lightning damage <!--p2:lightning_damage-->
+- [x] Lightning damage <!--p2:lightning_damage-->
 - [x] Damage immunity frames (10 ticks) <!--p2:damage_immunity_frames_10_ticks-->
 
 ### Beds, spawn, death
