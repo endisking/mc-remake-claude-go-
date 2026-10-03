@@ -111,8 +111,12 @@ describe('block interaction', () => {
     server.tick();
     const drops = [...server.entities.values()];
     expect(drops.length).toBe(1);
-    // the drop is picked up after its 10-tick delay once it lands near the player
-    for (let i = 0; i < 40; i++) server.tick();
+    // the drop is picked up after its 10-tick delay once the player is near it (its random
+    // toss can land it just out of reach, so step next to it)
+    for (let i = 0; i < 30; i++) server.tick();
+    const d = drops[0]!;
+    a.send({ t: 'move', x: Math.min(d.x, 32.3), y: 101, z: d.z, yaw: 0, pitch: 0, onGround: true });
+    for (let i = 0; i < 10; i++) server.tick();
     expect(p.inventory.slots.some((s) => s?.id === ITEMS_BY_NAME.get('cobblestone')!.id)).toBe(true);
   });
 
@@ -131,5 +135,34 @@ describe('block interaction', () => {
     expect(blockNameOf(server.world.getState(34, 101, 6))).toBe('torch');
     server.destroyBlock(34, 100, 6, null, false);
     expect(server.world.getState(34, 101, 6)).toBe(0);
+  });
+
+  it('/give fills the inventory (selected slot first) and pick block swaps owned items into the hotbar', () => {
+    const { server, a, p } = setup(0);
+    const stone = ITEMS_BY_NAME.get('stone')!.id;
+    // matching stacks fill from the selected slot first, then empty slots from 0
+    p.inventory.selected = 4;
+    p.inventory.set(2, { id: stone, count: 60, damage: 0 });
+    p.inventory.set(4, { id: stone, count: 60, damage: 0 });
+    a.send({ t: 'chat', message: '/give @s stone 70' });
+    expect(p.inventory.get(4)!.count).toBe(64);
+    expect(p.inventory.get(2)!.count).toBe(64);
+    expect(p.inventory.get(0)).toEqual({ id: stone, count: 62, damage: 0 });
+    p.inventory.set(2, null);
+    // survival pick block of an item that's only in the main inventory: swapped into a free hotbar slot
+    p.inventory.set(0, null);
+    p.inventory.set(4, null);
+    p.inventory.set(1, { id: ITEMS_BY_NAME.get('dirt')!.id, count: 1, damage: 0 });
+    p.inventory.set(20, { id: stone, count: 9, damage: 0 });
+    p.inventory.selected = 1;
+    a.send({ t: 'pickBlock', x: 30, y: 100, z: 7 }); // stone floor
+    expect(p.inventory.selected).toBe(2);
+    expect(p.inventory.get(2)).toEqual({ id: stone, count: 9, damage: 0 });
+    expect(p.inventory.get(20)).toBeNull();
+    // survival: not owned → nothing happens
+    p.inventory.set(2, null);
+    a.send({ t: 'pickBlock', x: 30, y: 100, z: 7 });
+    expect(p.inventory.find(stone)).toBe(-1);
+    void server;
   });
 });

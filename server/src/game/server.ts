@@ -20,7 +20,7 @@ import { isEmpty, maxStackSize, itemName, type ItemStack } from '@shared/item/st
 import { collisionBoxes } from '@shared/world/shapes';
 import { getProp, blockNameOf } from '@shared/world/blockstate';
 import { FLUID } from '@shared/world/blockinfo';
-import { BLOCKS_BY_NAME } from '@shared/data';
+import { BLOCKS_BY_NAME, ITEMS_BY_NAME } from '@shared/data';
 
 export interface Connection {
   send(data: ArrayBuffer): void;
@@ -136,26 +136,43 @@ export class GameServer {
   }
 
   /** Vanilla Inventory.setPickedItem (creative pick block). */
+  /** Vanilla pick block: Inventory.setPickedItem (creative) / pickSlot (survival, item already owned). */
   private pickBlock(p: ServerPlayer, x: number, y: number, z: number): void {
-    if (p.gameMode !== 1) return;
+    if (p.gameMode === 3 || !this.inReach(p, x, y, z)) return;
     const item = itemForBlock(this.world.getState(x, y, z));
     if (!item) return;
     const inv = p.inventory;
     const found = inv.find(item);
-    if (found >= 0 && found < 9) inv.selected = found;
-    else {
-      let slot = -1;
+    const suitable = (): number => {
       for (let i = 0; i < 9; i++) {
         const k = (inv.selected + i) % 9;
-        if (!inv.get(k)) {
-          slot = k;
-          break;
-        }
+        if (!inv.get(k)) return k;
       }
-      if (slot < 0) slot = inv.selected;
-      inv.selected = slot;
-      inv.set(slot, { id: item, count: 1, damage: 0 });
-      this.syncSlot(p, slot);
+      return inv.selected;
+    };
+    if (found >= 0 && found < 9) inv.selected = found;
+    else if (found >= 9) {
+      // pickSlot: swap the stack into a suitable hotbar slot
+      inv.selected = suitable();
+      const held = inv.get(inv.selected);
+      inv.set(inv.selected, inv.get(found));
+      inv.set(found, held);
+      this.syncSlot(p, found);
+      this.syncSlot(p, inv.selected);
+    } else if (p.gameMode === 1) {
+      inv.selected = suitable();
+      const held = inv.get(inv.selected);
+      if (held) {
+        // keep the displaced stack in a free main-inventory slot if there is one
+        for (let i = 0; i < 36; i++)
+          if (!inv.get(i)) {
+            inv.set(i, held);
+            this.syncSlot(p, i);
+            break;
+          }
+      }
+      inv.set(inv.selected, { id: item, count: 1, damage: 0 });
+      this.syncSlot(p, inv.selected);
     }
     this.send(p, { t: 'heldSlot', slot: inv.selected });
   }
@@ -563,6 +580,24 @@ export class GameServer {
       const modes: Record<string, number> = { survival: 0, creative: 1, adventure: 2, spectator: 3, '0': 0, '1': 1, '2': 2, '3': 3 };
       const mode = modes[a[1]];
       if (mode !== undefined) this.setGameMode(p, mode);
+    } else if (a[0] === 'give' && a.length >= 3) {
+      const target = a[1] === '@s' || a[1] === '@p' ? p : this.players.find((o) => o.name === a[1]);
+      const item = ITEMS_BY_NAME.get(a[2]!.replace(/^minecraft:/, ''));
+      const count = a[3] ? Math.floor(Number(a[3])) : 1;
+      if (!target || !item || !(count >= 1 && count <= 6400)) return;
+      // vanilla GiveCommand: fill the inventory, drop what doesn't fit at the player's feet
+      let left = count;
+      while (left > 0) {
+        const n = Math.min(left, maxStackSize(item.id));
+        left -= n;
+        const rest = target.inventory.add({ id: item.id, count: n, damage: 0 });
+        if (rest > 0) this.tossItem(target, { id: item.id, count: rest, damage: 0 });
+      }
+      for (let i = 0; i < 36; i++) this.syncSlot(target, i);
+      this.send(p, { t: 'chat', json: JSON.stringify({ text: `Gave ${count} [${item.displayName}] to ${target.name}` }) });
+    } else if (a[0] === 'clear') {
+      for (let i = 0; i < 41; i++) p.inventory.set(i, null);
+      for (let i = 0; i < 41; i++) this.syncSlot(p, i);
     } else if (a[0] === 'tp' && a.length >= 4) {
       const n = a.slice(1, 4).map(Number);
       if (n.some((v) => !Number.isFinite(v))) return;

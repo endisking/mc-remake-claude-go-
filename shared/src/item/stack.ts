@@ -58,7 +58,10 @@ export class Inventory {
   add(s: ItemStack): number {
     let left = s.count;
     const max = maxStackSize(s.id);
-    for (let i = 0; i < 36 && left > 0; i++) {
+    // vanilla getSlotWithRemainingSpace: the selected slot first, then 0..35
+    const order = [this.selected, ...Array.from({ length: 36 }, (_, i) => i).filter((i) => i !== this.selected)];
+    for (const i of order) {
+      if (left <= 0) break;
       const cur = this.slots[i];
       if (cur && sameItem(cur, s) && cur.count < max) {
         const n = Math.min(left, max - cur.count);

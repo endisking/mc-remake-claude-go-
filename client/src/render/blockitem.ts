@@ -1,0 +1,270 @@
+/**
+ * Renders single block models outside the chunk meshes: dropped items, held blocks and GUI
+ * item icons (rendered once into an icon atlas canvas for the 2D GUI).
+ */
+import { createProgram, Uniforms } from './gl';
+import { mat4, multiply, type Mat4 } from './math';
+import type { BakeResult } from '../models/bake';
+
+const VS = `#version 300 es
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aUV;
+layout(location = 2) in vec3 aNormal;
+layout(location = 3) in float aTinted;
+uniform mat4 uViewProj;
+uniform mat4 uModel;
+uniform vec3 uLight0;
+uniform vec3 uLight1;
+uniform float uAmbient;
+uniform int uGuiShade;
+out vec3 vUV;
+out float vShade;
+out float vTinted;
+out float vDist;
+void main() {
+  vec4 w = uModel * vec4(aPos, 1.0);
+  gl_Position = uViewProj * w;
+  vUV = aUV;
+  vec3 n = normalize(mat3(uModel) * aNormal);
+  vShade = min(1.0, uAmbient + (1.0 - uAmbient) * (max(dot(n, uLight0), 0.0) + max(dot(n, uLight1), 0.0)));
+  // inventory icons: top full bright, left side 0.8, right side 0.6 (as vanilla's GUI lighting looks)
+  if (uGuiShade == 1) vShade = n.y > 0.5 ? 1.0 : n.y < -0.5 ? 0.5 : (n.x < 0.0 ? 0.8 : 0.6);
+  vTinted = aTinted;
+  vDist = length(w.xyz);
+}`;
+const FS = `#version 300 es
+precision highp float;
+precision highp sampler2DArray;
+uniform sampler2DArray uTex;
+uniform sampler2D uLightmap;
+uniform vec2 uLight;
+uniform vec3 uTint;
+uniform int uUseLightmap;
+uniform vec4 uFogColor;
+uniform vec2 uFog;
+in vec3 vUV;
+in float vShade;
+in float vTinted;
+in float vDist;
+out vec4 outColor;
+void main() {
+  vec4 c = texture(uTex, vUV);
+  if (c.a < 0.5) discard;
+  if (vTinted > 0.5) c.rgb *= uTint;
+  c.rgb *= vShade;
+  if (uUseLightmap == 1) {
+    c.rgb *= texture(uLightmap, uLight).rgb;
+    float f = clamp((vDist - uFog.x) / max(uFog.y - uFog.x, 0.001), 0.0, 1.0);
+    c.rgb = mix(c.rgb, uFogColor.rgb, f);
+  }
+  outColor = vec4(c.rgb, 1.0);
+}`;
+
+interface Mesh {
+  vao: WebGLVertexArrayObject;
+  count: number;
+}
+
+const ICON = 64;
+
+export class BlockItemRenderer {
+  private prog: WebGLProgram;
+  private u: Uniforms;
+  private meshes = new Map<number, Mesh | null>();
+  // icon atlas
+  readonly iconCanvas: HTMLCanvasElement;
+  private iconCtx: CanvasRenderingContext2D;
+  private iconSlots = new Map<number, number>();
+  private fbo: WebGLFramebuffer;
+  private fboTex: WebGLTexture;
+  private fboDepth: WebGLRenderbuffer;
+  private pixels = new Uint8Array(ICON * ICON * 4);
+
+  constructor(
+    private gl: WebGL2RenderingContext,
+    private bake: BakeResult,
+    private texArray: () => WebGLTexture,
+    /** constant tint for tinted faces in item form (grass/foliage default colours) */
+    private itemTint: (state: number) => [number, number, number],
+    /** texture layer for items drawn as flat sprites (item/generated), or null for 3D blocks */
+    private flatLayer: (state: number) => number | null = () => null,
+  ) {
+    this.prog = createProgram(gl, VS, FS, 'blockitem');
+    this.u = new Uniforms(gl, this.prog);
+    this.iconCanvas = document.createElement('canvas');
+    this.iconCanvas.width = ICON * 32;
+    this.iconCanvas.height = ICON * 32;
+    this.iconCtx = this.iconCanvas.getContext('2d')!;
+    this.fboTex = gl.createTexture()!;
+    gl.bindTexture(gl.TEXTURE_2D, this.fboTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, ICON, ICON, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    this.fboDepth = gl.createRenderbuffer()!;
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.fboDepth);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, ICON, ICON);
+    this.fbo = gl.createFramebuffer()!;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.fboTex, 0);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.fboDepth);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
+  /** Whether the item is drawn as a flat sprite. */
+  isFlat(state: number): boolean {
+    return this.flatLayer(state) !== null;
+  }
+
+  private mesh(state: number): Mesh | null {
+    if (this.meshes.has(state)) return this.meshes.get(state)!;
+    const baked = this.bake.states[state];
+    const quads = baked?.choices[0]?.quads ?? [];
+    const flat = this.flatLayer(state);
+    if (!quads.length && flat === null) {
+      this.meshes.set(state, null);
+      return null;
+    }
+    const v: number[] = [];
+    if (flat !== null) {
+      // a double-sided sprite in the XY plane, facing +Z (south) and −Z
+      const t = quads.some((q) => q.tint >= 0) ? 1 : 0;
+      const c = [[-0.5, 0.5, 0, 0], [-0.5, -0.5, 0, 1], [0.5, -0.5, 1, 1], [0.5, 0.5, 1, 0]];
+      for (const k of [0, 1, 2, 0, 2, 3]) v.push(c[k]![0]!, c[k]![1]!, 0.002, c[k]![2]!, c[k]![3]!, flat, 0, 0, 1, t);
+      for (const k of [0, 2, 1, 0, 3, 2]) v.push(c[k]![0]!, c[k]![1]!, -0.002, 1 - c[k]![2]!, c[k]![3]!, flat, 0, 0, -1, t);
+    }
+    const src = flat !== null ? [] : quads;
+    const N = [[0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0]];
+    for (const q of src) {
+      const n = N[q.dir]!;
+      for (const k of [0, 1, 2, 0, 2, 3]) {
+        v.push(q.pos[k * 3]! - 0.5, q.pos[k * 3 + 1]! - 0.5, q.pos[k * 3 + 2]! - 0.5, q.uv[k * 2]! / 16, q.uv[k * 2 + 1]! / 16, q.layer, n[0]!, n[1]!, n[2]!, q.tint >= 0 ? 1 : 0);
+      }
+    }
+    const gl = this.gl;
+    const vao = gl.createVertexArray()!;
+    gl.bindVertexArray(vao);
+    const vbo = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+    const st = 10 * 4;
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, st, 0);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 3, gl.FLOAT, false, st, 12);
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribPointer(2, 3, gl.FLOAT, false, st, 24);
+    gl.enableVertexAttribArray(3);
+    gl.vertexAttribPointer(3, 1, gl.FLOAT, false, st, 36);
+    gl.bindVertexArray(null);
+    const m = { vao, count: v.length / 10 };
+    this.meshes.set(state, m);
+    return m;
+  }
+
+  /** Draw a block model centred at the model matrix origin (unit cube −0.5..0.5). */
+  draw(state: number, viewProj: Mat4, model: Mat4, light: number, lightmap: WebGLTexture | null, fog?: { color: [number, number, number]; start: number; end: number }, gui = false): void {
+    const m = this.mesh(state);
+    if (!m) return;
+    const gl = this.gl;
+    gl.useProgram(this.prog);
+    gl.uniformMatrix4fv(this.u.get('uViewProj'), false, viewProj);
+    gl.uniformMatrix4fv(this.u.get('uModel'), false, model);
+    gl.uniform1i(this.u.get('uGuiShade'), gui && !this.isFlat(state) ? 1 : 0);
+    if (gui) {
+      // GUI lighting: top brightest, left face medium, right face darker
+      gl.uniform3f(this.u.get('uLight0'), -0.43, 0.82, 0.37);
+      gl.uniform3f(this.u.get('uLight1'), 0, 0, 0);
+      gl.uniform1f(this.u.get('uAmbient'), this.isFlat(state) ? 1 : 0.45);
+    } else {
+      const l0 = normalize([0.2, 1, -0.7]), l1 = normalize([-0.2, 1, 0.7]);
+      gl.uniform3f(this.u.get('uLight0'), l0[0], l0[1], l0[2]);
+      gl.uniform3f(this.u.get('uLight1'), l1[0], l1[1], l1[2]);
+      gl.uniform1f(this.u.get('uAmbient'), 0.4);
+    }
+    const t = this.itemTint(state);
+    gl.uniform3f(this.u.get('uTint'), t[0], t[1], t[2]);
+    gl.uniform1i(this.u.get('uTex'), 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.texArray());
+    gl.uniform1i(this.u.get('uUseLightmap'), lightmap ? 1 : 0);
+    // samplers of different types must never share a unit, even when one is unused
+    gl.uniform1i(this.u.get('uLightmap'), 1);
+    if (lightmap) {
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, lightmap);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.uniform2f(this.u.get('uLight'), ((light & 15) + 0.5) / 16, ((light >> 4) + 0.5) / 16);
+      const f = fog ?? { color: [0, 0, 0] as [number, number, number], start: 1e6, end: 1e6 + 1 };
+      gl.uniform4f(this.u.get('uFogColor'), f.color[0], f.color[1], f.color[2], 1);
+      gl.uniform2f(this.u.get('uFog'), f.start, f.end);
+    }
+    gl.bindVertexArray(m.vao);
+    gl.drawArrays(gl.TRIANGLES, 0, m.count);
+    gl.bindVertexArray(null);
+  }
+
+  /**
+   * Icon for a block state in the GUI atlas: rendered once with the vanilla inventory
+   * transform (rotate 30° about X, 225° about Y, scale 0.625). Returns [sx, sy, size].
+   */
+  icon(state: number): [number, number, number] | null {
+    let slot = this.iconSlots.get(state);
+    if (slot === undefined) {
+      if (!this.mesh(state)) return null;
+      slot = this.iconSlots.size;
+      this.iconSlots.set(state, slot);
+      this.renderIcon(state, slot);
+    }
+    return [(slot % 32) * ICON, Math.floor(slot / 32) * ICON, ICON];
+  }
+
+  private renderIcon(state: number, slot: number): void {
+    const gl = this.gl;
+    const prevViewport = gl.getParameter(gl.VIEWPORT) as Int32Array;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+    gl.viewport(0, 0, ICON, ICON);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
+    gl.disable(gl.BLEND);
+    // orthographic projection of a 16×16 GUI slot (−8..8 px), model in px
+    const proj = mat4();
+    proj[0] = 1 / 8;
+    proj[5] = 1 / 8;
+    proj[10] = -1 / 64;
+    const model = mat4();
+    if (this.isFlat(state)) {
+      // flat items fill the slot, unrotated
+      model[0] = model[5] = model[10] = 16;
+    } else {
+      const rx = rot(1, 0, 0, 30), ry = rot(0, 1, 0, 225);
+      const sc = mat4();
+      sc[0] = sc[5] = sc[10] = 16 * 0.625;
+      multiply(model, rx, ry);
+      multiply(model, model, sc);
+    }
+    this.draw(state, proj, model, 0xf0, null, undefined, true);
+    gl.readPixels(0, 0, ICON, ICON, gl.RGBA, gl.UNSIGNED_BYTE, this.pixels);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(prevViewport[0]!, prevViewport[1]!, prevViewport[2]!, prevViewport[3]!);
+    // flip vertically into the atlas
+    const img = this.iconCtx.createImageData(ICON, ICON);
+    for (let y = 0; y < ICON; y++) img.data.set(this.pixels.subarray((ICON - 1 - y) * ICON * 4, (ICON - y) * ICON * 4), y * ICON * 4);
+    this.iconCtx.putImageData(img, (slot % 32) * ICON, Math.floor(slot / 32) * ICON);
+  }
+}
+
+function normalize(v: number[]): [number, number, number] {
+  const l = Math.hypot(v[0]!, v[1]!, v[2]!);
+  return [v[0]! / l, v[1]! / l, v[2]! / l];
+}
+
+function rot(x: number, y: number, z: number, deg: number): Mat4 {
+  const a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a), t = 1 - c;
+  const m = mat4();
+  m[0] = t * x * x + c; m[1] = t * x * y + s * z; m[2] = t * x * z - s * y;
+  m[4] = t * x * y - s * z; m[5] = t * y * y + c; m[6] = t * y * z + s * x;
+  m[8] = t * x * z + s * y; m[9] = t * y * z - s * x; m[10] = t * z * z + c;
+  return m;
+}
+
+export { rot };

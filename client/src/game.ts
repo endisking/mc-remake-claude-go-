@@ -28,6 +28,15 @@ import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes } f
 import type { TextureManifest } from './render/blockmodels';
 import { Gui } from './gui/gui';
 import { RemotePlayer } from './world/entities';
+import { Interaction } from './interaction';
+import { ParticleEngine } from './render/particles';
+import { BlockItemRenderer } from './render/blockitem';
+import { blockForItem } from '@shared/game/loot';
+import { BLOCKS_BY_NAME, ITEMS_BY_ID } from '@shared/data';
+import { itemName } from '@shared/item/stack';
+import type { BakeResult } from './models/bake';
+import { flatItemTexture } from './models/itemmodels';
+import { JavaRandom } from '@shared/util/random';
 import { EntityRenderer } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
@@ -50,6 +59,15 @@ export class Game implements ScreenHost {
   /** Other players (and later all entities), by entity id. */
   readonly players = new Map<number, RemotePlayer>();
   private sentState = { sneaking: false, sprinting: false, flying: false };
+  interaction!: Interaction;
+  particles!: ParticleEngine;
+  blockItems!: BlockItemRenderer;
+  private bake!: BakeResult;
+  /** Dropped item entities: id → state for rendering. */
+  readonly items = new Map<number, { x: number; y: number; z: number; xo: number; yo: number; zo: number; lx: number; ly: number; lz: number; steps: number; item: number; count: number; age: number; bobOffs: number; pickup?: { collector: number; life: number } }>();
+  entityId = 0;
+  /** Other players' digging cracks: player id → position + stage. */
+  private otherCracks = new Map<number, { x: number; y: number; z: number; stage: number }>();
   health = 20;
   food = 20;
   saturation = 5;
@@ -226,6 +244,24 @@ export class Game implements ScreenHost {
     this.entityRenderer = new EntityRenderer(this.gl);
     await this.entityRenderer.loadSkins();
     const mainBake = bakeBlockModels(this.manifest, this.settings.graphics === 'fancy');
+    this.bake = mainBake.bake;
+    this.particles = new ParticleEngine(this.gl, this.world);
+    this.blockItems = new BlockItemRenderer(this.gl, mainBake.bake, () => this.textures.tex, (st) => itemTint(st), (st) => {
+      const t = flatItemTexture(blockNameOf(st));
+      return t === null ? null : (mainBake.textures.get(t)?.layer ?? mainBake.textures.get('missing')!.layer);
+    });
+    this.interaction = new Interaction({
+      world: this.world,
+      player: this.player,
+      get gameMode() { return game.gameMode; },
+      get yaw() { return game.yaw; },
+      get pitch() { return game.pitch; },
+      send: (p) => this.send(p),
+      onBlockBroken: (x, y, z, st) => this.particles.destroy(x, y, z, st, this.particleLayer(st), this.particleTint(st, x, z)),
+      onBlockHit: (x, y, z, face, st) => this.particles.crack(x, y, z, face, st, this.particleLayer(st), this.particleTint(st, x, z)),
+      swing: () => this.swingArm(),
+    });
+    const game = this;
     this.crack = new CrackRenderer(this.gl, mainBake.bake, Array.from({ length: 10 }, (_, i) => mainBake.textures.get(`destroy_stage_${i}`)!.layer));
     if (q.has('crack')) this.breakStage = Number(q.get('crack'));
     this.chunks = new ChunkRenderer(this.gl, this.world, this.biomes, this.manifest, {
@@ -269,6 +305,7 @@ export class Game implements ScreenHost {
   private handle(p: S2C): void {
     switch (p.t) {
       case 'login':
+        this.entityId = p.entityId;
         this.setGameMode(p.gameMode);
         this.placePlayer(p.x, p.y, p.z);
         this.yaw = p.yaw;
@@ -321,11 +358,22 @@ export class Game implements ScreenHost {
         break;
       }
       case 'removeEntities':
-        for (const id of p.ids) this.players.delete(id);
+        for (const id of p.ids) {
+          this.players.delete(id);
+          this.items.delete(id);
+        }
         break;
-      case 'entityMove':
+      case 'entityMove': {
         this.players.get(p.id)?.lerpTo(p.x, p.y, p.z, p.yaw, p.pitch, p.headYaw);
+        const it = this.items.get(p.id);
+        if (it) {
+          it.lx = p.x;
+          it.ly = p.y;
+          it.lz = p.z;
+          it.steps = 2;
+        }
         break;
+      }
       case 'entityState': {
         const rp = this.players.get(p.id);
         if (rp) {
@@ -351,8 +399,46 @@ export class Game implements ScreenHost {
         this.saturation = p.saturation;
         this.player.foodLevel = p.food;
         break;
-      case 'blockBreakProgress':
+      case 'setSlot':
+        this.interaction.inventory.set(p.slot, p.item > 0 && p.count > 0 ? { id: p.item, count: p.count, damage: p.damage } : null);
+        break;
+      case 'heldSlot':
+        this.interaction.inventory.selected = p.slot;
+        break;
+      case 'addEntity':
+        if (p.type === 'item') {
+          this.items.set(p.id, { x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z, steps: 0, item: 0, count: 1, age: 0, bobOffs: Math.random() * Math.PI * 2 });
+        }
+        break;
+      case 'itemStack': {
+        const it = this.items.get(p.id);
+        if (it) {
+          it.item = p.item;
+          it.count = p.count;
+        }
+        break;
+      }
+      case 'takeItem': {
+        // vanilla ItemPickupParticle: the item flies into the collector over 3 ticks
+        const it = this.items.get(p.itemId);
+        if (it && !it.pickup) {
+          const stays = p.count < it.count;
+          if (stays) it.count -= p.count;
+          const ghost = stays ? { ...it, count: p.count } : it;
+          ghost.pickup = { collector: p.collectorId, life: 0 };
+          this.items.delete(p.itemId);
+          this.items.set(stays ? -1e9 - this.clientTicks * 16 - (p.itemId & 15) : p.itemId, ghost);
+          if (stays) this.items.set(p.itemId, it);
+        }
+        break;
+      }
       case 'levelEvent':
+        if (p.event === 2001) this.particles.destroy(p.x, p.y, p.z, p.data, this.particleLayer(p.data), this.particleTint(p.data, p.x, p.z));
+        break;
+      case 'blockBreakProgress':
+        if (p.stage < 0) this.otherCracks.delete(p.id);
+        else this.otherCracks.set(p.id, { x: p.x, y: p.y, z: p.z, stage: p.stage });
+        break;
       case 'digAck':
       case 'chat':
       case 'disconnect':
@@ -456,6 +542,36 @@ export class Game implements ScreenHost {
     if (this.fovModifier > 1.5) this.fovModifier = 1.5;
     if (this.fovModifier < 0.1) this.fovModifier = 0.1;
     for (const rp of this.players.values()) rp.tick();
+    for (const [id, it] of this.items) {
+      if (it.pickup && ++it.pickup.life > 3) {
+        this.items.delete(id);
+        continue;
+      }
+      it.xo = it.x;
+      it.yo = it.y;
+      it.zo = it.z;
+      it.age++;
+      if (it.steps > 0) {
+        it.x += (it.lx - it.x) / it.steps;
+        it.y += (it.ly - it.y) / it.steps;
+        it.z += (it.lz - it.z) / it.steps;
+        it.steps--;
+      }
+    }
+    this.particles.tick();
+    this.swingTick();
+    this.tickHighlight();
+    // mouse buttons (vanilla handleKeybinds: attack, use, pick block)
+    if (active && this.loggedIn) {
+      const ia = this.interaction;
+      const attackPressed = i.consumeMouse(0);
+      if (attackPressed) ia.startAttack(this.target);
+      ia.continueAttack(i.mouseButtons.has(0) && !attackPressed, this.target);
+      ia.use(i.consumeMouse(2), i.mouseButtons.has(2), this.target);
+      if (i.consumeMouse(1)) ia.pickBlock(this.target);
+      for (let d = 1; d <= 9; d++) if (i.consumePress(`Digit${d}`)) ia.select(d - 1);
+      if (i.consumePress('KeyQ')) ia.drop(i.down.has('ControlLeft'));
+    }
     if (this.loggedIn) {
       const st = this.sentState;
       if (st.sneaking !== pl.shiftDown || st.sprinting !== pl.sprinting || st.flying !== pl.abilities.flying) {
@@ -507,11 +623,119 @@ export class Game implements ScreenHost {
     const k = sens * sens * sens * 8 * 0.15;
     this.yaw += i.mouseDX * k;
     this.pitch = Math.max(-90, Math.min(90, this.pitch + i.mouseDY * k));
+    if (i.wheel !== 0 && this.interaction) this.interaction.scroll(i.wheel);
     if (i.consumePress('F3')) this.showDebug = !this.showDebug;
     if (i.consumePress('F1')) this.hideHud = !this.hideHud;
     if (i.consumePress('F11')) {
       if (document.fullscreenElement) void document.exitFullscreen();
       else void document.documentElement.requestFullscreen();
+    }
+  }
+
+  // ------------------------------------------------------------------ helpers
+  /** Texture layer used for a block's particles (its bottom face, like most "particle" textures). */
+  private particleLayer(state: number): number {
+    const q = this.bake.states[state]?.choices[0]?.quads;
+    if (!q || !q.length) return 0;
+    return (q.find((x) => x.dir === 0) ?? q[0]!).layer;
+  }
+
+  private particleTint(state: number, x: number, z: number): [number, number, number] {
+    const name = blockNameOf(state);
+    if (name === 'grass_block') return [1, 1, 1];
+    const q = this.bake.states[state]?.choices[0]?.quads;
+    if (!q?.some((x) => x.tint >= 0)) return [1, 1, 1];
+    void x;
+    void z;
+    return itemTint(state);
+  }
+
+  private swingTime = 0;
+  private swinging = false;
+  private attackAnim = 0;
+  private attackAnimO = 0;
+  swingArm(): void {
+    if (!this.swinging || this.swingTime >= 3 || this.swingTime < 0) {
+      this.swingTime = -1;
+      this.swinging = true;
+      if (this.loggedIn) this.send({ t: 'swing', hand: 0 });
+    }
+  }
+  private swingTick(): void {
+    this.attackAnimO = this.attackAnim;
+    if (this.swinging) {
+      this.swingTime++;
+      if (this.swingTime >= 6) {
+        this.swingTime = 0;
+        this.swinging = false;
+      }
+    } else this.swingTime = 0;
+    this.attackAnim = this.swingTime / 6;
+  }
+
+  /** Test hook: default state of a block by name. */
+  stateOfName(name: string): number {
+    return BLOCKS_BY_NAME.get(name)?.defaultState ?? 0;
+  }
+
+  /** Feet position of an entity that collects items (the local player or a remote one). */
+  private collectorPos(id: number, partial: number): [number, number, number] | null {
+    if (id === this.entityId) {
+      const eye = this.player.eyeHeight;
+      return [this.prevX + (this.x - this.prevX) * partial, this.prevY + (this.y - this.prevY) * partial - eye, this.prevZ + (this.z - this.prevZ) * partial];
+    }
+    const rp = this.players.get(id);
+    return rp ? [rp.xo + (rp.x - rp.xo) * partial, rp.yo + (rp.y - rp.yo) * partial, rp.zo + (rp.z - rp.zo) * partial] : null;
+  }
+
+  private readonly itemModel = mat4();
+  private readonly itemRand = new JavaRandom(0n);
+  /** Dropped items: block items as small spinning, bobbing cubes (vanilla ItemEntityRenderer). */
+  private renderItems(cx: number, cy: number, cz: number, partial: number, fog: [number, number, number], fogStart: number, fogEnd: number): void {
+    for (const it of this.items.values()) {
+      if (!it.item) continue;
+      const block = blockForItem(it.item);
+      if (!block) continue;
+      const state = BLOCKS_BY_NAME.get(block)!.defaultState;
+      let x = it.xo + (it.x - it.xo) * partial, y = it.yo + (it.y - it.yo) * partial, z = it.zo + (it.z - it.zo) * partial;
+      if (it.pickup) {
+        const tgt = this.collectorPos(it.pickup.collector, partial);
+        if (tgt) {
+          const f = Math.min(1, (it.pickup.life + partial) / 3);
+          const f2 = f * f;
+          x += (tgt[0] - x) * f2;
+          y += (tgt[1] + 0.5 - y) * f2;
+          z += (tgt[2] - z) * f2;
+        }
+      }
+      const age = it.age + partial;
+      const bob = Math.sin(age / 10 + it.bobOffs) * 0.1 + 0.1;
+      const spin = age / 20 + it.bobOffs;
+      const copies = it.count > 48 ? 5 : it.count > 32 ? 4 : it.count > 16 ? 3 : it.count > 1 ? 2 : 1;
+      const light = this.world.getLight(Math.floor(x), Math.floor(y + 0.25), Math.floor(z));
+      // ground transforms (blocks: scale 0.25, raised 3px; generated items: scale 0.5, raised 2px)
+      // plus vanilla's 0.25·scale lift
+      const flat = this.blockItems.isFlat(state);
+      const cs = Math.cos(spin), sn = Math.sin(spin), sc = flat ? 0.5 : 0.25;
+      const lift = (flat ? 2 / 16 : 3 / 16) + 0.25 * sc;
+      const rand = this.itemRand;
+      rand.setSeed(BigInt(it.item));
+      let stackZ = 0;
+      for (let c = 0; c < copies; c++) {
+        // extra copies: random offsets within ±0.15 (3D) or ±0.075 in-plane (flat), in the spun frame
+        let ox = 0, oy = 0, oz = 0;
+        if (c > 0) {
+          ox = (rand.nextFloat() * 2 - 1) * 0.15 * (flat ? 0.5 : 1);
+          oy = (rand.nextFloat() * 2 - 1) * 0.15 * (flat ? 0.5 : 1);
+          if (!flat) oz = (rand.nextFloat() * 2 - 1) * 0.15;
+        }
+        oz += stackZ;
+        if (flat) stackZ += 0.09375 * sc;
+        const wx = cs * ox + sn * oz, wz = -sn * ox + cs * oz;
+        const m = this.itemModel;
+        m.set([cs * sc, 0, -sn * sc, 0, 0, sc, 0, 0, sn * sc, 0, cs * sc, 0, x - cx + wx, y - cy + bob + lift + oy, z - cz + wz, 1]);
+        this.blockItems.draw(state, this.viewProj, m, light, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
+      }
     }
   }
 
@@ -620,7 +844,19 @@ export class Game implements ScreenHost {
     if (this.players.size) {
       this.entityRenderer.renderPlayers(this.players.values(), this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
     }
+    this.renderItems(cx, cy, cz, partial, fog, fogStart, fogEnd);
+    for (const c of this.otherCracks.values()) {
+      const st = this.world.getState(c.x, c.y, c.z);
+      if (st) this.crack.render(this.viewProj, this.textures.tex, c.x, c.y, c.z, st, Math.min(9, c.stage), cx, cy, cz);
+    }
     this.chunks.renderTranslucent(cx, cy, cz, this.textures.tex, this.lightmap.tex);
+    // particles: camera-facing quads
+    {
+      const yr2 = (this.yaw * Math.PI) / 180, pr2 = (this.pitch * Math.PI) / 180;
+      const rx = -Math.cos(yr2), rz = -Math.sin(yr2);
+      const ux = -Math.sin(yr2) * Math.sin(pr2) * -1, uy = Math.cos(pr2), uz = Math.cos(yr2) * Math.sin(pr2) * -1;
+      this.particles.render(this.viewProj, rx, 0, rz, ux, uy, uz, cx, cy, cz, partial, this.textures.tex, this.lightmap.tex, fog, fogStart, fogEnd);
+    }
     // targeted block outline (vanilla: black, 40% alpha)
     this.target = raycastBlocks(this.world, cx, cy, cz, lookX, lookY, lookZ, this.reach, false, this.hitScratch);
     if (this.target && !this.hideHud) {
@@ -631,7 +867,9 @@ export class Game implements ScreenHost {
         this.lines.box(t.x + b[0] - e - cx, t.y + b[1] - e - cy, t.z + b[2] - e - cz, t.x + b[3] + e - cx, t.y + b[4] + e - cy, t.z + b[5] + e - cz, 0, 0, 0, 0.4);
       }
       this.lines.flush(this.viewProj, this.canvas.width, this.canvas.height);
-      if (this.breakStage >= 0) this.crack.render(this.viewProj, this.textures.tex, t.x, t.y, t.z, t.state, this.breakStage, cx, cy, cz);
+      const stage = this.breakStage >= 0 ? this.breakStage : this.interaction.crackStage;
+      const ia = this.interaction;
+      if (stage >= 0 && (this.breakStage >= 0 || (ia.destroyX === t.x && ia.destroyY === t.y && ia.destroyZ === t.z))) this.crack.render(this.viewProj, this.textures.tex, t.x, t.y, t.z, t.state, stage, cx, cy, cz);
     }
     this.weather.render(this.viewProj, this.world, cx, cy, cz, this.clientTicks, partial, this.world.rain, s.graphics === 'fancy', this.lightmap.tex);
     if (medium === 'air') {
@@ -657,8 +895,66 @@ export class Game implements ScreenHost {
         ctx.fillRect(cx, cy + 1, 1, 7);
         ctx.restore();
       }
+      if (this.gameMode !== 3) this.renderHotbar();
     }
     if (this.screen) this.screen.render(this.mouseGX, this.mouseGY);
+  }
+
+  /** Vanilla Gui.renderHotbar + renderSelectedItemName. */
+  private renderHotbar(): void {
+    const g = this.gui;
+    const inv = this.interaction.inventory;
+    const mid = Math.floor(g.width / 2);
+    g.blit(g.widgets, 0, 80, 182, 22, mid - 91, g.height - 22);
+    g.blit(g.widgets, 0, 104, 24, 22, mid - 91 - 1 + inv.selected * 20, g.height - 22 - 1);
+    for (let i = 0; i < 9; i++) {
+      const st = inv.get(i);
+      if (st) this.renderGuiItem(st.id, st.count, mid - 90 + i * 20 + 2, g.height - 16 - 3);
+    }
+    if (this.highlightTimer > 0 && this.highlightName) {
+      const k = g.height - 59 + (this.gameMode === 1 || this.gameMode === 3 ? 14 : 0);
+      const alpha = Math.min(255, Math.floor((this.highlightTimer * 256) / 10));
+      if (alpha > 0) {
+        g.ctx.save();
+        g.ctx.globalAlpha = alpha / 255;
+        g.centeredText(this.highlightName, mid, k, 0xffffff);
+        g.ctx.restore();
+      }
+    }
+  }
+
+  /** A 16×16 item in the GUI with its stack count (vanilla ItemRenderer.renderGuiItem + decorations). */
+  renderGuiItem(id: number, count: number, x: number, y: number): void {
+    const g = this.gui;
+    const block = blockForItem(id);
+    const icon = block ? this.blockItems.icon(BLOCKS_BY_NAME.get(block)!.defaultState) : null;
+    if (icon) g.blit(this.blockItems.iconCanvas, icon[0], icon[1], icon[2], icon[2], x, y, 16, 16);
+    else {
+      // no item texture yet: magenta/black "missing" square like vanilla's missing texture
+      g.fill(x, y, 8, 8, 0xfff800f8);
+      g.fill(x + 8, y + 8, 8, 8, 0xfff800f8);
+      g.fill(x + 8, y, 8, 8, 0xff000000);
+      g.fill(x, y + 8, 8, 8, 0xff000000);
+    }
+    if (count !== 1) {
+      const s = String(count);
+      g.text(s, x + 19 - 2 - g.font.width(s), y + 6 + 3, 0xffffff, true);
+    }
+  }
+
+  private highlightTimer = 0;
+  private highlightName = '';
+  private lastHighlight = '';
+  /** Vanilla Gui.tick: show the selected item's name for 2 s when it changes. */
+  private tickHighlight(): void {
+    const st = this.interaction.inventory.selectedStack;
+    const key = st ? String(st.id) : '';
+    if (!st) this.highlightTimer = 0;
+    else if (key !== this.lastHighlight) {
+      this.highlightName = ITEMS_BY_ID[st.id]?.displayName ?? itemName(st.id);
+      this.highlightTimer = 40;
+    } else if (this.highlightTimer > 0) this.highlightTimer--;
+    this.lastHighlight = key;
   }
 
   private debugLines(x: number, y: number, z: number): { left: string[]; right: string[] } {
@@ -729,4 +1025,16 @@ export class Game implements ScreenHost {
       g.text(l, rx, 2 + i * 9, 0xe0e0e0, false);
     });
   }
+}
+
+/** Default item tints (vanilla ItemColors): grass and leaves in item form. */
+function itemTint(state: number): [number, number, number] {
+  const n = blockNameOf(state);
+  const hex = (c: number): [number, number, number] => [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255];
+  if (n === 'spruce_leaves') return hex(0x619961);
+  if (n === 'birch_leaves') return hex(0x80a755);
+  if (n.endsWith('_leaves') || n === 'vine') return hex(0x48b518);
+  if (n === 'grass_block' || n === 'grass' || n === 'tall_grass' || n === 'fern' || n === 'large_fern') return hex(0x7cbd6b);
+  if (n === 'lily_pad') return hex(0x208030);
+  return [1, 1, 1];
 }

@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 62 / 4140**
+**Progress: 93 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -102,47 +102,47 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Movement physics
 
-- [ ] Gravity 0.08 and vertical drag 0.98 per tick <!--p2:gravity_0_08_and_vertical_drag_0_98_per_tick-->
-- [ ] Ground friction from block slipperiness (0.6 default, ice 0.98, slime 0.8, blue ice 0.989) <!--p2:ground_friction_from_block_slipperiness_0_6_default_ice_0_98_slime_0_8_blue_ice_0_989-->
-- [ ] Air friction 0.91 and air acceleration <!--p2:air_friction_0_91_and_air_acceleration-->
-- [ ] Walking ≈4.317 m/s <!--p2:walking_4_317_m_s-->
-- [ ] Sprinting ≈5.612 m/s, double-tap W, sprint key <!--p2:sprinting_5_612_m_s_double_tap_w_sprint_key-->
-- [ ] Sprint-jumping boost <!--p2:sprint_jumping_boost-->
-- [ ] Sneaking (0.3× speed), stops at edges <!--p2:sneaking_0_3_speed_stops_at_edges-->
-- [ ] Jump height ≈1.25 blocks (jump velocity 0.42) <!--p2:jump_height_1_25_blocks_jump_velocity_0_42-->
-- [ ] Step-up 0.6 blocks <!--p2:step_up_0_6_blocks-->
-- [ ] Hitbox 0.6×1.8 (1.5 tall when sneaking), eye height 1.62 (1.27 sneaking) <!--p2:hitbox_0_6_1_8_1_5_tall_when_sneaking_eye_height_1_62_1_27_sneaking-->
-- [ ] AABB collision against block collision shapes <!--p2:aabb_collision_against_block_collision_shapes-->
-- [ ] Swimming (sprint underwater) and 0.6-tall swim pose <!--p2:swimming_sprint_underwater_and_0_6_tall_swim_pose-->
-- [ ] Crawling in 1-block gaps <!--p2:crawling_in_1_block_gaps-->
-- [ ] Water physics (drag 0.8, buoyancy, current push) <!--p2:water_physics_drag_0_8_buoyancy_current_push-->
-- [ ] Lava physics (drag 0.5) <!--p2:lava_physics_drag_0_5-->
+- [x] Gravity 0.08 and vertical drag 0.98 per tick <!--p2:gravity_0_08_and_vertical_drag_0_98_per_tick-->
+- [x] Ground friction from block slipperiness (0.6 default, ice 0.98, slime 0.8, blue ice 0.989) <!--p2:ground_friction_from_block_slipperiness_0_6_default_ice_0_98_slime_0_8_blue_ice_0_989-->
+- [x] Air friction 0.91 and air acceleration <!--p2:air_friction_0_91_and_air_acceleration-->
+- [x] Walking ≈4.317 m/s <!--p2:walking_4_317_m_s-->
+- [x] Sprinting ≈5.612 m/s, double-tap W, sprint key <!--p2:sprinting_5_612_m_s_double_tap_w_sprint_key-->
+- [x] Sprint-jumping boost <!--p2:sprint_jumping_boost-->
+- [x] Sneaking (0.3× speed), stops at edges <!--p2:sneaking_0_3_speed_stops_at_edges-->
+- [x] Jump height ≈1.25 blocks (jump velocity 0.42) <!--p2:jump_height_1_25_blocks_jump_velocity_0_42-->
+- [x] Step-up 0.6 blocks <!--p2:step_up_0_6_blocks-->
+- [x] Hitbox 0.6×1.8 (1.5 tall when sneaking), eye height 1.62 (1.27 sneaking) <!--p2:hitbox_0_6_1_8_1_5_tall_when_sneaking_eye_height_1_62_1_27_sneaking-->
+- [x] AABB collision against block collision shapes <!--p2:aabb_collision_against_block_collision_shapes-->
+- [x] Swimming (sprint underwater) and 0.6-tall swim pose <!--p2:swimming_sprint_underwater_and_0_6_tall_swim_pose-->
+- [x] Crawling in 1-block gaps <!--p2:crawling_in_1_block_gaps-->
+- [x] Water physics (drag 0.8, buoyancy, current push) <!--p2:water_physics_drag_0_8_buoyancy_current_push-->
+- [x] Lava physics (drag 0.5) <!--p2:lava_physics_drag_0_5-->
 - [ ] Ladders, vines, twisting/weeping vines, scaffolding climbing <!--p2:ladders_vines_twisting_weeping_vines_scaffolding_climbing-->
 - [ ] Soul sand slowdown, soul speed <!--p2:soul_sand_slowdown_soul_speed-->
 - [ ] Honey block slowdown and slide <!--p2:honey_block_slowdown_and_slide-->
-- [ ] Cobweb slowdown <!--p2:cobweb_slowdown-->
-- [ ] Sweet berry bush slowdown <!--p2:sweet_berry_bush_slowdown-->
+- [x] Cobweb slowdown <!--p2:cobweb_slowdown-->
+- [x] Sweet berry bush slowdown <!--p2:sweet_berry_bush_slowdown-->
 - [ ] Powder snow sinking, freezing, leather boots walking <!--p2:powder_snow_sinking_freezing_leather_boots_walking-->
 - [ ] Bubble columns (up/down) <!--p2:bubble_columns_up_down-->
-- [ ] Slime block bounce <!--p2:slime_block_bounce-->
-- [ ] Bed bounce <!--p2:bed_bounce-->
+- [x] Slime block bounce <!--p2:slime_block_bounce-->
+- [x] Bed bounce <!--p2:bed_bounce-->
 - [ ] Elytra flight physics and firework boost <!--p2:elytra_flight_physics_and_firework_boost-->
-- [ ] Creative flight (double-tap space), flying speed <!--p2:creative_flight_double_tap_space_flying_speed-->
-- [ ] Spectator noclip flight <!--p2:spectator_noclip_flight-->
+- [x] Creative flight (double-tap space), flying speed <!--p2:creative_flight_double_tap_space_flying_speed-->
+- [x] Spectator noclip flight <!--p2:spectator_noclip_flight-->
 
 ### Camera & controls
 
 - [ ] First-person camera with mouse look and sensitivity setting <!--p2:first_person_camera_with_mouse_look_and_sensitivity_setting-->
-- [ ] Sprint FOV change, FOV effects (speed/slowness) <!--p2:sprint_fov_change_fov_effects_speed_slowness-->
-- [ ] View bobbing <!--p2:view_bobbing-->
+- [x] Sprint FOV change, FOV effects (speed/slowness) <!--p2:sprint_fov_change_fov_effects_speed_slowness-->
+- [x] View bobbing <!--p2:view_bobbing-->
 - [ ] Hand sway and swing animation <!--p2:hand_sway_and_swing_animation-->
 - [ ] F5 three perspectives <!--p2:f5_three_perspectives-->
 - [ ] F3+B hitboxes <!--p2:f3_b_hitboxes-->
 - [ ] Rebindable keys <!--p2:rebindable_keys-->
-- [ ] Scroll / number-key hotbar selection <!--p2:scroll_number_key_hotbar_selection-->
-- [ ] Q drop / Ctrl+Q drop stack <!--p2:q_drop_ctrl_q_drop_stack-->
+- [x] Scroll / number-key hotbar selection <!--p2:scroll_number_key_hotbar_selection-->
+- [x] Q drop / Ctrl+Q drop stack <!--p2:q_drop_ctrl_q_drop_stack-->
 - [ ] F swap offhand <!--p2:f_swap_offhand-->
-- [ ] Middle-click pick block <!--p2:middle_click_pick_block-->
+- [x] Middle-click pick block <!--p2:middle_click_pick_block-->
 - [ ] Hurt camera tilt and red flash <!--p2:hurt_camera_tilt_and_red_flash-->
 - [ ] Hunger HUD shake <!--p2:hunger_hud_shake-->
 - [ ] First-person hand and held item rendering <!--p2:first_person_hand_and_held_item_rendering-->
@@ -150,12 +150,12 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Interaction
 
-- [ ] Block raycast targeting (reach 4.5 survival, 5 creative) <!--p2:block_raycast_targeting_reach_4_5_survival_5_creative-->
+- [x] Block raycast targeting (reach 4.5 survival, 5 creative) <!--p2:block_raycast_targeting_reach_4_5_survival_5_creative-->
 - [ ] Entity targeting (reach 3) <!--p2:entity_targeting_reach_3-->
-- [ ] Exact mining time: hardness, tool, tier, Efficiency, Haste, Mining Fatigue, underwater, airborne <!--p2:exact_mining_time_hardness_tool_tier_efficiency_haste_mining_fatigue_underwater_airborne-->
-- [ ] Block break particles <!--p2:block_break_particles-->
-- [ ] Block placement (against faces, orientation rules) <!--p2:block_placement_against_faces_orientation_rules-->
-- [ ] Item drops: pop out, spin, bob, merge, pickup delay <!--p2:item_drops_pop_out_spin_bob_merge_pickup_delay-->
+- [x] Exact mining time: hardness, tool, tier, Efficiency, Haste, Mining Fatigue, underwater, airborne <!--p2:exact_mining_time_hardness_tool_tier_efficiency_haste_mining_fatigue_underwater_airborne-->
+- [x] Block break particles <!--p2:block_break_particles-->
+- [x] Block placement (against faces, orientation rules) <!--p2:block_placement_against_faces_orientation_rules-->
+- [x] Item drops: pop out, spin, bob, merge, pickup delay <!--p2:item_drops_pop_out_spin_bob_merge_pickup_delay-->
 - [ ] XP orbs: fly to player, merge, values <!--p2:xp_orbs_fly_to_player_merge_values-->
 
 ### Game modes
