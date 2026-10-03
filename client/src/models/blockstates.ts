@@ -94,11 +94,174 @@ const EXPLICIT: Record<string, () => BlockStateDef> = {
     return { variants };
   },
   glass: () => single({ model: model('glass', 'cube_all', { all: 'glass' }) }),
+  glass_pane: () => paneDef('glass_pane', 'glass', 'glass_pane_top'),
+  oak_fence: () => fenceDef('oak_fence', 'oak_planks'),
+  cobblestone_wall: () => wallDef('cobblestone_wall', 'cobblestone'),
+  oak_door: () => doorDef('oak_door', 'oak_door_top', 'oak_door_bottom'),
+  oak_trapdoor: () => trapdoorDef('oak_trapdoor', 'oak_trapdoor'),
+  ladder: () => {
+    const id = model('ladder', 'ladder', { texture: 'ladder' });
+    return { variants: { 'facing=north': { model: id }, 'facing=east': { model: id, y: 90 }, 'facing=south': { model: id, y: 180 }, 'facing=west': { model: id, y: 270 } } };
+  },
+  rail: () => {
+    const flat = model('rail_flat', 'rail_flat', { rail: 'rail' });
+    const raised = model('rail_raised_ne', 'rail_raised_ne', { rail: 'rail' });
+    return {
+      variants: {
+        'shape=north_south': { model: flat },
+        'shape=east_west': { model: flat, y: 90 },
+        'shape=ascending_north': { model: raised },
+        'shape=ascending_east': { model: raised, y: 90 },
+        'shape=ascending_south': { model: raised, y: 180 },
+        'shape=ascending_west': { model: raised, y: 270 },
+        'shape=south_east': { model: flat },
+        'shape=south_west': { model: flat, y: 90 },
+        'shape=north_west': { model: flat, y: 180 },
+        'shape=north_east': { model: flat, y: 270 },
+      },
+    };
+  },
+  vine: (): BlockStateDef => {
+    const id = model('vine', 'vine', { vine: 'vine' });
+    return {
+      multipart: [
+        { when: { north: 'true' }, apply: { model: id } },
+        { when: { east: 'true' }, apply: { model: id, y: 90 } },
+        { when: { south: 'true' }, apply: { model: id, y: 180 } },
+        { when: { west: 'true' }, apply: { model: id, y: 270 } },
+        { when: { up: 'true' }, apply: { model: id, x: 270 } },
+      ],
+    };
+  },
+  wheat: () => {
+    const variants: Record<string, ModelRef> = {};
+    for (let a = 0; a < 8; a++) variants[`age=${a}`] = { model: model(`wheat_stage${a}`, 'crop', { crop: `wheat_stage${a}` }) };
+    return { variants };
+  },
+  cactus: () => single({ model: model('cactus', 'cactus', { top: 'cactus_top', bottom: 'cactus_bottom', side: 'cactus_side' }) }),
+  white_carpet: () => single({ model: model('white_carpet', 'carpet', { wool: 'white_wool' }) }),
+  stone_pressure_plate: () => ({
+    variants: {
+      'powered=false': { model: model('stone_pressure_plate', 'pressure_plate_up', { texture: 'stone' }) },
+      'powered=true': { model: model('stone_pressure_plate_down', 'pressure_plate_down', { texture: 'stone' }) },
+    },
+  }),
+  stone_button: () => buttonDef('stone_button', 'stone'),
+  oak_button: () => buttonDef('oak_button', 'oak_planks'),
+  lever: () => {
+    const id = model('lever', 'lever', { base: 'cobblestone', lever: 'lever' });
+    const variants: Record<string, ModelRef> = {};
+    for (const face of ['floor', 'wall', 'ceiling'])
+      for (const facing of ['north', 'south', 'west', 'east'])
+        for (const powered of ['false', 'true']) {
+          const x: Rot = face === 'floor' ? 0 : face === 'wall' ? 90 : 180;
+          let y = Y_OF[facing]!;
+          if (face === 'ceiling') y = ((y + 180) % 360) as Rot;
+          if (powered === 'true') y = ((y + 180) % 360) as Rot;
+          variants[`face=${face},facing=${facing},powered=${powered}`] = { model: id, x, y };
+        }
+    return { variants };
+  },
+  farmland: () => {
+    const dry = model('farmland', 'farmland', { dirt: 'dirt', top: 'farmland' });
+    const wet = model('farmland_moist', 'farmland', { dirt: 'dirt', top: 'farmland_moist' });
+    const variants: Record<string, ModelRef> = {};
+    for (let m = 0; m < 8; m++) variants[`moisture=${m}`] = { model: m === 7 ? wet : dry };
+    return { variants };
+  },
   ice: () => single({ model: model('ice', 'cube_all', { all: 'ice' }) }),
 };
 
+type Rot = 0 | 90 | 180 | 270;
+const Y_OF: Record<string, Rot> = { north: 0, east: 90, south: 180, west: 270 };
+
+/** Fence: post + one side arm per connected direction (arm model points north). */
+export function fenceDef(name: string, texture: string): BlockStateDef {
+  const post = model(`${name}_post`, 'fence_post', { texture });
+  const side = model(`${name}_side`, 'fence_side', { texture });
+  return {
+    multipart: [
+      { apply: { model: post } },
+      ...(['north', 'east', 'south', 'west'] as const).map((d) => ({ when: { [d]: 'true' } as Record<string, string>, apply: { model: side, y: Y_OF[d]!, uvlock: true } })),
+    ],
+  };
+}
+
+/** 1.17 walls: post when up=true, low or tall side per direction. */
+export function wallDef(name: string, texture: string): BlockStateDef {
+  const post = model(`${name}_post`, 'wall_post', { wall: texture });
+  const side = model(`${name}_side`, 'wall_side', { wall: texture });
+  const tall = model(`${name}_side_tall`, 'wall_side_tall', { wall: texture });
+  const dirs = ['north', 'east', 'south', 'west'] as const;
+  return {
+    multipart: [
+      { when: { up: 'true' }, apply: { model: post } },
+      ...dirs.map((d) => ({ when: { [d]: 'low' } as Record<string, string>, apply: { model: side, y: Y_OF[d]!, uvlock: true } })),
+      ...dirs.map((d) => ({ when: { [d]: 'tall' } as Record<string, string>, apply: { model: tall, y: Y_OF[d]!, uvlock: true } })),
+    ],
+  };
+}
+
+export function paneDef(name: string, pane: string, edge: string): BlockStateDef {
+  const post = model(`${name}_post`, 'pane_post', { pane, edge });
+  const side = model(`${name}_side`, 'pane_side', { pane, edge });
+  return {
+    multipart: [
+      { apply: { model: post } },
+      ...(['north', 'east', 'south', 'west'] as const).map((d) => ({ when: { [d]: 'true' } as Record<string, string>, apply: { model: side, y: Y_OF[d]! } })),
+    ],
+  };
+}
+
+/** Doors: base models are hinged on the west side facing east (closed). */
+export function doorDef(name: string, top: string, bottom: string): BlockStateDef {
+  const b = model(`${name}_bottom`, 'door_bottom', { bottom, top });
+  const t = model(`${name}_top`, 'door_top', { bottom, top });
+  const variants: Record<string, ModelRef> = {};
+  const baseY: Record<string, number> = { east: 0, south: 90, west: 180, north: 270 };
+  for (const facing of ['north', 'south', 'west', 'east'])
+    for (const half of ['lower', 'upper'])
+      for (const hinge of ['left', 'right'])
+        for (const open of ['false', 'true']) {
+          let y = baseY[facing]!;
+          if (open === 'true') y += hinge === 'left' ? 90 : 270;
+          variants[`facing=${facing},half=${half},hinge=${hinge},open=${open}`] = { model: half === 'lower' ? b : t, y: ((y % 360) as Rot) };
+        }
+  return { variants };
+}
+
+export function trapdoorDef(name: string, texture: string): BlockStateDef {
+  const bottom = model(`${name}_bottom`, 'trapdoor_bottom', { texture });
+  const top = model(`${name}_top`, 'trapdoor_top', { texture });
+  const open = model(`${name}_open`, 'trapdoor_open', { texture });
+  const variants: Record<string, ModelRef> = {};
+  // open model sits against the south edge; rotate so it lies against the side opposite `facing`
+  const openY: Record<string, Rot> = { north: 0, east: 90, south: 180, west: 270 };
+  for (const facing of ['north', 'south', 'west', 'east'])
+    for (const half of ['bottom', 'top']) {
+      variants[`facing=${facing},half=${half},open=false`] = { model: half === 'top' ? top : bottom };
+      variants[`facing=${facing},half=${half},open=true`] = { model: open, y: openY[facing]! };
+    }
+  return { variants };
+}
+
 /** Fluids are drawn by the mesher's fluid renderer, not models. */
 export const FLUID_BLOCKS = new Set(['water', 'lava']);
+
+function buttonDef(name: string, texture: string): BlockStateDef {
+  const up = model(name, 'button', { texture });
+  const down = model(`${name}_pressed`, 'button_pressed', { texture });
+  const variants: Record<string, ModelRef> = {};
+  for (const face of ['floor', 'wall', 'ceiling'])
+    for (const facing of ['north', 'south', 'west', 'east'])
+      for (const powered of ['false', 'true']) {
+        const x: Rot = face === 'floor' ? 0 : face === 'wall' ? 90 : 180;
+        let y = Y_OF[facing]!;
+        if (face === 'ceiling') y = ((y + 180) % 360) as Rot;
+        variants[`face=${face},facing=${facing},powered=${powered}`] = { model: powered === 'true' ? down : up, x, y, uvlock: face === 'wall' };
+      }
+  return { variants };
+}
 
 export function blockStateDef(name: string, hasTexture: (t: string) => boolean): BlockStateDef {
   const ex = EXPLICIT[name];

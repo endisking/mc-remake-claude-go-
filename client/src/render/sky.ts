@@ -148,8 +148,8 @@ layout(location = 2) in vec2 aUV;
 uniform mat4 uMVP;
 out vec4 vColor;
 out vec2 vUV;
-out float vDist;
-void main() { gl_Position = uMVP * vec4(aPos, 1.0); vColor = aColor; vUV = aUV; vDist = length(aPos.xz); }`;
+out vec2 vXZ;
+void main() { gl_Position = uMVP * vec4(aPos, 1.0); vColor = aColor; vUV = aUV; vXZ = aPos.xz; }`;
 
 const SKY_FS = `#version 300 es
 precision highp float;
@@ -160,9 +160,10 @@ uniform vec4 uFogColor;
 uniform vec2 uFog;
 in vec4 vColor;
 in vec2 vUV;
-in float vDist;
+in vec2 vXZ;
 out vec4 outColor;
 void main() {
+  float vDist = length(vXZ);
   if (uMode == 1) { outColor = texture(uTex, vUV) * uColor; return; }
   if (uMode == 2) {
     float f = clamp((vDist - uFog.x) / max(uFog.y - uFog.x, 0.001), 0.0, 1.0);

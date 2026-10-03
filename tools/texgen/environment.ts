@@ -71,3 +71,81 @@ export function clouds(): Tex {
   for (let y = 0; y < 256; y++) for (let x = 0; x < 256; x++) if (cells[y * 256 + x]) t.set(x, y, [255, 255, 255, 255]);
   return t;
 }
+
+/** 64×256 rain streak sheet: 4 variants of 16 px columns, scrolled vertically in game. */
+export function rain(): Tex {
+  const t = new Tex(64, 256);
+  const r = rng(301);
+  for (let col = 0; col < 4; col++)
+    for (let i = 0; i < 26; i++) {
+      const x = col * 16 + Math.floor(r() * 16);
+      const y0 = Math.floor(r() * 256), len = 6 + Math.floor(r() * 10);
+      for (let k = 0; k < len; k++) {
+        const a = Math.round(140 + 90 * (k / len));
+        t.set(x, (y0 + k) & 255, [92 + Math.floor(r() * 30), 132 + Math.floor(r() * 30), 220, a]);
+      }
+    }
+  return t;
+}
+
+/** 64×256 snowflake sheet. */
+export function snowflakes(): Tex {
+  const t = new Tex(64, 256);
+  const r = rng(302);
+  for (let i = 0; i < 260; i++) {
+    const x = Math.floor(r() * 63), y = Math.floor(r() * 255);
+    const big = r() < 0.3;
+    t.set(x, y, [255, 255, 255, 235]);
+    if (big) {
+      t.set(x + 1, y, [235, 240, 255, 200]);
+      t.set(x, y + 1, [235, 240, 255, 200]);
+    }
+  }
+  return t;
+}
+
+/**
+ * 10 block-breaking crack stages (16×16 each, grayscale on transparent), drawn with
+ * multiplicative blending. Cracks grow from the centre outward in a branching pattern.
+ */
+export function destroyStages(): Tex[] {
+  const r = rng(404);
+  // grow a crack tree once, then reveal more of it per stage
+  type P = { x: number; y: number; order: number };
+  const pts: P[] = [];
+  const seen = new Set<string>();
+  let order = 0;
+  const tips: { x: number; y: number; dx: number; dy: number }[] = [
+    { x: 8, y: 8, dx: 1, dy: -1 }, { x: 7, y: 8, dx: -1, dy: 1 }, { x: 8, y: 7, dx: 1, dy: 1 }, { x: 7, y: 7, dx: -1, dy: -1 },
+  ];
+  while (tips.length && order < 200) {
+    const i = Math.floor(r() * tips.length);
+    const t = tips[i]!;
+    const k = `${t.x},${t.y}`;
+    if (!seen.has(k) && t.x >= 0 && t.y >= 0 && t.x < 16 && t.y < 16) {
+      seen.add(k);
+      pts.push({ x: t.x, y: t.y, order: order++ });
+    }
+    // wander: mostly keep direction, sometimes turn, sometimes branch
+    const turn = r();
+    if (turn < 0.3) t.dx = r() < 0.5 ? 0 : t.dx || (r() < 0.5 ? 1 : -1);
+    else if (turn < 0.6) t.dy = r() < 0.5 ? 0 : t.dy || (r() < 0.5 ? 1 : -1);
+    if (!t.dx && !t.dy) t.dx = 1;
+    t.x += t.dx;
+    t.y += t.dy;
+    if (r() < 0.08) tips.push({ x: t.x, y: t.y, dx: -t.dy || 1, dy: t.dx });
+    if (t.x < 0 || t.y < 0 || t.x > 15 || t.y > 15) tips.splice(i, 1);
+  }
+  const stages: Tex[] = [];
+  for (let s = 0; s < 10; s++) {
+    const t = new Tex();
+    const n = Math.round(((s + 1) / 10) * pts.length);
+    for (const p of pts.slice(0, n)) {
+      t.set(p.x, p.y, [40, 40, 40, 255]);
+      // lighter halo pixel for depth on later stages
+      if (s > 4 && p.order % 3 === 0) t.set(p.x + 1, p.y, [110, 110, 110, 255]);
+    }
+    stages.push(t);
+  }
+  return stages;
+}

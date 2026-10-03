@@ -8,6 +8,7 @@ import { Chunk, chunkKey } from '@shared/world/chunk';
 import { DevGenerator } from '@shared/worldgen/devgen';
 import { encodeS2C, decodeC2S, type C2S, type S2C, PROTOCOL_VERSION } from '@shared/protocol/packets';
 import { TICKS_PER_SECOND, DAY_LENGTH } from '@shared/constants';
+import { JavaRandom } from '@shared/util/random';
 
 export interface Connection {
   send(data: ArrayBuffer): void;
@@ -16,6 +17,8 @@ export interface Connection {
 
 export interface ServerOptions {
   seed: bigint;
+  /** Development scene (e.g. 'models' showcase). */
+  scene?: string;
   /** Max chunks generated per tick across all players. */
   chunkGenBudget?: number;
 }
@@ -45,6 +48,16 @@ export class GameServer {
   gameTime = 0;
   dayTime = 1000;
   doDaylightCycle = true;
+  doWeatherCycle = true;
+  // vanilla weather state (LevelData)
+  raining = false;
+  thundering = false;
+  rainTime = 0;
+  thunderTime = 0;
+  clearWeatherTime = 0;
+  rainLevel = 0;
+  thunderLevel = 0;
+  private readonly rand = new JavaRandom(BigInt(Date.now()));
   private nextEntityId = 1;
   private readonly chunkGenBudget: number;
   /** Sections whose light changed this tick: key -> [cx, sy, cz] */
@@ -55,7 +68,7 @@ export class GameServer {
   mspt = 0;
 
   constructor(readonly opts: ServerOptions) {
-    this.generator = new DevGenerator(opts.seed);
+    this.generator = new DevGenerator(opts.seed, opts.scene);
     this.light = new LightEngine(this.world);
     this.light.onSectionChanged = (cx, sy, cz) => {
       this.lightDirty.set(chunkKey(cx, cz) * 16 + sy, [cx, sy, cz]);
@@ -103,6 +116,7 @@ export class GameServer {
       x: p.x, y: p.y, z: p.z, yaw: 0, pitch: 0, simulationDistance: 10,
     });
     this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
+    this.send(p, { t: 'weather', rain: this.rainLevel, thunder: this.thunderLevel * this.rainLevel });
     return p;
   }
 
@@ -139,6 +153,9 @@ export class GameServer {
       for (const pl of this.players) this.send(pl, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     } else if (a[0] === 'gamerule' && a[1] === 'doDaylightCycle') {
       this.doDaylightCycle = a[2] === 'true';
+    } else if (a[0] === 'weather' && (a[1] === 'clear' || a[1] === 'rain' || a[1] === 'thunder')) {
+      const d = a[2] ? Number(a[2]) * 20 : 6000;
+      this.setWeather(a[1], Number.isFinite(d) ? d : 6000);
     } else if (a[0] === 'tp' && a.length >= 4) {
       const n = a.slice(1, 4).map(Number);
       if (n.some((v) => !Number.isFinite(v))) return;
@@ -188,9 +205,59 @@ export class GameServer {
     if (this.gameTime % 20 === 0) {
       for (const p of this.players) this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     }
+    this.advanceWeather();
     this.updateChunks();
     this.flushLight();
     this.mspt = this.mspt * 0.9 + (performance.now() - t0) * 0.1;
+  }
+
+  private uniform(min: number, max: number): number {
+    return min + this.rand.nextInt(max - min + 1);
+  }
+
+  /** Vanilla ServerLevel.advanceWeatherCycle (overworld). */
+  advanceWeather(): void {
+    const prevRain = this.rainLevel, prevThunder = this.thunderLevel;
+    if (this.doWeatherCycle) {
+      if (this.clearWeatherTime > 0) {
+        this.clearWeatherTime--;
+        this.thunderTime = this.thundering ? 0 : 1;
+        this.rainTime = this.raining ? 0 : 1;
+        this.thundering = false;
+        this.raining = false;
+      } else {
+        if (this.thunderTime > 0) {
+          if (--this.thunderTime === 0) this.thundering = !this.thundering;
+        } else if (this.thundering) this.thunderTime = this.uniform(3600, 15600);
+        else this.thunderTime = this.uniform(12000, 180000);
+        if (this.rainTime > 0) {
+          if (--this.rainTime === 0) this.raining = !this.raining;
+        } else if (this.raining) this.rainTime = this.uniform(12000, 24000);
+        else this.rainTime = this.uniform(12000, 180000);
+      }
+    }
+    this.thunderLevel = Math.max(0, Math.min(1, this.thunderLevel + (this.thundering ? 0.01 : -0.01)));
+    this.rainLevel = Math.max(0, Math.min(1, this.rainLevel + (this.raining ? 0.01 : -0.01)));
+    if (this.rainLevel !== prevRain || this.thunderLevel !== prevThunder) {
+      for (const p of this.players) this.send(p, { t: 'weather', rain: this.rainLevel, thunder: this.thunderLevel * this.rainLevel });
+    }
+  }
+
+  /** /weather clear|rain|thunder [duration] */
+  setWeather(kind: 'clear' | 'rain' | 'thunder', duration: number): void {
+    if (kind === 'clear') {
+      this.clearWeatherTime = duration;
+      this.rainTime = 0;
+      this.thunderTime = 0;
+      this.raining = false;
+      this.thundering = false;
+    } else {
+      this.clearWeatherTime = 0;
+      this.rainTime = duration;
+      this.thunderTime = kind === 'thunder' ? duration : 0;
+      this.raining = true;
+      this.thundering = kind === 'thunder';
+    }
   }
 
   private updateChunks(): void {

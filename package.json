@@ -15,7 +15,8 @@
     "texgen": "tsx tools/texgen/gen.ts",
     "bench": "tsx tools/bench/bench.ts",
     "e2e": "playwright test",
-    "atlas": "tsx tools/serve.ts"
+    "atlas": "tsx tools/serve.ts",
+    "fontgen": "tsx tools/fontgen/gen.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

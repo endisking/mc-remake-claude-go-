@@ -19,9 +19,10 @@ export type S2C =
   | { t: 'time'; gameTime: number; dayTime: number; doDaylightCycle: boolean }
   | { t: 'teleport'; x: number; y: number; z: number; yaw: number; pitch: number }
   | { t: 'chat'; json: string }
-  | { t: 'disconnect'; reason: string };
+  | { t: 'disconnect'; reason: string }
+  | { t: 'weather'; rain: number; thunder: number };
 
-const S2C_IDS = ['login', 'chunk', 'unloadChunk', 'blockChange', 'sectionLight', 'time', 'teleport', 'chat', 'disconnect'] as const;
+const S2C_IDS = ['login', 'chunk', 'unloadChunk', 'blockChange', 'sectionLight', 'time', 'teleport', 'chat', 'disconnect', 'weather'] as const;
 
 export function encodeS2C(p: S2C): ArrayBuffer {
   const w = new ByteWriter(p.t === 'chunk' ? 65536 : 64);
@@ -54,6 +55,9 @@ export function encodeS2C(p: S2C): ArrayBuffer {
       break;
     case 'disconnect':
       w.str(p.reason);
+      break;
+    case 'weather':
+      w.f32(p.rain).f32(p.thunder);
       break;
   }
   return w.finish();
@@ -98,6 +102,8 @@ export function decodeS2C(buf: ArrayBuffer): S2C {
       return { t, json: r.str() };
     case 'disconnect':
       return { t, reason: r.str() };
+    case 'weather':
+      return { t, rain: r.f32(), thunder: r.f32() };
     default:
       throw new Error('unknown S2C packet');
   }

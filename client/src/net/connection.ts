@@ -23,7 +23,7 @@ export class LocalTransport implements ClientTransport {
 }
 
 /** Starts the integrated server worker and returns a transport for the local player. */
-export async function startIntegratedServer(seed: bigint): Promise<{ worker: Worker; transport: LocalTransport }> {
+export async function startIntegratedServer(seed: bigint, scene = ''): Promise<{ worker: Worker; transport: LocalTransport }> {
   const worker = new Worker(new URL('../server.worker.ts', import.meta.url), { type: 'module' });
   const transports = new Map<number, LocalTransport>();
   worker.onmessage = (e: MessageEvent) => {
@@ -39,7 +39,7 @@ export async function startIntegratedServer(seed: bigint): Promise<{ worker: Wor
         resolve();
       } else prev.call(worker, e);
     };
-    worker.postMessage({ type: 'start', seed: seed.toString() });
+    worker.postMessage({ type: 'start', seed: seed.toString(), scene });
   });
   const transport = new LocalTransport(worker, 0);
   transports.set(0, transport);

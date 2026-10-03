@@ -115,8 +115,11 @@ export class ChunkRenderer {
   private buildTimes: number[] = [];
   private readonly tintScratch = new Uint32Array(768);
   renderDistance = 8;
-  /** Max mesh uploads per frame (keeps frame times smooth). */
-  uploadsPerFrame = 6;
+  /** Time budget for mesh uploads per frame in ms (keeps frame times smooth). */
+  uploadBudgetMs = 3;
+  private camX = 0;
+  private camY = 0;
+  private camZ = 0;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -134,12 +137,16 @@ export class ChunkRenderer {
       const entry = { w, busy: true };
       w.onmessage = (e: MessageEvent) => {
         const m = e.data;
-        if (m.type === 'ready') entry.busy = false;
-        else if (m.type === 'mesh') {
+        if (m.type === 'ready') {
+          entry.busy = false;
+          this.schedule(this.camX, this.camY, this.camZ);
+        } else if (m.type === 'mesh') {
           entry.busy = false;
           this.buildTimes.push(m.ms);
           if (this.buildTimes.length > 100) this.buildTimes.shift();
           this.onMeshed(m.id, m.out as MeshOutput);
+          // keep workers fed without waiting for the next frame
+          this.schedule(this.camX, this.camY, this.camZ);
         }
       };
       w.postMessage({ type: 'init', manifest, opts: meshOpts });
@@ -411,7 +418,15 @@ export class ChunkRenderer {
 
   // ------------------------------------------------------------------ frame
   update(camX: number, camY: number, camZ: number): void {
-    for (let i = 0; i < this.uploadsPerFrame && this.uploads.length; i++) this.upload(this.uploads.shift()!);
+    this.camX = camX;
+    this.camY = camY;
+    this.camZ = camZ;
+    const t0 = performance.now();
+    let n = 0;
+    while (this.uploads.length && (n < 2 || performance.now() - t0 < this.uploadBudgetMs)) {
+      this.upload(this.uploads.shift()!);
+      n++;
+    }
     this.schedule(camX, camY, camZ);
   }
 

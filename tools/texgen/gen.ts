@@ -12,8 +12,9 @@ import { Tex } from './lib';
 import type { TexDef } from './registry';
 import { terrainTextures } from './blocks/terrain';
 import { floraTextures } from './blocks/flora';
+import { miscTextures } from './blocks/misc';
 import { grassColormap, foliageColormap } from './colormap';
-import { sun, moonPhases, clouds } from './environment';
+import { sun, moonPhases, clouds, rain, snowflakes, destroyStages } from './environment';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const outDir = join(root, 'client', 'public', 'textures');
@@ -28,7 +29,12 @@ export function writePng(file: string, t: Tex): void {
   writeFileSync(file, PNG.sync.write(png));
 }
 
-export const ALL_BLOCK_TEXTURES: TexDef[] = [...terrainTextures, ...floraTextures];
+export const ALL_BLOCK_TEXTURES: TexDef[] = [
+  ...terrainTextures,
+  ...floraTextures,
+  ...miscTextures,
+  ...destroyStages().map((t, i): TexDef => ({ name: `destroy_stage_${i}`, make: () => t, cutout: true })),
+];
 
 function main(): void {
   const seen = new Set<string>();
@@ -67,6 +73,8 @@ function main(): void {
   writePng(join(outDir, 'environment', 'sun.png'), sun());
   writePng(join(outDir, 'environment', 'moon_phases.png'), moonPhases());
   writePng(join(outDir, 'environment', 'clouds.png'), clouds());
+  writePng(join(outDir, 'environment', 'rain.png'), rain());
+  writePng(join(outDir, 'environment', 'snow.png'), snowflakes());
   const overrides = existsSync(join(outDir, 'overrides')) ? readdirSync(join(outDir, 'overrides')).filter((f) => f.endsWith('.png')) : [];
   console.log(`texgen: ${entries.length} textures (${totalFrames} frames), ${overrides.length} overrides present`);
 }

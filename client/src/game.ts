@@ -15,6 +15,13 @@ import { BlockTextureArray, loadManifest } from './render/textures';
 import { BiomeColors } from './render/biomecolors';
 import { Lightmap, skyDarken, timeOfDay } from './render/lightmap';
 import { SkyRenderer, skyColor, fogColor, skyColorForTemperature, type SkyState } from './render/sky';
+import { CloudRenderer, cloudColor } from './render/clouds';
+import { WeatherRenderer } from './render/weather';
+import { LineRenderer } from './render/lines';
+import { CrackRenderer } from './render/overlay';
+import { bakeBlockModels } from './render/blockmodels';
+import { raycastBlocks, type BlockHit } from '@shared/world/raycast';
+import { outlineBoxes } from '@shared/world/shapes';
 import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes } from './render/math';
 import type { TextureManifest } from './render/blockmodels';
 
@@ -28,6 +35,15 @@ export class Game {
   private textures!: BlockTextureArray;
   private lightmap!: Lightmap;
   private sky!: SkyRenderer;
+  private clouds!: CloudRenderer;
+  private weather!: WeatherRenderer;
+  private lines!: LineRenderer;
+  private crack!: CrackRenderer;
+  /** Current block-breaking progress stage (-1 none, 0..9). Driven by mining in Phase 2. */
+  breakStage = -1;
+  /** Block the crosshair points at (reach 5 in creative, 4.5 survival). */
+  target: BlockHit | null = null;
+  reach = 5;
   private biomes = new BiomeColors();
   private manifest!: TextureManifest;
 
@@ -85,6 +101,14 @@ export class Game {
     this.lightmap = new Lightmap(this.gl);
     this.sky = new SkyRenderer(this.gl);
     await this.sky.loadTextures();
+    this.clouds = new CloudRenderer(this.gl);
+    await this.clouds.load();
+    this.weather = new WeatherRenderer(this.gl);
+    await this.weather.load();
+    this.lines = new LineRenderer(this.gl);
+    const mainBake = bakeBlockModels(this.manifest, this.settings.graphics === 'fancy');
+    this.crack = new CrackRenderer(this.gl, mainBake.bake, Array.from({ length: 10 }, (_, i) => mainBake.textures.get(`destroy_stage_${i}`)!.layer));
+    if (q.has('crack')) this.breakStage = Number(q.get('crack'));
     this.chunks = new ChunkRenderer(this.gl, this.world, this.biomes, this.manifest, {
       smoothLighting: this.settings.smoothLighting,
       fancy: this.settings.graphics === 'fancy',
@@ -92,7 +116,7 @@ export class Game {
     this.chunks.renderDistance = this.settings.renderDistance;
 
     const seed = BigInt(q.get('seed') ?? '12345');
-    const { transport } = await startIntegratedServer(seed);
+    const { transport } = await startIntegratedServer(seed, q.get('scene') ?? '');
     this.connect(transport);
     requestAnimationFrame((t) => this.frame(t));
   }
@@ -148,10 +172,23 @@ export class Game {
         this.y = this.prevY = p.y + 1.62;
         this.z = this.prevZ = p.z;
         break;
+      case 'weather':
+        this.world.rain = p.rain;
+        this.world.thunder = p.thunder;
+        break;
       case 'chat':
       case 'disconnect':
         break;
     }
+  }
+
+  /** Move the camera directly (benchmark / tests); position is the eye. */
+  setCamera(x: number, y: number, z: number, yaw: number, pitch: number): void {
+    this.x = this.prevX = x;
+    this.y = this.prevY = y;
+    this.z = this.prevZ = z;
+    this.yaw = yaw;
+    this.pitch = pitch;
   }
 
   /** URL test hooks: ?x=&y=&z=&yaw=&pitch=&time= (used by screenshot checks and the benchmark). */
@@ -164,6 +201,7 @@ export class Game {
     }
     if (n('yaw') !== undefined) this.yaw = n('yaw')!;
     if (n('pitch') !== undefined) this.pitch = n('pitch')!;
+    if (q.has('weather')) this.send({ t: 'chat', message: `/weather ${q.get('weather')}` });
     if (n('time') !== undefined) {
       this.send({ t: 'chat', message: '/gamerule doDaylightCycle false' });
       this.send({ t: 'chat', message: `/time set ${n('time')}` });
@@ -322,6 +360,22 @@ export class Game {
       smoothLighting: s.smoothLighting,
       caveCulling: s.caveCulling,
     });
+    // targeted block outline (vanilla: black, 40% alpha)
+    this.target = raycastBlocks(this.world, cx, cy, cz, look[0]!, look[1]!, look[2]!, this.reach);
+    if (this.target && !this.hideHud) {
+      const t = this.target;
+      this.lines.begin();
+      const e = 0.002;
+      for (const b of outlineBoxes(t.state)) {
+        this.lines.box(t.x + b[0] - e - cx, t.y + b[1] - e - cy, t.z + b[2] - e - cz, t.x + b[3] + e - cx, t.y + b[4] + e - cy, t.z + b[5] + e - cz, 0, 0, 0, 0.4);
+      }
+      this.lines.flush(this.viewProj, this.canvas.width, this.canvas.height);
+      if (this.breakStage >= 0) this.crack.render(this.viewProj, this.textures.tex, t.x, t.y, t.z, t.state, this.breakStage, cx, cy, cz);
+    }
+    this.weather.render(this.viewProj, this.world, cx, cy, cz, this.clientTicks, partial, this.world.rain, s.graphics === 'fancy', this.lightmap.tex);
+    if (medium === 'air') {
+      this.clouds.render(this.viewProj, cx, cy, cz, this.clientTicks + partial, s.clouds, s.renderDistance, cloudColor(tod, this.world.rain, this.world.thunder), fog);
+    }
     this.updateHud(cx, cy, cz);
   }
 
@@ -353,6 +407,7 @@ export class Game {
       `Biome: minecraft:${biome?.name ?? '?'}`,
       `Day ${Math.floor(this.world.dayTime / 24000)}, time ${Math.floor(this.world.dayTime % 24000)}`,
       `Loaded chunks: ${this.world.chunks.size} (key ${chunkKey(bx >> 4, bz >> 4)})`,
+      this.target ? `Targeted Block: ${this.target.x}, ${this.target.y}, ${this.target.z}` : '',
     ];
     dbg.innerHTML = lines.map((l) => (l ? `<span>${l.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</span>` : '')).join('\n');
   }

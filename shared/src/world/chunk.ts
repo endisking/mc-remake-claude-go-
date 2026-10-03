@@ -3,7 +3,12 @@
  * 16 sections of 16×16×16. Sections that are entirely air and uniformly lit keep no
  * arrays at all, which keeps memory low on school laptops.
  */
-import { IS_AIR } from './blockinfo';
+import { IS_AIR, COLLISION_SHAPE_ID, FLUID } from './blockinfo';
+
+/** Vanilla MOTION_BLOCKING heightmap predicate: blocks movement or holds fluid. */
+export function blocksMotion(state: number): boolean {
+  return COLLISION_SHAPE_ID[state] !== 0 || FLUID[state] !== 0;
+}
 
 export const SECTION_SIZE = 16;
 export const SECTION_VOLUME = 4096;
@@ -115,6 +120,8 @@ export class Chunk {
    * light-filtering block + 1). Indexed z*16+x.
    */
   readonly skyTop = new Int16Array(256);
+  /** MOTION_BLOCKING heightmap: y+1 of the highest motion-blocking or fluid block (0 if none). Indexed z*16+x. */
+  readonly motionBlocking = new Int16Array(256);
   /** Set once lighting has been computed for this chunk. */
   lit = false;
   /** Incremented on every change; used by renderers/savers to detect dirtiness. */
@@ -135,7 +142,27 @@ export class Chunk {
   setState(x: number, y: number, z: number, state: number): number {
     if (y < 0 || y > 255) return 0;
     this.version++;
-    return this.sections[y >> 4]!.setState(sectionIndex(x, y & 15, z), state);
+    const old = this.sections[y >> 4]!.setState(sectionIndex(x, y & 15, z), state);
+    const hi = z * 16 + x;
+    const mb = this.motionBlocking[hi]!;
+    if (blocksMotion(state)) {
+      if (y + 1 > mb) this.motionBlocking[hi] = y + 1;
+    } else if (y + 1 === mb) {
+      let ny = y - 1;
+      while (ny >= 0 && !blocksMotion(this.getState(x, ny, z))) ny--;
+      this.motionBlocking[hi] = ny + 1;
+    }
+    return old;
+  }
+
+  /** Recompute heightmaps from scratch (after bulk generation). */
+  computeHeightmaps(): void {
+    for (let z = 0; z < 16; z++)
+      for (let x = 0; x < 16; x++) {
+        let y = 255;
+        while (y >= 0 && !blocksMotion(this.getState(x, y, z))) y--;
+        this.motionBlocking[z * 16 + x] = y + 1;
+      }
   }
 
   getLight(x: number, y: number, z: number): number {

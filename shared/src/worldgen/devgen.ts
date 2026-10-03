@@ -8,6 +8,7 @@ import { stateOf } from '../world/blockstate';
 import { BIOMES_BY_NAME } from '../data';
 import { JavaRandom } from '../util/random';
 import { PerlinNoise } from '../util/noise';
+import { applyShowcase } from './showcase';
 
 const S = {
   bedrock: stateOf('bedrock'),
@@ -33,7 +34,7 @@ export class DevGenerator {
   private readonly detail: PerlinNoise;
   private readonly seed: bigint;
 
-  constructor(seed: bigint) {
+  constructor(seed: bigint, readonly scene: string = '') {
     this.seed = seed;
     const r = new JavaRandom(seed);
     this.height = PerlinNoise.simple(r, 6);
@@ -96,7 +97,9 @@ export class DevGenerator {
       c.setState(8, h + 1, 8, S.torch);
       for (let y = h + 1; y <= h + 3; y++) c.setState(10, y, 8, S.glass);
     }
+    if (this.scene === 'models') applyShowcase(c);
     for (const s of c.sections) s.recount();
+    c.computeHeightmaps();
     return c;
   }
 }

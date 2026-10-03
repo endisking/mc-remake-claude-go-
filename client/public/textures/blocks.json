@@ -325,6 +325,162 @@
    "name": "glass",
    "frames": 1,
    "cutout": true
+  },
+  {
+   "name": "oak_door_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "oak_door_bottom",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "oak_trapdoor",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "rail",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "ladder",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "vine",
+   "frames": 1,
+   "tint": "foliage",
+   "cutout": true
+  },
+  {
+   "name": "wheat_stage0",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "wheat_stage1",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "wheat_stage2",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "wheat_stage3",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "wheat_stage4",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "wheat_stage5",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "wheat_stage6",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "wheat_stage7",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cactus_side",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cactus_top",
+   "frames": 1
+  },
+  {
+   "name": "cactus_bottom",
+   "frames": 1
+  },
+  {
+   "name": "white_wool",
+   "frames": 1
+  },
+  {
+   "name": "lever",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "farmland",
+   "frames": 1
+  },
+  {
+   "name": "farmland_moist",
+   "frames": 1
+  },
+  {
+   "name": "glass_pane_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "destroy_stage_0",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "destroy_stage_1",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "destroy_stage_2",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "destroy_stage_3",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "destroy_stage_4",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "destroy_stage_5",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "destroy_stage_6",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "destroy_stage_7",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "destroy_stage_8",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "destroy_stage_9",
+   "frames": 1,
+   "cutout": true
   }
  ]
 }

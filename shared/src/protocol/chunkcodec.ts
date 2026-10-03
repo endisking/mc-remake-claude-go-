@@ -88,6 +88,7 @@ export function writeChunk(w: ByteWriter, c: Chunk, withLight = true): void {
   w.i32(c.x).i32(c.z);
   w.bytes(c.biomes);
   for (let i = 0; i < 256; i++) w.i16(c.skyTop[i]!);
+  for (let i = 0; i < 256; i++) w.i16(c.motionBlocking[i]!);
   for (const s of c.sections) writeSection(w, s, withLight);
 }
 
@@ -95,6 +96,7 @@ export function readChunk(r: ByteReader, withLight = true): Chunk {
   const c = new Chunk(r.i32(), r.i32());
   c.biomes.set(r.bytes(1024));
   for (let i = 0; i < 256; i++) c.skyTop[i] = r.i16();
+  for (let i = 0; i < 256; i++) c.motionBlocking[i] = r.i16();
   for (const s of c.sections) readSection(r, s, withLight);
   c.lit = withLight;
   return c;

@@ -17,14 +17,17 @@ export const SHOTS: Record<string, string> = {
   night: 'x=40&y=90&z=40&yaw=30&pitch=-30&time=18000',
   water: 'x=-60&y=70&z=-60&yaw=45&pitch=30&time=6000',
   torch: 'x=8.5&y=75&z=2&yaw=0&pitch=35&time=18000',
+  models: 'scene=models&x=14&y=104.5&z=13&yaw=160&pitch=30&time=6000',
+  models2: 'scene=models&x=36&y=104.5&z=13&yaw=180&pitch=30&time=6000',
+  rain: 'x=40&y=80&z=40&yaw=30&pitch=10&time=6000&weather=rain',
 };
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 for (const [name, q] of Object.entries(SHOTS)) {
   if (filter && !name.includes(filter)) continue;
-  const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
+  const page = await browser.newPage({ viewport: { width: 800, height: 450 } });
   page.on('pageerror', (e) => console.log(`[${name}] pageerror`, e.message));
-  await page.goto(`${base}?nolock=1&rd=5&${q}`);
+  await page.goto(`${base}?nolock=1&rd=4&${q}`);
   // wait until meshing settles
   await page.waitForFunction(() => {
     const g = (window as any).game;
