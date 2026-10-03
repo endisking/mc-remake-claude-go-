@@ -48,6 +48,7 @@ export class Game implements ScreenHost {
   breakStage = -1;
   /** Block the crosshair points at (reach 5 in creative, 4.5 survival). */
   target: BlockHit | null = null;
+  private readonly hitScratch = {} as BlockHit;
   reach = 5;
   readonly gui: Gui;
   integrated: import('./net/connection').IntegratedServer | null = null;
@@ -87,6 +88,13 @@ export class Game implements ScreenHost {
   private readonly view = mat4();
   private readonly viewProj = mat4();
   private readonly planes = new Float32Array(24);
+  private readonly skyRgb: [number, number, number] = [0, 0, 0];
+  private readonly fogRgb: [number, number, number] = [0, 0, 0];
+  private skyBiome: unknown = null;
+  private readonly skyState: SkyState = {
+    timeOfDay: 0, moonPhase: 0, rain: 0, thunder: 0, flash: 0, biomeSky: [0.47, 0.65, 1], biomeFog: [0xc0 / 255, 0xd8 / 255, 1],
+    renderDistanceChunks: 8, camY: 64, lookX: 0, lookY: 0, lookZ: 1, medium: 'air', waterFog: [0x05 / 255, 0x05 / 255, 0x33 / 255],
+  };
 
   constructor(readonly canvas: HTMLCanvasElement) {
     const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
@@ -429,25 +437,24 @@ export class Game implements ScreenHost {
     const camState = this.world.getState(Math.floor(cx), Math.floor(cy), Math.floor(cz));
     const medium: SkyState['medium'] = FLUID[camState] === 1 ? 'water' : FLUID[camState] === 2 ? 'lava' : 'air';
     const yr = (this.yaw * Math.PI) / 180, pr = (this.pitch * Math.PI) / 180;
-    const look = [-Math.sin(yr) * Math.cos(pr), -Math.sin(pr), Math.cos(yr) * Math.cos(pr)];
-    const skyState: SkyState = {
-      timeOfDay: tod,
-      moonPhase: Math.floor(this.world.dayTime / 24000) % 8,
-      rain: this.world.rain,
-      thunder: this.world.thunder,
-      flash: 0,
-      biomeSky: skyColorForTemperature(biome.temperature),
-      biomeFog: [0xc0 / 255, 0xd8 / 255, 1],
-      renderDistanceChunks: s.renderDistance,
-      camY: cy,
-      lookX: look[0]!,
-      lookY: look[1]!,
-      lookZ: look[2]!,
-      medium,
-      waterFog: [0x05 / 255, 0x05 / 255, 0x33 / 255],
-    };
-    const sky = skyColor(skyState);
-    const fog = fogColor(skyState, sky);
+    const lookX = -Math.sin(yr) * Math.cos(pr), lookY = -Math.sin(pr), lookZ = Math.cos(yr) * Math.cos(pr);
+    const skyState = this.skyState;
+    skyState.timeOfDay = tod;
+    skyState.moonPhase = Math.floor(this.world.dayTime / 24000) % 8;
+    skyState.rain = this.world.rain;
+    skyState.thunder = this.world.thunder;
+    if (biome !== this.skyBiome) {
+      this.skyBiome = biome;
+      skyState.biomeSky = skyColorForTemperature(biome.temperature);
+    }
+    skyState.renderDistanceChunks = s.renderDistance;
+    skyState.camY = cy;
+    skyState.lookX = lookX;
+    skyState.lookY = lookY;
+    skyState.lookZ = lookZ;
+    skyState.medium = medium;
+    const sky = skyColor(skyState, this.skyRgb);
+    const fog = fogColor(skyState, sky, this.fogRgb);
     const renderDist = s.renderDistance * 16;
     let fogStart = renderDist * 0.75, fogEnd = renderDist;
     if (medium === 'water') {
@@ -484,7 +491,7 @@ export class Game implements ScreenHost {
       caveCulling: s.caveCulling,
     });
     // targeted block outline (vanilla: black, 40% alpha)
-    this.target = raycastBlocks(this.world, cx, cy, cz, look[0]!, look[1]!, look[2]!, this.reach);
+    this.target = raycastBlocks(this.world, cx, cy, cz, lookX, lookY, lookZ, this.reach, false, this.hitScratch);
     if (this.target && !this.hideHud) {
       const t = this.target;
       this.lines.begin();

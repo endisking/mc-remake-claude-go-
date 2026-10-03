@@ -109,10 +109,15 @@ export class WeatherRenderer {
     let nRain = 0, nSnow = 0;
     // write rain quads from the start of the buffer and snow quads from the middle
     const half = this.data.length / 2;
-    const push = (snow: boolean, v: number[]) => {
-      const off = snow ? half + nSnow * 48 : nRain * 48;
-      const idx = [0, 1, 2, 0, 2, 3];
-      for (let t = 0; t < 6; t++) for (let c = 0; c < 8; c++) this.data[off + t * 8 + c] = v[idx[t]! * 8 + c]!;
+    const data = this.data;
+    // one quad (two triangles) written straight into the pooled buffer
+    const quad = (snow: boolean, x0: number, z0: number, x1: number, z1: number, y0: number, y1: number, u0: number, u1: number, v0: number, v1: number, a: number, lu: number, lv: number) => {
+      let o = snow ? half + nSnow * 48 : nRain * 48;
+      const put = (px: number, py: number, pz: number, u: number, v: number) => {
+        data[o++] = px; data[o++] = py; data[o++] = pz; data[o++] = u; data[o++] = v; data[o++] = a; data[o++] = lu; data[o++] = lv;
+      };
+      put(x0, y0, z0, u0, v0); put(x1, y0, z1, u1, v0); put(x1, y1, z1, u1, v1);
+      put(x0, y0, z0, u0, v0); put(x1, y1, z1, u1, v1); put(x0, y1, z0, u0, v1);
       if (snow) nSnow++;
       else nRain++;
     };
@@ -143,12 +148,7 @@ export class WeatherRenderer {
           const i3 = (ticks + Math.imul(Math.imul(x, x), 3121) + Math.imul(x, 45238971) + Math.imul(Math.imul(z, z), 418711) + Math.imul(z, 13761)) & 31;
           const f2 = (-(i3 + partial) / 32) * (3 + this.rand.nextFloat());
           const a = ((1 - f3 * f3) * 0.5 + 0.5) * rainLevel;
-          push(false, [
-            px0, y0, pz0, 0, k2 * 0.25 + f2, a, lu, lv,
-            px1, y0, pz1, 1, k2 * 0.25 + f2, a, lu, lv,
-            px1, y1, pz1, 1, j2 * 0.25 + f2, a, lu, lv,
-            px0, y1, pz0, 0, j2 * 0.25 + f2, a, lu, lv,
-          ]);
+          quad(false, px0, pz0, px1, pz1, y0, y1, 0, 1, k2 * 0.25 + f2, j2 * 0.25 + f2, a, lu, lv);
         } else {
           const f5 = -((ticks & 511) + partial) / 512;
           const f6 = this.rand.nextDouble() + f1 * 0.01 * this.rand.nextGaussian();
@@ -156,12 +156,7 @@ export class WeatherRenderer {
           const a = ((1 - f3 * f3) * 0.3 + 0.5) * rainLevel;
           // snow is lit brighter than its surroundings (vanilla (light*3+15)/4)
           const blk = ((((light & 15) * 3 + 15) / 4) + 0.5) / 16, sky = ((((light >> 4) * 3 + 15) / 4) + 0.5) / 16;
-          push(true, [
-            px0, y0, pz0, 0 + f6, k2 * 0.25 + f5 + f7, a, blk, sky,
-            px1, y0, pz1, 1 + f6, k2 * 0.25 + f5 + f7, a, blk, sky,
-            px1, y1, pz1, 1 + f6, j2 * 0.25 + f5 + f7, a, blk, sky,
-            px0, y1, pz0, 0 + f6, j2 * 0.25 + f5 + f7, a, blk, sky,
-          ]);
+          quad(true, px0, pz0, px1, pz1, y0, y1, f6, 1 + f6, k2 * 0.25 + f5 + f7, j2 * 0.25 + f5 + f7, a, blk, sky);
         }
       }
     if (!nRain && !nSnow) return;
@@ -178,7 +173,7 @@ export class WeatherRenderer {
     gl.depthMask(false);
     gl.bindVertexArray(this.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, this.data, gl.STREAM_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, this.data, gl.STREAM_DRAW); // fixed-size pooled buffer
     if (nRain) {
       gl.bindTexture(gl.TEXTURE_2D, this.rainTex);
       gl.drawArrays(gl.TRIANGLES, 0, nRain * 6);

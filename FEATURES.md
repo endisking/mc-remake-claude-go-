@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 59 / 4140**
+**Progress: 62 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -34,7 +34,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Frustum culling of chunk sections <!--p1:frustum_culling_of_chunk_sections-->
 - [x] Cave/occlusion culling (section visibility graph flood fill) <!--p1:cave_occlusion_culling_section_visibility_graph_flood_fill-->
 - [x] Incremental GPU mesh upload with per-frame budget <!--p1:incremental_gpu_mesh_upload_with_per_frame_budget-->
-- [ ] Pooled vertex buffers; no per-frame allocations in render loop <!--p1:pooled_vertex_buffers_no_per_frame_allocations_in_render_loop-->
+- [x] Pooled vertex buffers; no per-frame allocations in render loop <!--p1:pooled_vertex_buffers_no_per_frame_allocations_in_render_loop-->
 - [x] Block model system: own JSON format (cubes, per-face UVs, rotations, multipart) <!--p1:block_model_system_own_json_format_cubes_per_face_uvs_rotations_multipart-->
 - [x] Models: full cube, slab, stairs (all shapes), fence, wall, pane, door, trapdoor, torch, rail, cross plant, crop, carpet, pressure plate, button, lever, ladder, vine, snow layers, farmland/path, cactus, fluid <!--p1:models_full_cube_slab_stairs_all_shapes_fence_wall_pane_door_trapdoor_torch_rail_cross_plant_crop_carpet_pressure_plate_button_lever_ladder_vine_snow_layers_farmland_path_cactus_fluid-->
 - [x] Biome tint (grass, foliage, water) via generated colormaps <!--p1:biome_tint_grass_foliage_water_via_generated_colormaps-->
@@ -60,7 +60,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Grayscale grass/leaves/water + generated grass/foliage colormaps <!--p1:grayscale_grass_leaves_water_generated_grass_foliage_colormaps-->
 - [x] Ore texture builder (stone base + 2–4 px clusters) <!--p1:ore_texture_builder_stone_base_2_4_px_clusters-->
 - [x] Animated textures: water, lava, fire, soul fire, nether portal, sea lantern, magma, prismarine, kelp, seagrass, etc. <!--p1:animated_textures_water_lava_fire_soul_fire_nether_portal_sea_lantern_magma_prismarine_kelp_seagrass_etc-->
-- [ ] Texture overrides from /client/public/textures/overrides/ <!--p1:texture_overrides_from_client_public_textures_overrides-->
+- [x] Texture overrides from /client/public/textures/overrides/ <!--p1:texture_overrides_from_client_public_textures_overrides-->
 - [x] Atlas viewer /tools/atlas-viewer.html (8× zoom) <!--p1:atlas_viewer_tools_atlas_viewer_html_8_zoom-->
 
 ### Sky, fog, weather visuals
@@ -73,7 +73,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Distance fog matched to render distance <!--p1:distance_fog_matched_to_render_distance-->
 - [x] Biome-dependent sky and fog colors <!--p1:biome_dependent_sky_and_fog_colors-->
 - [x] Rain particles and rain sheet rendering <!--p1:rain_particles_and_rain_sheet_rendering-->
-- [ ] Snow rendering <!--p1:snow_rendering-->
+- [x] Snow rendering <!--p1:snow_rendering-->
 - [ ] Thunderstorm darkening and lightning flashes <!--p1:thunderstorm_darkening_and_lightning_flashes-->
 - [ ] Underwater fog and view <!--p1:underwater_fog_and_view-->
 - [x] Lava fog <!--p1:lava_fog-->

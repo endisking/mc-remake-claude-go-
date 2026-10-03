@@ -65,9 +65,9 @@ export interface SkyState {
   waterFog: [number, number, number];
 }
 
-export function skyColor(s: SkyState): [number, number, number] {
+export function skyColor(s: SkyState, out: [number, number, number] = [0, 0, 0]): [number, number, number] {
   const f1 = Math.max(0, Math.min(1, Math.cos(s.timeOfDay * Math.PI * 2) * 2 + 0.5));
-  let [r, g, b] = s.biomeSky.map((c) => c * f1) as [number, number, number];
+  let r = s.biomeSky[0] * f1, g = s.biomeSky[1] * f1, b = s.biomeSky[2] * f1;
   if (s.rain > 0) {
     const l = (r * 0.3 + g * 0.59 + b * 0.11) * 0.6;
     const k = 1 - s.rain * 0.75;
@@ -88,14 +88,23 @@ export function skyColor(s: SkyState): [number, number, number] {
     g = g * (1 - f) + 0.8 * f;
     b = b * (1 - f) + 1 * f;
   }
-  return [r, g, b];
+  out[0] = r;
+  out[1] = g;
+  out[2] = b;
+  return out;
 }
 
-export function fogColor(s: SkyState, sky: [number, number, number]): [number, number, number] {
-  if (s.medium === 'lava') return [0.6, 0.1, 0];
+export function fogColor(s: SkyState, sky: [number, number, number], out: [number, number, number] = [0, 0, 0]): [number, number, number] {
+  if (s.medium === 'lava') {
+    out[0] = 0.6;
+    out[1] = 0.1;
+    out[2] = 0;
+    return out;
+  }
   if (s.medium === 'water') {
     const b = Math.max(0, Math.min(1, Math.cos(s.timeOfDay * Math.PI * 2) * 2 + 0.5));
-    return s.waterFog.map((c) => c * (b * 0.94 + 0.06)) as [number, number, number];
+    for (let i = 0; i < 3; i++) out[i] = s.waterFog[i]! * (b * 0.94 + 0.06);
+    return out;
   }
   let f = 0.25 + (0.75 * s.renderDistanceChunks) / 32;
   f = 1 - Math.pow(f, 0.25);
@@ -138,7 +147,10 @@ export function fogColor(s: SkyState, sky: [number, number, number]): [number, n
     g *= v;
     b *= v;
   }
-  return [r, g, b];
+  out[0] = r;
+  out[1] = g;
+  out[2] = b;
+  return out;
 }
 
 const SKY_VS = `#version 300 es
@@ -181,6 +193,8 @@ export class SkyRenderer {
   private stars: { vao: WebGLVertexArrayObject; count: number };
   private quad: { vao: WebGLVertexArrayObject; vbo: WebGLBuffer };
   private fan: { vao: WebGLVertexArrayObject; vbo: WebGLBuffer };
+  private readonly fanData = new Float32Array(48 * 9);
+  private readonly quadData = new Float32Array(6 * 9);
   sunTex: WebGLTexture | null = null;
   moonTex: WebGLTexture | null = null;
 
@@ -191,7 +205,7 @@ export class SkyRenderer {
     this.voidDisc = this.disc(-16);
     this.stars = this.buildStars();
     this.quad = this.dynamicVao(4);
-    this.fan = this.dynamicVao(18);
+    this.fan = this.dynamicVao(48);
   }
 
   async loadTextures(base = './textures/environment/'): Promise<void> {
@@ -330,22 +344,23 @@ export class SkyRenderer {
       const m = mat4();
       multiply(m, mvp, fanRot);
       set(m);
-      const v: number[] = [];
-      const centre = [0, 100, 0, sr[0], sr[1], sr[2], sr[3], 0, 0];
-      const pts: number[][] = [];
-      for (let j = 0; j <= 16; j++) {
-        const a = (j * Math.PI * 2) / 16;
-        const sn = Math.sin(a), cs = Math.cos(a);
-        pts.push([sn * 120, cs * 120, -cs * 40 * sr[3], sr[0], sr[1], sr[2], 0, 0, 0]);
+      const data = this.fanData;
+      let o = 0;
+      const put = (x: number, y: number, z: number, r: number, g: number, b: number, a: number) => {
+        data[o++] = x; data[o++] = y; data[o++] = z; data[o++] = r; data[o++] = g; data[o++] = b; data[o++] = a; data[o++] = 0; data[o++] = 0;
+      };
+      for (let j = 0; j < 16; j++) {
+        const a0 = (j * Math.PI * 2) / 16, a1 = ((j + 1) * Math.PI * 2) / 16;
+        put(0, 100, 0, sr[0], sr[1], sr[2], sr[3]);
+        put(Math.sin(a0) * 120, Math.cos(a0) * 120, -Math.cos(a0) * 40 * sr[3], sr[0], sr[1], sr[2], 0);
+        put(Math.sin(a1) * 120, Math.cos(a1) * 120, -Math.cos(a1) * 40 * sr[3], sr[0], sr[1], sr[2], 0);
       }
-      for (let j = 0; j < 16; j++) v.push(...centre, ...pts[j]!, ...pts[j + 1]!);
       gl.bindVertexArray(this.fan.vao);
       gl.bindBuffer(gl.ARRAY_BUFFER, this.fan.vbo);
-      const data = new Float32Array(v);
       gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
       gl.uniform1i(this.u.get('uMode'), 0);
       gl.uniform4f(this.u.get('uColor'), 1, 1, 1, 1);
-      gl.drawArrays(gl.TRIANGLES, 0, data.length / 9);
+      gl.drawArrays(gl.TRIANGLES, 0, 48);
     }
     // celestial bodies: additive
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ZERO);
@@ -399,14 +414,20 @@ export class SkyRenderer {
     const verts = y > 0
       ? [-s, y, -s, u0, v0, s, y, -s, u1, v0, s, y, s, u1, v1, -s, y, s, u0, v1]
       : [s, y, s, u0, v0, -s, y, s, u1, v0, -s, y, -s, u1, v1, s, y, -s, u0, v1];
-    const v: number[] = [];
-    for (const k of [0, 1, 2, 0, 2, 3]) v.push(verts[k * 5]!, verts[k * 5 + 1]!, verts[k * 5 + 2]!, 1, 1, 1, 1, verts[k * 5 + 3]!, verts[k * 5 + 4]!);
+    const d = this.quadData;
+    let o = 0;
+    for (const k of QUAD_ORDER) {
+      d[o++] = verts[k * 5]!; d[o++] = verts[k * 5 + 1]!; d[o++] = verts[k * 5 + 2]!;
+      d[o++] = 1; d[o++] = 1; d[o++] = 1; d[o++] = 1; d[o++] = verts[k * 5 + 3]!; d[o++] = verts[k * 5 + 4]!;
+    }
     gl.bindVertexArray(this.fan.vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.fan.vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, d);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 }
+
+const QUAD_ORDER = [0, 1, 2, 0, 2, 3];
 
 function rotX(m: Mat4, deg: number): void {
   const a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);

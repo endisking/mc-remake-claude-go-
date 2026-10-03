@@ -347,19 +347,30 @@ export class ChunkRenderer {
   }
 
   /** Rewrite a section's translucent index buffer, farthest quads first. */
+  private sortOrder = new Uint32Array(1024);
+  private sortDist = new Float32Array(1024);
+  private sortIdx = new Uint32Array(1024 * 6);
+
   private sortTranslucent(s: RenderSection, rx: number, ry: number, rz: number): void {
     const c = s.centers;
     if (!c) return;
     const n = c.length / 3;
-    const order = new Uint32Array(n);
-    const dist = new Float32Array(n);
+    if (this.sortOrder.length < n) {
+      let cap = this.sortOrder.length;
+      while (cap < n) cap *= 2;
+      this.sortOrder = new Uint32Array(cap);
+      this.sortDist = new Float32Array(cap);
+      this.sortIdx = new Uint32Array(cap * 6);
+    }
+    const order = this.sortOrder.subarray(0, n);
+    const dist = this.sortDist;
     for (let i = 0; i < n; i++) {
       const dx = c[i * 3]! - rx, dy = c[i * 3 + 1]! - ry, dz = c[i * 3 + 2]! - rz;
       dist[i] = dx * dx + dy * dy + dz * dz;
       order[i] = i;
     }
-    order.sort((a, b) => dist[b]! - dist[a]!);
-    const idx = new Uint32Array(n * 6);
+    order.sort(this.byDistDesc);
+    const idx = this.sortIdx.subarray(0, n * 6);
     for (let i = 0; i < n; i++) {
       const v = order[i]! * 4, o = i * 6;
       idx[o] = v; idx[o + 1] = v + 1; idx[o + 2] = v + 2;
@@ -372,7 +383,11 @@ export class ChunkRenderer {
     s.sortedAt = [rx, ry, rz];
   }
 
+  private readonly byDistDesc = (a: number, b: number) => this.sortDist[b]! - this.sortDist[a]!;
+
   // ------------------------------------------------------------------ visibility
+  private readonly bfsQueue: RenderSection[] = [];
+  private readonly bfsFrom: number[] = [];
   /** Cave culling BFS from the camera section through open faces, limited by the frustum. */
   private collectVisible(cx: number, cy: number, cz: number, planes: Float32Array, caveCulling: boolean): void {
     const vis = this.visible;
@@ -381,9 +396,9 @@ export class ChunkRenderer {
     const ccx = Math.floor(cx) >> 4, ccy = Math.min(15, Math.max(0, Math.floor(cy) >> 4)), ccz = Math.floor(cz) >> 4;
     const rd = this.renderDistance;
     const start = this.sections.get(this.key(ccx, ccy, ccz));
-    const queue: [RenderSection, number][] = [];
-    const DX = [0, 0, 0, 0, -1, 1], DY = [-1, 1, 0, 0, 0, 0], DZ = [0, 0, -1, 1, 0, 0];
-    const OPP = [1, 0, 3, 2, 5, 4];
+    const queue = this.bfsQueue, fromQ = this.bfsFrom;
+    queue.length = 0;
+    fromQ.length = 0;
     const inFrustum = (s: RenderSection) =>
       aabbInFrustum(planes, s.sx * 16 - cx, s.sy * 16 - cy, s.sz * 16 - cz, s.sx * 16 + 16 - cx, s.sy * 16 + 16 - cy, s.sz * 16 + 16 - cz);
     if (!caveCulling || !start) {
@@ -397,9 +412,10 @@ export class ChunkRenderer {
     }
     start.frame = frame;
     start.dirs = 0;
-    queue.push([start, -1]);
+    queue.push(start);
+    fromQ.push(-1);
     for (let qi = 0; qi < queue.length; qi++) {
-      const [s, from] = queue[qi]!;
+      const s = queue[qi]!, from = fromQ[qi]!;
       vis.push(s);
       for (let d = 0; d < 6; d++) {
         if (s.dirs & (1 << OPP[d]!)) continue; // never travel back toward the camera
@@ -411,7 +427,8 @@ export class ChunkRenderer {
         if (!inFrustum(n)) continue;
         n.frame = frame;
         n.dirs = s.dirs | (1 << d);
-        queue.push([n, OPP[d]!]);
+        queue.push(n);
+        fromQ.push(OPP[d]!);
       }
     }
   }
@@ -513,6 +530,9 @@ export class ChunkRenderer {
     this.sections.clear();
   }
 }
+
+const DX = [0, 0, 0, 0, -1, 1], DY = [-1, 1, 0, 0, 0, 0], DZ = [0, 0, -1, 1, 0, 0];
+const OPP = [1, 0, 3, 2, 5, 4];
 
 function dist2(s: RenderSection, x: number, y: number, z: number): number {
   return (s.sx - x) ** 2 + (s.sy - y) ** 2 + (s.sz - z) ** 2;

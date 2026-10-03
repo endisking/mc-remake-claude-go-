@@ -23,39 +23,46 @@ export interface StateGetter {
   getState(x: number, y: number, z: number): number;
 }
 
-/** Slab-test a ray against a box; returns [tEnter, face] or null. */
-export function rayBox(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, b: Box, bx: number, by: number, bz: number): [number, number] | null {
+/** Face of the most recent successful rayBox() hit. */
+export let rayBoxFace = -1;
+
+/** Slab-test a ray against a box; returns the entry distance (>= 0) or -1 on a miss. Allocation-free. */
+export function rayBox(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, b: Box, bx: number, by: number, bz: number): number {
   let tmin = -Infinity, tmax = Infinity, face = -1;
-  const axes: [number, number, number, number, number, number][] = [
-    [ox, dx, bx + b[0], bx + b[3], 4, 5],
-    [oy, dy, by + b[1], by + b[4], 0, 1],
-    [oz, dz, bz + b[2], bz + b[5], 2, 3],
-  ];
-  for (const [o, d, lo, hi, fneg, fpos] of axes) {
+  for (let axis = 0; axis < 3; axis++) {
+    const o = axis === 0 ? ox : axis === 1 ? oy : oz;
+    const d = axis === 0 ? dx : axis === 1 ? dy : dz;
+    const base = axis === 0 ? bx : axis === 1 ? by : bz;
+    const lo = base + b[axis]!, hi = base + b[axis + 3]!;
+    const fneg = axis === 0 ? 4 : axis === 1 ? 0 : 2;
     if (Math.abs(d) < 1e-12) {
-      if (o < lo || o > hi) return null;
+      if (o < lo || o > hi) return -1;
       continue;
     }
     let t1 = (lo - o) / d, t2 = (hi - o) / d;
-    let f1 = fneg, f2 = fpos;
+    let f1 = fneg;
     if (t1 > t2) {
-      [t1, t2] = [t2, t1];
-      [f1, f2] = [f2, f1];
+      const tt = t1;
+      t1 = t2;
+      t2 = tt;
+      f1 = fneg + 1;
     }
     if (t1 > tmin) {
       tmin = t1;
       face = f1;
     }
     if (t2 < tmax) tmax = t2;
-    if (tmin > tmax) return null;
+    if (tmin > tmax) return -1;
   }
-  if (tmax < 0) return null;
-  return [Math.max(0, tmin), face];
+  if (tmax < 0) return -1;
+  rayBoxFace = face;
+  return Math.max(0, tmin);
 }
 
 export function raycastBlocks(
   world: StateGetter, ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxDist: number,
   includeFluids = false,
+  out?: BlockHit,
 ): BlockHit | null {
   const len = Math.hypot(dx, dy, dz);
   dx /= len;
@@ -74,9 +81,12 @@ export function raycastBlocks(
       let boxes = outlineBoxes(st);
       if (includeFluids && FLUID[st] && !boxes.length) boxes = [[0, 0, 0, 1, 1, 1]];
       for (const b of boxes) {
-        const r = rayBox(ox, oy, oz, dx, dy, dz, b, x, y, z);
-        if (r && r[0] <= maxDist && (!best || r[0] < best.distance)) {
-          best = { x, y, z, face: r[1], px: ox + dx * r[0], py: oy + dy * r[0], pz: oz + dz * r[0], distance: r[0], state: st };
+        const t = rayBox(ox, oy, oz, dx, dy, dz, b, x, y, z);
+        if (t >= 0 && t <= maxDist && (!best || t < best.distance)) {
+          best = out ?? ({} as BlockHit);
+          best.x = x; best.y = y; best.z = z; best.face = rayBoxFace;
+          best.px = ox + dx * t; best.py = oy + dy * t; best.pz = oz + dz * t;
+          best.distance = t; best.state = st;
         }
       }
       if (best) return best;

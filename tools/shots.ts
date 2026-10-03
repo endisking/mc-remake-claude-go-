@@ -32,6 +32,7 @@ export const SHOTS: Record<string, string> = {
   underwater: 'x=-56&y=60&z=-56&yaw=45&pitch=10&time=6000',
   inlava: 'scene=models&x=9.5&y=98.6&z=11.5&yaw=0&pitch=0&time=6000',
   thunder: 'x=40&y=80&z=40&yaw=30&pitch=10&time=6000&weather=thunder',
+  snowfall: 'scene=snow&x=40&y=80&z=40&yaw=30&pitch=10&time=6000&weather=rain',
   floornight: 'scene=models&x=40.5&y=102&z=8.5&lookat=40.5,100,2.5&time=18000',
   torchnight: 'scene=models&x=14.5&y=102&z=8.5&lookat=14.5,101,2.5&time=18000',
   rain: 'x=40&y=80&z=40&yaw=30&pitch=10&time=6000&weather=rain',

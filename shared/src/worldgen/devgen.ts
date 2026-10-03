@@ -49,7 +49,7 @@ export class DevGenerator {
 
   generate(cx: number, cz: number): Chunk {
     const c = new Chunk(cx, cz);
-    const plains = BIOMES_BY_NAME.get('plains')!.id;
+    const plains = BIOMES_BY_NAME.get(this.scene === 'snow' ? 'snowy_tundra' : 'plains')!.id;
     c.biomes.fill(plains);
     const bx = cx << 4, bz = cz << 4;
     const rand = new JavaRandom(BigInt.asIntN(64, this.seed ^ (BigInt(cx) * 341873128712n + BigInt(cz) * 132897987541n)));
