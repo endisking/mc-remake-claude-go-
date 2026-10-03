@@ -65,6 +65,10 @@ const S2C_SCHEMA = {
   experience: [['progress', 'f32'], ['level', 'varint'], ['total', 'varint']],
   /** The receiving player died (vanilla PlayerCombatKill): show the death screen. */
   playerDied: [['message', 'str'], ['score', 'varint']],
+  /** Entity status (vanilla ClientboundEntityEvent): 2 hurt, 3 death, 33 thorns, 36 drowning hurt, 37 burning hurt, 44 berry bush hurt, 57 freezing hurt. */
+  entityEvent: [['id', 'i32'], ['event', 'u8']],
+  /** A positional sound event (vanilla ClientboundSoundPacket); event = registry id. */
+  sound: [['event', 'varint'], ['category', 'u8'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['volume', 'f32'], ['pitch', 'f32']],
   /** Respawned (same dimension): reset client-side player state. */
   respawn: [['gameMode', 'u8']],
 } as const satisfies Schema;

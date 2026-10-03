@@ -21,6 +21,8 @@ export abstract class Widget {
 }
 
 export class Button extends Widget {
+  /** click sound hook (vanilla AbstractButton.playDownSound) */
+  static onPress: (() => void) | null = null;
   constructor(
     x: number, y: number, w: number, h: number,
     public label: string,
@@ -34,7 +36,9 @@ export class Button extends Widget {
     gui.centeredText(this.label, this.x + this.w / 2, this.y + (this.h - 8) / 2, !this.active ? 0xa0a0a0 : this.hovered ? 0xffffa0 : 0xe0e0e0);
   }
   override onClick(): void {
-    if (this.active) this.action(this);
+    if (!this.active) return;
+    Button.onPress?.();
+    this.action(this);
   }
 }
 
@@ -71,6 +75,8 @@ export class Slider extends Widget {
     if (this.dragging) this.set(mx);
   }
   override onRelease(): void {
+    // AbstractSliderButton.onRelease plays the click
+    if (this.dragging) Button.onPress?.();
     this.dragging = false;
   }
 }

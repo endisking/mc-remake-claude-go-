@@ -27,7 +27,7 @@ await page.waitForFunction(() => {
   const g = (window as any).game;
   if (!g?.chunks) return false;
   const s = g.chunks.stats();
-  return g.loggedIn && g.player.onGround && g.world.chunks.size >= 49 && s.pending === 0 && s.building === 0;
+  return g.loggedIn && Math.abs(g.player.x - 40.5) < 0.01 && g.player.onGround && g.world.chunks.size >= 49 && s.pending === 0 && s.building === 0;
 }, undefined, { timeout: 90000 });
 await page.waitForTimeout(3200); // spawn invulnerability
 await cmd(page, '/xp add @s 5 levels');

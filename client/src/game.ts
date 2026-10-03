@@ -35,6 +35,12 @@ import { HandRenderer, attackSpeedOf } from './render/hand';
 import { Hud, type HudPlayer } from './gui/hud';
 import { DeathScreen } from './gui/deathscreen';
 import { ClientBolt, LightningRenderer } from './render/lightning';
+import { SoundEngine, type SoundCategory } from './audio/engine';
+import { soundName, SOUND_SOURCES } from '@shared/sound/events';
+import { soundTypeOf } from '@shared/world/soundtype';
+import { isRainingAt } from '@shared/world/weather';
+import { StepTracker } from '@shared/entity/steps';
+import { Button } from './gui/screen';
 import { blockForItem } from '@shared/game/loot';
 import { BLOCKS_BY_NAME, ITEMS_BY_ID } from '@shared/data';
 import { itemName } from '@shared/item/stack';
@@ -85,6 +91,11 @@ export class Game implements ScreenHost {
   readonly bolts = new Map<number, ClientBolt>();
   private readonly boltRand = new JavaRandom(BigInt(Date.now()));
   private lightning!: LightningRenderer;
+  readonly sound = new SoundEngine();
+  private readonly steps = new StepTracker();
+  private readonly sfxRand = new JavaRandom(BigInt(Date.now()) ^ 0x5deece66dn);
+  private rainSoundTime = 0;
+  private wasOnGround = true;
   private hand!: HandRenderer;
   // ItemInHandRenderer / LocalPlayer state for the first-person hand
   private xBob = 0;
@@ -256,7 +267,12 @@ export class Game implements ScreenHost {
 
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
-    await Promise.all([this.gui.load(), this.hud.load()]);
+    await Promise.all([this.gui.load(), this.hud.load(), this.sound.load()]);
+    // audio may only start after a user gesture
+    const unlock = () => this.sound.resume();
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
+    Button.onPress = () => this.playUi('ui.button.click', 1);
     this.manifest = await loadManifest();
     const [tex] = await Promise.all([
       BlockTextureArray.load(this.gl, this.manifest, this.settings.mipmapLevels),
@@ -291,8 +307,17 @@ export class Game implements ScreenHost {
       get yaw() { return game.yaw; },
       get pitch() { return game.pitch; },
       send: (p) => this.send(p),
-      onBlockBroken: (x, y, z, st) => this.particles.destroy(x, y, z, st, this.particleLayer(st), this.particleTint(st, x, z)),
+      onBlockBroken: (x, y, z, st) => this.blockBroken(x, y, z, st),
       onBlockHit: (x, y, z, face, st) => this.particles.crack(x, y, z, face, st, this.particleLayer(st), this.particleTint(st, x, z)),
+      onDigSound: (x, y, z, st) => {
+        // MultiPlayerGameMode.continueDestroyBlock hit sound
+        const t = soundTypeOf(st);
+        this.playAt(t.hit, 'block', x + 0.5, y + 0.5, z + 0.5, (t.volume + 1) / 8, t.pitch * 0.5);
+      },
+      onBlockPlaced: (x, y, z, st) => {
+        const t = soundTypeOf(st);
+        this.playAt(t.place, 'block', x + 0.5, y + 0.5, z + 0.5, (t.volume + 1) / 2, t.pitch * 0.8);
+      },
       swing: () => this.swingArm(),
       missSwing: () => {
         this.swingArm();
@@ -476,7 +501,13 @@ export class Game implements ScreenHost {
         this.interaction.inventory.selected = p.slot;
         break;
       case 'addEntity':
-        if (p.type === 'lightning_bolt') this.bolts.set(p.id, new ClientBolt(p.x, p.y, p.z, this.boltRand));
+        if (p.type === 'lightning_bolt') {
+          this.bolts.set(p.id, new ClientBolt(p.x, p.y, p.z, this.boltRand));
+          // LightningBolt.tick (client): thunder audible everywhere, impact nearby
+          const r = this.sfxRand;
+          this.playAt('entity.lightning_bolt.thunder', 'weather', p.x, p.y, p.z, 10000, 0.8 + r.nextFloat() * 0.2);
+          this.playAt('entity.lightning_bolt.impact', 'weather', p.x, p.y, p.z, 2, 0.5 + r.nextFloat() * 0.2);
+        }
         else if (p.type === 'item') {
           this.items.set(p.id, { x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z, steps: 0, item: 0, count: 1, age: 0, bobOffs: Math.random() * Math.PI * 2 });
         }
@@ -492,6 +523,10 @@ export class Game implements ScreenHost {
       case 'takeItem': {
         // vanilla ItemPickupParticle: the item flies into the collector over 3 ticks
         const it = this.items.get(p.itemId);
+        if (it) {
+          const r = this.sfxRand;
+          this.playAt('entity.item.pickup', 'player', it.x, it.y, it.z, 0.2, ((r.nextFloat() - r.nextFloat()) * 0.7 + 1) * 2);
+        }
         if (it && !it.pickup) {
           const stays = p.count < it.count;
           if (stays) it.count -= p.count;
@@ -504,7 +539,15 @@ export class Game implements ScreenHost {
         break;
       }
       case 'levelEvent':
-        if (p.event === 2001) this.particles.destroy(p.x, p.y, p.z, p.data, this.particleLayer(p.data), this.particleTint(p.data, p.x, p.z));
+        if (p.event === 2001) this.blockBroken(p.x, p.y, p.z, p.data);
+        break;
+      case 'sound': {
+        const name = soundName(p.event);
+        if (name) this.playAt(name, SOUND_SOURCES[p.category] ?? 'master', p.x, p.y, p.z, p.volume, p.pitch);
+        break;
+      }
+      case 'entityEvent':
+        this.entityEvent(p.id, p.event);
         break;
       case 'blockBreakProgress':
         if (p.stage < 0) this.otherCracks.delete(p.id);
@@ -599,7 +642,12 @@ export class Game implements ScreenHost {
       sneak: k('ShiftLeft') || k('ShiftRight'),
       sprint: k('ControlLeft'),
     };
-    if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) pl.tick(move);
+    const bx = pl.x, by = pl.y, bz = pl.z;
+    if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
+      pl.tick(move);
+      this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
+    }
+    this.tickRainSound();
     // camera eye height eases toward the pose's eye height (vanilla Camera.tick)
     this.eyeHeightOld = this.eyeHeight;
     this.eyeHeight += (pl.eyeHeight - this.eyeHeight) * 0.5;
@@ -747,6 +795,106 @@ export class Game implements ScreenHost {
       }
     } else this.swingTime = 0;
     this.attackAnim = this.swingTime / 6;
+  }
+
+  // ------------------------------------------------------------------ sounds
+  playAt(event: string, category: SoundCategory, x: number, y: number, z: number, volume: number, pitch: number): void {
+    this.sound.play(event, category, volume, pitch, x, y, z);
+  }
+
+  /** SimpleSoundInstance.forUI: volume 0.25, not positional. */
+  playUi(event: string, pitch: number): void {
+    this.sound.play(event, 'master', 0.25, pitch);
+  }
+
+  /** Local player sound (LocalPlayer.playSound → playLocalSound at the player). */
+  private playPlayer(event: string, volume: number, pitch: number): void {
+    const p = this.player;
+    this.playAt(event, 'player', p.x, p.y, p.z, volume, pitch);
+  }
+
+  /** levelEvent 2001: break particles and the block's break sound. */
+  private blockBroken(x: number, y: number, z: number, st: number): void {
+    this.particles.destroy(x, y, z, st, this.particleLayer(st), this.particleTint(st, x, z));
+    if (st !== 0) {
+      const t = soundTypeOf(st);
+      this.playAt(t.break, 'block', x + 0.5, y + 0.5, z + 0.5, (t.volume + 1) / 2, t.pitch * 0.8);
+    }
+  }
+
+  /** LivingEntity.handleEntityEvent: hurt animation and the hurt/death sound for the local player. */
+  private entityEvent(id: number, event: number): void {
+    const hurt = event === 2 || event === 33 || event === 36 || event === 37 || event === 44 || event === 57;
+    if (id !== this.entityId) {
+      const rp = this.players.get(id);
+      if (rp && hurt) rp.hurtTime = 10;
+      return;
+    }
+    const r = this.sfxRand;
+    const voice = (r.nextFloat() - r.nextFloat()) * 0.2 + 1;
+    if (hurt) {
+      const ev = event === 37 ? 'entity.player.hurt_on_fire' : event === 36 ? 'entity.player.hurt_drown' : event === 44 ? 'entity.player.hurt_sweet_berry_bush' : event === 57 ? 'entity.player.hurt_freeze' : 'entity.player.hurt';
+      this.playPlayer(ev, 1, voice);
+    } else if (event === 3) this.playPlayer('entity.player.death', 1, voice);
+  }
+
+  /** Footsteps/swimming (Entity.move) and landing sounds (LivingEntity.causeFallDamage) for the local player. */
+  private tickMovementSounds(dx: number, dy: number, dz: number): void {
+    const p = this.player;
+    const silent = p.abilities.flying || this.gameMode === 3 || (p.onGround && p.shiftDown);
+    const ev = this.steps.update(this.world, p.x, p.y, p.z, dx, dy, dz, p.isInWater, silent);
+    const r = this.sfxRand;
+    if (ev?.kind === 'swim') {
+      const v = Math.min(1, Math.sqrt(p.vx * p.vx * 0.2 + p.vy * p.vy + p.vz * p.vz * 0.2) * 0.35);
+      this.playPlayer('entity.player.swim', v, 1 + (r.nextFloat() - r.nextFloat()) * 0.4);
+    } else if (ev?.kind === 'step') {
+      const t = soundTypeOf(ev.state);
+      this.playPlayer(t.step, t.volume * 0.15, t.pitch);
+    }
+    if (p.onGround && !this.wasOnGround && p.lastFallDistance > 0 && !p.abilities.mayFly) {
+      const below = this.world.getState(Math.floor(p.x), Math.floor(p.y - 0.2), Math.floor(p.z));
+      const n = blockNameOf(below);
+      const mult = n === 'hay_block' || n === 'honey_block' ? 0.2 : n.endsWith('_bed') ? 0.5 : n === 'slime_block' && !p.shiftDown ? 0 : 1;
+      const dmg = Math.ceil((p.lastFallDistance - 3) * mult);
+      if (dmg > 0) {
+        this.playPlayer(dmg > 4 ? 'entity.player.big_fall' : 'entity.player.small_fall', 1, 1);
+        if (below !== 0) {
+          const t = soundTypeOf(below);
+          this.playPlayer(t.fall, t.volume * 0.5, t.pitch * 0.75);
+        }
+      }
+      p.lastFallDistance = 0;
+    }
+    this.wasOnGround = p.onGround;
+  }
+
+  /** LevelRenderer.tickRain sound part: rain sounds from random exposed blocks near the camera. */
+  private tickRainSound(): void {
+    const f = this.world.rain / (this.settings.graphics === 'fancy' ? 1 : 2);
+    if (f <= 0) return;
+    const r = new JavaRandom(BigInt(this.clientTicks) * 312987231n);
+    const cx = Math.floor(this.x), cy = Math.floor(this.y), cz = Math.floor(this.z);
+    const n = Math.floor(100 * f * f) / (this.settings.particles === 'decreased' ? 2 : 1);
+    let hit: [number, number, number] | null = null;
+    for (let j = 0; j < n; j++) {
+      const x = cx + r.nextInt(21) - 10, z = cz + r.nextInt(21) - 10;
+      const c = this.world.getChunk(x >> 4, z >> 4);
+      if (!c) continue;
+      const y = c.motionBlocking[(z & 15) * 16 + (x & 15)]! - 1;
+      if (y > 0 && y <= cy + 10 && y >= cy - 10 && isRainingAt(this.world, true, x, y, z)) {
+        hit = [x, y, z];
+        if (this.settings.particles === 'minimal') break;
+        r.nextDouble();
+        r.nextDouble();
+      }
+    }
+    if (hit && r.nextInt(3) < this.rainSoundTime++) {
+      this.rainSoundTime = 0;
+      const c = this.world.getChunk(cx >> 4, cz >> 4);
+      const top = c ? c.motionBlocking[(cz & 15) * 16 + (cx & 15)]! : 0;
+      if (hit[1] > cy + 1 && top > cy) this.playAt('weather.rain.above', 'weather', hit[0] + 0.5, hit[1] + 0.5, hit[2] + 0.5, 0.1, 0.5);
+      else this.playAt('weather.rain', 'weather', hit[0] + 0.5, hit[1] + 0.5, hit[2] + 0.5, 0.2, 1);
+    }
   }
 
   /** LocalPlayer.hurtTo: health from the server; a drop plays the hurt animation. */
@@ -1071,6 +1219,7 @@ export class Game implements ScreenHost {
     skyState.lookZ = lookZ;
     skyState.medium = medium;
     skyState.flash = this.skyFlashTime > 0 ? this.skyFlashTime - partial : 0;
+    this.sound.setListener(cx, cy, cz, this.yaw, this.pitch);
     const sky = skyColor(skyState, this.skyRgb);
     const fog = fogColor(skyState, sky, this.fogRgb);
     const renderDist = s.renderDistance * 16;

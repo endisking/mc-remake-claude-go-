@@ -78,7 +78,7 @@ describe('multiplayer server', () => {
 
 describe('block interaction', () => {
   function setup(gameMode = 0) {
-    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, defaultGameMode: gameMode, scene: 'models' });
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, defaultGameMode: gameMode, scene: 'models', randomSeed: 42n });
     const a = client(server, 'A');
     for (let i = 0; i < 3; i++) server.tick();
     const p = server.players[0]!;

@@ -11,6 +11,7 @@ import { blockNameOf, getProp } from '@shared/world/blockstate';
 import { CLIMBABLE, STUCK, blockIdAt } from '@shared/entity/blockphysics';
 import { AABB } from '@shared/entity/aabb';
 import { isRainingAt } from '@shared/world/weather';
+import { soundTypeOf } from '@shared/world/soundtype';
 import { giveExperienceLevels, giveExperiencePoints } from '@shared/game/experience';
 
 export interface DamageSource {
@@ -154,9 +155,21 @@ export class Survival {
       this.actuallyHurt(p, src, amount);
       l.hurtTime = 10;
     }
-    if (fresh) this.s.broadcastToTrackers(p, { t: 'animate', id: p.id, action: 1 }, true);
+    // entity event 2/36/37/44/57: hurt animation + the hurt sound for the player itself
+    const event = src.id === 'drown' ? 36 : src.id === 'onFire' ? 37 : src.id === 'sweetBerryBush' ? 44 : src.id === 'freeze' ? 57 : 2;
+    if (fresh) this.s.broadcastToTrackers(p, { t: 'entityEvent', id: p.id, event }, true);
     l.lastFallDistanceWhenHurt = p.fallDistance;
-    if (l.dead) this.die(p, src);
+    const r = this.s.rand;
+    const voice = (r.nextFloat() - r.nextFloat()) * 0.2 + 1;
+    if (l.dead) {
+      if (fresh) this.s.playSound(p, 'entity.player.death', 'player', p.x, p.y, p.z, 1, voice);
+      this.die(p, src);
+    } else if (fresh) {
+      // Player.getHurtSound
+      const ev = src.id === 'onFire' ? 'entity.player.hurt_on_fire' : src.id === 'drown' ? 'entity.player.hurt_drown'
+        : src.id === 'sweetBerryBush' ? 'entity.player.hurt_sweet_berry_bush' : src.id === 'freeze' ? 'entity.player.hurt_freeze' : 'entity.player.hurt';
+      this.s.playSound(p, ev, 'player', p.x, p.y, p.z, 1, voice);
+    }
     return true;
   }
 
@@ -378,11 +391,26 @@ export class Survival {
     else if (n === 'pointed_dripstone' && getProp(below, 'vertical_direction') === 'up' && getProp(below, 'thickness') === 'tip') {
       // falling onto a stalagmite tip: double damage plus 2 (vanilla PointedDripstoneBlock.fallOn)
       const dmg = Math.ceil((fallDistance + 2 - 3) * 2);
-      if (dmg > 0) this.hurt(p, { id: 'stalagmite', bypassArmor: true }, dmg);
+      if (dmg > 0) {
+        this.fallSounds(p, dmg, below);
+        this.hurt(p, { id: 'stalagmite', bypassArmor: true }, dmg);
+      }
       return;
     }
     const dmg = Math.ceil((fallDistance - 3) * mult);
-    if (dmg > 0) this.hurt(p, DAMAGE.fall, dmg);
+    if (dmg > 0) {
+      this.fallSounds(p, dmg, below);
+      this.hurt(p, DAMAGE.fall, dmg);
+    }
+  }
+
+  /** LivingEntity.causeFallDamage sounds (others hear them; the player's client plays its own). */
+  private fallSounds(p: ServerPlayer, dmg: number, below: number): void {
+    this.s.playSound(p, dmg > 4 ? 'entity.player.big_fall' : 'entity.player.small_fall', 'player', p.x, p.y, p.z, 1, 1);
+    if (below !== 0) {
+      const st = soundTypeOf(below);
+      this.s.playSound(p, st.fall, 'player', p.x, p.y, p.z, st.volume * 0.5, st.pitch * 0.75);
+    }
   }
 
   /** Player.checkMovementStatistics + jumpFromGround exhaustion, from a client move. */
@@ -421,6 +449,7 @@ export class Survival {
     if (this.s.gameRules.showDeathMessages) {
       for (const o of this.s.players) this.s.send(o, { t: 'chat', json: JSON.stringify({ text: msg }) });
     }
+    this.s.broadcastToTrackers(p, { t: 'entityEvent', id: p.id, event: 3 }, true);
     this.s.send(p, { t: 'playerDied', message: msg, score: l.score });
     if (!this.s.gameRules.keepInventory) {
       // Inventory.dropAll: every stack flung in a random direction

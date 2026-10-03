@@ -7,3 +7,4 @@ playwright-report/
 /server/worlds/
 /tools/bench/out/
 .DS_Store
+/tools/soundgen/cache/

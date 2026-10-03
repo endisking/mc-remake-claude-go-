@@ -24,6 +24,9 @@ import { FLUID } from '@shared/world/blockinfo';
 import { BLOCKS_BY_NAME, ITEMS_BY_NAME } from '@shared/data';
 import { Survival, DEFAULT_GAME_RULES, DAMAGE, type GameRules } from './survival';
 import { Difficulty, EXHAUSTION } from '@shared/game/food';
+import { soundId, sourceId, type SoundSource } from '@shared/sound/events';
+import { soundTypeOf } from '@shared/world/soundtype';
+import { StepTracker } from '@shared/entity/steps';
 
 export interface Connection {
   send(data: ArrayBuffer): void;
@@ -38,6 +41,8 @@ export interface ServerOptions {
   chunkGenBudget?: number;
   /** Game mode for new players: 0 survival, 1 creative, 2 adventure, 3 spectator. */
   defaultGameMode?: number;
+  /** Seed for the level's random source (tests); defaults to the clock like vanilla. */
+  randomSeed?: bigint;
 }
 
 export class GameServer {
@@ -58,7 +63,7 @@ export class GameServer {
   clearWeatherTime = 0;
   rainLevel = 0;
   thunderLevel = 0;
-  readonly rand = new JavaRandom(BigInt(Date.now()));
+  readonly rand: JavaRandom;
   readonly gameRules: GameRules = { ...DEFAULT_GAME_RULES };
   difficulty: Difficulty = Difficulty.Normal;
   readonly survival = new Survival(this);
@@ -74,6 +79,7 @@ export class GameServer {
   mspt = 0;
 
   constructor(readonly opts: ServerOptions) {
+    this.rand = new JavaRandom(opts.randomSeed ?? BigInt(Date.now()));
     this.generator = new DevGenerator(opts.seed, opts.scene);
     this.light = new LightEngine(this.world);
     this.light.onSectionChanged = (cx, sy, cz) => {
@@ -222,6 +228,21 @@ export class GameServer {
   spawnPosition(): [number, number, number] {
     const spawn = this.ensureChunk(0, 0);
     return [8.5, spawn.topY(8, 8) + 1, 8.5];
+  }
+
+  /**
+   * Level.playSound(except, ...): sent to players within 16 blocks (× volume when louder),
+   * except the one who caused it (they play it themselves).
+   */
+  playSound(except: ServerPlayer | null, event: string, source: SoundSource, x: number, y: number, z: number, volume: number, pitch: number): void {
+    const range = volume > 1 ? 16 * volume : 16;
+    const id = soundId(event);
+    for (const o of this.players) {
+      if (o === except) continue;
+      const dx = o.x - x, dy = o.y - y, dz = o.z - z;
+      if (dx * dx + dy * dy + dz * dz > range * range) continue;
+      this.send(o, { t: 'sound', event: id, category: sourceId(source), x, y, z, volume, pitch });
+    }
   }
 
   /** Send to every player tracking `p` (and `p` itself if asked). */
@@ -432,6 +453,9 @@ export class GameServer {
     this.setBlock(px, py, pz, state);
     for (const e of extra) this.setBlock(px + e.dx, py + e.dy, pz + e.dz, e.state);
     this.updateNeighbors(px, py, pz);
+    // BlockItem.place: the placer plays it locally, everyone else hears it from here
+    const st = soundTypeOf(state);
+    this.playSound(p, st.place, 'block', px + 0.5, py + 0.5, pz + 0.5, (st.volume + 1) / 2, st.pitch * 0.8);
     if (p.gameMode !== 1) {
       held.count--;
       if (held.count <= 0) p.inventory.set(p.inventory.selected, null);
@@ -621,11 +645,33 @@ export class GameServer {
     p.y = m.y;
     p.z = m.z;
     p.onGround = m.onGround;
+    this.movementSounds(p, dx, dy, dz);
     if (m.onGround) {
       if (p.fallDistance > 0) this.survival.land(p, p.fallDistance);
       p.fallDistance = 0;
     } else if (dy < 0) p.fallDistance -= dy;
     if (p.flying) p.fallDistance = 0;
+  }
+
+  /** Entity.move step/swim sounds of a player, heard by everyone else. */
+  private movementSounds(p: ServerPlayer, dx: number, dy: number, dz: number): void {
+    // Player.getMovementEmission: flying or sneaking on the ground is silent; spectators too
+    const silent = p.flying || p.gameMode === 3 || (p.onGround && p.sneaking);
+    const ph = p.phys;
+    ph.x = p.x;
+    ph.y = p.y;
+    ph.z = p.z;
+    ph.updateFluidState();
+    const ev = p.steps.update(this.world, p.x, p.y, p.z, dx, dy, dz, ph.isInWater, silent);
+    if (!ev) return;
+    const r = this.rand;
+    if (ev.kind === 'swim') {
+      const v = Math.min(1, Math.sqrt(dx * dx * 0.2 + dy * dy + dz * dz * 0.2) * 0.35);
+      this.playSound(p, 'entity.player.swim', 'player', p.x, p.y, p.z, v, 1 + (r.nextFloat() - r.nextFloat()) * 0.4);
+    } else {
+      const st = soundTypeOf(ev.state);
+      this.playSound(p, st.step, 'player', p.x, p.y, p.z, st.volume * 0.15, st.pitch);
+    }
   }
 
   private rejectMove(p: ServerPlayer): void {

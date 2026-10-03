@@ -41,7 +41,7 @@ await page.waitForFunction(() => {
   const g = (window as any).game;
   if (!g?.chunks) return false;
   const s = g.chunks.stats();
-  return g.loggedIn && g.player.onGround && g.world.chunks.size >= 49 && s.pending === 0 && s.building === 0;
+  return g.loggedIn && Math.abs(g.player.x - 40.5) < 0.01 && g.player.onGround && g.world.chunks.size >= 49 && s.pending === 0 && s.building === 0;
 }, undefined, { timeout: 90000 });
 await page.waitForTimeout(500);
 for (const c of ['give @s grass_block 64', 'give @s oak_planks 30', 'give @s dandelion 5', 'give @s torch 12', 'give @s oak_log 1', 'give @s glass 3', 'give @s cobblestone 64', 'give @s oak_leaves 20', 'give @s rail 7']) await cmd(page, `/${c}`);

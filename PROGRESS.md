@@ -4,11 +4,18 @@ Work loop: see `CLAUDE.md` §0. Each entry: what was done, deviations from vanil
 
 ## Missing sounds
 
-(none yet — the sound system is not built)
+Every event the game currently plays has real CC0 audio (`tools/soundgen/missing.txt` lists hooked events that
+are still silent — currently none). Stand-ins that should get dedicated recordings later:
+- 1.17 block groups without their own recordings reuse stone/grass/gravel/cloth clips at different pitches
+  (deepslate, tuff, calcite, dripstone, amethyst, copper, nether blocks, moss, azalea, dripleaf, sculk…).
+- All player hurt variants (`hurt_on_fire`, `hurt_drown`, `hurt_sweet_berry_bush`, `hurt_freeze`) and `death` share
+  the two "oof" clips; vanilla has distinct burn/drown/berry sounds.
+- Metal, glass (step/place), anvil, lantern and chain use pitched stone clips — this mirrors vanilla, which also
+  builds these groups from the stone sounds.
+- Not yet hooked (later features): every mob, item use, containers, redstone, ambience, music.
 
 ## Known gaps vs vanilla
 
-- Underwater fog uses vanilla's default dark navy colour but no "water vision" ramp yet (needs the Phase 2 player).
 - Block outline draws every box of a shape; vanilla merges edges of multi-box shapes (stairs show an inner edge).
 - Weighted random model variants (e.g. grass block top rotation) use our own position hash, not vanilla's exact
   per-position random, so a given block may show a different rotation than in vanilla (purely cosmetic).
@@ -89,3 +96,41 @@ Deviations / notes:
 
 Remaining Phase 1: pooled buffers in all render paths, texture override verification, snow check in a cold biome,
 lightning flashes, simulation/entity distance, view bobbing, particle setting (the last few depend on Phase 2).
+
+## 2026-10-03 — Phase 1 wrap-up and Phase 2: player
+
+Done (verified with unit/server tests and Playwright screenshots — `tools/e2e/interact.ts`, `survival.ts`,
+`environment.ts`, `sounds.ts`, `tools/shots.ts hand*`):
+- Interaction (client `Interaction` ≈ vanilla `MultiPlayerGameMode`): survival digging with progress, crack stages
+  and crack particles every tick, creative instant break, placement prediction, pick block (vanilla creative
+  `setPickedItem` / survival `pickSlot` swap), Q / Ctrl+Q, number keys and scroll, miss-swing cooldown.
+- Rendering: terrain break particles, dropped items (bob/spin/stack copies/pickup fly-in), 3D block items and
+  extruded flat item sprites (ItemModelGenerator), GUI item icon atlas, first-person hand and held block with the
+  vanilla ItemInHandRenderer transforms (equip dip, swing, view-lag sway), other players' crack overlays.
+- HUD (vanilla `Gui`): hotbar with icons and counts, selected item name fade, hearts (blink, low-health shake,
+  regen wave, variant rows), armour row, hunger with the saturation shake, air bubbles, XP bar and level.
+- Survival server logic: FoodData (exhaustion/saturation/regen/starvation by difficulty), damage with vanilla
+  invulnerability frames, fall damage (hay/honey/bed/slime multipliers, landing tick not counted like vanilla),
+  fire/lava/burning, drowning, suffocation, void, cactus, sweet berries, magma, campfires, lightning; death drops,
+  death messages, death screen, respawn; XP levels with the 1.17 formula. Commands: /give /clear /kill /difficulty
+  /gamerule /xp /setblock /summon lightning_bolt.
+- Effects: hurt camera tilt (hurtDir is 0 in 1.17, so it always tilts the same way), death roll, red hurt tint on
+  other players, first-person fire, underwater and in-wall overlays, water vision (underwater fog adapts over 30 s).
+- Weather: thunderstorm lightning (vanilla odds/targeting), bolt renderer port, sky flash.
+- Settings: simulation distance (entities freeze outside it; the host's setting applies in single-player/LAN),
+  entity distance (vanilla bounding-box × 64 × scale).
+- Sound system: WebAudio engine with vanilla semantics (weighted variants, volume ≤ 1, pitch 0.5–2, linear
+  attenuation over max(volume,1)×16 blocks, categories), event registry ids from minecraft-data, server sound
+  packets (excluding the player who caused it), vanilla SoundType table for every block. Hooked: break, place,
+  dig hits, footsteps/swimming, landing, hurt/death, item pickup, UI clicks, thunder, rain. Audio comes from CC0
+  Kenney packs and CC0 Freesound recordings cut and normalized by `pnpm soundgen` (credits in ASSET_SOURCES.md).
+
+Deviations / notes:
+- Lightning does not start fires yet: fire spread/burn-out arrives with Phase 4 fire ticking, and permanent fires
+  would be worse than none.
+- Non-block items (tools, food, materials) have no textures until Phase 5, so they show the missing-texture icon
+  and no held model.
+- XP orbs (and dropping XP on death) arrive with the XP orb entity.
+
+Next: F5 perspectives, F3+B hitboxes, controls screen with key rebinding and mouse settings, offhand swap, beds and
+spawn points, eating, XP orbs, then Phase 3 world generation.

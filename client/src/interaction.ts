@@ -26,8 +26,12 @@ export interface InteractionHost {
   send(p: C2S): void;
   /** spawn break particles for a block state at a position */
   onBlockBroken(x: number, y: number, z: number, state: number): void;
-  /** crack particles on the face being hit */
+  /** crack particles on the face being hit (every tick while digging) */
   onBlockHit(x: number, y: number, z: number, face: number, state: number): void;
+  /** dig hit sound (every 4 ticks) */
+  onDigSound(x: number, y: number, z: number, state: number): void;
+  /** a block was placed by the local player (prediction) */
+  onBlockPlaced(x: number, y: number, z: number, state: number): void;
   swing(): void;
   /** attack at nothing: swing and reset the attack strength (vanilla startAttack miss) */
   missSwing(): void;
@@ -146,8 +150,9 @@ export class Interaction {
       return;
     }
     this.destroyProgress += destroyProgress(this.miner(), state);
+    if (this.destroyTicks % 4 === 0) this.host.onDigSound(x, y, z, state);
     this.destroyTicks++;
-    if (this.destroyTicks % 4 === 0) this.host.onBlockHit(x, y, z, face, state);
+    this.host.onBlockHit(x, y, z, face, state);
     this.host.swing();
     if (this.destroyProgress >= 1) {
       this.isDestroying = false;
@@ -201,6 +206,7 @@ export class Interaction {
     if (state === null || !canSurvive(w, px, py, pz, state)) return;
     w.setStateRaw(px, py, pz, state);
     w.markBlockDirty(px, py, pz);
+    this.host.onBlockPlaced(px, py, pz, state);
     for (const e of companionPlacement(block, state)) {
       w.setStateRaw(px + e.dx, py + e.dy, pz + e.dz, e.state);
       w.markBlockDirty(px + e.dx, py + e.dy, pz + e.dz);

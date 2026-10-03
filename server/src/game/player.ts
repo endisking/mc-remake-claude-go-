@@ -4,6 +4,7 @@ import type { BlockWorld } from '@shared/world/world';
 import type { Connection } from './server';
 import { Inventory } from '@shared/item/stack';
 import { LivingState } from './survival';
+import { StepTracker } from '@shared/entity/steps';
 
 export class ServerPlayer {
   x = 0;
@@ -24,6 +25,7 @@ export class ServerPlayer {
   sprinting = false;
   pose: Pose = 'standing';
   living = new LivingState();
+  readonly steps = new StepTracker();
   onFire = false;
   fallDistance = 0;
   /** position at the previous survival tick (sweet berry bush movement check) */
