@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 93 / 4140**
+**Progress: 94 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -135,7 +135,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] First-person camera with mouse look and sensitivity setting <!--p2:first_person_camera_with_mouse_look_and_sensitivity_setting-->
 - [x] Sprint FOV change, FOV effects (speed/slowness) <!--p2:sprint_fov_change_fov_effects_speed_slowness-->
 - [x] View bobbing <!--p2:view_bobbing-->
-- [ ] Hand sway and swing animation <!--p2:hand_sway_and_swing_animation-->
+- [x] Hand sway and swing animation <!--p2:hand_sway_and_swing_animation-->
 - [ ] F5 three perspectives <!--p2:f5_three_perspectives-->
 - [ ] F3+B hitboxes <!--p2:f3_b_hitboxes-->
 - [ ] Rebindable keys <!--p2:rebindable_keys-->

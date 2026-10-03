@@ -31,6 +31,7 @@ import { RemotePlayer } from './world/entities';
 import { Interaction } from './interaction';
 import { ParticleEngine } from './render/particles';
 import { BlockItemRenderer } from './render/blockitem';
+import { HandRenderer, attackSpeedOf } from './render/hand';
 import { blockForItem } from '@shared/game/loot';
 import { BLOCKS_BY_NAME, ITEMS_BY_ID } from '@shared/data';
 import { itemName } from '@shared/item/stack';
@@ -60,6 +61,16 @@ export class Game implements ScreenHost {
   readonly players = new Map<number, RemotePlayer>();
   private sentState = { sneaking: false, sprinting: false, flying: false };
   interaction!: Interaction;
+  private hand!: HandRenderer;
+  // ItemInHandRenderer / LocalPlayer state for the first-person hand
+  private xBob = 0;
+  private xBobO = 0;
+  private yBob = 0;
+  private yBobO = 0;
+  private mainHandHeight = 0;
+  private oMainHandHeight = 0;
+  private handItem: { id: number; count: number; damage: number } | null = null;
+  attackStrengthTicker = 0;
   particles!: ParticleEngine;
   blockItems!: BlockItemRenderer;
   private bake!: BakeResult;
@@ -249,7 +260,8 @@ export class Game implements ScreenHost {
     this.blockItems = new BlockItemRenderer(this.gl, mainBake.bake, () => this.textures.tex, (st) => itemTint(st), (st) => {
       const t = flatItemTexture(blockNameOf(st));
       return t === null ? null : (mainBake.textures.get(t)?.layer ?? mainBake.textures.get('missing')!.layer);
-    });
+    }, (layer) => this.textures.alpha[layer]);
+    this.hand = new HandRenderer(this.gl, this.entityRenderer, this.blockItems);
     this.interaction = new Interaction({
       world: this.world,
       player: this.player,
@@ -260,6 +272,10 @@ export class Game implements ScreenHost {
       onBlockBroken: (x, y, z, st) => this.particles.destroy(x, y, z, st, this.particleLayer(st), this.particleTint(st, x, z)),
       onBlockHit: (x, y, z, face, st) => this.particles.crack(x, y, z, face, st, this.particleLayer(st), this.particleTint(st, x, z)),
       swing: () => this.swingArm(),
+      missSwing: () => {
+        this.swingArm();
+        this.resetAttackStrength();
+      },
     });
     const game = this;
     this.crack = new CrackRenderer(this.gl, mainBake.bake, Array.from({ length: 10 }, (_, i) => mainBake.textures.get(`destroy_stage_${i}`)!.layer));
@@ -496,6 +512,7 @@ export class Game implements ScreenHost {
       this.pitch = (-Math.atan2(dy, Math.hypot(dx, dz)) * 180) / Math.PI;
     }
     if (q.has('fly')) this.player.abilities.flying = true;
+    for (const g of q.getAll('give')) this.send({ t: 'chat', message: `/give @s ${g.replace(':', ' ')}` });
     if (q.has('weather')) this.send({ t: 'chat', message: `/weather ${q.get('weather')}` });
     if (n('time') !== undefined) {
       this.send({ t: 'chat', message: '/gamerule doDaylightCycle false' });
@@ -561,9 +578,11 @@ export class Game implements ScreenHost {
     this.particles.tick();
     this.swingTick();
     this.tickHighlight();
+    this.tickHand();
     // mouse buttons (vanilla handleKeybinds: attack, use, pick block)
     if (active && this.loggedIn) {
       const ia = this.interaction;
+      ia.tick();
       const attackPressed = i.consumeMouse(0);
       if (attackPressed) ia.startAttack(this.target);
       ia.continueAttack(i.mouseButtons.has(0) && !attackPressed, this.target);
@@ -686,6 +705,54 @@ export class Game implements ScreenHost {
     }
     const rp = this.players.get(id);
     return rp ? [rp.xo + (rp.x - rp.xo) * partial, rp.yo + (rp.y - rp.yo) * partial, rp.zo + (rp.z - rp.zo) * partial] : null;
+  }
+
+  /** LocalPlayer.aiStep xBob/yBob, Player attack strength, ItemInHandRenderer.tick equip height. */
+  private tickHand(): void {
+    this.xBobO = this.xBob;
+    this.yBobO = this.yBob;
+    this.xBob += (this.pitch - this.xBob) * 0.5;
+    this.yBob += (this.yaw - this.yBob) * 0.5;
+    this.attackStrengthTicker++;
+    this.oMainHandHeight = this.mainHandHeight;
+    const cur = this.interaction.inventory.selectedStack;
+    const h = this.handItem;
+    const matches = (!h && !cur) || (!!h && !!cur && h.id === cur.id && h.count === cur.count && h.damage === cur.damage);
+    if (matches) this.handItem = cur;
+    const delay = 20 / attackSpeedOf(cur?.id ?? 0);
+    const f = Math.min(1, Math.max(0, (this.attackStrengthTicker + 1) / delay));
+    const same = this.handItem === cur;
+    this.mainHandHeight += Math.max(-0.4, Math.min(0.4, (same ? f * f * f : 0) - this.mainHandHeight));
+    if (this.mainHandHeight < 0.1) this.handItem = cur;
+  }
+
+  /** Called by a swing at nothing (vanilla startAttack on a miss). */
+  resetAttackStrength(): void {
+    this.attackStrengthTicker = 0;
+  }
+
+  private renderHand(partial: number, medium: string): void {
+    if (this.hideHud || this.gameMode === 3) return;
+    const st = this.handItem;
+    const block = st ? blockForItem(st.id) : null;
+    const sw = this.attackAnim - this.attackAnimO;
+    const eyeX = Math.floor(this.x), eyeY = Math.floor(this.y), eyeZ = Math.floor(this.z);
+    this.hand.render({
+      stack: st,
+      blockState: block ? BLOCKS_BY_NAME.get(block)!.defaultState : null,
+      swing: this.attackAnimO + (sw < 0 ? sw + 1 : sw) * partial,
+      equip: 1 - (this.oMainHandHeight + (this.mainHandHeight - this.oMainHandHeight) * partial),
+      pitch: this.pitch,
+      yaw: this.yaw,
+      xBob: this.xBobO + (this.xBob - this.xBobO) * partial,
+      yBob: this.yBobO + (this.yBob - this.yBobO) * partial,
+      light: this.world.getLight(eyeX, eyeY, eyeZ),
+      skinName: new URLSearchParams(location.search).get('name') ?? 'Player',
+      aspect: this.canvas.width / Math.max(1, this.canvas.height),
+      fluidFov: medium === 'air' ? 1 : 0.85714287,
+      bob: this.settings.viewBobbing && !this.player.abilities.flying ? this.bobMat : null,
+      viewRot: this.view,
+    }, this.lightmap.tex);
   }
 
   private readonly itemModel = mat4();
@@ -875,6 +942,7 @@ export class Game implements ScreenHost {
     if (medium === 'air') {
       this.clouds.render(this.viewProj, cx, cy, cz, this.clientTicks + partial, s.clouds, s.renderDistance, cloudColor(tod, this.world.rain, this.world.thunder), fog);
     }
+    this.renderHand(partial, medium);
     this.renderGui(cx, cy, cz);
   }
 

@@ -15,6 +15,8 @@ layout(location = 1) in vec2 aUV;
 layout(location = 2) in vec3 aNormal;
 uniform mat4 uViewProj;
 uniform mat4 uModel;
+uniform vec3 uL0;
+uniform vec3 uL1;
 out vec2 vUV;
 out float vShade;
 out float vDist;
@@ -24,9 +26,7 @@ void main() {
   vUV = aUV;
   vec3 n = normalize(mat3(uModel) * aNormal);
   // vanilla entity lighting: two directional lights + ambient
-  vec3 l0 = normalize(vec3(0.2, 1.0, -0.7));
-  vec3 l1 = normalize(vec3(-0.2, 1.0, 0.7));
-  vShade = min(1.0, 0.4 + 0.6 * (max(dot(n, l0), 0.0) + max(dot(n, l1), 0.0)));
+  vShade = min(1.0, 0.4 + 0.6 * (max(dot(n, uL0), 0.0) + max(dot(n, uL1), 0.0)));
   vDist = length(w.xyz);
 }`;
 const FS = `#version 300 es
@@ -53,6 +53,15 @@ void main() {
 interface GpuModel {
   baked: BakedEntityModel;
   vao: WebGLVertexArrayObject;
+}
+
+/** Vanilla level lights (Lighting.setupLevel), world space. */
+export const LIGHT0: [number, number, number] = norm(0.2, 1, -0.7);
+export const LIGHT1: [number, number, number] = norm(-0.2, 1, 0.7);
+
+function norm(x: number, y: number, z: number): [number, number, number] {
+  const l = Math.hypot(x, y, z);
+  return [x / l, y / l, z / l];
 }
 
 /** px → blocks with the player render scale (0.9375). */
@@ -134,6 +143,8 @@ export class EntityRenderer {
     gl.uniform4f(this.u.get('uFogColor'), fog[0], fog[1], fog[2], 1);
     gl.uniform2f(this.u.get('uFog'), fogStart, fogEnd);
     gl.uniform4f(this.u.get('uOverlay'), 1, 0, 0, 0);
+    gl.uniform3f(this.u.get('uL0'), LIGHT0[0], LIGHT0[1], LIGHT0[2]);
+    gl.uniform3f(this.u.get('uL1'), LIGHT1[0], LIGHT1[1], LIGHT1[2]);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, lightmap);
     gl.activeTexture(gl.TEXTURE0);
@@ -181,6 +192,44 @@ export class EntityRenderer {
         gl.drawArrays(gl.TRIANGLES, part.first, part.count);
       });
     }
+    gl.bindVertexArray(null);
+  }
+
+  /**
+   * First-person arm (vanilla PlayerRenderer.renderRightHand): the right arm part drawn with
+   * `base` (view space, vanilla model units where +Y is down) and the idle zRot of 0.1.
+   */
+  renderFirstPersonArm(proj: Mat4, base: Mat4, skinName: string, light: number, lightmap: WebGLTexture, l0: [number, number, number], l1: [number, number, number]): void {
+    const gl = this.gl;
+    const model = this.models.get('player')!;
+    const part = model.baked.parts.find((p) => p.def.name === 'rightArm')!;
+    gl.useProgram(this.prog);
+    gl.uniformMatrix4fv(this.u.get('uViewProj'), false, proj);
+    gl.uniform1i(this.u.get('uTex'), 0);
+    gl.uniform1i(this.u.get('uLightmap'), 1);
+    gl.uniform4f(this.u.get('uFogColor'), 0, 0, 0, 1);
+    gl.uniform2f(this.u.get('uFog'), 1e6, 1e6 + 1);
+    gl.uniform4f(this.u.get('uOverlay'), 1, 0, 0, 0);
+    gl.uniform3f(this.u.get('uL0'), l0[0], l0[1], l0[2]);
+    gl.uniform3f(this.u.get('uL1'), l1[0], l1[1], l1[2]);
+    gl.uniform2f(this.u.get('uLight'), ((light & 15) + 0.5) / 16, ((light >> 4) + 0.5) / 16);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, lightmap);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.skins.get(this.skinFor(skinName, '')) ?? null);
+    // pivot (−5, 2, 0) in vanilla model space, zRot 0.1, px → blocks, then our model space
+    // (y up, facing +Z) → vanilla's (y down, facing −Z): diag(1, −1, −1)
+    const m = this.tmp;
+    m.set(base);
+    const c = Math.cos(0.1), s = Math.sin(0.1), k = 1 / 16;
+    const r = this.m;
+    r.set([c * k, s * k, 0, 0, s * k, -c * k, 0, 0, 0, 0, -k, 0, -5 / 16, 2 / 16, 0, 1]);
+    multiply(m, m, r);
+    gl.uniformMatrix4fv(this.u.get('uModel'), false, m);
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
+    gl.bindVertexArray(model.vao);
+    gl.drawArrays(gl.TRIANGLES, part.first, part.count);
     gl.bindVertexArray(null);
   }
 }

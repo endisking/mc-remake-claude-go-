@@ -29,6 +29,8 @@ export interface InteractionHost {
   /** crack particles on the face being hit */
   onBlockHit(x: number, y: number, z: number, face: number, state: number): void;
   swing(): void;
+  /** attack at nothing: swing and reset the attack strength (vanilla startAttack miss) */
+  missSwing(): void;
 }
 
 export class Interaction {
@@ -41,6 +43,12 @@ export class Interaction {
   destroyProgress = 0;
   destroyTicks = 0;
   rightClickDelay = 0;
+  missTime = 0;
+
+  /** Per tick housekeeping (Minecraft.tick: missTime). */
+  tick(): void {
+    if (this.missTime > 0) this.missTime--;
+  }
 
   constructor(private host: InteractionHost) {}
 
@@ -68,7 +76,13 @@ export class Interaction {
 
   /** Attack key pressed this tick. */
   startAttack(target: BlockHit | null): void {
-    if (!target) return;
+    if (this.missTime > 0) return;
+    if (!target) {
+      // vanilla: a miss swings, resets the attack cooldown and (in survival) blocks attacking for 10 ticks
+      if (this.host.gameMode !== 1) this.missTime = 10;
+      this.host.missSwing();
+      return;
+    }
     this.host.swing();
     if (this.host.gameMode === 3) return;
     const { x, y, z, face } = target;
@@ -101,6 +115,8 @@ export class Interaction {
 
   /** Attack key held (every tick). */
   continueAttack(held: boolean, target: BlockHit | null): void {
+    if (!held) this.missTime = 0;
+    if (this.missTime > 0) return;
     if (!held || !target) {
       this.stopDestroy();
       if (this.destroyDelay > 0) this.destroyDelay--;

@@ -70,6 +70,8 @@ export class BlockTextureArray {
   readonly tex: WebGLTexture;
   readonly layers: number;
   private animated: Animated[] = [];
+  /** Alpha of each layer's first frame (16×16), for extruded item sprites. */
+  readonly alpha: Uint8Array[] = [];
   readonly mipLevels: number;
 
   private constructor(
@@ -110,6 +112,9 @@ export class BlockTextureArray {
           for (let f = 0; f < o.h / SIZE; f++) frames.push(new Uint8Array(o.data.buffer.slice(f * 1024, f * 1024 + 1024)));
         }
       }
+      const a = new Uint8Array(SIZE * SIZE);
+      for (let i = 0; i < SIZE * SIZE; i++) a[i] = frames[0]![i * 4 + 3]!;
+      arr.alpha[layer] = a;
       const chains = frames.map((fr) => mipChain(fr, mipLevels));
       arr.upload(layer, chains[0]!);
       if (chains.length > 1) arr.animated.push({ layer, frames: chains, frametime: t.frametime ?? 1, current: 0 });

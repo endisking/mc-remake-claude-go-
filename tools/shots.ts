@@ -39,6 +39,10 @@ export const SHOTS: Record<string, string> = {
   debug: 'scene=models&x=14&y=104.5&z=13&yaw=160&pitch=30&time=6000&debug=1',
   pause: 'x=40&y=90&z=40&yaw=30&pitch=10&time=6000&screen=pause',
   video: 'x=40&y=90&z=40&yaw=30&pitch=10&time=6000&screen=video',
+  hand: 'x=40&y=90&z=40&yaw=30&pitch=10&time=6000',
+  handblock: 'x=40&y=90&z=40&yaw=30&pitch=10&time=6000&give=grass_block:64&give=torch',
+  handtorch: 'x=40&y=90&z=40&yaw=30&pitch=10&time=6000&give=torch&give=dandelion',
+  handnight: 'scene=models&x=14.5&y=102&z=8.5&lookat=14.5,101,2.5&time=18000&give=oak_planks',
 };
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });

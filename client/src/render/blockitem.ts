@@ -88,6 +88,8 @@ export class BlockItemRenderer {
     private itemTint: (state: number) => [number, number, number],
     /** texture layer for items drawn as flat sprites (item/generated), or null for 3D blocks */
     private flatLayer: (state: number) => number | null = () => null,
+    /** 16×16 alpha of a texture layer, to extrude flat sprites like vanilla's ItemModelGenerator */
+    private layerAlpha: (layer: number) => Uint8Array | undefined = () => undefined,
   ) {
     this.prog = createProgram(gl, VS, FS, 'blockitem');
     this.u = new Uniforms(gl, this.prog);
@@ -124,11 +126,8 @@ export class BlockItemRenderer {
     }
     const v: number[] = [];
     if (flat !== null) {
-      // a double-sided sprite in the XY plane, facing +Z (south) and −Z
       const t = quads.some((q) => q.tint >= 0) ? 1 : 0;
-      const c = [[-0.5, 0.5, 0, 0], [-0.5, -0.5, 0, 1], [0.5, -0.5, 1, 1], [0.5, 0.5, 1, 0]];
-      for (const k of [0, 1, 2, 0, 2, 3]) v.push(c[k]![0]!, c[k]![1]!, 0.002, c[k]![2]!, c[k]![3]!, flat, 0, 0, 1, t);
-      for (const k of [0, 2, 1, 0, 3, 2]) v.push(c[k]![0]!, c[k]![1]!, -0.002, 1 - c[k]![2]!, c[k]![3]!, flat, 0, 0, -1, t);
+      extrudeSprite(v, flat, this.layerAlpha(flat), t);
     }
     const src = flat !== null ? [] : quads;
     const N = [[0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0]];
@@ -160,7 +159,12 @@ export class BlockItemRenderer {
   }
 
   /** Draw a block model centred at the model matrix origin (unit cube −0.5..0.5). */
-  draw(state: number, viewProj: Mat4, model: Mat4, light: number, lightmap: WebGLTexture | null, fog?: { color: [number, number, number]; start: number; end: number }, gui = false): void {
+  draw(
+    state: number, viewProj: Mat4, model: Mat4, light: number, lightmap: WebGLTexture | null,
+    fog?: { color: [number, number, number]; start: number; end: number }, gui = false,
+    /** light directions in the model matrix's output space (default: world-space level lights) */
+    lights?: [[number, number, number], [number, number, number]],
+  ): void {
     const m = this.mesh(state);
     if (!m) return;
     const gl = this.gl;
@@ -174,7 +178,7 @@ export class BlockItemRenderer {
       gl.uniform3f(this.u.get('uLight1'), 0, 0, 0);
       gl.uniform1f(this.u.get('uAmbient'), this.isFlat(state) ? 1 : 0.45);
     } else {
-      const l0 = normalize([0.2, 1, -0.7]), l1 = normalize([-0.2, 1, 0.7]);
+      const [l0, l1] = lights ?? [normalize([0.2, 1, -0.7]), normalize([-0.2, 1, 0.7])];
       gl.uniform3f(this.u.get('uLight0'), l0[0], l0[1], l0[2]);
       gl.uniform3f(this.u.get('uLight1'), l1[0], l1[1], l1[2]);
       gl.uniform1f(this.u.get('uAmbient'), 0.4);
@@ -251,6 +255,33 @@ export class BlockItemRenderer {
     for (let y = 0; y < ICON; y++) img.data.set(this.pixels.subarray((ICON - 1 - y) * ICON * 4, (ICON - y) * ICON * 4), y * ICON * 4);
     this.iconCtx.putImageData(img, (slot % 32) * ICON, Math.floor(slot / 32) * ICON);
   }
+}
+
+/**
+ * Vanilla ItemModelGenerator: a sprite becomes a 1/16-thick slab — front and back faces of the
+ * whole texture plus 1-pixel side faces wherever an opaque pixel borders a transparent one.
+ * Coordinates are centred (−0.5..0.5 in x/y, ±1/32 in z); the front faces +Z.
+ */
+function extrudeSprite(v: number[], layer: number, alpha: Uint8Array | undefined, tint: number): void {
+  const zf = 1 / 32, zb = -1 / 32;
+  const quad = (c: number[][], uv: number[][], n: [number, number, number]) => {
+    for (const k of [0, 1, 2, 0, 2, 3]) v.push(c[k]![0]!, c[k]![1]!, c[k]![2]!, uv[k]![0]! / 16, uv[k]![1]! / 16, layer, n[0], n[1], n[2], tint);
+  };
+  // front (+Z) and back (−Z, mirrored)
+  quad([[-0.5, 0.5, zf], [-0.5, -0.5, zf], [0.5, -0.5, zf], [0.5, 0.5, zf]], [[0, 0], [0, 16], [16, 16], [16, 0]], [0, 0, 1]);
+  quad([[0.5, 0.5, zb], [0.5, -0.5, zb], [-0.5, -0.5, zb], [-0.5, 0.5, zb]], [[16, 0], [16, 16], [0, 16], [0, 0]], [0, 0, -1]);
+  if (!alpha) return;
+  const solid = (i: number, j: number) => i >= 0 && j >= 0 && i < 16 && j < 16 && alpha[j * 16 + i]! > 0;
+  for (let j = 0; j < 16; j++)
+    for (let i = 0; i < 16; i++) {
+      if (!solid(i, j)) continue;
+      const x0 = i / 16 - 0.5, x1 = x0 + 1 / 16, y1 = 0.5 - j / 16, y0 = y1 - 1 / 16;
+      const uc = i + 0.5, vc = j + 0.5;
+      if (!solid(i - 1, j)) quad([[x0, y1, zb], [x0, y0, zb], [x0, y0, zf], [x0, y1, zf]], [[uc, j], [uc, j + 1], [uc, j + 1], [uc, j]], [-1, 0, 0]);
+      if (!solid(i + 1, j)) quad([[x1, y1, zf], [x1, y0, zf], [x1, y0, zb], [x1, y1, zb]], [[uc, j], [uc, j + 1], [uc, j + 1], [uc, j]], [1, 0, 0]);
+      if (!solid(i, j - 1)) quad([[x0, y1, zb], [x0, y1, zf], [x1, y1, zf], [x1, y1, zb]], [[i, vc], [i, vc], [i + 1, vc], [i + 1, vc]], [0, 1, 0]);
+      if (!solid(i, j + 1)) quad([[x0, y0, zf], [x0, y0, zb], [x1, y0, zb], [x1, y0, zf]], [[i, vc], [i, vc], [i + 1, vc], [i + 1, vc]], [0, -1, 0]);
+    }
 }
 
 function normalize(v: number[]): [number, number, number] {
