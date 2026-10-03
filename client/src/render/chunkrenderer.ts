@@ -488,7 +488,21 @@ export class ChunkRenderer {
       }
       gl.enable(gl.CULL_FACE);
     }
-    // translucent: back to front, sorted per section
+    gl.bindVertexArray(null);
+  }
+
+  /** Translucent pass: back to front, sorted per section. Call after entities. */
+  renderTranslucent(camX: number, camY: number, camZ: number, tex: WebGLTexture, lightmap: WebGLTexture): void {
+    const gl = this.gl;
+    gl.useProgram(this.program);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, lightmap);
+    const uOrigin = this.u.get('uOrigin');
+    const uPass = this.u.get('uPass');
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
     gl.uniform1i(uPass, 2);
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);

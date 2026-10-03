@@ -7,7 +7,7 @@ function client(server: GameServer, name: string) {
   const received: S2C[] = [];
   const conn: Connection = { send: (d) => received.push(decodeS2C(d)), close: () => {} };
   const recv = server.connect(conn);
-  recv(encodeC2S({ t: 'hello', protocol: PROTOCOL_VERSION, name, viewDistance: 2 }));
+  recv(encodeC2S({ t: 'hello', protocol: PROTOCOL_VERSION, name, viewDistance: 2, skin: '' }));
   return { received, send: (p: Parameters<typeof encodeC2S>[0]) => recv(encodeC2S(p)), conn };
 }
 

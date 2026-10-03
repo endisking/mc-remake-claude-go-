@@ -19,7 +19,7 @@ const gpuArgs = process.env.BENCH_GPU ? [] : ['--use-gl=angle', '--use-angle=swi
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: gpuArgs });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 page.on('pageerror', (e) => console.log('pageerror', e.message));
-await page.goto(`${base}?nolock=1&seed=20211&rd=${rd}&fps=0&x=0&y=100&z=0&time=6000&weather=clear`);
+await page.goto(`${base}?nolock=1&fly=1&seed=20211&rd=${rd}&fps=0&x=0&y=100&z=0&time=6000&weather=clear`);
 await page.waitForFunction(() => (window as any).game?.loggedIn && (window as any).game.chunks, undefined, { timeout: 60000 });
 // let the initial area load
 await page.waitForFunction(() => { const s = (window as any).game.chunks.stats(); return s.sections > 100 && s.pending < 20; }, undefined, { timeout: 180000 }).catch(() => {});

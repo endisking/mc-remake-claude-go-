@@ -23,9 +23,12 @@ import { bakeBlockModels } from './render/blockmodels';
 import { raycastBlocks, type BlockHit } from '@shared/world/raycast';
 import { outlineBoxes } from '@shared/world/shapes';
 import { blockNameOf, propsOf } from '@shared/world/blockstate';
+import { PlayerPhysics, type MoveInput } from '@shared/entity/playerphysics';
 import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes } from './render/math';
 import type { TextureManifest } from './render/blockmodels';
 import { Gui } from './gui/gui';
+import { RemotePlayer } from './world/entities';
+import { EntityRenderer } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
@@ -43,6 +46,13 @@ export class Game implements ScreenHost {
   private clouds!: CloudRenderer;
   private weather!: WeatherRenderer;
   private lines!: LineRenderer;
+  private entityRenderer!: EntityRenderer;
+  /** Other players (and later all entities), by entity id. */
+  readonly players = new Map<number, RemotePlayer>();
+  private sentState = { sneaking: false, sprinting: false, flying: false };
+  health = 20;
+  food = 20;
+  saturation = 5;
   private crack!: CrackRenderer;
   /** Current block-breaking progress stage (-1 none, 0..9). Driven by mining in Phase 2. */
   breakStage = -1;
@@ -60,7 +70,13 @@ export class Game implements ScreenHost {
   private biomes = new BiomeColors();
   private manifest!: TextureManifest;
 
-  // camera / player (Phase 1: free flight; Phase 2 adds physics)
+  /** The local player's movement simulation (client-side prediction). */
+  readonly player: PlayerPhysics;
+  private eyeHeight = 1.62;
+  private eyeHeightOld = 1.62;
+  private fovModifier = 1;
+  private oFov = 1;
+  // camera (eye) position, updated each tick from the player; prev* for interpolation
   x = 0;
   y = 80;
   z = 0;
@@ -100,6 +116,8 @@ export class Game implements ScreenHost {
     const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
     if (!gl) throw new Error('WebGL2 is not available');
     this.gl = gl;
+    this.player = new PlayerPhysics(this.world);
+    this.player.loadedAt = (x, z) => this.world.isLoaded(x, z);
     this.input = new Input(canvas);
     const q = new URLSearchParams(location.search);
     this.settings = applyQueryOverrides(loadSettings(), q);
@@ -205,6 +223,8 @@ export class Game implements ScreenHost {
     this.weather = new WeatherRenderer(this.gl);
     await this.weather.load();
     this.lines = new LineRenderer(this.gl);
+    this.entityRenderer = new EntityRenderer(this.gl);
+    await this.entityRenderer.loadSkins();
     const mainBake = bakeBlockModels(this.manifest, this.settings.graphics === 'fancy');
     this.crack = new CrackRenderer(this.gl, mainBake.bake, Array.from({ length: 10 }, (_, i) => mainBake.textures.get(`destroy_stage_${i}`)!.layer));
     if (q.has('crack')) this.breakStage = Number(q.get('crack'));
@@ -225,7 +245,8 @@ export class Game implements ScreenHost {
         this.connect(new LanGuestTransport(q.get('join')!, signalingUrl(q.get('signal'))));
       } else {
         const seed = BigInt(q.get('seed') ?? '12345');
-        const { server, transport } = await startIntegratedServer(seed, q.get('scene') ?? '');
+        const gm = { survival: 0, creative: 1, adventure: 2, spectator: 3 }[q.get('gamemode') ?? 'survival'] ?? 0;
+        const { server, transport } = await startIntegratedServer(seed, q.get('scene') ?? '', gm);
         this.integrated = server;
         this.connect(transport);
         if (q.has('host')) this.openToLan(q.get('host') || undefined);
@@ -238,7 +259,7 @@ export class Game implements ScreenHost {
     this.transport = t;
     t.onMessage = (d) => this.handle(decodeS2C(d));
     t.onClose = (r) => console.warn('disconnected', r);
-    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance });
+    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: '' });
   }
 
   send(p: C2S): void {
@@ -248,9 +269,8 @@ export class Game implements ScreenHost {
   private handle(p: S2C): void {
     switch (p.t) {
       case 'login':
-        this.x = this.prevX = p.x;
-        this.y = this.prevY = p.y + 1.62;
-        this.z = this.prevZ = p.z;
+        this.setGameMode(p.gameMode);
+        this.placePlayer(p.x, p.y, p.z);
         this.yaw = p.yaw;
         this.pitch = p.pitch;
         this.loggedIn = true;
@@ -287,14 +307,53 @@ export class Game implements ScreenHost {
         this.world.doDaylightCycle = p.doDaylightCycle;
         break;
       case 'teleport':
-        this.x = this.prevX = p.x;
-        this.y = this.prevY = p.y + 1.62;
-        this.z = this.prevZ = p.z;
+        this.placePlayer(p.x, p.y, p.z);
+        this.player.vx = this.player.vy = this.player.vz = 0;
         break;
       case 'weather':
         this.world.rain = p.rain;
         this.world.thunder = p.thunder;
         break;
+      case 'addPlayer': {
+        const rp = new RemotePlayer(p.id, p.name, p.skin);
+        rp.setPos(p.x, p.y, p.z, p.yaw, p.pitch, p.headYaw);
+        this.players.set(p.id, rp);
+        break;
+      }
+      case 'removeEntities':
+        for (const id of p.ids) this.players.delete(id);
+        break;
+      case 'entityMove':
+        this.players.get(p.id)?.lerpTo(p.x, p.y, p.z, p.yaw, p.pitch, p.headYaw);
+        break;
+      case 'entityState': {
+        const rp = this.players.get(p.id);
+        if (rp) {
+          rp.flags = p.flags;
+          rp.pose = p.pose;
+        }
+        break;
+      }
+      case 'animate':
+        if (p.action === 0 || p.action === 3) this.players.get(p.id)?.swing();
+        break;
+      case 'gameMode':
+        this.setGameMode(p.mode);
+        break;
+      case 'abilities':
+        this.player.abilities.flying = p.flying;
+        this.player.abilities.mayFly = p.mayFly;
+        this.player.abilities.flySpeed = p.flySpeed;
+        break;
+      case 'health':
+        this.health = p.health;
+        this.food = p.food;
+        this.saturation = p.saturation;
+        this.player.foodLevel = p.food;
+        break;
+      case 'blockBreakProgress':
+      case 'levelEvent':
+      case 'digAck':
       case 'chat':
       case 'disconnect':
         break;
@@ -303,11 +362,33 @@ export class Game implements ScreenHost {
 
   /** Move the camera directly (benchmark / tests); position is the eye. */
   setCamera(x: number, y: number, z: number, yaw: number, pitch: number): void {
-    this.x = this.prevX = x;
-    this.y = this.prevY = y;
-    this.z = this.prevZ = z;
+    this.placePlayer(x, y - this.player.eyeHeight, z);
+    this.player.vx = this.player.vy = this.player.vz = 0;
     this.yaw = yaw;
     this.pitch = pitch;
+  }
+
+  /** Put the local player's feet at a position (no interpolation). */
+  private placePlayer(x: number, y: number, z: number): void {
+    const pl = this.player;
+    pl.x = x;
+    pl.y = y;
+    pl.z = z;
+    this.eyeHeight = this.eyeHeightOld = pl.eyeHeight;
+    this.x = this.prevX = x;
+    this.y = this.prevY = y + pl.eyeHeight;
+    this.z = this.prevZ = z;
+  }
+
+  /** 0 survival, 1 creative, 2 adventure, 3 spectator. */
+  gameMode = 0;
+  setGameMode(m: number): void {
+    this.gameMode = m;
+    const a = this.player.abilities;
+    a.mayFly = m === 1 || m === 3;
+    a.noPhysics = m === 3;
+    a.flying = m === 3 ? true : m === 1 ? a.flying : false;
+    this.reach = m === 1 ? 5 : 4.5;
   }
 
   /** URL test hooks: ?x=&y=&z=&yaw=&pitch=&time= (used by screenshot checks and the benchmark). */
@@ -315,7 +396,7 @@ export class Game implements ScreenHost {
     const q = new URLSearchParams(location.search);
     const n = (k: string) => (q.has(k) ? Number(q.get(k)) : undefined);
     if (n('x') !== undefined || n('y') !== undefined || n('z') !== undefined) {
-      const x = n('x') ?? this.x, y = n('y') ?? this.y - 1.62, z = n('z') ?? this.z;
+      const x = n('x') ?? this.player.x, y = n('y') ?? this.player.y, z = n('z') ?? this.player.z;
       this.send({ t: 'chat', message: `/tp ${x} ${y} ${z}` });
     }
     if (n('yaw') !== undefined) this.yaw = n('yaw')!;
@@ -323,11 +404,12 @@ export class Game implements ScreenHost {
     if (q.has('lookat')) {
       // aim the eye (feet position + 1.62) at a world point
       const [tx, ty, tz] = q.get('lookat')!.split(',').map(Number) as [number, number, number];
-      const ex = n('x') ?? this.x, ey = (n('y') ?? this.y - 1.62) + 1.62, ez = n('z') ?? this.z;
+      const ex = n('x') ?? this.player.x, ey = (n('y') ?? this.player.y) + 1.62, ez = n('z') ?? this.player.z;
       const dx = tx - ex, dy = ty - ey, dz = tz - ez;
       this.yaw = (Math.atan2(-dx, dz) * 180) / Math.PI;
       this.pitch = (-Math.atan2(dy, Math.hypot(dx, dz)) * 180) / Math.PI;
     }
+    if (q.has('fly')) this.player.abilities.flying = true;
     if (q.has('weather')) this.send({ t: 'chat', message: `/weather ${q.get('weather')}` });
     if (n('time') !== undefined) {
       this.send({ t: 'chat', message: '/gamerule doDaylightCycle false' });
@@ -345,23 +427,44 @@ export class Game implements ScreenHost {
     this.prevX = this.x;
     this.prevY = this.y;
     this.prevZ = this.z;
-    // free flight (temporary until player physics in Phase 2)
+    this.oFov = this.fovModifier;
+    const pl = this.player;
+    pl.yaw = this.yaw;
+    pl.pitch = this.pitch;
     const i = this.input;
-    let fwd = 0, strafe = 0, up = 0;
-    if (i.down.has('KeyW')) fwd++;
-    if (i.down.has('KeyS')) fwd--;
-    if (i.down.has('KeyA')) strafe++;
-    if (i.down.has('KeyD')) strafe--;
-    if (i.down.has('Space')) up++;
-    if (i.down.has('ShiftLeft')) up--;
-    const speed = (i.down.has('ControlLeft') ? 1.09 : 0.546) * (i.down.has('KeyR') ? 4 : 1);
-    const yr = (this.yaw * Math.PI) / 180;
-    const len = Math.hypot(fwd, strafe) || 1;
-    this.x += ((-Math.sin(yr) * fwd + Math.cos(yr) * strafe) / len) * speed;
-    this.z += ((Math.cos(yr) * fwd + Math.sin(yr) * strafe) / len) * speed;
-    this.y += up * speed * 0.75;
-    if (this.loggedIn && this.clientTicks % 1 === 0) {
-      this.send({ t: 'move', x: this.x, y: this.y - 1.62, z: this.z, yaw: this.yaw, pitch: this.pitch, onGround: false });
+    const active = !this.screen && (this.input.locked || new URLSearchParams(location.search).get('nolock') === '1');
+    const k = (code: string) => active && i.down.has(code);
+    const move: MoveInput = {
+      forward: (k('KeyW') ? 1 : 0) - (k('KeyS') ? 1 : 0),
+      strafe: (k('KeyA') ? 1 : 0) - (k('KeyD') ? 1 : 0),
+      jump: k('Space'),
+      sneak: k('ShiftLeft') || k('ShiftRight'),
+      sprint: k('ControlLeft'),
+    };
+    if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) pl.tick(move);
+    // camera eye height eases toward the pose's eye height (vanilla Camera.tick)
+    this.eyeHeightOld = this.eyeHeight;
+    this.eyeHeight += (pl.eyeHeight - this.eyeHeight) * 0.5;
+    this.x = pl.x;
+    this.y = pl.y + this.eyeHeight;
+    this.z = pl.z;
+    // FOV modifier (AbstractClientPlayer.getFieldOfViewModifier), eased 50% per tick
+    let fovTarget = 1;
+    if (pl.abilities.flying) fovTarget *= 1.1;
+    fovTarget *= (pl.movementSpeed() / 0.1 + 1) / 2;
+    this.fovModifier += (fovTarget - this.fovModifier) * 0.5;
+    if (this.fovModifier > 1.5) this.fovModifier = 1.5;
+    if (this.fovModifier < 0.1) this.fovModifier = 0.1;
+    for (const rp of this.players.values()) rp.tick();
+    if (this.loggedIn) {
+      const st = this.sentState;
+      if (st.sneaking !== pl.shiftDown || st.sprinting !== pl.sprinting || st.flying !== pl.abilities.flying) {
+        st.sneaking = pl.shiftDown;
+        st.sprinting = pl.sprinting;
+        st.flying = pl.abilities.flying;
+        this.send({ t: 'playerState', ...st });
+      }
+      this.send({ t: 'move', x: pl.x, y: pl.y, z: pl.z, yaw: this.yaw, pitch: this.pitch, onGround: pl.onGround });
     }
   }
 
@@ -410,6 +513,27 @@ export class Game implements ScreenHost {
       if (document.fullscreenElement) void document.exitFullscreen();
       else void document.documentElement.requestFullscreen();
     }
+  }
+
+  private readonly bobMat = mat4();
+  /** Vanilla GameRenderer.bobView, applied to the projection side of the camera. */
+  private applyViewBob(partial: number): void {
+    const p = this.player;
+    const f = p.walkDist - p.walkDistO;
+    const g = -(p.walkDist + f * partial);
+    const h = p.oBob + (p.bob - p.oBob) * partial;
+    const m = this.bobMat;
+    // translate(sin(g·π)·h·0.5, −|cos(g·π)·h|, 0) · rotZ(sin(g·π)·h·3) · rotX(|cos(g·π − 0.2)·h|·5)
+    const tx = Math.sin(g * Math.PI) * h * 0.5, ty = -Math.abs(Math.cos(g * Math.PI) * h);
+    const az = (Math.sin(g * Math.PI) * h * 3 * Math.PI) / 180;
+    const ax = (Math.abs(Math.cos(g * Math.PI - 0.2) * h) * 5 * Math.PI) / 180;
+    const cz = Math.cos(az), sz = Math.sin(az), cx = Math.cos(ax), sx = Math.sin(ax);
+    // R = Rz * Rx (column-major), then translation
+    m[0] = cz; m[1] = sz; m[2] = 0; m[3] = 0;
+    m[4] = -sz * cx; m[5] = cz * cx; m[6] = sx; m[7] = 0;
+    m[8] = sz * sx; m[9] = -cz * sx; m[10] = cx; m[11] = 0;
+    m[12] = tx; m[13] = ty; m[14] = 0; m[15] = 1;
+    multiply(this.proj, this.proj, m);
   }
 
   private resize(): void {
@@ -478,7 +602,10 @@ export class Game implements ScreenHost {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     const aspect = this.canvas.width / Math.max(1, this.canvas.height);
-    perspective(this.proj, (s.fov * Math.PI) / 180, aspect, 0.05, Math.max(renderDist * 4, 512));
+    let fov = s.fov * (this.oFov + (this.fovModifier - this.oFov) * partial);
+    if (medium === 'water') fov *= 0.85714287;
+    perspective(this.proj, (fov * Math.PI) / 180, aspect, 0.05, Math.max(renderDist * 4, 512));
+    if (s.viewBobbing && !this.player.abilities.flying) this.applyViewBob(partial);
     viewRotation(this.view, this.yaw, this.pitch);
     this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
 
@@ -490,6 +617,10 @@ export class Game implements ScreenHost {
       smoothLighting: s.smoothLighting,
       caveCulling: s.caveCulling,
     });
+    if (this.players.size) {
+      this.entityRenderer.renderPlayers(this.players.values(), this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
+    }
+    this.chunks.renderTranslucent(cx, cy, cz, this.textures.tex, this.lightmap.tex);
     // targeted block outline (vanilla: black, 40% alpha)
     this.target = raycastBlocks(this.world, cx, cy, cz, lookX, lookY, lookZ, this.reach, false, this.hitScratch);
     if (this.target && !this.hideHud) {

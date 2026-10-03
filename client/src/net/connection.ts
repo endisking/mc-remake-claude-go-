@@ -45,13 +45,13 @@ export class IntegratedServer {
     };
   }
 
-  static async start(seed: bigint, scene = ''): Promise<IntegratedServer> {
+  static async start(seed: bigint, scene = '', gameMode = 0): Promise<IntegratedServer> {
     const worker = new Worker(new URL('../server.worker.ts', import.meta.url), { type: 'module' });
     await new Promise<void>((resolve) => {
       worker.onmessage = (e: MessageEvent) => {
         if (e.data.type === 'started') resolve();
       };
-      worker.postMessage({ type: 'start', seed: seed.toString(), scene });
+      worker.postMessage({ type: 'start', seed: seed.toString(), scene, gameMode });
     });
     return new IntegratedServer(worker);
   }
@@ -85,7 +85,7 @@ export class IntegratedServer {
 }
 
 /** Starts the integrated server worker and returns a transport for the local player. */
-export async function startIntegratedServer(seed: bigint, scene = ''): Promise<{ server: IntegratedServer; transport: LocalTransport }> {
-  const server = await IntegratedServer.start(seed, scene);
+export async function startIntegratedServer(seed: bigint, scene = '', gameMode = 0): Promise<{ server: IntegratedServer; transport: LocalTransport }> {
+  const server = await IntegratedServer.start(seed, scene, gameMode);
   return { server, transport: server.local() };
 }

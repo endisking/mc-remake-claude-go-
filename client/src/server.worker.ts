@@ -5,7 +5,7 @@
  */
 import { GameServer, type Connection } from '@server/game/server';
 
-type Init = { type: 'start'; seed: string; scene?: string };
+type Init = { type: 'start'; seed: string; scene?: string; gameMode?: number };
 type Msg = Init | { type: 'packet'; conn: number; data: ArrayBuffer } | { type: 'open'; conn: number } | { type: 'close'; conn: number };
 
 let server: GameServer | null = null;
@@ -16,7 +16,7 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   const m = e.data;
   switch (m.type) {
     case 'start':
-      server = new GameServer({ seed: BigInt(m.seed), scene: m.scene });
+      server = new GameServer({ seed: BigInt(m.seed), scene: m.scene, defaultGameMode: m.gameMode ?? 0 });
       server.start();
       post({ type: 'started' });
       break;
@@ -27,7 +27,7 @@ self.onmessage = (e: MessageEvent<Msg>) => {
         send: (data) => post({ type: 'packet', conn: id, data }, [data]),
         close: (reason) => post({ type: 'kick', conn: id, reason }),
       };
-      handlers.set(id, { conn, recv: server.connect(conn) });
+      handlers.set(id, { conn, recv: server.connect(conn, id === 0) });
       break;
     }
     case 'packet':

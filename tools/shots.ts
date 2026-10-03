@@ -46,7 +46,7 @@ for (const [name, q] of Object.entries(SHOTS)) {
   if (filter && !name.includes(filter)) continue;
   const page = await browser.newPage({ viewport: { width: 800, height: 450 } });
   page.on('pageerror', (e) => console.log(`[${name}] pageerror`, e.message));
-  await page.goto(`${base}?nolock=1&rd=4&${q}`);
+  await page.goto(`${base}?nolock=1&fly=1&rd=4&${q}`);
   // wait until meshing settles
   await page.waitForFunction(() => {
     const g = (window as any).game;

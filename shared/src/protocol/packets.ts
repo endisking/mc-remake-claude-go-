@@ -1,164 +1,180 @@
 /**
- * Binary game protocol. Every message is [u8 packet id][payload]. The same encoding is
- * used for the in-browser server worker (postMessage with transferable buffers), the
- * WebSocket dedicated server, and WebRTC data channels.
+ * Binary game protocol. Every message is [u8 packet id][fields...]. Packets are declared as
+ * typed field lists and encoded/decoded generically. The same bytes travel over the
+ * in-browser worker channel, WebSockets (dedicated server) and WebRTC data channels (LAN).
  */
 import { ByteReader, ByteWriter } from './buffer';
 import { readChunk, writeChunk, writeSection, readSection } from './chunkcodec';
 import { Chunk, ChunkSection } from '../world/chunk';
 
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
+
+type FieldType =
+  | 'u8' | 'bool' | 'i16' | 'u16' | 'i32' | 'u32' | 'f32' | 'f64' | 'i64' | 'str' | 'varint' | 'svarint'
+  | 'chunk' | 'light' | 'i32list' | 'bytes';
+
+type TypeOf<T extends FieldType> = T extends 'bool' ? boolean : T extends 'str' ? string : T extends 'i64' ? bigint : T extends 'chunk' ? Chunk : T extends 'light' ? ChunkSection : T extends 'i32list' ? number[] : T extends 'bytes' ? Uint8Array : number;
+
+type Schema = Record<string, readonly (readonly [string, FieldType])[]>;
+type PacketsOf<S extends Schema> = {
+  [K in keyof S]: { t: K } & { [F in S[K][number] as F[0]]: TypeOf<F[1]> };
+}[keyof S];
 
 // ------------------------------------------------------------------ server → client
-export type S2C =
-  | { t: 'login'; entityId: number; gameMode: number; dimension: string; seed: bigint; x: number; y: number; z: number; yaw: number; pitch: number; simulationDistance: number }
-  | { t: 'chunk'; chunk: Chunk }
-  | { t: 'unloadChunk'; cx: number; cz: number }
-  | { t: 'blockChange'; x: number; y: number; z: number; state: number }
-  | { t: 'sectionLight'; cx: number; sy: number; cz: number; section: ChunkSection }
-  | { t: 'time'; gameTime: number; dayTime: number; doDaylightCycle: boolean }
-  | { t: 'teleport'; x: number; y: number; z: number; yaw: number; pitch: number }
-  | { t: 'chat'; json: string }
-  | { t: 'disconnect'; reason: string }
-  | { t: 'weather'; rain: number; thunder: number };
-
-const S2C_IDS = ['login', 'chunk', 'unloadChunk', 'blockChange', 'sectionLight', 'time', 'teleport', 'chat', 'disconnect', 'weather'] as const;
-
-export function encodeS2C(p: S2C): ArrayBuffer {
-  const w = new ByteWriter(p.t === 'chunk' ? 65536 : 64);
-  w.u8(S2C_IDS.indexOf(p.t));
-  switch (p.t) {
-    case 'login':
-      w.i32(p.entityId).u8(p.gameMode).str(p.dimension).i64(p.seed).f64(p.x).f64(p.y).f64(p.z).f32(p.yaw).f32(p.pitch).u8(p.simulationDistance);
-      break;
-    case 'chunk':
-      writeChunk(w, p.chunk, true);
-      break;
-    case 'unloadChunk':
-      w.i32(p.cx).i32(p.cz);
-      break;
-    case 'blockChange':
-      w.i32(p.x).i16(p.y).i32(p.z).u16(p.state);
-      break;
-    case 'sectionLight':
-      w.i32(p.cx).u8(p.sy).i32(p.cz);
-      writeLightOnly(w, p.section);
-      break;
-    case 'time':
-      w.f64(p.gameTime).f64(p.dayTime).bool(p.doDaylightCycle);
-      break;
-    case 'teleport':
-      w.f64(p.x).f64(p.y).f64(p.z).f32(p.yaw).f32(p.pitch);
-      break;
-    case 'chat':
-      w.str(p.json);
-      break;
-    case 'disconnect':
-      w.str(p.reason);
-      break;
-    case 'weather':
-      w.f32(p.rain).f32(p.thunder);
-      break;
-  }
-  return w.finish();
-}
-
-function writeLightOnly(w: ByteWriter, s: ChunkSection): void {
-  if (s.light) {
-    w.u8(1);
-    w.bytes(s.light);
-  } else {
-    w.u8(0);
-    w.u8(s.uniformLight);
-  }
-}
-
-function readLightOnly(r: ByteReader): ChunkSection {
-  const s = new ChunkSection();
-  if (r.u8() === 1) s.light = r.bytes(4096);
-  else s.uniformLight = r.u8();
-  return s;
-}
-
-export function decodeS2C(buf: ArrayBuffer): S2C {
-  const r = new ByteReader(buf);
-  const t = S2C_IDS[r.u8()];
-  switch (t) {
-    case 'login':
-      return { t, entityId: r.i32(), gameMode: r.u8(), dimension: r.str(), seed: r.i64(), x: r.f64(), y: r.f64(), z: r.f64(), yaw: r.f32(), pitch: r.f32(), simulationDistance: r.u8() };
-    case 'chunk':
-      return { t, chunk: readChunk(r, true) };
-    case 'unloadChunk':
-      return { t, cx: r.i32(), cz: r.i32() };
-    case 'blockChange':
-      return { t, x: r.i32(), y: r.i16(), z: r.i32(), state: r.u16() };
-    case 'sectionLight':
-      return { t, cx: r.i32(), sy: r.u8(), cz: r.i32(), section: readLightOnly(r) };
-    case 'time':
-      return { t, gameTime: r.f64(), dayTime: r.f64(), doDaylightCycle: r.bool() };
-    case 'teleport':
-      return { t, x: r.f64(), y: r.f64(), z: r.f64(), yaw: r.f32(), pitch: r.f32() };
-    case 'chat':
-      return { t, json: r.str() };
-    case 'disconnect':
-      return { t, reason: r.str() };
-    case 'weather':
-      return { t, rain: r.f32(), thunder: r.f32() };
-    default:
-      throw new Error('unknown S2C packet');
-  }
-}
+const S2C_SCHEMA = {
+  login: [['entityId', 'i32'], ['gameMode', 'u8'], ['dimension', 'str'], ['seed', 'i64'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['yaw', 'f32'], ['pitch', 'f32'], ['simulationDistance', 'u8']],
+  chunk: [['chunk', 'chunk']],
+  unloadChunk: [['cx', 'i32'], ['cz', 'i32']],
+  blockChange: [['x', 'i32'], ['y', 'i16'], ['z', 'i32'], ['state', 'u16']],
+  sectionLight: [['cx', 'i32'], ['sy', 'u8'], ['cz', 'i32'], ['section', 'light']],
+  time: [['gameTime', 'f64'], ['dayTime', 'f64'], ['doDaylightCycle', 'bool']],
+  teleport: [['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['yaw', 'f32'], ['pitch', 'f32']],
+  chat: [['json', 'str']],
+  disconnect: [['reason', 'str']],
+  weather: [['rain', 'f32'], ['thunder', 'f32']],
+  /** Another player became visible. */
+  addPlayer: [['id', 'i32'], ['name', 'str'], ['skin', 'str'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['yaw', 'f32'], ['pitch', 'f32'], ['headYaw', 'f32']],
+  removeEntities: [['ids', 'i32list']],
+  /** Absolute entity position/rotation update (interpolated on the client over 3 ticks). */
+  entityMove: [['id', 'i32'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['yaw', 'f32'], ['pitch', 'f32'], ['headYaw', 'f32'], ['onGround', 'bool']],
+  /** Shared flags: 1 on fire, 2 crouching, 8 sprinting, 16 swimming, 128 fall flying; pose name. */
+  entityState: [['id', 'i32'], ['flags', 'u8'], ['pose', 'str']],
+  /** 0 swing main arm, 1 hurt, 3 swing off hand, 4 critical, 5 magic critical. */
+  animate: [['id', 'i32'], ['action', 'u8']],
+  gameMode: [['mode', 'u8']],
+  abilities: [['flying', 'bool'], ['mayFly', 'bool'], ['flySpeed', 'f32'], ['instabuild', 'bool'], ['invulnerable', 'bool']],
+  health: [['health', 'f32'], ['food', 'u8'], ['saturation', 'f32']],
+  /** Block crack progress of another player's digging (stage −1 clears). */
+  blockBreakProgress: [['id', 'i32'], ['x', 'i32'], ['y', 'i16'], ['z', 'i32'], ['stage', 'i16']],
+  /** Level event: 2001 = block broken (particles+sound, data = state). */
+  levelEvent: [['event', 'i32'], ['x', 'i32'], ['y', 'i16'], ['z', 'i32'], ['data', 'i32']],
+  /** Server acknowledges/corrects a dig action at a position. */
+  digAck: [['x', 'i32'], ['y', 'i16'], ['z', 'i32'], ['state', 'u16'], ['action', 'u8'], ['ok', 'bool']],
+} as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server
-export type C2S =
-  | { t: 'hello'; protocol: number; name: string; viewDistance: number }
-  | { t: 'move'; x: number; y: number; z: number; yaw: number; pitch: number; onGround: boolean }
-  | { t: 'settings'; viewDistance: number }
-  | { t: 'chat'; message: string }
-  | { t: 'setBlock'; x: number; y: number; z: number; state: number };
+const C2S_SCHEMA = {
+  hello: [['protocol', 'u16'], ['name', 'str'], ['viewDistance', 'u8'], ['skin', 'str']],
+  move: [['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['yaw', 'f32'], ['pitch', 'f32'], ['onGround', 'bool']],
+  settings: [['viewDistance', 'u8']],
+  chat: [['message', 'str']],
+  setBlock: [['x', 'i32'], ['y', 'i16'], ['z', 'i32'], ['state', 'u16']],
+  /** Sneak/sprint/flying state changes (vanilla PlayerCommand / abilities). */
+  playerState: [['sneaking', 'bool'], ['sprinting', 'bool'], ['flying', 'bool']],
+  /** 0 start digging, 1 abort, 2 finish (survival), 3 creative instant break. */
+  dig: [['action', 'u8'], ['x', 'i32'], ['y', 'i16'], ['z', 'i32'], ['face', 'u8']],
+  /** Right-click on a block face with the held item (cursor = hit position within the block). */
+  useOn: [['x', 'i32'], ['y', 'i16'], ['z', 'i32'], ['face', 'u8'], ['cx', 'f32'], ['cy', 'f32'], ['cz', 'f32'], ['hand', 'u8']],
+  swing: [['hand', 'u8']],
+  heldSlot: [['slot', 'u8']],
+  /** Creative inventory: put an item stack into a slot (vanilla SetCreativeModeSlot). */
+  creativeSlot: [['slot', 'i16'], ['item', 'i16'], ['count', 'u8']],
+} as const satisfies Schema;
 
-const C2S_IDS = ['hello', 'move', 'settings', 'chat', 'setBlock'] as const;
+export type S2C = PacketsOf<typeof S2C_SCHEMA>;
+export type C2S = PacketsOf<typeof C2S_SCHEMA>;
 
-export function encodeC2S(p: C2S): ArrayBuffer {
-  const w = new ByteWriter(64);
-  w.u8(C2S_IDS.indexOf(p.t));
-  switch (p.t) {
-    case 'hello':
-      w.u16(p.protocol).str(p.name).u8(p.viewDistance);
-      break;
-    case 'move':
-      w.f64(p.x).f64(p.y).f64(p.z).f32(p.yaw).f32(p.pitch).bool(p.onGround);
-      break;
-    case 'settings':
-      w.u8(p.viewDistance);
-      break;
-    case 'chat':
-      w.str(p.message);
-      break;
-    case 'setBlock':
-      w.i32(p.x).i16(p.y).i32(p.z).u16(p.state);
-      break;
-  }
-  return w.finish();
+function codec<S extends Schema>(schema: S) {
+  const names = Object.keys(schema) as (keyof S & string)[];
+  const encode = (p: { t: string } & Record<string, unknown>): ArrayBuffer => {
+    const fields = schema[p.t];
+    if (!fields) throw new Error(`unknown packet ${p.t}`);
+    const w = new ByteWriter(p.t === 'chunk' ? 65536 : 64);
+    w.u8(names.indexOf(p.t));
+    for (const [name, type] of fields) writeField(w, type, p[name]);
+    return w.finish();
+  };
+  const decode = (buf: ArrayBuffer): { t: string } & Record<string, unknown> => {
+    const r = new ByteReader(buf);
+    const t = names[r.u8()];
+    if (t === undefined) throw new Error('unknown packet id');
+    const out: { t: string } & Record<string, unknown> = { t };
+    for (const [name, type] of schema[t]!) out[name] = readField(r, type);
+    return out;
+  };
+  return { encode, decode };
 }
 
-export function decodeC2S(buf: ArrayBuffer): C2S {
-  const r = new ByteReader(buf);
-  const t = C2S_IDS[r.u8()];
-  switch (t) {
-    case 'hello':
-      return { t, protocol: r.u16(), name: r.str(), viewDistance: r.u8() };
-    case 'move':
-      return { t, x: r.f64(), y: r.f64(), z: r.f64(), yaw: r.f32(), pitch: r.f32(), onGround: r.bool() };
-    case 'settings':
-      return { t, viewDistance: r.u8() };
-    case 'chat':
-      return { t, message: r.str() };
-    case 'setBlock':
-      return { t, x: r.i32(), y: r.i16(), z: r.i32(), state: r.u16() };
-    default:
-      throw new Error('unknown C2S packet');
+function writeField(w: ByteWriter, type: FieldType, v: unknown): void {
+  switch (type) {
+    case 'u8': w.u8(v as number); break;
+    case 'bool': w.bool(v as boolean); break;
+    case 'i16': w.i16(v as number); break;
+    case 'u16': w.u16(v as number); break;
+    case 'i32': w.i32(v as number); break;
+    case 'u32': w.u32(v as number); break;
+    case 'f32': w.f32(v as number); break;
+    case 'f64': w.f64(v as number); break;
+    case 'i64': w.i64(v as bigint); break;
+    case 'str': w.str(v as string); break;
+    case 'varint': w.varint(v as number); break;
+    case 'svarint': w.svarint(v as number); break;
+    case 'chunk': writeChunk(w, v as Chunk, true); break;
+    case 'light': {
+      const s = v as ChunkSection;
+      if (s.light) { w.u8(1); w.bytes(s.light); } else { w.u8(0); w.u8(s.uniformLight); }
+      break;
+    }
+    case 'i32list': {
+      const a = v as number[];
+      w.varint(a.length);
+      for (const x of a) w.i32(x);
+      break;
+    }
+    case 'bytes': {
+      const b = v as Uint8Array;
+      w.varint(b.length);
+      w.bytes(b);
+      break;
+    }
   }
+}
+
+function readField(r: ByteReader, type: FieldType): unknown {
+  switch (type) {
+    case 'u8': return r.u8();
+    case 'bool': return r.bool();
+    case 'i16': return r.i16();
+    case 'u16': return r.u16();
+    case 'i32': return r.i32();
+    case 'u32': return r.u32();
+    case 'f32': return r.f32();
+    case 'f64': return r.f64();
+    case 'i64': return r.i64();
+    case 'str': return r.str();
+    case 'varint': return r.varint();
+    case 'svarint': return r.svarint();
+    case 'chunk': return readChunk(r, true);
+    case 'light': {
+      const s = new ChunkSection();
+      if (r.u8() === 1) s.light = r.bytes(4096);
+      else s.uniformLight = r.u8();
+      return s;
+    }
+    case 'i32list': {
+      const n = r.varint();
+      const a: number[] = [];
+      for (let i = 0; i < n; i++) a.push(r.i32());
+      return a;
+    }
+    case 'bytes': return r.bytes(r.varint());
+  }
+}
+
+const s2c = codec(S2C_SCHEMA);
+const c2s = codec(C2S_SCHEMA);
+
+export function encodeS2C(p: S2C): ArrayBuffer {
+  return s2c.encode(p as unknown as { t: string } & Record<string, unknown>);
+}
+export function decodeS2C(buf: ArrayBuffer): S2C {
+  return s2c.decode(buf) as unknown as S2C;
+}
+export function encodeC2S(p: C2S): ArrayBuffer {
+  return c2s.encode(p as unknown as { t: string } & Record<string, unknown>);
+}
+export function decodeC2S(buf: ArrayBuffer): C2S {
+  return c2s.decode(buf) as unknown as C2S;
 }
 
 export { writeSection, readSection };

@@ -55,7 +55,7 @@ function roomFor(code: string): GameServer {
   let r = rooms.get(code);
   if (!r) {
     const seed = process.env.SEED ? BigInt(process.env.SEED) : BigInt.asIntN(64, BigInt(Math.floor(Math.random() * 2 ** 52)) * 4093n);
-    const server = new GameServer({ seed });
+    const server = new GameServer({ seed, defaultGameMode: Number(process.env.GAMEMODE ?? 0), scene: process.env.SCENE });
     server.start();
     r = { server, clients: 0 };
     rooms.set(code, r);
