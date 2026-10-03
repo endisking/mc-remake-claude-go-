@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Texture Atlas Viewer</title>
+<style>
+  :root { --bg: #1b1d22; --panel: #262a31; --text: #e8e8ea; --muted: #9aa0aa; --accent: #7cc36b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
+  header { position: sticky; top: 0; z-index: 2; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid #000; }
+  header h1 { font-size: 15px; margin: 0 12px 0 0; }
+  input, select { background: #111317; color: var(--text); border: 1px solid #444a55; border-radius: 4px; padding: 5px 8px; }
+  label { color: var(--muted); }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 12px; padding: 16px; }
+  .cell { background: var(--panel); border-radius: 6px; padding: 10px; text-align: center; }
+  .cell canvas { width: 128px; height: 128px; image-rendering: pixelated; background:
+    repeating-conic-gradient(#3a3f48 0% 25%, #2c3038 0% 50%) 50% / 16px 16px; }
+  .name { margin-top: 6px; word-break: break-all; }
+  .tags { color: var(--muted); font-size: 11px; }
+  .tags b { color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Blockcraft textures</h1>
+  <input id="q" placeholder="filter by name" autofocus>
+  <label>tint <select id="tint"><option value="1">biome sample</option><option value="0">raw grayscale</option></select></label>
+  <span id="count" class="tags"></span>
+</header>
+<div id="grid"></div>
+<script type="module">
+// Shows every generated block texture at 8× zoom. Textures from /client/public/textures/overrides/
+// (same file name) replace the generated ones, exactly as in the game.
+const base = new URL('../client/public/textures/', location.href);
+const TINTS = { grass: [145, 189, 89], foliage: [119, 171, 47], water: [63, 118, 228] };
+const manifest = await (await fetch(new URL('blocks.json', base))).json();
+const grid = document.getElementById('grid');
+const cells = [];
+
+async function loadImage(url) {
+  const img = new Image();
+  img.src = url;
+  try { await img.decode(); return img; } catch { return null; }
+}
+
+for (const t of manifest.textures) {
+  const img = (await loadImage(new URL(`overrides/${t.name}.png`, base))) ?? (await loadImage(new URL(`block/${t.name}.png`, base)));
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  const c = document.createElement('canvas');
+  c.width = c.height = 16;
+  const tags = [t.frames > 1 ? `<b>${t.frames} frames</b>` : '', t.tint ? `tint:${t.tint}` : '', t.cutout ? 'cutout' : '', t.translucent ? 'translucent' : ''].filter(Boolean).join(' · ');
+  cell.innerHTML = `<div class="name"></div><div class="tags">${tags}</div>`;
+  cell.prepend(c);
+  cell.querySelector('.name').textContent = t.name;
+  grid.append(cell);
+  cells.push({ t, img, c, cell, frame: 0 });
+}
+
+function draw(e) {
+  const ctx = e.c.getContext('2d');
+  ctx.clearRect(0, 0, 16, 16);
+  if (!e.img) return;
+  ctx.drawImage(e.img, 0, e.frame * 16, 16, 16, 0, 0, 16, 16);
+  const tint = document.getElementById('tint').value === '1' && e.t.tint ? TINTS[e.t.tint] : null;
+  if (tint) {
+    const d = ctx.getImageData(0, 0, 16, 16);
+    for (let i = 0; i < d.data.length; i += 4) {
+      d.data[i] = d.data[i] * tint[0] / 255; d.data[i + 1] = d.data[i + 1] * tint[1] / 255; d.data[i + 2] = d.data[i + 2] * tint[2] / 255;
+    }
+    ctx.putImageData(d, 0, 0);
+  }
+}
+
+function filter() {
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  let n = 0;
+  for (const e of cells) { const show = !q || e.t.name.includes(q); e.cell.style.display = show ? '' : 'none'; n += show; }
+  document.getElementById('count').textContent = `${n} / ${cells.length} textures`;
+}
+document.getElementById('q').addEventListener('input', filter);
+document.getElementById('tint').addEventListener('change', () => cells.forEach(draw));
+filter();
+cells.forEach(draw);
+
+// animate at 20 ticks per second using each texture's frametime
+let tick = 0;
+setInterval(() => {
+  tick++;
+  for (const e of cells) {
+    if (e.t.frames <= 1) continue;
+    const ft = e.t.frametime ?? 1;
+    if (tick % ft === 0) { e.frame = (e.frame + 1) % e.t.frames; draw(e); }
+  }
+}, 50);
+</script>
+</body>
+</html>

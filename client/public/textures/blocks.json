@@ -1,0 +1,330 @@
+{
+ "textures": [
+  {
+   "name": "missing",
+   "frames": 1
+  },
+  {
+   "name": "stone",
+   "frames": 1
+  },
+  {
+   "name": "deepslate",
+   "frames": 1
+  },
+  {
+   "name": "deepslate_top",
+   "frames": 1
+  },
+  {
+   "name": "dirt",
+   "frames": 1
+  },
+  {
+   "name": "coarse_dirt",
+   "frames": 1
+  },
+  {
+   "name": "sand",
+   "frames": 1
+  },
+  {
+   "name": "red_sand",
+   "frames": 1
+  },
+  {
+   "name": "gravel",
+   "frames": 1
+  },
+  {
+   "name": "bedrock",
+   "frames": 1
+  },
+  {
+   "name": "cobblestone",
+   "frames": 1
+  },
+  {
+   "name": "mossy_cobblestone",
+   "frames": 1
+  },
+  {
+   "name": "grass_block_top",
+   "frames": 1,
+   "tint": "grass"
+  },
+  {
+   "name": "grass_block_side",
+   "frames": 1
+  },
+  {
+   "name": "grass_block_side_overlay",
+   "frames": 1,
+   "tint": "grass",
+   "cutout": true
+  },
+  {
+   "name": "grass_block_snow",
+   "frames": 1
+  },
+  {
+   "name": "snow",
+   "frames": 1
+  },
+  {
+   "name": "clay",
+   "frames": 1
+  },
+  {
+   "name": "ice",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "coal_ore",
+   "frames": 1
+  },
+  {
+   "name": "iron_ore",
+   "frames": 1
+  },
+  {
+   "name": "copper_ore",
+   "frames": 1
+  },
+  {
+   "name": "gold_ore",
+   "frames": 1
+  },
+  {
+   "name": "redstone_ore",
+   "frames": 1
+  },
+  {
+   "name": "emerald_ore",
+   "frames": 1
+  },
+  {
+   "name": "lapis_ore",
+   "frames": 1
+  },
+  {
+   "name": "diamond_ore",
+   "frames": 1
+  },
+  {
+   "name": "deepslate_coal_ore",
+   "frames": 1
+  },
+  {
+   "name": "deepslate_iron_ore",
+   "frames": 1
+  },
+  {
+   "name": "deepslate_copper_ore",
+   "frames": 1
+  },
+  {
+   "name": "deepslate_gold_ore",
+   "frames": 1
+  },
+  {
+   "name": "deepslate_redstone_ore",
+   "frames": 1
+  },
+  {
+   "name": "deepslate_emerald_ore",
+   "frames": 1
+  },
+  {
+   "name": "deepslate_lapis_ore",
+   "frames": 1
+  },
+  {
+   "name": "deepslate_diamond_ore",
+   "frames": 1
+  },
+  {
+   "name": "water_still",
+   "frames": 32,
+   "frametime": 2,
+   "tint": "water",
+   "translucent": true
+  },
+  {
+   "name": "water_flow",
+   "frames": 32,
+   "frametime": 1,
+   "tint": "water",
+   "translucent": true
+  },
+  {
+   "name": "lava_still",
+   "frames": 20,
+   "frametime": 3
+  },
+  {
+   "name": "lava_flow",
+   "frames": 16,
+   "frametime": 3
+  },
+  {
+   "name": "oak_planks",
+   "frames": 1
+  },
+  {
+   "name": "oak_log",
+   "frames": 1
+  },
+  {
+   "name": "oak_log_top",
+   "frames": 1
+  },
+  {
+   "name": "spruce_planks",
+   "frames": 1
+  },
+  {
+   "name": "spruce_log",
+   "frames": 1
+  },
+  {
+   "name": "spruce_log_top",
+   "frames": 1
+  },
+  {
+   "name": "birch_planks",
+   "frames": 1
+  },
+  {
+   "name": "birch_log",
+   "frames": 1
+  },
+  {
+   "name": "birch_log_top",
+   "frames": 1
+  },
+  {
+   "name": "jungle_planks",
+   "frames": 1
+  },
+  {
+   "name": "jungle_log",
+   "frames": 1
+  },
+  {
+   "name": "jungle_log_top",
+   "frames": 1
+  },
+  {
+   "name": "acacia_planks",
+   "frames": 1
+  },
+  {
+   "name": "acacia_log",
+   "frames": 1
+  },
+  {
+   "name": "acacia_log_top",
+   "frames": 1
+  },
+  {
+   "name": "dark_oak_planks",
+   "frames": 1
+  },
+  {
+   "name": "dark_oak_log",
+   "frames": 1
+  },
+  {
+   "name": "dark_oak_log_top",
+   "frames": 1
+  },
+  {
+   "name": "crimson_planks",
+   "frames": 1
+  },
+  {
+   "name": "crimson_stem",
+   "frames": 1
+  },
+  {
+   "name": "crimson_stem_top",
+   "frames": 1
+  },
+  {
+   "name": "warped_planks",
+   "frames": 1
+  },
+  {
+   "name": "warped_stem",
+   "frames": 1
+  },
+  {
+   "name": "warped_stem_top",
+   "frames": 1
+  },
+  {
+   "name": "oak_leaves",
+   "frames": 1,
+   "tint": "foliage",
+   "cutout": true
+  },
+  {
+   "name": "spruce_leaves",
+   "frames": 1,
+   "tint": "foliage",
+   "cutout": true
+  },
+  {
+   "name": "birch_leaves",
+   "frames": 1,
+   "tint": "foliage",
+   "cutout": true
+  },
+  {
+   "name": "jungle_leaves",
+   "frames": 1,
+   "tint": "foliage",
+   "cutout": true
+  },
+  {
+   "name": "acacia_leaves",
+   "frames": 1,
+   "tint": "foliage",
+   "cutout": true
+  },
+  {
+   "name": "dark_oak_leaves",
+   "frames": 1,
+   "tint": "foliage",
+   "cutout": true
+  },
+  {
+   "name": "grass",
+   "frames": 1,
+   "tint": "grass",
+   "cutout": true
+  },
+  {
+   "name": "poppy",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dandelion",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "torch",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "glass",
+   "frames": 1,
+   "cutout": true
+  }
+ ]
+}
