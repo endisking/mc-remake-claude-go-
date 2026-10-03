@@ -1,0 +1,35 @@
+{
+  "name": "blockcraft",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "dev": "pnpm --filter @blockcraft/client dev",
+    "build": "pnpm --filter @blockcraft/client build",
+    "server": "pnpm --filter @blockcraft/server start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "datagen": "tsx tools/datagen/gen.ts",
+    "texgen": "tsx tools/texgen/gen.ts",
+    "bench": "tsx tools/bench/bench.ts",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "^22.10.0",
+    "minecraft-data": "3.117.0",
+    "pngjs": "^7.0.0",
+    "@types/pngjs": "^6.0.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}
