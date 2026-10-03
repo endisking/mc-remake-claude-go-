@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { GameServer, type Connection } from './server';
 import { encodeC2S, decodeS2C, PROTOCOL_VERSION, type S2C } from '@shared/protocol/packets';
-import { stateOf } from '@shared/world/blockstate';
+import { stateOf, getProp, blockNameOf } from '@shared/world/blockstate';
+import { ITEMS_BY_NAME } from '@shared/data';
+import { itemName } from '@shared/item/stack';
 
 function client(server: GameServer, name: string) {
   const received: S2C[] = [];
@@ -71,5 +73,63 @@ describe('multiplayer server', () => {
     expect(a.received.some((p) => p.t === 'entityState' && p.pose === 'crouching')).toBe(true);
     server.disconnect(b.conn);
     expect(a.received.at(-1)).toMatchObject({ t: 'removeEntities' });
+  });
+});
+
+describe('block interaction', () => {
+  function setup(gameMode = 0) {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, defaultGameMode: gameMode, scene: 'models' });
+    const a = client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    a.send({ t: 'chat', message: '/tp 31.5 101 7.5' });
+    a.send({ t: 'move', x: 31.5, y: 101, z: 7.5, yaw: 0, pitch: 0, onGround: true });
+    return { server, a, p };
+  }
+
+  it('survival: breaking stone by hand takes 150 ticks and drops nothing; with a pickaxe it drops cobblestone', () => {
+    const { server, a, p } = setup(0);
+    const stone = stateOf('stone');
+    // stone floor below the player at (30,100,7)
+    a.send({ t: 'dig', action: 0, x: 30, y: 100, z: 7, face: 1 });
+    for (let i = 0; i < 50; i++) server.tick();
+    a.send({ t: 'dig', action: 2, x: 30, y: 100, z: 7, face: 1 });
+    expect(server.world.getState(30, 100, 7)).toBe(stone); // too early: rejected
+    a.send({ t: 'dig', action: 0, x: 30, y: 100, z: 7, face: 1 });
+    for (let i = 0; i < 150; i++) server.tick();
+    a.send({ t: 'dig', action: 2, x: 30, y: 100, z: 7, face: 1 });
+    expect(server.world.getState(30, 100, 7)).toBe(0);
+    for (let i = 0; i < 5; i++) server.tick();
+    expect([...server.entities.values()].map((e) => itemName((e as never as { stack: { id: number } }).stack.id))).toEqual([]);
+    // with a wooden pickaxe (23 ticks), on a stone block standing on the floor beside the player
+    server.setBlock(32, 101, 7, stone);
+    p.inventory.set(0, { id: ITEMS_BY_NAME.get('wooden_pickaxe')!.id, count: 1, damage: 0 });
+    a.send({ t: 'dig', action: 0, x: 32, y: 101, z: 7, face: 4 });
+    for (let i = 0; i < 23; i++) server.tick();
+    a.send({ t: 'dig', action: 2, x: 32, y: 101, z: 7, face: 4 });
+    expect(server.world.getState(32, 101, 7)).toBe(0);
+    server.tick();
+    const drops = [...server.entities.values()];
+    expect(drops.length).toBe(1);
+    // the drop is picked up after its 10-tick delay once it lands near the player
+    for (let i = 0; i < 40; i++) server.tick();
+    expect(p.inventory.slots.some((s) => s?.id === ITEMS_BY_NAME.get('cobblestone')!.id)).toBe(true);
+  });
+
+  it('placing blocks uses the held stack, follows placement rules and updates neighbours', () => {
+    const { server, a, p } = setup(0);
+    p.inventory.set(0, { id: ITEMS_BY_NAME.get('oak_fence')!.id, count: 2, damage: 0 });
+    a.send({ t: 'useOn', x: 32, y: 100, z: 6, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    a.send({ t: 'useOn', x: 33, y: 100, z: 6, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(getProp(server.world.getState(32, 101, 6), 'east')).toBe(true);
+    expect(getProp(server.world.getState(33, 101, 6), 'west')).toBe(true);
+    expect(p.inventory.get(0)).toBeNull();
+    // breaking the stone below a torch pops the torch off
+    p.inventory.set(1, { id: ITEMS_BY_NAME.get('torch')!.id, count: 1, damage: 0 });
+    p.inventory.selected = 1;
+    a.send({ t: 'useOn', x: 34, y: 100, z: 6, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(blockNameOf(server.world.getState(34, 101, 6))).toBe('torch');
+    server.destroyBlock(34, 100, 6, null, false);
+    expect(server.world.getState(34, 101, 6)).toBe(0);
   });
 });

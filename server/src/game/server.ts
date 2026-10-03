@@ -11,6 +11,16 @@ import { TICKS_PER_SECOND, DAY_LENGTH } from '@shared/constants';
 import { JavaRandom } from '@shared/util/random';
 import { ServerPlayer } from './player';
 import { AABB, noCollision } from '@shared/entity/aabb';
+import { ItemEntity, type ServerEntity } from './entity';
+import { stateForPlacement, updateShape, isReplaceable, companionPlacement, DX, DY, DZ } from '@shared/game/placement';
+import { canSurvive } from '@shared/game/support';
+import { destroyProgress, hardness, canHarvest } from '@shared/game/mining';
+import { blockDrops, blockForItem, itemForBlock } from '@shared/game/loot';
+import { isEmpty, maxStackSize, itemName, type ItemStack } from '@shared/item/stack';
+import { collisionBoxes } from '@shared/world/shapes';
+import { getProp, blockNameOf } from '@shared/world/blockstate';
+import { FLUID } from '@shared/world/blockinfo';
+import { BLOCKS_BY_NAME } from '@shared/data';
 
 export interface Connection {
   send(data: ArrayBuffer): void;
@@ -32,6 +42,7 @@ export class GameServer {
   readonly light: LightEngine;
   readonly generator: DevGenerator;
   readonly players: ServerPlayer[] = [];
+  readonly entities = new Map<number, ServerEntity>();
   gameTime = 0;
   dayTime = 1000;
   doDaylightCycle = true;
@@ -118,6 +129,309 @@ export class GameServer {
     return p;
   }
 
+  // ------------------------------------------------------------------ inventory
+  syncSlot(p: ServerPlayer, slot: number): void {
+    const st = p.inventory.get(slot);
+    this.send(p, { t: 'setSlot', slot, item: st?.id ?? 0, count: st?.count ?? 0, damage: st?.damage ?? 0 });
+  }
+
+  /** Vanilla Inventory.setPickedItem (creative pick block). */
+  private pickBlock(p: ServerPlayer, x: number, y: number, z: number): void {
+    if (p.gameMode !== 1) return;
+    const item = itemForBlock(this.world.getState(x, y, z));
+    if (!item) return;
+    const inv = p.inventory;
+    const found = inv.find(item);
+    if (found >= 0 && found < 9) inv.selected = found;
+    else {
+      let slot = -1;
+      for (let i = 0; i < 9; i++) {
+        const k = (inv.selected + i) % 9;
+        if (!inv.get(k)) {
+          slot = k;
+          break;
+        }
+      }
+      if (slot < 0) slot = inv.selected;
+      inv.selected = slot;
+      inv.set(slot, { id: item, count: 1, damage: 0 });
+      this.syncSlot(p, slot);
+    }
+    this.send(p, { t: 'heldSlot', slot: inv.selected });
+  }
+
+  // ------------------------------------------------------------------ digging
+  private inReach(p: ServerPlayer, x: number, y: number, z: number): boolean {
+    // vanilla: distance from the eye to the block centre squared < 36
+    const dx = p.x - (x + 0.5), dy = p.y + 1.5 - (y + 0.5), dz = p.z - (z + 0.5);
+    return dx * dx + dy * dy + dz * dz <= 36;
+  }
+
+  private handleDig(p: ServerPlayer, action: number, x: number, y: number, z: number): void {
+    if (y < 0 || y > 255 || !this.inReach(p, x, y, z)) return this.resendBlock(p, x, y, z);
+    if (p.gameMode === 3 || p.gameMode === 2) return this.resendBlock(p, x, y, z);
+    const state = this.world.getState(x, y, z);
+    if (action === 3) {
+      if (p.gameMode !== 1) return this.resendBlock(p, x, y, z);
+      // creative: swords can't break blocks
+      const held = p.inventory.selectedStack;
+      if (held && /_sword$/.test(itemNameOf(held.id))) return this.resendBlock(p, x, y, z);
+      this.destroyBlock(x, y, z, p, false);
+      return;
+    }
+    if (action === 0) {
+      if (hardness(state) < 0) return this.resendBlock(p, x, y, z);
+      p.digging = { x, y, z, start: this.gameTime };
+      if (destroyProgress(this.minerState(p), state) >= 1) {
+        this.destroyBlock(x, y, z, p, true);
+        p.digging = null;
+      }
+      return;
+    }
+    if (action === 1) {
+      p.digging = null;
+      this.broadcastBreakProgress(p, x, y, z, -1);
+      return;
+    }
+    if (action === 2) {
+      const d = p.digging;
+      p.digging = null;
+      if (!d || d.x !== x || d.y !== y || d.z !== z) return this.resendBlock(p, x, y, z);
+      const elapsed = this.gameTime - d.start + 1;
+      // vanilla ServerPlayerGameMode: accept when at least 70% of the expected progress elapsed
+      if (destroyProgress(this.minerState(p), state) * elapsed < 0.7) return this.resendBlock(p, x, y, z);
+      this.destroyBlock(x, y, z, p, true);
+      this.broadcastBreakProgress(p, x, y, z, -1);
+    }
+  }
+
+  private minerState(p: ServerPlayer) {
+    const held = p.inventory.selectedStack;
+    const eyeState = this.world.getState(Math.floor(p.x), Math.floor(p.y + 1.62), Math.floor(p.z));
+    return { item: held?.id ?? 0, efficiency: 0, haste: 0, miningFatigue: 0, underwater: FLUID[eyeState] === 1, aquaAffinity: false, onGround: p.onGround || p.flying };
+  }
+
+  private broadcastBreakProgress(p: ServerPlayer, x: number, y: number, z: number, stage: number): void {
+    for (const o of this.players) if (o !== p) this.send(o, { t: 'blockBreakProgress', id: p.id, x, y, z, stage });
+  }
+
+  private resendBlock(p: ServerPlayer, x: number, y: number, z: number): void {
+    this.send(p, { t: 'blockChange', x, y, z, state: this.world.getState(x, y, z) });
+  }
+
+  /** Remove a block (with drops for survival breakers), its companion half, and update neighbours. */
+  destroyBlock(x: number, y: number, z: number, breaker: ServerPlayer | null, drops: boolean): void {
+    const state = this.world.getState(x, y, z);
+    if (state === 0) return;
+    const name = blockNameOf(state);
+    const waterlogged = getProp(state, 'waterlogged') === true;
+    const water = BLOCKS_BY_NAME.get('water')!.defaultState;
+    this.setBlock(x, y, z, waterlogged ? water : 0);
+    // particles + sound for everyone else (the breaker plays them locally)
+    for (const o of this.players) if (o !== breaker) this.send(o, { t: 'levelEvent', event: 2001, x, y, z, data: state });
+    if (drops && breaker && breaker.gameMode !== 1) {
+      const held = breaker.inventory.selectedStack;
+      const items = blockDrops(state, { silkTouch: false, canHarvest: canHarvest(held?.id ?? 0, state), random: () => this.rand.nextFloat() });
+      for (const it of items) this.popResource(x, y, z, it);
+    }
+    // two-block structures lose their other half without drops
+    if (name.endsWith('_door') || ['tall_grass', 'large_fern', 'sunflower', 'lilac', 'rose_bush', 'peony'].includes(name)) {
+      const oy = getProp(state, 'half') === 'upper' || getProp(state, 'half') === 'upper' ? -1 : 1;
+      const other = this.world.getState(x, y + oy, z);
+      if (blockNameOf(other) === name) this.setBlock(x, y + oy, z, 0);
+    }
+    this.updateNeighbors(x, y, z);
+  }
+
+  /** After a change at (x,y,z): refresh neighbour shapes and break unsupported neighbours. */
+  updateNeighbors(x: number, y: number, z: number, depth = 0): void {
+    if (depth > 64) return;
+    for (let d = 0; d < 6; d++) {
+      const nx = x + DX[d]!, ny = y + DY[d]!, nz = z + DZ[d]!;
+      if (ny < 0 || ny > 255) continue;
+      const st = this.world.getState(nx, ny, nz);
+      if (st === 0) continue;
+      if (!canSurvive(this.world, nx, ny, nz, st)) {
+        this.setBlock(nx, ny, nz, 0);
+        for (const o of this.players) this.send(o, { t: 'levelEvent', event: 2001, x: nx, y: ny, z: nz, data: st });
+        for (const it of blockDrops(st, { silkTouch: false, canHarvest: true, random: () => this.rand.nextFloat() })) this.popResource(nx, ny, nz, it);
+        this.updateNeighbors(nx, ny, nz, depth + 1);
+        continue;
+      }
+      const ns = updateShape(this.world, nx, ny, nz, st);
+      if (ns !== st) this.setBlock(nx, ny, nz, ns);
+    }
+  }
+
+  // ------------------------------------------------------------------ placing
+  private handleUseOn(p: ServerPlayer, m: Extract<C2S, { t: 'useOn' }>): void {
+    const { x, y, z, face } = m;
+    if (!this.inReach(p, x, y, z) || p.gameMode === 3) return this.resendBlock(p, x, y, z);
+    const held = p.inventory.selectedStack;
+    const block = held ? blockForItem(held.id) : null;
+    if (!held || !block || p.gameMode === 2) return;
+    const clicked = this.world.getState(x, y, z);
+    let px = x, py = y, pz = z;
+    if (!(isReplaceable(clicked, block) || (block.endsWith('_slab') && blockNameOf(clicked) === block && getProp(clicked, 'type') !== 'double' && slabMergeFace(clicked, face, m.cy)))) {
+      px += DX[face]!;
+      py += DY[face]!;
+      pz += DZ[face]!;
+    }
+    if (py < 0 || py > 255) return this.resendBlock(p, px, py, pz);
+    const existing = this.world.getState(px, py, pz);
+    const canReplaceExisting = isReplaceable(existing, block) || (block.endsWith('_slab') && blockNameOf(existing) === block);
+    if (!canReplaceExisting) return this.resendBlock(p, px, py, pz);
+    const state = stateForPlacement(block, { world: this.world, x: px, y: py, z: pz, face, hx: m.cx, hy: m.cy, hz: m.cz, yaw: p.yaw, pitch: p.pitch, sneaking: p.sneaking }, existing);
+    if (state === null || !canSurvive(this.world, px, py, pz, state)) return this.resendBlock(p, px, py, pz);
+    const extra = companionPlacement(block, state);
+    for (const e of extra) {
+      const ey = py + e.dy;
+      if (ey > 255 || !isReplaceable(this.world.getState(px + e.dx, ey, pz + e.dz))) return this.resendBlock(p, px, py, pz);
+    }
+    // don't place a block inside a player
+    for (const b of collisionBoxes(state)) {
+      const box = new AABB(px + b[0], py + b[1], pz + b[2], px + b[3], py + b[4], pz + b[5]);
+      for (const o of this.players) {
+        if (o.gameMode === 3) continue;
+        const pb = AABB.ofSize(o.x, o.y, o.z, 0.6, o.pose === 'crouching' ? 1.5 : o.pose === 'swimming' ? 0.6 : 1.8);
+        if (box.intersects(pb)) return this.resendBlock(p, px, py, pz);
+      }
+    }
+    this.setBlock(px, py, pz, state);
+    for (const e of extra) this.setBlock(px + e.dx, py + e.dy, pz + e.dz, e.state);
+    this.updateNeighbors(px, py, pz);
+    if (p.gameMode !== 1) {
+      held.count--;
+      if (held.count <= 0) p.inventory.set(p.inventory.selected, null);
+      this.syncSlot(p, p.inventory.selected);
+    }
+  }
+
+  // ------------------------------------------------------------------ item entities
+  private spawnEntity(e: ServerEntity): void {
+    this.entities.set(e.id, e);
+  }
+
+  /** Vanilla Block.popResource: item at the block centre ± 0.25 with a small upward toss. */
+  popResource(x: number, y: number, z: number, stack: ItemStack): void {
+    const r = this.rand;
+    const e = new ItemEntity(this.nextEntityId++, stack);
+    e.x = x + 0.5 + (r.nextDouble() * 0.5 - 0.25);
+    e.y = y + 0.5 + (r.nextDouble() * 0.5 - 0.25) - 0.125;
+    e.z = z + 0.5 + (r.nextDouble() * 0.5 - 0.25);
+    e.vx = r.nextDouble() * 0.2 - 0.1;
+    e.vy = 0.2;
+    e.vz = r.nextDouble() * 0.2 - 0.1;
+    this.spawnEntity(e);
+  }
+
+  /** Q / Ctrl+Q (vanilla Player.drop with traceItem). */
+  private dropFromHand(p: ServerPlayer, all: boolean): void {
+    const inv = p.inventory;
+    const held = inv.selectedStack;
+    if (isEmpty(held)) return;
+    const n = all ? held.count : 1;
+    const stack: ItemStack = { id: held.id, count: n, damage: held.damage };
+    held.count -= n;
+    if (held.count <= 0) inv.set(inv.selected, null);
+    this.syncSlot(p, inv.selected);
+    this.tossItem(p, stack);
+  }
+
+  tossItem(p: ServerPlayer, stack: ItemStack): void {
+    const r = this.rand;
+    const e = new ItemEntity(this.nextEntityId++, stack);
+    e.x = p.x;
+    e.y = p.y + 1.62 - 0.3;
+    e.z = p.z;
+    e.pickupDelay = 40;
+    const yr = (p.yaw * Math.PI) / 180, pr = (p.pitch * Math.PI) / 180;
+    const f = 0.3;
+    const sy = Math.sin(yr), cy = Math.cos(yr), sp = Math.sin(pr), cp = Math.cos(pr);
+    const ang = r.nextFloat() * Math.PI * 2, f4 = 0.02 * r.nextFloat();
+    e.vx = -sy * cp * f + Math.cos(ang) * f4;
+    e.vy = -sp * f + 0.1 + (r.nextFloat() - r.nextFloat()) * 0.1;
+    e.vz = cy * cp * f + Math.sin(ang) * f4;
+    this.spawnEntity(e);
+  }
+
+  private tickEntities(): void {
+    for (const e of this.entities.values()) {
+      e.tick(this.world);
+      if (e instanceof ItemEntity && !e.removed) {
+        if ((this.gameTime + e.id) % 2 === 0) this.tryMerge(e);
+      }
+    }
+    // pickups (Player.touch → ItemEntity.playerTouch)
+    for (const p of this.players) {
+      if (p.gameMode === 3) continue;
+      const bb = AABB.ofSize(p.x, p.y, p.z, 0.6, 1.8).inflate(1, 0.5, 1);
+      for (const e of this.entities.values()) {
+        if (!(e instanceof ItemEntity) || e.removed || e.pickupDelay !== 0) continue;
+        if (!e.bb().intersects(bb)) continue;
+        const before = e.stack.count;
+        const left = p.inventory.add(e.stack);
+        const taken = before - left;
+        if (taken <= 0) continue;
+        for (const o of this.players) if (o === p || o.tracking.has(e.id)) this.send(o, { t: 'takeItem', itemId: e.id, collectorId: p.id, count: taken });
+        e.stack.count = left;
+        if (left <= 0) e.removed = true;
+        for (let i = 0; i < 36; i++) this.syncSlot(p, i);
+      }
+    }
+    for (const [id, e] of this.entities) {
+      if (!e.removed) continue;
+      this.entities.delete(id);
+      for (const p of this.players) if (p.tracking.delete(id)) this.send(p, { t: 'removeEntities', ids: [id] });
+    }
+  }
+
+  private tryMerge(a: ItemEntity): void {
+    const max = maxStackSize(a.stack.id);
+    if (a.stack.count >= max) return;
+    const bb = a.bb().inflate(0.5, 0, 0.5);
+    for (const b of this.entities.values()) {
+      if (b === a || !(b instanceof ItemEntity) || b.removed || b.stack.id !== a.stack.id || b.stack.damage !== a.stack.damage) continue;
+      if (!b.bb().intersects(bb)) continue;
+      if (b.stack.count + a.stack.count > max) continue;
+      // the smaller stack merges into the larger one
+      const [big, small] = a.stack.count >= b.stack.count ? [a, b] : [b, a];
+      big.stack.count += small.stack.count;
+      big.pickupDelay = Math.max(big.pickupDelay, small.pickupDelay);
+      big.age = Math.min(big.age, small.age);
+      small.removed = true;
+      for (const p of this.players) if (p.tracking.has(big.id)) this.send(p, { t: 'itemStack', id: big.id, item: big.stack.id, count: big.stack.count });
+      if (small === a) return;
+    }
+  }
+
+  private trackEntities(): void {
+    for (const p of this.players) {
+      for (const e of this.entities.values()) {
+        if (e.removed) continue;
+        const dx = e.x - p.x, dz = e.z - p.z;
+        const range = Math.min(e.trackRange, p.viewDistance * 16);
+        const visible = dx * dx + dz * dz <= range * range;
+        if (visible && !p.tracking.has(e.id)) {
+          p.tracking.add(e.id);
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: 0 });
+          if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
+        } else if (!visible && p.tracking.has(e.id)) {
+          p.tracking.delete(e.id);
+          this.send(p, { t: 'removeEntities', ids: [e.id] });
+        }
+      }
+    }
+    for (const e of this.entities.values()) {
+      if (e.removed) continue;
+      if (e.x === e.sentX && e.y === e.sentY && e.z === e.sentZ) continue;
+      e.sentX = e.x;
+      e.sentY = e.y;
+      e.sentZ = e.z;
+      for (const p of this.players) if (p.tracking.has(e.id)) this.send(p, { t: 'entityMove', id: e.id, x: e.x, y: e.y, z: e.z, yaw: e.yaw, pitch: e.pitch, headYaw: e.yaw, onGround: e.onGround });
+    }
+  }
+
   private sendAbilities(p: ServerPlayer): void {
     this.send(p, { t: 'abilities', flying: p.flying, mayFly: p.mayFly, flySpeed: 0.05, instabuild: p.gameMode === 1, invulnerable: p.gameMode === 1 || p.gameMode === 3 });
   }
@@ -195,6 +509,26 @@ export class GameServer {
         p.sprinting = m.sprinting;
         p.flying = m.flying && p.mayFly;
         p.stateDirty = true;
+        break;
+      case 'heldSlot':
+        if (m.slot >= 0 && m.slot < 9) p.inventory.selected = m.slot;
+        break;
+      case 'creativeSlot':
+        if (p.gameMode === 1 && m.slot >= 0 && m.slot < 41) {
+          p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: 0 } : null);
+        }
+        break;
+      case 'pickBlock':
+        this.pickBlock(p, m.x, m.y, m.z);
+        break;
+      case 'dig':
+        this.handleDig(p, m.action, m.x, m.y, m.z);
+        break;
+      case 'useOn':
+        this.handleUseOn(p, m);
+        break;
+      case 'dropItem':
+        this.dropFromHand(p, m.all);
         break;
       case 'swing':
         for (const o of this.players) if (o.tracking.has(p.id)) this.send(o, { t: 'animate', id: p.id, action: m.hand === 1 ? 3 : 0 });
@@ -280,8 +614,10 @@ export class GameServer {
     }
     this.advanceWeather();
     for (const p of this.players) p.updatePose();
+    this.tickEntities();
     this.updateChunks();
     this.updateTracking();
+    this.trackEntities();
     this.flushLight();
     this.mspt = this.mspt * 0.9 + (performance.now() - t0) * 0.1;
   }
@@ -453,6 +789,17 @@ export class GameServer {
     this.running = false;
     if (this.timer) clearTimeout(this.timer);
   }
+}
+
+function itemNameOf(id: number): string {
+  return itemName(id);
+}
+
+/** Clicking the inner face of a slab of the same type merges it (vanilla SlabBlock.canBeReplaced). */
+function slabMergeFace(slab: number, face: number, hitY: number): boolean {
+  const type = getProp(slab, 'type');
+  if (type === 'bottom') return face === 1 || (face > 1 && hitY > 0.5);
+  return face === 0 || (face > 1 && hitY <= 0.5);
 }
 
 function clampViewDistance(v: number): number {

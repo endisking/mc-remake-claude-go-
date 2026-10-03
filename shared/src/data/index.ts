@@ -170,6 +170,10 @@ function byName<T extends { name: string }>(list: T[]): Map<string, T> {
 
 export const BLOCKS_BY_NAME = byName(BLOCKS);
 export const ITEMS_BY_NAME = byName(ITEMS);
+/** Item lookup by id (minecraft-data numbering starts at 1; 0 means "no item"). */
+export const ITEMS_BY_ID: (ItemData | undefined)[] = [];
+for (const i of ITEMS) ITEMS_BY_ID[i.id] = i;
+export const AIR_ITEM_ID = 0;
 export const ENTITIES_BY_NAME = byName(ENTITIES);
 export const BIOMES_BY_NAME = byName(BIOMES);
 export const ENCHANTMENTS_BY_NAME = byName(ENCHANTMENTS);

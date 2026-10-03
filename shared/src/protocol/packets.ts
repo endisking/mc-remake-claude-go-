@@ -50,6 +50,15 @@ const S2C_SCHEMA = {
   levelEvent: [['event', 'i32'], ['x', 'i32'], ['y', 'i16'], ['z', 'i32'], ['data', 'i32']],
   /** Server acknowledges/corrects a dig action at a position. */
   digAck: [['x', 'i32'], ['y', 'i16'], ['z', 'i32'], ['state', 'u16'], ['action', 'u8'], ['ok', 'bool']],
+  /** Non-player entity spawn: type name, position, velocity, type-specific data. */
+  addEntity: [['id', 'i32'], ['type', 'str'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['vx', 'f32'], ['vy', 'f32'], ['vz', 'f32'], ['data', 'i32']],
+  /** Item entity contents. */
+  itemStack: [['id', 'i32'], ['item', 'i16'], ['count', 'u8']],
+  /** Item picked up: animate it flying to the collector. */
+  takeItem: [['itemId', 'i32'], ['collectorId', 'i32'], ['count', 'u8']],
+  /** Inventory slot contents (player inventory numbering, see Inventory). */
+  setSlot: [['slot', 'i16'], ['item', 'i16'], ['count', 'u8'], ['damage', 'i16']],
+  heldSlot: [['slot', 'u8']],
 } as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server
@@ -69,6 +78,10 @@ const C2S_SCHEMA = {
   heldSlot: [['slot', 'u8']],
   /** Creative inventory: put an item stack into a slot (vanilla SetCreativeModeSlot). */
   creativeSlot: [['slot', 'i16'], ['item', 'i16'], ['count', 'u8']],
+  /** Q / Ctrl+Q: drop one or the whole stack from the selected slot. */
+  dropItem: [['all', 'bool']],
+  /** Middle click in creative: put the block's item in the hotbar (vanilla pick block). */
+  pickBlock: [['x', 'i32'], ['y', 'i16'], ['z', 'i32']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;

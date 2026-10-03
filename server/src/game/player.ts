@@ -2,6 +2,7 @@
 import { PlayerPhysics, type Pose } from '@shared/entity/playerphysics';
 import type { BlockWorld } from '@shared/world/world';
 import type { Connection } from './server';
+import { Inventory } from '@shared/item/stack';
 
 export class ServerPlayer {
   x = 0;
@@ -38,6 +39,9 @@ export class ServerPlayer {
   lastSentYaw = NaN;
   lastSentPitch = NaN;
   stateDirty = true;
+  readonly inventory = new Inventory();
+  /** Block being dug in survival: position and start tick. */
+  digging: { x: number; y: number; z: number; start: number } | null = null;
   /** Number of move packets rejected recently (for diagnostics/tests). */
   rejectedMoves = 0;
   /** Physics instance used to validate client movement against collisions. */

@@ -14,6 +14,9 @@ Work loop: see `CLAUDE.md` §0. Each entry: what was done, deviations from vanil
   per-position random, so a given block may show a different rotation than in vanilla (purely cosmetic).
 - Fluid surfaces use our implementation of the vanilla corner-height averaging; flow texture rotation is derived
   from the height gradient instead of the server flow vector.
+- minecraft-data's `blockLoot` is lossy (halves silk-touch alternatives, ignores leaf/grass chance conditions), so
+  block drops use each block's default drop item plus curated rules from minecraft.wiki (`shared/src/game/loot.ts`).
+  Fortune, explosion decay and table-driven structure loot are not modelled yet.
 - Chunk storage keeps flat 16-bit arrays per non-empty section (empty sections store nothing); palette compression
   is used only on the wire and in saves.
 
