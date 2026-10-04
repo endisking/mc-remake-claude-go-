@@ -59,6 +59,9 @@ import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
+import { ClientItemUse } from './itemuse';
+import { ClientArrows } from './world/arrows';
+import { itemName as itemNameOfId } from '@shared/item/stack';
 
 export class Game implements ScreenHost {
   readonly gl: WebGL2RenderingContext;
@@ -78,6 +81,10 @@ export class Game implements ScreenHost {
   readonly players = new Map<number, RemotePlayer>();
   private sentState = { sneaking: false, sprinting: false, flying: false };
   interaction!: Interaction;
+  /** item use state (eating/drinking/bow), effects, absorption — read by the HUD and first-person renderer */
+  itemUse!: ClientItemUse;
+  readonly arrows = new ClientArrows();
+  private texLayers: Map<string, { layer: number }> | null = null;
   private readonly hud = new Hud();
   /** online players (vanilla PlayerInfo list) */
   readonly playerInfo = new Map<number, PlayerInfoEntry>();
@@ -365,6 +372,7 @@ export class Game implements ScreenHost {
     await this.entityRenderer.loadSkins();
     const mainBake = bakeBlockModels(this.manifest, this.settings.graphics === 'fancy');
     this.bake = mainBake.bake;
+    this.texLayers = mainBake.textures;
     this.particles = new ParticleEngine(this.gl, this.world);
     this.blockItems = new BlockItemRenderer(this.gl, mainBake.bake, () => this.textures.tex, (st) => itemTint(st), (st) => {
       const t = flatItemTexture(blockNameOf(st));
@@ -416,6 +424,24 @@ export class Game implements ScreenHost {
         this.swingArm();
         this.resetAttackStrength();
       },
+      useItem: (hand, stack) => this.itemUse.tryUse(hand, stack, this.interaction.inventory),
+    });
+    this.itemUse = new ClientItemUse({
+      send: (p) => this.send(p),
+      gameMode: () => this.gameMode,
+      foodLevel: () => this.food,
+      playLocal: (ev, v, pi) => this.playPlayer(ev, v, pi),
+      entityView: (id) => {
+        if (id === this.entityId) return { x: this.x, y: this.y, z: this.z, yaw: this.yaw, pitch: this.pitch };
+        const rp = this.players.get(id);
+        return rp ? { x: rp.x, y: rp.y + (rp.pose === 'crouching' ? 1.27 : 1.62), z: rp.z, yaw: rp.headYaw, pitch: rp.pitch } : null;
+      },
+      itemParticle: (item, x, y, z, vx, vy, vz) => {
+        // items without a texture yet would spray missing-texture squares: skip them
+        const layer = this.itemParticleLayer(item);
+        if (layer >= 0) this.particles.item(x, y, z, vx, vy, vz, layer);
+      },
+      get selfId() { return game.entityId; },
     });
     const game = this;
     this.crack = new CrackRenderer(this.gl, mainBake.bake, Array.from({ length: 10 }, (_, i) => mainBake.textures.get(`destroy_stage_${i}`)!.layer));
@@ -459,6 +485,7 @@ export class Game implements ScreenHost {
   }
 
   private handle(p: S2C): void {
+    if (this.itemUse?.handle(p) || this.arrows.handle(p)) return;
     switch (p.t) {
       case 'login':
         this.entityId = p.entityId;
@@ -601,6 +628,11 @@ export class Game implements ScreenHost {
         }
         break;
       }
+      case 'armorEquipment': {
+        const rp = this.players.get(p.id);
+        if (rp) rp.armor = [p.feet, p.legs, p.chest, p.head];
+        break;
+      }
       case 'actionBar':
         this.hud.setOverlay(p.text);
         break;
@@ -667,6 +699,12 @@ export class Game implements ScreenHost {
         break;
       }
       case 'takeItem': {
+        if (this.arrows.arrows.has(p.itemId)) {
+          const a = this.arrows.arrows.get(p.itemId)!, r = this.sfxRand;
+          this.playAt('entity.item.pickup', 'player', a.x, a.y, a.z, 0.2, ((r.nextFloat() - r.nextFloat()) * 0.7 + 1) * 2);
+          this.arrows.arrows.delete(p.itemId);
+          break;
+        }
         // vanilla ItemPickupParticle: the item flies into the collector over 3 ticks
         const it = this.items.get(p.itemId);
         if (it) {
@@ -819,6 +857,8 @@ export class Game implements ScreenHost {
       // looking through another entity: no movement, but sneaking still reaches the server
       pl.shiftDown = move.sneak;
     } else if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
+      // LocalPlayer.aiStep: eating/drawing slows movement input to 20%
+      pl.usingItem = !!this.itemUse?.isUsing;
       pl.tick(move);
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
     }
@@ -833,6 +873,11 @@ export class Game implements ScreenHost {
     let fovTarget = 1;
     if (pl.abilities.flying) fovTarget *= 1.1;
     fovTarget *= (pl.movementSpeed() / 0.1 + 1) / 2;
+    // drawing a bow zooms in up to 15%
+    if (this.itemUse?.isUsing && this.itemUse.useAnimOf === 'bow') {
+      const t = this.itemUse.ticksUsing / 20;
+      fovTarget *= 1 - (t > 1 ? 1 : t * t) * 0.15;
+    }
     // FOV Effects accessibility slider scales the change
     fovTarget = 1 + (fovTarget - 1) * this.settings.fovEffectScale;
     this.fovModifier += (fovTarget - this.fovModifier) * 0.5;
@@ -877,9 +922,14 @@ export class Game implements ScreenHost {
       ia.tick();
       const b = this.binds;
       const attackPressed = b.consume('attack');
-      if (attackPressed) ia.startAttack(this.target, this.targetEntity);
-      ia.continueAttack(b.down('attack') && !attackPressed, this.target);
-      ia.use(b.consume('use'), b.down('use'), this.target);
+      const usingItem = this.itemUse.isUsing;
+      if (attackPressed && !usingItem) ia.startAttack(this.target, this.targetEntity);
+      ia.continueAttack(b.down('attack') && !attackPressed && !usingItem, this.target);
+      if (this.itemUse.isUsing) {
+        // Minecraft.handleKeybinds while using an item: clicks are swallowed
+        b.consume('use');
+        b.consume('attack');
+      } else ia.use(b.consume('use'), b.down('use'), this.target);
       if (this.gameMode === 3) {
         // MouseHandler: the middle button opens/uses the spectator menu; hotbar keys pick its slots
         const middle = i.consumePress('Mouse1');
@@ -894,6 +944,9 @@ export class Game implements ScreenHost {
       if (b.consume('swapOffhand')) ia.swapOffhand();
       if (b.consume('drop')) ia.drop(i.isDown('ControlLeft') || i.isDown('ControlRight') || i.isDown('MetaLeft'));
     }
+    // LivingEntity.updatingUsingItem (local + remote players); releasing the key shoots the bow
+    if (this.loggedIn) this.itemUse.tick(active && !this.dead && this.binds.down('use'), this.interaction.inventory);
+    this.arrows.tick();
     if (this.loggedIn) {
       const st = this.sentState;
       if (st.sneaking !== pl.shiftDown || st.sprinting !== pl.sprinting || st.flying !== pl.abilities.flying) {
@@ -1049,7 +1102,32 @@ export class Game implements ScreenHost {
   }
 
   /** LivingEntity.handleEntityEvent: hurt animation and the hurt/death sound for the local player. */
+  /** Texture layer for an item's particles (block items use their block's particle texture). */
+  private itemParticleLayer(item: number): number {
+    const block = blockForItem(item);
+    if (block) return this.particleLayer(BLOCKS_BY_NAME.get(block)!.defaultState);
+    const n = itemNameOfId(item);
+    return this.texLayers?.get(`item/${n}`)?.layer ?? this.texLayers?.get(n)?.layer ?? -1;
+  }
+
+  /** LivingEntity.breakItem (entity events 47–52): the break sound and 5 item particles. */
+  private itemBroke(id: number, event: number): void {
+    const self = id === this.entityId;
+    const inv = this.interaction.inventory;
+    const rp = self ? null : this.players.get(id);
+    let item = 0;
+    if (event === 47) item = self ? inv.selectedStack?.id ?? 0 : rp?.mainHand ?? 0;
+    else if (event === 48) item = self ? inv.get(40)?.id ?? 0 : rp?.offHand ?? 0;
+    else item = self ? inv.get(36 + (52 - event))?.id ?? 0 : rp?.armor[52 - event] ?? 0;
+    const v = self ? { x: this.x, y: this.y - this.player.eyeHeight, z: this.z } : rp;
+    if (!v || !item) return;
+    const r = this.sfxRand;
+    this.playAt('entity.item.break', 'player', v.x, v.y, v.z, 0.8, 0.8 + r.nextFloat() * 0.4);
+    this.itemUse.spawnItemParticles(id, item, 5);
+  }
+
   private entityEvent(id: number, event: number): void {
+    if (event >= 47 && event <= 52) return this.itemBroke(id, event);
     const hurt = event === 2 || event === 33 || event === 36 || event === 37 || event === 44 || event === 57;
     if (id !== this.entityId) {
       const rp = this.players.get(id);
@@ -1193,8 +1271,8 @@ export class Game implements ScreenHost {
       gameMode: this.gameMode,
       health: this.health,
       maxHealth: 20,
-      absorption: 0,
-      armor: 0,
+      absorption: this.itemUse.absorption,
+      armor: this.itemUse.armorPoints(this.interaction.inventory),
       food: this.food,
       saturation: this.saturation,
       air: this.air,
@@ -1204,10 +1282,10 @@ export class Game implements ScreenHost {
       xpProgress: this.xpProgress,
       xpLevel: this.xpLevel,
       inventory: this.interaction.inventory,
-      heartType: this.ticksFrozen >= 140 ? 'frozen' : 'normal',
+      heartType: this.itemUse.hasEffect('poison') ? 'poisoned' : this.itemUse.hasEffect('wither') ? 'withered' : this.ticksFrozen >= 140 ? 'frozen' : 'normal',
       hardcore: false,
-      regeneration: false,
-      hungerEffect: false,
+      regeneration: this.itemUse.hasEffect('regeneration'),
+      hungerEffect: this.itemUse.hasEffect('hunger'),
     };
   }
 
@@ -1832,6 +1910,7 @@ export class Game implements ScreenHost {
     }
     recycleHeld(this.entityRenderer);
     this.renderItems(cx, cy, cz, partial, fog, fogStart, fogEnd);
+    if (this.arrows.render(this.lines, cx, cy, cz, partial)) this.lines.flush(this.viewProj, this.canvas.width, this.canvas.height);
     if (this.bolts.size) {
       const ed = 64 * this.settings.entityDistance;
       this.lightning.render([...this.bolts.values()].filter((b) => (b.x - cx) ** 2 + (b.y - cy) ** 2 + (b.z - cz) ** 2 < ed * ed), this.viewProj, cx, cy, cz);

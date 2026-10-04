@@ -7,7 +7,7 @@ import { destroyProgress } from '@shared/game/mining';
 import { stateForPlacement, isReplaceable, companionPlacement, DX, DY, DZ } from '@shared/game/placement';
 import { canSurvive } from '@shared/game/support';
 import { blockForItem, itemForBlock } from '@shared/game/loot';
-import { Inventory } from '@shared/item/stack';
+import { Inventory, type ItemStack } from '@shared/item/stack';
 import { getProp, blockNameOf, stateOf } from '@shared/world/blockstate';
 
 const WATER = stateOf('water');
@@ -38,6 +38,8 @@ export interface InteractionHost {
   missSwing(): void;
   /** attacked an entity (client-side Player.attack effects + cooldown reset) */
   onAttack(): void;
+  /** Item.use with a non-block item (food, bow, armour, buckets): see ClientItemUse.tryUse */
+  useItem?(hand: 0 | 1, stack: ItemStack): 'consume' | 'swing' | 'pass';
 }
 
 export class Interaction {
@@ -190,7 +192,18 @@ export class Interaction {
     if (this.rightClickDelay > 0) this.rightClickDelay--;
     if (!(pressed || (held && this.rightClickDelay === 0))) return;
     this.rightClickDelay = 4;
-    if (!target || this.host.gameMode === 3) return;
+    if (this.host.gameMode === 3) return;
+    if (!target) {
+      // Minecraft.startUseItem with no block: Item.use for each hand until one acts
+      for (const hand of [0, 1] as const) {
+        const stack = this.inventory.get(hand === 0 ? this.inventory.selected : 40);
+        if (!stack) continue;
+        const r = this.host.useItem?.(hand, stack) ?? 'pass';
+        if (r === 'swing') this.host.swing(hand);
+        if (r !== 'pass') return;
+      }
+      return;
+    }
     // using an interactive block (beds…) consumes the click unless sneaking with an item
     const holding = !!this.inventory.selectedStack || !!this.inventory.get(40);
     if (isInteractive(target.state) && !(this.host.player.shiftDown && holding)) {
@@ -206,10 +219,22 @@ export class Interaction {
       const { x, y, z, face } = target;
       const hx = target.px - x, hy = target.py - y, hz = target.pz - z;
       if (!block) {
-        // an empty or non-placing main hand passes to the off hand (vanilla InteractionResult.PASS)
-        if (hand === 0) continue;
+        // an empty hand passes to the off hand (vanilla InteractionResult.PASS)
+        if (!stack) {
+          if (hand === 0) continue;
+          this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
+          return;
+        }
+        // Item.useOn (flint and steel…), then Item.use (food, bows, buckets, armour)
         this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
-        return;
+        if (itemNameOf(stack.id) === 'flint_and_steel') {
+          this.host.swing(hand);
+          return;
+        }
+        const r = this.host.useItem?.(hand, stack) ?? 'pass';
+        if (r === 'swing') this.host.swing(hand);
+        if (r !== 'pass') return;
+        continue;
       }
       this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
       if (this.host.gameMode === 2) return;

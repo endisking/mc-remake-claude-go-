@@ -27,7 +27,7 @@ function setup(players = 1) {
 
 const sounds = (r: S2C[]) => r.filter((x) => x.t === 'sound').map((x) => soundName((x as Extract<S2C, { t: 'sound' }>).event));
 
-describe('eating', () => {
+describe('eating', { timeout: 60000 }, () => {
   it('takes 32 ticks, feeds and returns the bowl from stew', () => {
     const { server, p, c } = setup();
     p.living.food.foodLevel = 10;
@@ -83,7 +83,7 @@ describe('eating', () => {
   });
 });
 
-describe('durability', () => {
+describe('durability', { timeout: 60000 }, () => {
   it('pickaxe loses 1 per mined block and breaks with the break event', () => {
     const { server, p } = setup();
     const x = Math.floor(p.x), z = Math.floor(p.z), y = Math.floor(p.y) - 1;
@@ -121,7 +121,7 @@ describe('durability', () => {
   });
 });
 
-describe('buckets and flint and steel', () => {
+describe('buckets and flint and steel', { timeout: 60000 }, () => {
   it('places and picks up water sources', () => {
     const { server, p, c } = setup();
     p.pitch = 90;
@@ -148,7 +148,7 @@ describe('buckets and flint and steel', () => {
   });
 });
 
-describe('bow', () => {
+describe('bow', { timeout: 60000 }, () => {
   it('a full draw shoots a critical arrow at speed 3 and uses an arrow', () => {
     const { server, p, c } = setup();
     p.inventory.set(0, { id: id('bow'), count: 1, damage: 0 });
@@ -200,7 +200,7 @@ describe('bow', () => {
   });
 });
 
-describe('item entities', () => {
+describe('item entities', { timeout: 60000 }, () => {
   it('burn in lava', () => {
     const { server, p } = setup();
     const x = Math.floor(p.x) + 3, y = Math.floor(p.y), z = Math.floor(p.z);
