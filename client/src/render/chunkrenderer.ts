@@ -3,6 +3,7 @@
  * incrementally, culls by frustum and cave visibility, and draws the opaque, cutout and
  * translucent passes (translucent sorted back to front).
  */
+import { hasAllNeighbours } from './sectionready';
 import { chunkKey } from '@shared/world/chunk';
 import { padIndex, PADDED_VOLUME, type MeshInput, type MeshOutput, type MesherOptions } from './mesher';
 import type { ClientWorld } from '../world/clientworld';
@@ -219,9 +220,10 @@ export class ChunkRenderer {
   }
 
   // ------------------------------------------------------------------ meshing
+  private readonly isLoaded = (cx: number, cz: number): boolean => !!this.world.getChunk(cx, cz);
+  /** Sections are built only once all 8 neighbour columns are loaded (no faces against missing chunks). */
   private canBuild(s: RenderSection): boolean {
-    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (!this.world.getChunk(s.sx + dx, s.sz + dz)) return false;
-    return true;
+    return hasAllNeighbours(this.isLoaded, s.sx, s.sz);
   }
 
   /** Copy the section and a one-block border into a padded snapshot. */
