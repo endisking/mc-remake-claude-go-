@@ -129,7 +129,25 @@ export class BlockItemRenderer {
       const t = quads.some((q) => q.tint >= 0) ? 1 : 0;
       extrudeSprite(v, flat, this.layerAlpha(flat), t);
     }
-    const src = flat !== null ? [] : quads;
+    const m = this.upload(v, flat !== null ? [] : quads);
+    this.meshes.set(state, m);
+    return m;
+  }
+
+  /** Extruded sprite mesh of a texture layer (cached under a negative key). */
+  private spriteMesh(layer: number): Mesh {
+    const key = -1 - layer;
+    let m = this.meshes.get(key);
+    if (!m) {
+      const v: number[] = [];
+      extrudeSprite(v, layer, this.layerAlpha(layer), 0);
+      m = this.upload(v, []);
+      this.meshes.set(key, m);
+    }
+    return m;
+  }
+
+  private upload(v: number[], src: { dir: number; pos: ArrayLike<number>; uv: ArrayLike<number>; layer: number; tint: number }[]): Mesh {
     const N = [[0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0]];
     for (const q of src) {
       const n = N[q.dir]!;
@@ -153,9 +171,19 @@ export class BlockItemRenderer {
     gl.enableVertexAttribArray(3);
     gl.vertexAttribPointer(3, 1, gl.FLOAT, false, st, 36);
     gl.bindVertexArray(null);
-    const m = { vao, count: v.length / 10 };
-    this.meshes.set(state, m);
-    return m;
+    return { vao, count: v.length / 10 };
+  }
+
+  /**
+   * Draw a texture layer as a vanilla item/generated model (the sprite extruded 1/16 thick),
+   * centred at the model matrix origin like draw().
+   */
+  drawSprite(
+    layer: number, viewProj: Mat4, model: Mat4, light: number, lightmap: WebGLTexture | null,
+    fog?: { color: [number, number, number]; start: number; end: number },
+    lights?: [[number, number, number], [number, number, number]],
+  ): void {
+    this.drawMesh(this.spriteMesh(layer), true, WHITE, viewProj, model, light, lightmap, fog, false, lights);
   }
 
   /** Draw a block model centred at the model matrix origin (unit cube −0.5..0.5). */
@@ -167,23 +195,30 @@ export class BlockItemRenderer {
   ): void {
     const m = this.mesh(state);
     if (!m) return;
+    this.drawMesh(m, this.isFlat(state), this.itemTint(state), viewProj, model, light, lightmap, fog, gui, lights);
+  }
+
+  private drawMesh(
+    m: Mesh, flat: boolean, t: [number, number, number], viewProj: Mat4, model: Mat4, light: number, lightmap: WebGLTexture | null,
+    fog: { color: [number, number, number]; start: number; end: number } | undefined, gui: boolean,
+    lights: [[number, number, number], [number, number, number]] | undefined,
+  ): void {
     const gl = this.gl;
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(this.u.get('uViewProj'), false, viewProj);
     gl.uniformMatrix4fv(this.u.get('uModel'), false, model);
-    gl.uniform1i(this.u.get('uGuiShade'), gui && !this.isFlat(state) ? 1 : 0);
+    gl.uniform1i(this.u.get('uGuiShade'), gui && !flat ? 1 : 0);
     if (gui) {
       // GUI lighting: top brightest, left face medium, right face darker
       gl.uniform3f(this.u.get('uLight0'), -0.43, 0.82, 0.37);
       gl.uniform3f(this.u.get('uLight1'), 0, 0, 0);
-      gl.uniform1f(this.u.get('uAmbient'), this.isFlat(state) ? 1 : 0.45);
+      gl.uniform1f(this.u.get('uAmbient'), flat ? 1 : 0.45);
     } else {
       const [l0, l1] = lights ?? [normalize([0.2, 1, -0.7]), normalize([-0.2, 1, 0.7])];
       gl.uniform3f(this.u.get('uLight0'), l0[0], l0[1], l0[2]);
       gl.uniform3f(this.u.get('uLight1'), l1[0], l1[1], l1[2]);
       gl.uniform1f(this.u.get('uAmbient'), 0.4);
     }
-    const t = this.itemTint(state);
     gl.uniform3f(this.u.get('uTint'), t[0], t[1], t[2]);
     gl.uniform1i(this.u.get('uTex'), 0);
     gl.activeTexture(gl.TEXTURE0);
@@ -283,6 +318,8 @@ function extrudeSprite(v: number[], layer: number, alpha: Uint8Array | undefined
       if (!solid(i, j + 1)) quad([[x0, y0, zf], [x0, y0, zb], [x1, y0, zb], [x1, y0, zf]], [[i, vc], [i, vc], [i + 1, vc], [i + 1, vc]], [0, -1, 0]);
     }
 }
+
+const WHITE: [number, number, number] = [1, 1, 1];
 
 function normalize(v: number[]): [number, number, number] {
   const l = Math.hypot(v[0]!, v[1]!, v[2]!);

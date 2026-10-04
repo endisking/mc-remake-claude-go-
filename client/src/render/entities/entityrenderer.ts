@@ -87,11 +87,20 @@ export class EntityRenderer {
 
   async loadSkins(base = './textures/skins/'): Promise<void> {
     this.defaultSkins = (await (await fetch(`${base}skins.json`)).json()) as string[];
-    await Promise.all(this.defaultSkins.map(async (n) => this.skins.set(n, await this.loadTexture(`${base}${n}.png`))));
+    await Promise.all(this.defaultSkins.map(async (n) => this.skins.set(n, await this.loadTexture(`${base}${n}.png`, n))));
   }
 
-  private async loadTexture(url: string): Promise<WebGLTexture> {
+  /** Skins with 3-px ("slim") arms. */
+  private readonly slimSkins = new Set<string>();
+
+  /** Whether a skin uses the slim arm model (PlayerModel slim = true). */
+  isSlim(skin: string): boolean {
+    return this.slimSkins.has(skin);
+  }
+
+  private async loadTexture(url: string, skinName?: string): Promise<WebGLTexture> {
     const bmp = await createImageBitmap(await (await fetch(url)).blob(), { premultiplyAlpha: 'none' });
+    if (skinName !== undefined && isSlimSkin(bmp)) this.slimSkins.add(skinName);
     const gl = this.gl;
     const t = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, t);
@@ -257,10 +266,12 @@ export class EntityRenderer {
    * First-person arm (vanilla PlayerRenderer.renderRightHand): the right arm part drawn with
    * `base` (view space, vanilla model units where +Y is down) and the idle zRot of 0.1.
    */
-  renderFirstPersonArm(proj: Mat4, base: Mat4, skinName: string, light: number, lightmap: WebGLTexture, l0: [number, number, number], l1: [number, number, number]): void {
+  renderFirstPersonArm(proj: Mat4, base: Mat4, skinName: string, light: number, lightmap: WebGLTexture, l0: [number, number, number], l1: [number, number, number], side: 1 | -1 = 1): void {
     const gl = this.gl;
-    const model = this.models.get('player')!;
-    const part = model.baked.parts.find((p) => p.def.name === 'rightArm')!;
+    const skin = this.skinFor(skinName, '');
+    // classic (4 px) or slim (3 px) arms; both pivot at (±5, 2, 0) once setupAnim has run
+    const model = this.models.get(this.isSlim(skin) ? 'player_slim' : 'player')!;
+    const part = model.baked.parts.find((p) => p.def.name === (side === 1 ? 'rightArm' : 'leftArm'))!;
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(this.u.get('uViewProj'), false, proj);
     gl.uniform1i(this.u.get('uTex'), 0);
@@ -275,14 +286,14 @@ export class EntityRenderer {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, lightmap);
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.skins.get(this.skinFor(skinName, '')) ?? null);
-    // pivot (−5, 2, 0) in vanilla model space, zRot 0.1, px → blocks, then our model space
+    gl.bindTexture(gl.TEXTURE_2D, this.skins.get(skin) ?? null);
+    // pivot (∓5, 2, 0) in vanilla model space, zRot ±0.1 (bobModelPart at age 0), px → blocks, then our model space
     // (y up, facing +Z) → vanilla's (y down, facing −Z): diag(1, −1, −1)
     const m = this.tmp;
     m.set(base);
-    const c = Math.cos(0.1), s = Math.sin(0.1), k = 1 / 16;
+    const c = Math.cos(side * 0.1), s = Math.sin(side * 0.1), k = 1 / 16;
     const r = this.m;
-    r.set([c * k, s * k, 0, 0, s * k, -c * k, 0, 0, 0, 0, -k, 0, -5 / 16, 2 / 16, 0, 1]);
+    r.set([c * k, s * k, 0, 0, s * k, -c * k, 0, 0, 0, 0, -k, 0, (side * -5) / 16, 2 / 16, 0, 1]);
     multiply(m, m, r);
     gl.uniformMatrix4fv(this.u.get('uModel'), false, m);
     gl.enable(gl.DEPTH_TEST);
@@ -291,6 +302,20 @@ export class EntityRenderer {
     gl.drawArrays(gl.TRIANGLES, part.first, part.count);
     gl.bindVertexArray(null);
   }
+}
+
+/**
+ * Slim-arm skins leave the outer 1-px columns of the arm texture empty (x 54-55, y 20-31 of
+ * the right arm strip): the usual way to tell a slim skin from the image alone.
+ */
+function isSlimSkin(bmp: ImageBitmap): boolean {
+  if (typeof OffscreenCanvas === 'undefined' || bmp.width !== 64 || bmp.height !== 64) return false;
+  const c = new OffscreenCanvas(64, 64).getContext('2d');
+  if (!c) return false;
+  c.drawImage(bmp, 0, 0);
+  const d = c.getImageData(54, 20, 2, 12).data;
+  for (let i = 3; i < d.length; i += 4) if (d[i]! !== 0) return false;
+  return true;
 }
 
 /** Return queued held-item matrices to the pool after drawing. */
