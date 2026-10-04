@@ -26,7 +26,7 @@ const key = (p: Page, code: string) => p.evaluate((c) => {
   i.release(c);
 }, code);
 /** Let the equip animation finish (3 ticks) and a few frames render (slow under SwiftShader). */
-const settle = () => page.waitForTimeout(1200);
+const settle = () => page.waitForTimeout(2000);
 
 await page.goto(`${base}?nolock=1&rd=3&gamemode=creative&x=40.5&y=160&z=40.5&pitch=10&yaw=0&time=6000`);
 await page.waitForFunction(() => {
@@ -77,14 +77,15 @@ for (const [slot, name] of [['Digit9', 'empty'], ['Digit1', 'block']] as const) 
   await page.evaluate(() => { (window as any).game.debugSwingFreeze = undefined; });
 }
 
-// use poses (forced through the itemUse hook) with the planks: eating and drawing a bow
-await key(page, 'Digit1');
+// use poses (forced through the itemUse hook): eating an apple, drawing the bow
+await key(page, 'Digit6');
 await settle();
-await page.evaluate(() => { (window as any).game.itemUse = { hand: 0, item: 'bread', remaining: 20, duration: 32, anim: 'eat' }; });
+await page.evaluate(() => { (window as any).game.itemUse = { hand: 0, item: 'apple', remaining: 20, duration: 32, anim: 'eat' }; });
 await page.waitForTimeout(150);
 await shot('use-eat');
 await page.evaluate(() => { (window as any).game.itemUse = { hand: 0, item: 'bow', remaining: 72000 - 30, duration: 72000, anim: 'bow' }; });
-await page.waitForTimeout(150);
+await key(page, 'Digit5');
+await settle();
 await shot('use-bow');
 await page.evaluate(() => { (window as any).game.itemUse = null; });
 
