@@ -1180,9 +1180,10 @@ export class GameServer {
     const old = this.world.setStateRaw(x, y, z, state);
     if (old === state) return;
     this.light.onBlockChanged(x, y, z, old, state);
-    this.fluids.blockChanged(x, y, z, old, state);
     const key = chunkKey(x >> 4, z >> 4);
     for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
+    // after the packet: fluid updates may replace this block again (lava hardening) and must arrive later
+    this.fluids.blockChanged(x, y, z, old, state);
   }
 
   // ---------------------------------------------------------------- ticking

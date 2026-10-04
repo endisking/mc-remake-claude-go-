@@ -692,6 +692,11 @@ export class Game implements ScreenHost {
       }
       case 'levelEvent':
         if (p.event === 2001) this.blockBroken(p.x, p.y, p.z, p.data);
+        else if (p.event === 1501) {
+          // LevelRenderer.levelEvent LAVA_FIZZ: extinguish hiss (large smoke particles: no smoke particle type yet)
+          const r = this.sfxRand;
+          this.playAt('block.lava.extinguish', 'block', p.x + 0.5, p.y + 0.5, p.z + 0.5, 0.5, 2.6 + (r.nextFloat() - r.nextFloat()) * 0.8);
+        }
         break;
       case 'sound': {
         const name = soundName(p.event);

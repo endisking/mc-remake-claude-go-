@@ -41,6 +41,32 @@ describe('server fluid ticks', () => {
     expect(a.received.some((p) => p.t === 'levelEvent' && p.event === 1501)).toBe(true);
   });
 
+  it('clients end up with the server state when lava hardens inside its own update', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true });
+    const a = client(server, 'A');
+    for (let i = 0; i < 5; i++) server.tick();
+    const stone = stateOf('stone');
+    for (let x = -2; x <= 10; x++) for (let z = -3; z <= 3; z++) {
+      server.world.setStateRaw(x, 119, z, stone);
+      if (z === -3 || z === 3 || x === -2 || x === 10) server.world.setStateRaw(x, 120, z, stone);
+    }
+    a.send({ t: 'setBlock', x: 0, y: 120, z: 0, state: stateOf('lava') });
+    a.send({ t: 'setBlock', x: 8, y: 120, z: 0, state: stateOf('water') });
+    a.send({ t: 'setBlock', x: 0, y: 120, z: 2, state: stateOf('lava') });
+    for (let i = 0; i < 300; i++) server.tick();
+    const last = new Map<string, number>();
+    for (const p of a.received) if (p.t === 'blockChange') last.set(`${p.x},${p.y},${p.z}`, p.state);
+    let cobble = 0;
+    for (const [k, s] of last) {
+      const [x, y, z] = k.split(',').map(Number) as [number, number, number];
+      expect(s, k).toBe(server.world.getState(x, y, z));
+      if (blockNameOf(s) === 'cobblestone') cobble++;
+    }
+    const rows: string[] = [];
+    for (let z = -2; z <= 2; z++) { const r: string[] = []; for (let x = -1; x <= 9; x++) r.push(blockNameOf(server.world.getState(x, 120, z)).slice(0, 4)); rows.push(r.join(' ')); }
+    expect(cobble, rows.join('\n')).toBeGreaterThanOrEqual(3);
+  }, 60000);
+
   it('worldgen springs schedule fluid ticks when their chunk is decorated', () => {
     const server = new GameServer({ seed: 12345n, chunkGenBudget: 100 });
     client(server, 'A');
