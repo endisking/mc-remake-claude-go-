@@ -12,6 +12,7 @@
  */
 import { ITEMS_BY_ID } from '@shared/data';
 import type { ItemStack } from '@shared/item/stack';
+import { hasFoil } from '@shared/game/enchantments';
 import type { Gui } from './gui';
 import type { ItemTextures } from '../render/itemtextures';
 
@@ -57,6 +58,48 @@ export function spriteLayerFor(sprites: ItemTextures, itemId: number): number {
     spriteCache.set(itemId, l);
   }
   return l;
+}
+
+// ------------------------------------------------------------------ enchantment glint
+let glintImg: HTMLImageElement | null = null;
+let glintMask: HTMLCanvasElement | null = null;
+let glintLayer: HTMLCanvasElement | null = null;
+
+/**
+ * ItemRenderer foil: the scrolling glint texture, masked to the icon's opaque pixels and added
+ * on top (vanilla GLINT render type: additive, scrolling with time, rotated 10°).
+ */
+export function drawGlint(g: Gui, itemId: number, x: number, y: number, now = performance.now()): void {
+  if (typeof document === 'undefined') return;
+  if (!glintImg) {
+    glintImg = new Image();
+    glintImg.src = './textures/misc/enchanted_item_glint.png';
+  }
+  if (!glintImg.complete || glintImg.naturalWidth === 0) return;
+  glintMask ??= Object.assign(document.createElement('canvas'), { width: 16, height: 16 });
+  glintLayer ??= Object.assign(document.createElement('canvas'), { width: 16, height: 16 });
+  const mctx = glintMask.getContext('2d')!, lctx = glintLayer.getContext('2d')!;
+  mctx.imageSmoothingEnabled = false;
+  lctx.imageSmoothingEnabled = false;
+  mctx.clearRect(0, 0, 16, 16);
+  drawItemIcon({ blit: (img: CanvasImageSource, sx: number, sy: number, w: number, h: number, dx: number, dy: number, dw = w, dh = h) => mctx.drawImage(img, sx, sy, w, h, dx - x, dy - y, dw, dh), fill: () => {} } as unknown as Gui, itemId, x, y);
+  // RenderStateShard.setupGlintTexturing: offsets cycle every 110 s / 30 s of (millis × 8)
+  const t = now * 8;
+  const fx = ((t % 110000) / 110000) * 64, fy = ((t % 30000) / 30000) * 64;
+  lctx.globalCompositeOperation = 'source-over';
+  lctx.clearRect(0, 0, 16, 16);
+  lctx.save();
+  lctx.rotate((10 * Math.PI) / 180);
+  for (let ox = -64; ox <= 64; ox += 64) for (let oy = -64; oy <= 64; oy += 64) lctx.drawImage(glintImg, Math.floor(-fx + ox), Math.floor(fy + oy) - 64, 64, 64);
+  lctx.restore();
+  lctx.globalCompositeOperation = 'destination-in';
+  lctx.drawImage(glintMask, 0, 0);
+  const ctx = g.ctx;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.8;
+  ctx.drawImage(glintLayer, x, y);
+  ctx.restore();
 }
 
 /** Draw a 16×16 item icon at GUI coordinates. */
@@ -112,6 +155,7 @@ export function drawItemStack(g: Gui, stack: ItemStack | null | undefined, x: nu
     drawItemIcon(g, stack.id, x, y);
     g.ctx.restore();
   } else drawItemIcon(g, stack.id, x, y);
+  if (hasFoil(stack)) drawGlint(g, stack.id, x, y);
   const max = ITEMS_BY_ID[stack.id]?.maxDurability ?? 0;
   if (max > 0 && stack.damage > 0) {
     g.fill(x + 2, y + 13, 13, 2, 0xff000000);

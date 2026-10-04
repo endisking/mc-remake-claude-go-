@@ -14,6 +14,8 @@ import { isRainingAt } from '@shared/world/weather';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { giveExperienceLevels, giveExperiencePoints, deathExperience } from '@shared/game/experience';
 import { CombatTracker, fallLocation, type CombatSource } from '@shared/game/combattracker';
+import { ActiveEffects, resistanceReduce } from '@shared/game/effects';
+import { damageProtection, magicAbsorb, respirationKeepsAir, armorItems } from '@shared/game/enchantments';
 
 export interface DamageSource extends CombatSource {
   id: string;
@@ -21,6 +23,11 @@ export interface DamageSource extends CombatSource {
   bypassInvul?: boolean;
   fire?: boolean;
   fall?: boolean;
+  /** DamageSource.isBypassMagic: ignores Resistance and enchantment protection */
+  bypassMagic?: boolean;
+  magic?: boolean;
+  explosion?: boolean;
+  projectile?: boolean;
 }
 
 /** Vanilla DamageSource constants used by the environment. */
@@ -31,7 +38,7 @@ export const DAMAGE = {
   hotFloor: { id: 'hotFloor', fire: true },
   inWall: { id: 'inWall', bypassArmor: true },
   drown: { id: 'drown', bypassArmor: true },
-  starve: { id: 'starve', bypassArmor: true },
+  starve: { id: 'starve', bypassArmor: true, bypassMagic: true },
   cactus: { id: 'cactus' },
   fall: { id: 'fall', bypassArmor: true, fall: true },
   outOfWorld: { id: 'outOfWorld', bypassArmor: true, bypassInvul: true },
@@ -99,6 +106,8 @@ export class LivingState {
   timeSinceRest = 0;
   /** Entity.ticksFrozen (powder snow; 140 = fully frozen) */
   ticksFrozen = 0;
+  /** LivingEntity.activeEffects (Phase 7; see server/src/game/effects.ts) */
+  readonly effects = new ActiveEffects();
 
   get dead(): boolean {
     return this.health <= 0;
@@ -122,6 +131,8 @@ export class Survival {
   hurt(p: ServerPlayer, src: DamageSource, amount: number, attacker: ServerPlayer | null = null): boolean {
     const l = p.living;
     if (this.invulnerableTo(p, src) || l.dead) return false;
+    // LivingEntity.hurt: Fire Resistance ignores every fire source
+    if (src.fire && l.effects.has('fire_resistance')) return false;
     if (attacker) {
       src = { ...src, entity: { name: attacker.name, player: true } };
       l.lastHurtByPlayer = attacker.name;
@@ -156,8 +167,11 @@ export class Survival {
     const r = this.s.rand;
     const voice = (r.nextFloat() - r.nextFloat()) * 0.2 + 1;
     if (l.dead) {
-      if (fresh) this.s.playSound(p, 'entity.player.death', 'player', p.x, p.y, p.z, 1, voice);
-      this.die(p, src);
+      // a Totem of Undying in either hand cancels the death
+      if (!this.s.effects.checkTotem(p, !!src.bypassInvul)) {
+        if (fresh) this.s.playSound(p, 'entity.player.death', 'player', p.x, p.y, p.z, 1, voice);
+        this.die(p, src);
+      }
     } else if (fresh) {
       // Player.getHurtSound
       const ev = src.id === 'onFire' ? 'entity.player.hurt_on_fire' : src.id === 'drown' ? 'entity.player.hurt_drown'
@@ -169,7 +183,13 @@ export class Survival {
 
   private actuallyHurt(p: ServerPlayer, src: DamageSource, amount: number): void {
     const l = p.living;
-    // armour and enchantment protection arrive with items (Phase 5); absorption first
+    // LivingEntity.getDamageAfterMagicAbsorb: Resistance, then enchantment protection (EPF)
+    if (!src.bypassMagic) {
+      if (src.id !== 'outOfWorld') amount = resistanceReduce(amount, l.effects.amplifier('resistance'));
+      if (amount <= 0) return;
+      const epf = damageProtection(armorItems(p.inventory), src);
+      if (epf > 0) amount = magicAbsorb(amount, epf);
+    }
     const absorbed = Math.min(l.absorption, amount);
     l.absorption -= absorbed;
     amount -= absorbed;
@@ -234,7 +254,9 @@ export class Survival {
     const eyeState = w.getState(Math.floor(p.x), Math.floor(p.y + ph.eyeHeight), Math.floor(p.z));
     const invulnerable = p.gameMode === 1 || p.gameMode === 3;
     if (ph.isUnderWater && blockNameOf(eyeState) !== 'bubble_column') {
-      if (!invulnerable) {
+      // MobEffectUtil.hasWaterBreathing; Respiration may skip the decrement (decreaseAirSupply)
+      const breathes = l.effects.has('water_breathing') || l.effects.has('conduit_power');
+      if (!invulnerable && !breathes && !respirationKeepsAir(p.inventory, this.s.rand)) {
         l.airSupply--;
         if (l.airSupply === -20) {
           l.airSupply = 0;
@@ -265,6 +287,12 @@ export class Survival {
     else l.lastHurtByPlayer = null;
     l.combat.recheckStatus(this.s.gameTime, !l.dead);
 
+    // LivingEntity.tickEffects
+    this.s.effects.tick(p);
+    if (l.dead) {
+      this.sync(p);
+      return;
+    }
     // Player.tick: hunger; Player.aiStep: peaceful regeneration
     if (p.gameMode === 0 || p.gameMode === 2) {
       l.food.tick({

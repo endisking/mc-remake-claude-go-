@@ -52,7 +52,10 @@ import { Button } from './gui/screen';
 import { KeyBindings } from './keybinds';
 import { blockForItem } from '@shared/game/loot';
 import { BLOCKS_BY_NAME, ITEMS_BY_ID, ITEMS_BY_NAME } from '@shared/data';
-import { itemName, type ItemStack } from '@shared/item/stack';
+import { itemName, decodeTag, type ItemStack, type ItemTag } from '@shared/item/stack';
+import { EffectsClient, nauseaMatrix } from './effects';
+import { EnchantScreen } from './gui/enchantscreen';
+import { entityEnchLevel } from '@shared/game/enchantments';
 import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
 import { isViewBlocking, hasMenuProvider } from '@shared/world/blockprops';
@@ -161,7 +164,7 @@ export class Game implements ScreenHost {
   compassTarget: [number, number] | null = null;
   private bake!: BakeResult;
   /** Dropped item entities: id → state for rendering. */
-  readonly items = new Map<number, { x: number; y: number; z: number; xo: number; yo: number; zo: number; lx: number; ly: number; lz: number; steps: number; item: number; count: number; age: number; bobOffs: number; pickup?: { collector: number; life: number }; orb?: number }>();
+  readonly items = new Map<number, { x: number; y: number; z: number; xo: number; yo: number; zo: number; lx: number; ly: number; lz: number; steps: number; item: number; count: number; age: number; bobOffs: number; pickup?: { collector: number; life: number }; orb?: number; tag?: ItemTag }>();
   entityId = 0;
   /** Other players' digging cracks: player id → position + stage. */
   private otherCracks = new Map<number, { x: number; y: number; z: number; stage: number }>();
@@ -367,7 +370,7 @@ export class Game implements ScreenHost {
 
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
-    await Promise.all([this.gui.load(), this.hud.load(), this.sound.load(), this.spectatorGui.load()]);
+    await Promise.all([this.gui.load(), this.hud.load(), this.sound.load(), this.spectatorGui.load(), this.effectsClient.load()]);
     void fetch('./textures/environment/powder_snow_outline.png').then((r) => r.blob()).then((b) => createImageBitmap(b)).then((bmp) => (this.frostOverlay = bmp));
     for (const [c, v] of Object.entries(this.settings.volumes)) this.sound.volumes[c as SoundCategory] = v;
     // audio may only start after a user gesture
@@ -703,6 +706,7 @@ export class Game implements ScreenHost {
         this.setScreen(new DeathScreen(this, p.message, p.score));
         break;
       case 'respawn':
+        this.effectsClient.reset();
         this.health = 20;
         this.deathTime = 0;
         this.hurtTime = 0;
@@ -714,6 +718,27 @@ export class Game implements ScreenHost {
         break;
       case 'setSlot':
         this.interaction.inventory.set(p.slot, p.item > 0 && p.count > 0 ? { id: p.item, count: p.count, damage: p.damage } : null);
+        break;
+      case 'slotTag': {
+        const st = this.interaction.inventory.get(p.slot);
+        if (st) {
+          const tag = decodeTag(p.tag);
+          if (tag) st.tag = tag;
+          else delete st.tag;
+        }
+        break;
+      }
+      case 'itemEntityTag': {
+        const it = this.items.get(p.id) as { tag?: ItemTag } | undefined;
+        if (it) it.tag = decodeTag(p.tag);
+        break;
+      }
+      case 'updateEffect':
+      case 'removeEffect':
+      case 'effectParticles':
+      case 'playerAttributes':
+      case 'enchantMenu':
+        this.effectsClient.handle(p);
         break;
       case 'heldSlot':
         this.interaction.inventory.selected = p.slot;
@@ -907,6 +932,7 @@ export class Game implements ScreenHost {
       // looking through another entity: no movement, but sneaking still reaches the server
       pl.shiftDown = move.sneak;
     } else if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
+      this.effectsClient.applyPhysics(pl.effects, entityEnchLevel('depth_strider', this.interaction.inventory));
       pl.tick(move);
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
     }
@@ -944,6 +970,8 @@ export class Game implements ScreenHost {
       }
     }
     this.particles.tick();
+    this.effectsClient.tick();
+    this.tickEffectParticles();
     this.swingTick();
     this.hud.tick(this.interaction.inventory);
     this.tickHand();
@@ -1097,6 +1125,29 @@ export class Game implements ScreenHost {
    * first-person hand: haste / conduit_power / mining_fatigue (swing duration).
    */
   readonly localEffects = new Map<string, number>();
+  /** Phase 7: synced status effects, attributes, swirl particles and the enchanting window */
+  readonly effectsClient: EffectsClient = new EffectsClient(this);
+
+  /** The server opened/closed the enchanting table window. */
+  onEnchantMenu(open: boolean): void {
+    if (open) {
+      if (!(this.screen instanceof EnchantScreen)) {
+        this.setScreen(new EnchantScreen({
+          gui: this.gui,
+          inventory: this.interaction.inventory,
+          xpLevel: () => this.xpLevel,
+          creative: () => this.gameMode === 1,
+          sendEnchantAction: (a, b, sl) => this.sendEnchantAction(a, b, sl),
+          setScreen: (sc) => this.setScreen(sc),
+        }, this.effectsClient));
+      }
+    } else if (this.screen instanceof EnchantScreen) this.setScreen(null);
+  }
+
+  /** Enchanting window action (see enchantAction in the protocol). */
+  sendEnchantAction(action: number, button: number, slot: number): void {
+    this.send({ t: 'enchantAction', action, button, slot });
+  }
   /**
    * The item the local player is using (LivingEntity.useItem): hand, item name, ticks left
    * (getUseItemRemainingTicks, counted down each tick by the owner of the use), total use
@@ -1170,6 +1221,16 @@ export class Game implements ScreenHost {
       this.permissionLevel = event - 24;
       return;
     }
+    if (event === 35) {
+      // totem of undying: particles and sound for everyone, the item pop-up for the holder
+      const pos = id === this.entityId ? this.player : this.players.get(id);
+      if (pos) {
+        this.playAt('item.totem.use', 'player', pos.x, pos.y, pos.z, 1, 1);
+        this.particles.totem(pos.x, pos.y + 1, pos.z);
+      }
+      if (id === this.entityId) this.effectsClient.totemActivated(Math.random);
+      return;
+    }
     const hurt = event === 2 || event === 33 || event === 36 || event === 37 || event === 44 || event === 57;
     if (id !== this.entityId) {
       const rp = this.players.get(id);
@@ -1182,6 +1243,21 @@ export class Game implements ScreenHost {
       const ev = event === 37 ? 'entity.player.hurt_on_fire' : event === 36 ? 'entity.player.hurt_drown' : event === 44 ? 'entity.player.hurt_sweet_berry_bush' : event === 57 ? 'entity.player.hurt_freeze' : 'entity.player.hurt';
       this.playPlayer(ev, 1, voice);
     } else if (event === 3) this.playPlayer('entity.player.death', 1, voice);
+  }
+
+  /** Potion swirls around players with effects (DATA_EFFECT_COLOR_ID). */
+  private tickEffectParticles(): void {
+    const fx = this.effectsClient;
+    if (fx.swirl.size === 0) return;
+    if (!this.particles.flatLayer) {
+      const white = BLOCKS_BY_NAME.get('white_concrete');
+      if (white) this.particles.flatLayer = this.particleLayer(white.defaultState);
+    }
+    const list: { id: number; x: number; y: number; z: number; width: number; height: number; invisible: boolean }[] = [];
+    // vanilla shows the local player's own swirls in every perspective
+    list.push({ id: this.entityId, x: this.player.x, y: this.player.y, z: this.player.z, width: 0.6, height: 1.8, invisible: this.localEffects.has('invisibility') });
+    for (const rp of this.players.values()) list.push({ id: rp.id, x: rp.x, y: rp.y, z: rp.z, width: 0.6, height: 1.8, invisible: (rp.flags & 32) !== 0 });
+    fx.tickParticles(Math.random, list, (x, y, z, r, g, b, ambient) => this.particles.spell(x, y, z, r, g, b, ambient));
   }
 
   /** Footsteps/swimming (Entity.move) and landing sounds (LivingEntity.causeFallDamage) for the local player. */
@@ -1312,8 +1388,8 @@ export class Game implements ScreenHost {
     return {
       gameMode: this.gameMode,
       health: this.health,
-      maxHealth: 20,
-      absorption: 0,
+      maxHealth: this.effectsClient.maxHealth,
+      absorption: this.effectsClient.absorption,
       armor: 0,
       food: this.food,
       saturation: this.saturation,
@@ -1324,10 +1400,10 @@ export class Game implements ScreenHost {
       xpProgress: this.xpProgress,
       xpLevel: this.xpLevel,
       inventory: this.interaction.inventory,
-      heartType: this.ticksFrozen >= 140 ? 'frozen' : 'normal',
+      heartType: this.localEffects.has('poison') ? 'poisoned' : this.localEffects.has('wither') ? 'withered' : this.ticksFrozen >= 140 ? 'frozen' : 'normal',
       hardcore: false,
-      regeneration: false,
-      hungerEffect: false,
+      regeneration: this.localEffects.has('regeneration'),
+      hungerEffect: this.localEffects.has('hunger'),
     };
   }
 
@@ -1976,15 +2052,28 @@ export class Game implements ScreenHost {
         for (let i = 0; i < 3; i++) fog[i] = fog[i]! * (1 - wv) + fog[i]! * k * wv;
       }
     } else if (medium === 'lava') {
-      fogStart = 0.25;
-      fogEnd = 1;
+      // FogRenderer: Fire Resistance clears lava fog to 0..3 blocks
+      if (this.localEffects.has('fire_resistance')) {
+        fogStart = 0;
+        fogEnd = 3;
+      } else {
+        fogStart = 0.25;
+        fogEnd = 1;
+      }
+    }
+    // FogRenderer: blindness closes the fog to 5 blocks (fading in over the last second)
+    const blind = this.effectsClient.blindFog(renderDist);
+    if (blind !== null) {
+      fogStart = blind * 0.25;
+      fogEnd = blind;
+      if (blind <= 5) fog[0] = fog[1] = fog[2] = 0;
     }
 
     this.lightmap.update({
       skyDarken: skyDarken(tod, this.world.rain, this.world.thunder),
       ambient: 0,
       gamma: s.gamma,
-      nightVision: 0,
+      nightVision: this.effectsClient.nightVision(partial, this.player.isUnderWater),
       flash: this.skyFlashTime > 0,
       end: false,
     });
@@ -1998,6 +2087,11 @@ export class Game implements ScreenHost {
     perspective(this.proj, (fov * Math.PI) / 180, aspect, 0.05, Math.max(renderDist * 4, 512));
     this.applyHurtBob(this.proj, partial);
     if (s.viewBobbing) this.applyViewBob(partial);
+    {
+      // nausea wobble (GameRenderer.renderLevel portal/confusion distortion)
+      const nm = nauseaMatrix(this.effectsClient.wobble(partial, (this.settings as { screenEffectScale?: number }).screenEffectScale ?? 1), this.clientTicks + partial);
+      if (nm) multiply(this.proj, this.proj, nm as unknown as Mat4);
+    }
     viewRotation(this.view, camYaw, camPitch);
     this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
 
@@ -2100,7 +2194,9 @@ export class Game implements ScreenHost {
         g.ctx.drawImage(this.frostOverlay, 0, 0, g.width, g.height);
         g.ctx.restore();
       }
-      this.hud.render(g, this.hudState(), (id, c, x, y, dmg, pop) => this.renderGuiItem(id, c, x, y, dmg, pop), this.guiPartial);
+      this.hud.render(g, this.hudState(), (id, c, x, y, dmg, pop, tag) => this.renderGuiItem(id, c, x, y, dmg, pop, tag), this.guiPartial);
+      if (!this.hideHud) this.effectsClient.renderHud(g);
+      this.renderItemActivation(g);
       // PlayerTabOverlay: while the key is held, in multiplayer or with company
       if (!this.screen && this.binds.down('playerlist') && (this.playerInfo.size > 1 || this.players.size > 0)) {
         renderPlayerList(g, [...this.playerInfo.values()], (id) => this.playerLatency.get(id) ?? 0, (pi) => this.skinFace(pi));
@@ -2187,8 +2283,33 @@ export class Game implements ScreenHost {
   }
 
   /** A 16×16 item in the GUI with its stack count (vanilla ItemRenderer.renderGuiItem + decorations). */
-  renderGuiItem(id: number, count: number, x: number, y: number, damage = 0, pop = 0): void {
-    drawItemStack(this.gui, { id, count, damage }, x, y, undefined, pop);
+  renderGuiItem(id: number, count: number, x: number, y: number, damage = 0, pop = 0, tag?: ItemTag): void {
+    drawItemStack(this.gui, tag ? { id, count, damage, tag } : { id, count, damage }, x, y, undefined, pop);
+  }
+
+  /** GameRenderer.renderItemActivation: the totem flies up toward the camera and spins (40 ticks). */
+  private renderItemActivation(g: Gui): void {
+    const fx = this.effectsClient;
+    if (fx.itemActivationTicks <= 0) return;
+    const totem = ITEMS_BY_NAME.get('totem_of_undying');
+    if (!totem) return;
+    const i = 40 - fx.itemActivationTicks;
+    const f = (i + this.guiPartial) / 40;
+    const f1 = f * f, f2 = f * f1;
+    const f3 = 10.25 * f2 * f1 - 24.95 * f1 * f1 + 25.5 * f2 - 13.8 * f1 + 4 * f;
+    const f4 = f3 * Math.PI;
+    const ox = fx.itemActivationOffX * (g.width / 4), oy = fx.itemActivationOffY * (g.height / 4);
+    const cx = g.width / 2 + ox * Math.abs(Math.sin(f4 * 2)), cy = g.height / 2 + oy * Math.abs(Math.sin(f4 * 2));
+    const size = (50 + 175 * Math.sin(f4)) * (g.height / 240) * 0.5;
+    const spin = (900 * Math.abs(Math.sin(f4))) % 360;
+    const ctx = g.ctx;
+    ctx.save();
+    ctx.translate(cx, cy);
+    // the 3D Y-spin is drawn as a horizontal squash
+    ctx.scale(Math.cos((spin * Math.PI) / 180) || 0.05, 1);
+    ctx.scale(size / 16, size / 16);
+    drawItemStack(g, { id: totem.id, count: 1, damage: 0 }, -8, -8);
+    ctx.restore();
   }
 
   /** partial tick of the frame being drawn (GUI animations) */

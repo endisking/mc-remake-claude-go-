@@ -90,6 +90,21 @@ const S2C_SCHEMA = {
   keepAlive: [['id', 'f64']],
   /** Vanilla PlayerInfo UPDATE_LATENCY: a player's ping in milliseconds. */
   playerLatency: [['id', 'i32'], ['latency', 'varint']],
+  // ---- status effects & enchantments (Phase 7) ----
+  /** Vanilla UpdateMobEffect: flags 1 ambient, 2 visible (particles), 4 show icon. */
+  updateEffect: [['id', 'i32'], ['effect', 'u8'], ['amplifier', 'u8'], ['duration', 'varint'], ['flags', 'u8']],
+  /** Vanilla RemoveMobEffect. */
+  removeEffect: [['id', 'i32'], ['effect', 'u8']],
+  /** LivingEntity DATA_EFFECT_COLOR_ID / DATA_EFFECT_AMBIENCE_ID (potion swirl particles; 0 = none). */
+  effectParticles: [['id', 'i32'], ['color', 'i32'], ['ambient', 'bool']],
+  /** Local player's max health (Health Boost) and absorption (golden hearts). */
+  playerAttributes: [['maxHealth', 'f32'], ['absorption', 'f32']],
+  /** Item NBT for an inventory slot (sent after setSlot; '' = none): JSON of ItemTag. */
+  slotTag: [['slot', 'i16'], ['tag', 'str']],
+  /** Item NBT of an item entity (enchantment glint, potion colour); JSON of ItemTag. */
+  itemEntityTag: [['id', 'i32'], ['tag', 'str']],
+  /** Enchanting table window (vanilla EnchantmentMenu data slots); open=false closes it. */
+  enchantMenu: [['open', 'bool'], ['costs', 'i32list'], ['clues', 'i32list'], ['levels', 'i32list'], ['seed', 'i32'], ['item', 'i16'], ['itemCount', 'u8'], ['itemTag', 'str'], ['lapis', 'u8']],
 } as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server
@@ -128,6 +143,13 @@ const C2S_SCHEMA = {
   commandSuggest: [['id', 'varint'], ['text', 'str']],
   /** Reply to the server's keepAlive. */
   keepAlive: [['id', 'f64']],
+  // ---- enchanting (Phase 7) ----
+  /**
+   * Enchanting table window actions: 0 click an offer (button = slot 0–2, vanilla
+   * ContainerButtonClick), 1 put/take the item slot from/to the cursor-less hotbar slot `slot`,
+   * 2 put/take lapis, 3 close.
+   */
+  enchantAction: [['action', 'u8'], ['button', 'u8'], ['slot', 'i16']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;

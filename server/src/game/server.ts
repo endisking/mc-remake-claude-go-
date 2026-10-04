@@ -17,6 +17,7 @@ import { ServerPlayer } from './player';
 import { AABB, noCollision } from '@shared/entity/aabb';
 import { ItemEntity, LightningBolt, ExperienceOrb, experienceOrbValue, type ServerEntity } from './entity';
 import { Sleep } from './sleep';
+import { ServerEffects } from './effects';
 import { FluidTicks } from './fluidticks';
 import { legacyBlock, FLUID_OF } from '@shared/game/fluids';
 import { isRainingAt } from '@shared/world/weather';
@@ -24,7 +25,7 @@ import { stateForPlacement, updateShape, isReplaceable, companionPlacement, DIRS
 import { canSurvive } from '@shared/game/support';
 import { destroyProgress, hardness, canHarvest } from '@shared/game/mining';
 import { blockDrops, blockForItem, itemForBlock } from '@shared/game/loot';
-import { isEmpty, maxStackSize, itemName, type ItemStack } from '@shared/item/stack';
+import { isEmpty, maxStackSize, itemName, encodeTag, tagsEqual, type ItemStack } from '@shared/item/stack';
 import { collisionBoxes } from '@shared/world/shapes';
 import { getProp, blockNameOf } from '@shared/world/blockstate';
 import { FLUID } from '@shared/world/blockinfo';
@@ -100,6 +101,8 @@ export class GameServer {
   /** server.properties pvp */
   pvp = true;
   readonly sleep = new Sleep(this);
+  /** Status effects (Phase 7) */
+  readonly effects = new ServerEffects(this);
   // ---- fluids (FlowingFluid ticks; see fluidticks.ts) ----
   readonly fluids: FluidTicks = new FluidTicks({
     getState: (x, y, z) => this.world.getState(x, y, z),
@@ -233,6 +236,7 @@ export class GameServer {
     }
     this.sendAbilities(p);
     this.survival.sync(p);
+    this.effects.resend(p);
     this.send(p, { t: 'difficulty', difficulty: this.difficulty });
     this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     this.send(p, { t: 'weather', rain: this.rainLevel, thunder: this.thunderLevel * this.rainLevel });
@@ -394,6 +398,8 @@ export class GameServer {
   syncSlot(p: ServerPlayer, slot: number): void {
     const st = p.inventory.get(slot);
     this.send(p, { t: 'setSlot', slot, item: st?.id ?? 0, count: st?.count ?? 0, damage: st?.damage ?? 0 });
+    // Phase 7: item NBT (enchantments, names) follows its slot
+    if (st?.tag) this.send(p, { t: 'slotTag', slot, tag: encodeTag(st.tag) });
   }
 
   /** Vanilla pick block: Inventory.setPickedItem (creative) / pickSlot (survival, item already owned). */
@@ -777,7 +783,7 @@ export class GameServer {
     if (a.stack.count >= max) return;
     const bb = a.bb().inflate(0.5, 0, 0.5);
     for (const b of this.entities.values()) {
-      if (b === a || !(b instanceof ItemEntity) || b.removed || b.stack.id !== a.stack.id || b.stack.damage !== a.stack.damage) continue;
+      if (b === a || !(b instanceof ItemEntity) || b.removed || b.stack.id !== a.stack.id || b.stack.damage !== a.stack.damage || !tagsEqual(a.stack.tag, b.stack.tag)) continue;
       if (!b.bb().intersects(bb)) continue;
       if (b.stack.count + a.stack.count > max) continue;
       // the smaller stack merges into the larger one
@@ -802,6 +808,7 @@ export class GameServer {
           p.tracking.add(e.id);
           this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
+          if (e instanceof ItemEntity && e.stack.tag) this.send(p, { t: 'itemEntityTag', id: e.id, tag: encodeTag(e.stack.tag) });
         } else if (!visible && p.tracking.has(e.id)) {
           p.tracking.delete(e.id);
           this.send(p, { t: 'removeEntities', ids: [e.id] });
