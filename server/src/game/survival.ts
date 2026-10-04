@@ -3,6 +3,7 @@
  * invulnerability frames, fire, lava, drowning, suffocation, void, contact blocks, fall damage,
  * natural regeneration/starvation, death (drops, death message) and respawn.
  */
+import { respawnAtAnchor } from './anchor';
 import type { GameServer } from './server';
 import type { ServerPlayer } from './player';
 import { FoodData, Difficulty, EXHAUSTION } from '@shared/game/food';
@@ -518,7 +519,7 @@ export class Survival {
     l.deathTime = 0;
     const msg = this.deathMessage(p);
     if (this.s.gameRules.showDeathMessages) {
-      for (const o of this.s.players) this.s.send(o, { t: 'chat', json: JSON.stringify({ text: msg }) });
+      for (const o of this.s.allPlayers) this.s.send(o, { t: 'chat', json: JSON.stringify({ text: msg }) });
     }
     this.s.broadcastToTrackers(p, { t: 'entityEvent', id: p.id, event: 3 }, true);
     this.s.send(p, { t: 'playerDied', message: msg, score: l.score });
@@ -562,7 +563,26 @@ export class Survival {
       p.living.totalExperience = old.totalExperience;
     }
     p.fallDistance = 0;
-    const { pos: [x, y, z], yaw } = this.s.sleep.respawnPosition(p);
+    // the respawn point: a charged respawn anchor in its dimension, else the bed / world spawn in the overworld
+    const overworld = this.s.levels.get('overworld')!;
+    const r = p.respawn;
+    let target = 'overworld';
+    let found: { pos: [number, number, number]; yaw: number } | null = null;
+    const anchorLevel = r?.dimension && r.dimension !== 'overworld' ? this.s.levels.get(r.dimension) : undefined;
+    if (r && anchorLevel) {
+      found = this.s.inLevel(anchorLevel, () => {
+        this.s.ensureStage(r.x >> 4, r.z >> 4, 3);
+        return respawnAtAnchor(this.s, r.x, r.y, r.z);
+      });
+      if (found) target = anchorLevel.id;
+      else {
+        p.respawn = null;
+        this.s.send(p, { t: 'chat', json: JSON.stringify({ text: 'You have no home bed or charged respawn anchor, or it was obstructed' }) });
+      }
+    }
+    if (!found) found = this.s.inLevel(overworld, () => this.s.sleep.respawnPosition(p));
+    const { pos: [x, y, z], yaw } = found;
+    if (p.dimension !== target) this.s.changeDimension(p, target, x, y, z, yaw, 0);
     p.x = x;
     p.y = y;
     p.z = z;

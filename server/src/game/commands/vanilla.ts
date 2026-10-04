@@ -374,7 +374,7 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
     const s = c.source.server;
     if (s.difficulty === v) throw new CommandError(`The difficulty did not change; it is already set to ${DIFFICULTY_NAMES[v]}`);
     s.difficulty = v as typeof s.difficulty;
-    for (const o of s.players) s.send(o, { t: 'difficulty', difficulty: v });
+    for (const o of s.allPlayers) s.send(o, { t: 'difficulty', difficulty: v });
     c.source.sendSuccess(`The difficulty has been set to ${DIFFICULTY_NAMES[v]}`, true);
     return 0;
   })));
@@ -794,9 +794,9 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
   })));
   const list = (c: Ctx, uuids: boolean): number => {
     const s = c.source.server;
-    const names = s.players.map((p) => (uuids ? `${p.name} (${offlineId(p.name)})` : p.name)).join(', ');
-    c.source.sendSuccess(`There are ${s.players.length} of a max of ${s.commands.maxPlayers} players online: ${names}`, false);
-    return s.players.length;
+    const names = s.allPlayers.map((p) => (uuids ? `${p.name} (${offlineId(p.name)})` : p.name)).join(', ');
+    c.source.sendSuccess(`There are ${s.allPlayers.length} of a max of ${s.commands.maxPlayers} players online: ${names}`, false);
+    return s.allPlayers.length;
   };
   d.register(literal<S>('list').executes((c) => list(c, false)).then(literal<S>('uuids').executes((c) => list(c, true))));
 
@@ -866,7 +866,7 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
       if (!access.ban(name, c.source.textName, reason)) continue;
       n++;
       c.source.sendSuccess(`Banned ${name}: ${reason}`, true);
-      const online = c.source.server.players.find((p) => p.name.toLowerCase() === name.toLowerCase());
+      const online = c.source.server.allPlayers.find((p) => p.name.toLowerCase() === name.toLowerCase());
       if (online) c.source.server.commands.kick(online, 'You are banned from this server.');
     }
     if (n === 0) throw new CommandError('Nothing changed. The player is already banned');
@@ -884,10 +884,10 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
     const s = c.source.server;
     let ip: string | undefined;
     if (IP_PATTERN.test(target)) ip = target;
-    else ip = s.players.find((p) => p.name.toLowerCase() === target.toLowerCase())?.conn.address;
+    else ip = s.allPlayers.find((p) => p.name.toLowerCase() === target.toLowerCase())?.conn.address;
     if (!ip) throw new CommandError('Invalid IP address or unknown player');
     if (!s.commands.access.banIp(ip, c.source.textName, reason)) throw new CommandError('Nothing changed. That IP is already banned');
-    const affected = s.players.filter((p) => p.conn.address === ip);
+    const affected = s.allPlayers.filter((p) => p.conn.address === ip);
     c.source.sendSuccess(`Banned IP ${ip}: ${reason}`, true);
     if (affected.length) c.source.sendSuccess(`This ban affects ${affected.length} players: ${affected.map((p) => p.name).join(', ')}`, true);
     for (const p of affected) s.commands.kick(p, 'You have been IP banned.');
@@ -943,7 +943,7 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
       if (!s.commands.access.op(name)) continue;
       n++;
       c.source.sendSuccess(`Made ${name} a server operator`, true);
-      const online = s.players.find((p) => p.name.toLowerCase() === name.toLowerCase());
+      const online = s.allPlayers.find((p) => p.name.toLowerCase() === name.toLowerCase());
       if (online) s.commands.sendOpLevel(online);
     }
     if (n === 0) throw new CommandError('Nothing changed. The player already is an operator');
@@ -956,7 +956,7 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
       if (!s.commands.access.deop(name)) continue;
       n++;
       c.source.sendSuccess(`Made ${name} no longer a server operator`, true);
-      const online = s.players.find((p) => p.name.toLowerCase() === name.toLowerCase());
+      const online = s.allPlayers.find((p) => p.name.toLowerCase() === name.toLowerCase());
       if (online) s.commands.sendOpLevel(online);
     }
     if (n === 0) throw new CommandError('Nothing changed. The player is not an operator');
@@ -1017,7 +1017,7 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
   d.register(literal<S>('stop').requires(dedicated(4)).executes((c) => {
     c.source.sendSuccess('Stopping the server', true);
     const s = c.source.server;
-    for (const p of [...s.players]) s.commands.kick(p, 'Server closed');
+    for (const p of [...s.allPlayers]) s.commands.kick(p, 'Server closed');
     s.commands.onStop?.();
     return 1;
   }));
@@ -1155,14 +1155,14 @@ function kickUnlisted(src: S): void {
   const s = src.server;
   const a = s.commands.access;
   if (!a.whitelistEnabled || !a.enforceWhitelist) return;
-  for (const p of [...s.players]) if (!a.mayJoinWhitelist(p.name)) s.commands.kick(p, 'You are not white-listed on this server!');
+  for (const p of [...s.allPlayers]) if (!a.mayJoinWhitelist(p.name)) s.commands.kick(p, 'You are not white-listed on this server!');
 }
 
 /** Level.destroyBlock(pos, true): particles, sound and the block's drops. */
 function destroyWithDrops(s: import('../server').GameServer, x: number, y: number, z: number): void {
   const st = s.world.getState(x, y, z);
   if (isAirState(st)) return;
-  for (const o of s.players) s.send(o, { t: 'levelEvent', event: 2001, x, y, z, data: st });
+  for (const o of s.allPlayers) s.send(o, { t: 'levelEvent', event: 2001, x, y, z, data: st });
   s.setBlock(x, y, z, 0);
   for (const it of blockDrops(st, { silkTouch: false, canHarvest: true, random: () => s.rand.nextFloat() })) s.popResource(x, y, z, it);
 }

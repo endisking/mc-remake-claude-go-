@@ -1,0 +1,199 @@
+import { describe, it, expect } from 'vitest';
+import { GameServer, type Connection } from './server';
+import { encodeC2S, decodeS2C, PROTOCOL_VERSION, type S2C } from '@shared/protocol/packets';
+import { stateOf, blockNameOf } from '@shared/world/blockstate';
+import { MemoryStorage } from '../storage/memory';
+import { ITEMS_BY_NAME } from '@shared/data';
+
+function client(server: GameServer, name: string) {
+  const received: S2C[] = [];
+  const conn: Connection = { send: (d) => received.push(decodeS2C(d)), close: () => {} };
+  const recv = server.connect(conn, true);
+  recv(encodeC2S({ t: 'hello', protocol: PROTOCOL_VERSION, name, viewDistance: 2, skin: '' }));
+  return { received, send: (p: Parameters<typeof encodeC2S>[0]) => recv(encodeC2S(p)), conn };
+}
+
+const OBS = stateOf('obsidian');
+
+/** Build a 2×3 obsidian frame (axis x) above the player and return its bottom-left interior block. */
+function buildFrame(server: GameServer, x: number, y: number, z: number): void {
+  for (let i = -1; i <= 2; i++) for (let j = -1; j <= 3; j++) if (i === -1 || i === 2 || j === -1 || j === 3) server.setBlock(x + i, y + j, z, OBS);
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 3; j++) server.setBlock(x + i, y + j, z, 0);
+}
+
+describe('nether portals on the server', () => {
+  it('fire in a frame lights it; breaking the frame breaks the portal', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true });
+    client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    const x = Math.floor(p.x) + 3, y = Math.floor(p.y) + 1, z = Math.floor(p.z);
+    buildFrame(server, x, y, z);
+    server.setBlock(x, y, z, stateOf('fire'));
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 3; j++) expect(blockNameOf(server.world.getState(x + i, y + j, z))).toBe('nether_portal');
+    server.setBlock(x + 2, y + 1, z, 0);
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 3; j++) expect(server.world.getState(x + i, y + j, z)).toBe(0);
+  });
+
+  it('flint and steel lights a frame', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true });
+    const a = client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    const x = Math.floor(p.x) + 2, y = Math.floor(p.y) + 1, z = Math.floor(p.z);
+    buildFrame(server, x, y, z);
+    a.send({ t: 'chat', message: '/give @s flint_and_steel' });
+    a.send({ t: 'useOn', x, y: y - 1, z, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(blockNameOf(server.world.getState(x + 1, y + 2, z))).toBe('nether_portal');
+    expect(p.inventory.selectedStack?.damage).toBe(1);
+  });
+
+  it('standing in a portal for 80 ticks (survival) takes you to the nether at 1/8 scale with a new portal; 1 tick in creative', () => {
+    const storage = new MemoryStorage();
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true, storage });
+    const a = client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    // move to x 400 so the nether target is at x 50
+    a.send({ t: 'chat', message: '/tp @s 400 100 0' });
+    for (let i = 0; i < 5; i++) server.tick();
+    const gy = server.world.getChunk(25, 0)!.motionBlocking[0]!;
+    const y = gy + 1;
+    buildFrame(server, 400, y, 0);
+    server.setBlock(400, y, 0, stateOf('fire'));
+    p.x = 400.5;
+    p.y = y;
+    p.z = 0.5;
+    for (let i = 0; i < 79; i++) server.tick();
+    expect(p.dimension).toBe('overworld');
+    for (let i = 0; i < 3; i++) server.tick();
+    expect(p.dimension).toBe('the_nether');
+    const dim = a.received.find((m) => m.t === 'dimension') as Extract<S2C, { t: 'dimension' }>;
+    expect(dim.dimension).toBe('the_nether');
+    expect(Math.abs(dim.x - 50.5)).toBeLessThan(17);
+    // a portal was built where we arrived, and chunks of the nether stream in
+    const nether = server.levels.get('the_nether')!;
+    expect(blockNameOf(nether.world.getState(Math.floor(dim.x), Math.floor(dim.y), Math.floor(dim.z)))).toBe('nether_portal');
+    for (let i = 0; i < 5; i++) server.tick();
+    expect(a.received.slice(a.received.indexOf(dim)).filter((m) => m.t === 'chunk').length).toBe(49);
+    // the cooldown keeps us from bouncing straight back while we stay in the portal
+    for (let i = 0; i < 100; i++) server.tick();
+    expect(p.dimension).toBe('the_nether');
+    // creative: one tick after stepping out and back in
+    a.send({ t: 'chat', message: '/gamemode creative' });
+    p.x += 5;
+    for (let i = 0; i < 15; i++) server.tick();
+    p.x -= 5;
+    for (let i = 0; i < 3; i++) server.tick();
+    expect(p.dimension).toBe('overworld');
+    // back near the original portal (search radius 128 in the overworld)
+    expect(Math.abs(p.x - 400.5)).toBeLessThan(3);
+    // nether chunks are saved in their own namespace
+    return server.save().then(() => {
+      expect([...storage.chunks.keys()].some((k) => k.startsWith('DIM-1:'))).toBe(true);
+      expect([...storage.chunks.keys()].some((k) => !k.includes(':'))).toBe(true);
+    });
+  });
+
+  it('beds explode in the nether; death there respawns in the overworld', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true });
+    const a = client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    server.changeDimension(p, 'the_nether', 0.5, 100, 0.5, 0, 0);
+    // past the spawn invulnerability
+    for (let i = 0; i < 70; i++) server.tick();
+    const nether = server.levels.get('the_nether')!;
+    const y = nether.world.getChunk(0, 0)!.motionBlocking[(4 << 4) | 1]!;
+    server.inLevel(nether, () => {
+      server.setBlock(1, y, 4, stateOf('red_bed', { part: 'head', facing: 'south' }));
+      server.setBlock(1, y, 3, stateOf('red_bed', { part: 'foot', facing: 'south' }));
+    });
+    p.x = 1.5;
+    p.y = y;
+    p.z = 1.5;
+    a.send({ t: 'useOn', x: 1, y, z: 4, face: 1, cx: 0.5, cy: 0.5, cz: 0.5, hand: 0 });
+    expect(blockNameOf(nether.world.getState(1, y, 4))).not.toBe('red_bed');
+    expect(blockNameOf(nether.world.getState(1, y, 3))).not.toBe('red_bed');
+    expect(p.living.health).toBeLessThan(20);
+    // die and respawn: back in the overworld
+    a.send({ t: 'chat', message: '/kill @s' });
+    a.send({ t: 'respawn' });
+    expect(p.dimension).toBe('overworld');
+    expect(a.received.filter((m) => m.t === 'dimension').at(-1)).toMatchObject({ dimension: 'overworld' });
+  });
+
+  it('items dropped into a portal travel to the nether', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true });
+    client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    const x = Math.floor(p.x) + 3, y = Math.floor(p.y) + 1, z = Math.floor(p.z);
+    buildFrame(server, x, y, z);
+    server.setBlock(x, y, z, stateOf('fire'));
+    server.popResource(x, y + 1, z, { id: ITEMS_BY_NAME.get('diamond')!.id, count: 1, damage: 0 });
+    for (let i = 0; i < 10; i++) server.tick();
+    const nether = server.levels.get('the_nether')!;
+    expect([...nether.entities.values()].some((e) => e.type === 'item')).toBe(true);
+  });
+
+  it('saves the nether: rejoining puts the player back in it with its chunks', async () => {
+    const storage = new MemoryStorage();
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true, storage });
+    await server.load();
+    client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    server.changeDimension(p, 'the_nether', 40.5, 70, 40.5, 0, 0);
+    for (let i = 0; i < 5; i++) server.tick();
+    const nether = server.levels.get('the_nether')!;
+    server.inLevel(nether, () => server.setBlock(41, 100, 41, stateOf('glowstone')));
+    await server.save();
+    const again = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true, storage });
+    await again.load();
+    const b = client(again, 'A');
+    const login = b.received.find((m) => m.t === 'login') as Extract<S2C, { t: 'login' }>;
+    expect(login.dimension).toBe('the_nether');
+    expect(login.x).toBeCloseTo(40.5, 5);
+    for (let i = 0; i < 10; i++) again.tick();
+    expect(blockNameOf(again.levels.get('the_nether')!.world.getState(41, 100, 41))).toBe('glowstone');
+  });
+
+  it('respawn anchors: glowstone charges them, they set the spawn in the nether and explode in the overworld', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true });
+    const a = client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    server.changeDimension(p, 'the_nether', 0.5, 100, 0.5, 0, 0);
+    for (let i = 0; i < 5; i++) server.tick();
+    const nether = server.levels.get('the_nether')!;
+    const y = nether.world.getChunk(0, 0)!.motionBlocking[(3 << 4) | 3]!;
+    const anchor = stateOf('respawn_anchor');
+    server.inLevel(nether, () => server.setBlock(3, y, 3, anchor));
+    p.x = 2.5;
+    p.y = y;
+    p.z = 1.5;
+    a.send({ t: 'chat', message: '/give @s glowstone 2' });
+    a.send({ t: 'useOn', x: 3, y, z: 3, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    a.send({ t: 'useOn', x: 3, y, z: 3, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(nether.world.getState(3, y, 3)).toBe(stateOf('respawn_anchor', { charges: 2 }));
+    a.send({ t: 'useOn', x: 3, y, z: 3, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(p.respawn).toMatchObject({ x: 3, y, z: 3, dimension: 'the_nether' });
+    a.send({ t: 'chat', message: '/kill @s' });
+    a.send({ t: 'respawn' });
+    expect(p.dimension).toBe('the_nether');
+    expect(Math.abs(p.x - 3.5) + Math.abs(p.z - 3.5)).toBeLessThan(3);
+    expect(nether.world.getState(3, y, 3)).toBe(stateOf('respawn_anchor', { charges: 1 }));
+    // a charged anchor in the overworld explodes
+    server.changeDimension(p, 'overworld', 0.5, 100, 0.5, 0, 0);
+    for (let i = 0; i < 3; i++) server.tick();
+    const ow = server.levels.get('overworld')!;
+    const oy = ow.world.getChunk(0, 0)!.motionBlocking[(8 << 4) | 8]!;
+    server.setBlock(8, oy, 8, stateOf('respawn_anchor', { charges: 1 }));
+    p.x = 6.5;
+    p.y = oy;
+    p.z = 8.5;
+    a.send({ t: 'useOn', x: 8, y: oy, z: 8, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(blockNameOf(ow.world.getState(8, oy, 8))).not.toBe('respawn_anchor');
+  });
+});

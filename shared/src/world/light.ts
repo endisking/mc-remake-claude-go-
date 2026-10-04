@@ -62,6 +62,9 @@ export class LightEngine {
   /** Sections whose light changed: callback(cx, sectionY, cz). */
   onSectionChanged: ((cx: number, sy: number, cz: number) => void) | null = null;
 
+  /** Dimensions without sky light (Nether, End: DimensionType.hasSkyLight false) keep sky light 0 everywhere. */
+  hasSkyLight = true;
+
   constructor(readonly world: BlockWorld) {}
 
   // ------------------------------------------------------------ cell access
@@ -79,7 +82,7 @@ export class LightEngine {
   }
 
   private get(ch: number, x: number, y: number, z: number): number {
-    if (y > 255) return ch === SKY ? 15 : 0;
+    if (y > 255) return ch === SKY && this.hasSkyLight ? 15 : 0;
     if (y < 0) return 0;
     const c = this.chunkFor(x, z);
     if (!c) return 0;
@@ -233,7 +236,7 @@ export class LightEngine {
     }
     const c = this.chunkFor(x, z);
     if (c) this.updateSkyTop(c, x & 15, z & 15);
-    for (const ch of [SKY, BLOCK]) {
+    for (const ch of this.hasSkyLight ? [SKY, BLOCK] : [BLOCK]) {
       const old = this.get(ch, x, y, z);
       const exp = this.expected(ch, x, y, z);
       if (exp < old || LIGHT_FILTER[newState]! > LIGHT_FILTER[oldState]! || LIGHT_FACE_OCCLUSION[newState] !== LIGHT_FACE_OCCLUSION[oldState]) {
@@ -277,6 +280,33 @@ export class LightEngine {
     }
     for (let lz = 0; lz < 16; lz++) for (let lx = 0; lx < 16; lx++) this.updateSkyTop(c, lx, lz);
 
+    if (this.hasSkyLight) this.lightSky(c);
+
+    // block light: emitters
+    for (let s = 0; s < 16; s++) {
+      const sec = c.sections[s]!;
+      if (!sec.blocks) continue;
+      const b = sec.blocks;
+      for (let i = 0; i < 4096; i++) {
+        const e = LIGHT_EMIT[b[i]!]!;
+        if (e > 0) {
+          const x = bx + (i & 15), y = (s << 4) | (i >> 8), z = bz + ((i >> 4) & 15);
+          sec.setBlockLight(i, e);
+          this.add.push(x, y, z, e);
+        }
+      }
+    }
+    this.seedFromNeighbors(c, BLOCK);
+    this.propagate(BLOCK);
+
+    for (const s of c.sections) s.compactLight();
+    c.lit = true;
+    for (let s = 0; s < 16; s++) this.mark(c.x, s, c.z);
+  }
+
+  /** Sky light of a freshly lit chunk: straight-down fill, then spread. */
+  private lightSky(c: Chunk): void {
+    const bx = c.x << 4, bz = c.z << 4;
     // straight-down sky fill: 15 above skyTop. Whole empty sections above all tops stay uniform.
     let maxTop = 0;
     for (let i = 0; i < 256; i++) if (c.skyTop[i]! > maxTop) maxTop = c.skyTop[i]!;
@@ -313,26 +343,6 @@ export class LightEngine {
     this.seedFromNeighbors(c, SKY);
     this.propagate(SKY);
 
-    // block light: emitters
-    for (let s = 0; s < 16; s++) {
-      const sec = c.sections[s]!;
-      if (!sec.blocks) continue;
-      const b = sec.blocks;
-      for (let i = 0; i < 4096; i++) {
-        const e = LIGHT_EMIT[b[i]!]!;
-        if (e > 0) {
-          const x = bx + (i & 15), y = (s << 4) | (i >> 8), z = bz + ((i >> 4) & 15);
-          sec.setBlockLight(i, e);
-          this.add.push(x, y, z, e);
-        }
-      }
-    }
-    this.seedFromNeighbors(c, BLOCK);
-    this.propagate(BLOCK);
-
-    for (const s of c.sections) s.compactLight();
-    c.lit = true;
-    for (let s = 0; s < 16; s++) this.mark(c.x, s, c.z);
   }
 
   private seedFromNeighbors(c: Chunk, ch: number): void {

@@ -85,7 +85,7 @@ export class EntitySelector {
     this.checkPermissions(src);
     const s = src.server;
     if (this.playerName !== null) {
-      const p = s.players.find((o) => o.name.toLowerCase() === this.playerName!.toLowerCase());
+      const p = s.allPlayers.find((o) => o.name.toLowerCase() === this.playerName!.toLowerCase());
       return p ? [p] : [];
     }
     const px = this.x ?? src.x, py = this.y ?? src.y, pz = this.z ?? src.z;
@@ -105,9 +105,9 @@ export class EntitySelector {
     };
     let list: Target[];
     if (this.currentEntity) list = src.entity && test(src.entity) ? [src.entity] : [];
-    else if (!this.includesEntities) list = s.players.filter(test);
+    else if (!this.includesEntities) list = s.allPlayers.filter(test);
     else {
-      list = s.players.filter(test);
+      list = s.allPlayers.filter(test);
       for (const e of s.entities.values()) if (test(e)) list.push(e);
     }
     return this.sortAndLimit(list, px, py, pz, src);
@@ -404,7 +404,7 @@ export function suggestSelector(b: SuggestionsBuilder, src: CommandSource, playe
       if (!playersOnly) types.push(['@e', 'All entities']);
       for (const [t, tip] of types) if (t.startsWith(rem)) b.suggest(t, tip);
     }
-    b.suggestMatching(src.server.players.map((p) => p.name));
+    b.suggestMatching(src.server.allPlayers.map((p) => p.name));
     return;
   }
   // inside the options: suggest keys after '[' or ',', and values for a few options
@@ -424,6 +424,6 @@ export function suggestSelector(b: SuggestionsBuilder, src: CommandSource, playe
   if (key === 'type') values = ENTITIES.flatMap((e) => [`minecraft:${e.name}`, `!minecraft:${e.name}`]);
   else if (key === 'gamemode') values = GAME_MODES.flatMap((m) => [m, `!${m}`]);
   else if (key === 'sort') values = ['nearest', 'furthest', 'random', 'arbitrary'];
-  else if (key === 'name') values = src.server.players.map((p) => p.name);
+  else if (key === 'name') values = src.server.allPlayers.map((p) => p.name);
   for (const v of values) if (v.startsWith(val) || v.replace(/^(!?)minecraft:/, '$1').startsWith(val)) b.suggest(base + v);
 }

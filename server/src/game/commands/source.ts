@@ -127,7 +127,7 @@ export class CommandSource {
     const admin: TextComponent = { text: '', color: 'gray', italic: true, extra: ['[', this.textName, ': ', c, ']'] };
     const s = this.server;
     if (s.gameRules.sendCommandFeedback) {
-      for (const p of s.players) {
+      for (const p of s.allPlayers) {
         if (p === this.entity || !s.commands.access.isOp(p)) continue;
         s.send(p, { t: 'chat', json: JSON.stringify(admin) });
       }

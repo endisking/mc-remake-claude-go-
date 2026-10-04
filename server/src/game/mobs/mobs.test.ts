@@ -57,7 +57,7 @@ function client(server: GameServer, name: string) {
 
 function setup(opts: { spawnMobs?: boolean; dayTime?: number } = {}) {
   const server = new GameServer({ seed: 7n, chunkGenBudget: 100, defaultGameMode: 0, devTerrain: true, randomSeed: 42n, spawnMobs: opts.spawnMobs ?? false });
-  (server as unknown as { generator: FlatGen }).generator = new FlatGen();
+  (server as unknown as { level: { generator: FlatGen } }).level.generator = new FlatGen();
   server.doDaylightCycle = false;
   server.dayTime = opts.dayTime ?? 6000;
   const a = client(server, 'A');
