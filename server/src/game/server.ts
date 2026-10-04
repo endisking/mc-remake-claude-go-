@@ -48,6 +48,7 @@ import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
 import { MobManager, MOB_TYPES } from './mobs/manager';
 import { Riding } from './riding';
+import { Boat } from './boat';
 import { Mob } from './mobs/mob';
 import type { MobSave } from './mobs/persist';
 // --- block behaviours (Phase 4: ticks, gravity, farming, doors)
@@ -1052,7 +1053,7 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId :  e instanceof Thrown || e instanceof EyeOfEnder ? e.item : 0 });
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId :  e instanceof Thrown || e instanceof EyeOfEnder ? e.item : e instanceof Boat ? e.wood : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
           if (e instanceof ItemEntity && e.stack.tag) this.send(p, { t: 'itemEntityTag', id: e.id, tag: encodeTag(e.stack.tag) });
           this.mobs.onStartTracking(p, e);
@@ -1190,6 +1191,7 @@ export class GameServer {
       if (p.gameMode !== 3) this.mobs.playerAttack(p, mob);
       return;
     }
+    if (this.riding.attackVehicle(p, targetId)) return; // riding: boats break
     // ServerPlayer.attack: a spectator's attack spectates the target instead
     if (p.gameMode === 3) {
       if (t && t !== p && t.gameMode !== 3 && !t.living.dead && (t.x - p.x) ** 2 + (t.y - p.y) ** 2 + (t.z - p.z) ** 2 < 36) this.setCamera(p, t);
@@ -1336,7 +1338,7 @@ export class GameServer {
         this.handleAttack(p, m.target);
         break;
       case 'interactEntity':
-        this.mobs.interact(p, m.id, m.hand);
+        if (!this.riding.interactVehicle(p, m.id)) this.mobs.interact(p, m.id, m.hand); // riding: boats
         break;
       case 'steerVehicle':
         this.riding.steer(p, m);

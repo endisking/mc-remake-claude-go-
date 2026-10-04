@@ -1394,7 +1394,36 @@ export function poof(): Tex {
   return t;
 }
 
+/** Boats (128×64, BoatModel UV layout): horizontal planks in each wood's colours, dark rims, seeded grain. */
+const BOAT_PALETTES: Record<string, [string, string, string]> = {
+  oak: ['#a8864f', '#8a6a3a', '#5e4524'],
+  spruce: ['#7a5a36', '#624628', '#3e2c18'],
+  birch: ['#d8c88c', '#bba96c', '#8a7a4a'],
+  jungle: ['#a8784e', '#8a5e3a', '#5a3c24'],
+  acacia: ['#b8643a', '#9a4e2a', '#66321a'],
+  dark_oak: ['#4e3420', '#3c2716', '#24170c'],
+};
+function boatTex(wood: string): () => Tex {
+  return () => {
+    const [L, M, D] = BOAT_PALETTES[wood]!.map(hex) as [RGBA, RGBA, RGBA];
+    const t = new Tex(128, 64);
+    const r = rng(0xb0a7 + wood.length * 31 + wood.charCodeAt(0));
+    for (let y = 0; y < 64; y++) {
+      // planks 4 px tall with a dark seam; staggered butt joints every 16 px
+      const row = y >> 2, seam = (y & 3) === 3;
+      for (let x = 0; x < 128; x++) {
+        const joint = ((x + (row % 2) * 8) & 15) === 15;
+        const grain = r();
+        const c = seam || joint ? D : grain < 0.18 ? M : grain > 0.93 ? shade(L, 1.08) : L;
+        t.set(x, y, c);
+      }
+    }
+    return t;
+  };
+}
+
 export const ENTITY_TEXTURES: Record<string, () => Tex> = {
+  boat_oak: boatTex('oak'), boat_spruce: boatTex('spruce'), boat_birch: boatTex('birch'), boat_jungle: boatTex('jungle'), boat_acacia: boatTex('acacia'), boat_dark_oak: boatTex('dark_oak'),
   zombie, husk, drowned, skeleton, stray, wither_skeleton: witherSkeleton, stray_overlay: strayOverlay,
   creeper, spider, cave_spider: caveSpider, spider_eyes: spiderEyes, pig, pig_saddle: pigSaddle, cow, sheep, sheep_fur: sheepFur,
   chicken, enderman, enderman_eyes: endermanEyes, slime, bat, squid,

@@ -8,6 +8,7 @@ import { stack } from '@shared/item/stack';
 import type { Horse } from './mobs/horse';
 import type { Pig } from './mobs/animals';
 import { PLAYER_RIDING_OFFSET } from './riding';
+import { Boat } from './boat';
 
 class FlatGen {
   generate(cx: number, cz: number): Chunk {
@@ -172,5 +173,77 @@ describe('riding', () => {
     expect(pig.boosting).toBe(true);
     expect(pig.boostTimeTotal).toBeGreaterThanOrEqual(140);
     expect(p.inventory.get(p.inventory.selected)!.damage).toBe(7);
+  });
+});
+
+describe('boats', () => {
+  function pond(server: GameServer, y0 = 63) {
+    // a 20×20 still-water pond, 3 deep, surface block y = 63
+    for (let x = -10; x < 10; x++) for (let z = -10; z < 10; z++) for (let y = y0 - 2; y <= y0; y++) server.setBlock(x, y, z, stateOf('water', { level: 0 }));
+  }
+
+  it('floats on still water at the vanilla waterline, paddles to the boat terminal speed, breaks into its item', () => {
+    const { server, p, send } = setup();
+    pond(server);
+    p.inventory.set(p.inventory.selected, stack('spruce_boat'));
+    send({ t: 'move', x: p.x, y: p.y, z: p.z, yaw: 0, pitch: 60, onGround: true });
+    send({ t: 'useItem', hand: 0 });
+    const boat = [...server.entities.values()].find((e) => e.type === 'boat') as Boat | undefined;
+    expect(boat).toBeTruthy();
+    expect(boat!.itemName()).toBe('spruce_boat');
+    expect(p.inventory.get(p.inventory.selected)).toBeNull();
+    for (let i = 0; i < 100; i++) server.tick();
+    // equilibrium: (vy − 0.04 + d2·0.0615)·0.75 = vy ⇒ d2 = 0.65 ⇒ y = waterLevel − 0.65 × 0.5625
+    expect(boat!.status).toBe('in_water');
+    expect(boat!.y).toBeCloseTo(boat!.waterLevel - 0.65 * 0.5625, 2);
+    send({ t: 'interactEntity', id: boat!.id, hand: 0 });
+    expect(server.riding.vehicle(p)).toBe(boat);
+    boat!.yaw = 0;
+    boat!.x = 0.5;
+    boat!.z = -8;
+    for (let i = 0; i < 60; i++) {
+      send(steer(1));
+      server.tick();
+      boat!.z = -8; // stay inside the pond; the velocity carries on
+    }
+    const z0 = boat!.z;
+    send(steer(1));
+    server.tick();
+    // in water: v = v·0.9 + 0.04 → terminal 0.04 / 0.1 = 0.4 blocks/tick (8 m/s)
+    expect(boat!.z - z0).toBeCloseTo(0.4, 2);
+    // turning: deltaRotation accumulates ±1 and decays ×0.9 → after the paddle −10°/tick
+    for (let i = 0; i < 60; i++) {
+      send(steer(0, { strafe: 1 }));
+      server.tick();
+      boat!.x = 0.5;
+      boat!.z = 0.5;
+    }
+    expect(boat!.deltaRotation).toBeCloseTo(-10, 0);
+    send(steer(0, { sneak: true }));
+    expect(server.riding.vehicle(p)).toBeNull();
+    // fists: 10 damage per hit, decaying 1 per tick; more than 40 breaks it into a spruce boat item
+    for (let i = 0; i < 5; i++) send({ t: 'attack', target: boat!.id, sneaking: false });
+    expect(boat!.removed).toBe(true);
+    server.tick();
+    expect([...server.entities.values()].some((e) => e.type === 'item' && (e as unknown as { stack: { id: number } }).stack.id === stack('spruce_boat').id)).toBe(true);
+  });
+
+  it('carries two passengers; on ice it keeps 0.98 of its speed per tick', () => {
+    const { server } = setup();
+    const b = new Boat(server.allocateEntityId());
+    for (let x = -4; x < 30; x++) for (let z = -4; z < 4; z++) server.setBlock(x, 63, z, stateOf('ice'));
+    b.x = 0.5;
+    b.y = 64;
+    b.z = 0.5;
+    server.spawnEntity(b);
+    for (let i = 0; i < 5; i++) server.tick();
+    expect(b.status).toBe('on_land');
+    expect(b.landFriction).toBeCloseTo(0.98, 5);
+    b.vx = 0.5;
+    server.tick();
+    expect(b.vx).toBeCloseTo(0.5 * 0.98, 3);
+    expect(b.maxPassengers()).toBe(2);
+    expect(b.seatOffset(0, 2)).toBeCloseTo(0.2);
+    expect(b.seatOffset(1, 2)).toBeCloseTo(-0.6);
   });
 });

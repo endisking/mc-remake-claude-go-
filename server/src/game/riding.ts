@@ -5,7 +5,9 @@
  * vehicle moves on the server, carrying the rider's seat with it.
  */
 import { AABB, noCollision } from '@shared/entity/aabb';
-import { stack } from '@shared/item/stack';
+import { stack, itemName } from '@shared/item/stack';
+import { raycastBlocks } from '@shared/world/raycast';
+import { Boat, BOAT_WOODS } from './boat';
 import type { GameServer } from './server';
 import type { ServerPlayer } from './player';
 import type { Mob } from './mobs/mob';
@@ -219,6 +221,62 @@ export class Riding {
     if (!p.inventory.get(slot) && p.gameMode !== 1) {
       p.inventory.set(slot, stack('fishing_rod'));
       this.s.syncSlot(p, slot);
+    }
+    return true;
+  }
+
+  /**
+   * BoatItem.use: aim (fluids included) within 5 blocks and put a boat there facing the player's
+   * way, if it fits. Returns true when placed.
+   */
+  placeBoat(p: ServerPlayer, hand: 0 | 1): boolean {
+    const slot = hand === 1 ? 40 : p.inventory.selected;
+    const st = p.inventory.get(slot);
+    if (!st) return false;
+    const wood = BOAT_WOODS.indexOf(itemName(st.id).replace(/_boat$/, '') as (typeof BOAT_WOODS)[number]);
+    if (wood < 0) return false;
+    const D = Math.PI / 180;
+    const dx = -Math.sin(p.yaw * D) * Math.cos(p.pitch * D), dy = -Math.sin(p.pitch * D), dz = Math.cos(p.yaw * D) * Math.cos(p.pitch * D);
+    const hit = raycastBlocks(this.s.world, p.x, p.y + p.phys.eyeHeight, p.z, dx, dy, dz, 5, true);
+    if (!hit) return false;
+    const b = new Boat(this.s.allocateEntityId());
+    b.wood = wood;
+    b.x = hit.px;
+    b.y = hit.py;
+    b.z = hit.pz;
+    b.yaw = p.yaw;
+    if (!noCollision(this.s.world, b.bb().inflate(-0.1, -0.1, -0.1))) return false;
+    this.s.spawnEntity(b);
+    if (p.gameMode !== 1) {
+      st.count--;
+      if (st.count <= 0) p.inventory.set(slot, null);
+      this.s.syncSlot(p, slot);
+    }
+    return true;
+  }
+
+  /** Boat.interact: right-clicking a boat boards it (not while sneaking, not after a minute underwater). */
+  interactVehicle(p: ServerPlayer, id: number): boolean {
+    const e = this.s.entities.get(id);
+    if (!(e instanceof Boat) || e.removed || p.gameMode === 3) return false;
+    if ((e.x - p.x) ** 2 + (e.y - p.y) ** 2 + (e.z - p.z) ** 2 >= 36) return true;
+    if (p.sneaking || e.outOfControlTicks >= 60) return true;
+    this.mount(p, e);
+    return true;
+  }
+
+  /** Boat.hurt from a player's attack: breaks after 40 damage (creative at once), dropping its item. */
+  attackVehicle(p: ServerPlayer, id: number, amount = 1): boolean {
+    const e = this.s.entities.get(id);
+    if (!(e instanceof Boat) || e.removed) return false;
+    if (p.gameMode === 3 || this.vehicle(p) === e) return true;
+    this.s.playSound(null, 'entity.player.attack.nodamage', 'player', p.x, p.y, p.z, 1, 1);
+    if (e.hit(amount, p.gameMode === 1)) {
+      for (const r of this.passengers(e)) this.dismount(r);
+      if (p.gameMode !== 1 && this.s.mobs.doMobLoot) {
+        this.s.mobs.spawnAtLocation(e as unknown as Mob, stack(e.itemName()));
+      }
+      e.removed = true;
     }
     return true;
   }

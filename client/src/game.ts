@@ -157,6 +157,8 @@ export class Game implements ScreenHost, ContainerHost {
   private jumpRidingTicks = 0;
   private jumpRidingScale = 0;
   private rideJumpHeld = false;
+  /** our seat index and the passenger count (Boat.positionRider) */
+  private ridingSeat: [number, number] = [0, 1];
   /** game mode before the last change (F3+N returns to it) */
   previousGameMode = -1;
   private readonly skinImages = new Map<string, ImageBitmap | null>();
@@ -1102,6 +1104,7 @@ export class Game implements ScreenHost, ContainerHost {
         else if (p.type === 'tnt') this.fallingBlocks.add(p.id, BLOCKS_BY_NAME.get('tnt')!.defaultState, p.x, p.y, p.z);
         else if (isMobType(p.type)) {
           this.mobs.add(p.id, p.type, p.x, p.y, p.z);
+          if (p.type === 'boat') this.mobs.get(p.id)?.setData('variant', p.data); // riding: boat wood
         } else if (p.type === 'item' || p.type === 'experience_orb') {
           this.items.set(p.id, { x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z, steps: 0, item: 0, count: 1, age: 0, bobOffs: Math.random() * Math.PI * 2, ...(p.type === 'experience_orb' ? { orb: p.data } : {}) });
         }
@@ -1150,6 +1153,8 @@ export class Game implements ScreenHost, ContainerHost {
       case 'setPassengers':
         // riding: we sit on this vehicle until the list no longer has us
         if (p.passengers.includes(this.entityId)) {
+          this.ridingSeat = [p.passengers.indexOf(this.entityId), p.passengers.length];
+          if (this.ridingVehicle === p.vehicle) break;
           this.ridingVehicle = p.vehicle;
           this.jumpRidingTicks = 0;
           this.jumpRidingScale = 0;
@@ -1545,9 +1550,14 @@ export class Game implements ScreenHost, ContainerHost {
     this.rideJumpHeld = move.jump;
     if (this.loggedIn) this.send({ t: 'steerVehicle', forward: move.forward, strafe: move.strafe, jump: move.jump, sneak: move.sneak, jumpPower });
     if (mob) {
-      pl.x = mob.x;
-      pl.y = mob.y + mob.dims()[1] * 0.75 - 0.35;
-      pl.z = mob.z;
+      // Boat: riding offset −0.1 and seats at +0.2 / −0.6 along the hull with two passengers
+      const boat = mob.type === 'boat';
+      const [i, n] = this.ridingSeat;
+      const off = boat && n > 1 ? (i === 0 ? 0.2 : -0.6) : 0;
+      const a = (-mob.yaw * Math.PI) / 180 - Math.PI / 2;
+      pl.x = mob.x + off * Math.cos(a);
+      pl.y = mob.y + (boat ? -0.1 : mob.dims()[1] * 0.75) - 0.35;
+      pl.z = mob.z - off * Math.sin(a);
     }
     pl.vx = pl.vy = pl.vz = 0;
     pl.fallDistance = 0;

@@ -86,6 +86,8 @@ export const MOB_INFO: Record<string, MobInfo> = {
   illusioner: H(0.5),
   vex: H(0.3, { flying: true, step: null }),
   bat: N(0.25, { category: 'ambient', flying: true, step: null }),
+  /** riding: boats reuse the mob pipeline for interpolation, picking and drawing (silent) */
+  boat: N(0, { step: null, ambientInterval: 1e9 }),
 };
 
 export function isMobType(type: string): boolean {
