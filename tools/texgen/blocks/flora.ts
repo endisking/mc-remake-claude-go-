@@ -233,7 +233,7 @@ export const floraTextures: TexDef[] = [
   }),
   { name: 'oak_leaves', make: () => leaves(501, 0.7), tint: 'foliage', cutout: true },
   { name: 'spruce_leaves', make: () => leaves(502, 0.74), tint: 'foliage', cutout: true },
-  { name: 'birch_leaves', make: () => leaves(503, 0.68), tint: 'foliage', cutout: true },
+  { name: 'birch_leaves', make: () => leaves(503, 0.68, pal('#686868', '#848484', '#a0a0a0', '#bababa', '#d4d4d4')), tint: 'foliage', cutout: true },
   { name: 'jungle_leaves', make: () => leaves(504, 0.76), tint: 'foliage', cutout: true },
   { name: 'acacia_leaves', make: () => leaves(505, 0.66), tint: 'foliage', cutout: true },
   { name: 'dark_oak_leaves', make: () => leaves(506, 0.74), tint: 'foliage', cutout: true },
