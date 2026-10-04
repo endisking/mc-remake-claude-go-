@@ -11,6 +11,8 @@ import { isEmpty, maxStackSize, type ItemStack } from '@shared/item/stack';
 import { InventoryContainer, SimpleContainer, copyStack, equipmentSlotFor, sameItemSameTags } from '@shared/menu/container';
 import { ClickType, Menu, SLOT_OUTSIDE, Slot, type MenuPlayer } from '@shared/menu/menu';
 import { displayName } from './containerscreen';
+import { isEmptyHotbar, savedHotbars } from './hotbars';
+import { keyName } from '../keybinds';
 
 
 type TabId = CreativeTab | 'hotbar' | 'search' | 'inventory';
@@ -125,6 +127,9 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
   private scrolling = false;
   private search = '';
   private items: number[] = [];
+  /** Saved Hotbars tab: 9 rows of saved stacks; hint papers mark empty rows */
+  private hotbarStacks: (ItemStack | null)[] | null = null;
+  private readonly hints = new Set<number>();
   private readonly tabs = creativeTabItems(BLOCKS.map((b) => b.name));
 
   constructor(host: ContainerHost) {
@@ -145,7 +150,6 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
   }
 
   private selectTab(t: TabId): void {
-    if (t === 'hotbar') return; // saved hotbars: not yet implemented, the tab stays inert
     lastTab = t;
     this.tab = t;
     this.title = TAB_TITLES[t];
@@ -156,6 +160,27 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
 
   private refreshItems(): void {
     if (this.tab === 'inventory') return;
+    this.hotbarStacks = null;
+    this.hints.clear();
+    if (this.tab === 'hotbar') {
+      // each empty saved row shows a paper hint in the column of its own number
+      const rows = savedHotbars();
+      const paper = ITEMS_BY_NAME.get('paper')!.id;
+      const list: (ItemStack | null)[] = [];
+      this.hotbarStacks = list;
+      rows.forEach((row, i) => {
+        const empty = isEmptyHotbar(row);
+        for (let j = 0; j < 9; j++) {
+          if (empty && j === i) {
+            this.hints.add(i * 9 + j);
+            list.push({ id: paper, count: 1, damage: 0 });
+          } else list.push(empty ? null : row[j] ? { ...row[j]! } : null);
+        }
+      });
+      this.items = new Array(81).fill(0);
+      this.scrollTo(this.scrollOffs);
+      return;
+    }
     if (this.tab === 'search') {
       const q = this.search.toLowerCase();
       const all: number[] = [];
@@ -163,6 +188,19 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
       this.items = q ? all.filter((id) => displayName(id).toLowerCase().includes(q) || (ITEMS_BY_ID[id]?.name ?? '').includes(q.replace(/ /g, '_'))) : all;
     } else this.items = this.tabs[this.tab as CreativeTab] ?? [];
     this.scrollTo(this.scrollOffs);
+  }
+
+  /** list index shown in each picker slot (hotbar tab hints) */
+  private readonly pickerIndex: number[] = new Array(45).fill(-1);
+
+  protected override tooltipLines(st: ItemStack): string[] {
+    const h = this.hoveredSlot;
+    if (this.tab === 'hotbar' && h && h.container === this.menu.picker && this.hints.has(this.pickerIndex[h.slot]!)) {
+      const row = Math.floor(this.pickerIndex[h.slot]! / 9) + 1;
+      const b = this.host.binds;
+      return [`Press ${keyName(b.key('saveToolbarActivator'))}+${keyName(b.key(`hotbar.${row}`))} to save your hotbar`];
+    }
+    return super.tooltipLines(st);
   }
 
   private get rows(): number {
@@ -179,7 +217,14 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
     const off = Math.max(0, Math.round(this.scrollOffs * (this.rows - 5)));
     for (let r = 0; r < 5; r++)
       for (let c = 0; c < 9; c++) {
-        const id = this.items[(r + off) * 9 + c];
+        const k = (r + off) * 9 + c;
+        if (this.hotbarStacks) {
+          const st = this.hotbarStacks[k];
+          this.menu.picker.items[r * 9 + c] = st ? { ...st } : null;
+          this.pickerIndex[r * 9 + c] = k;
+          continue;
+        }
+        const id = this.items[k];
         this.menu.picker.items[r * 9 + c] = id ? { id, count: 1, damage: 0 } : null;
       }
   }
@@ -343,6 +388,8 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
       // the destroy slot eats the cursor; shift-click clears the whole inventory
       if (shift && type === ClickType.QUICK_MOVE) for (let i = 0; i < 41; i++) inv.set(i, null);
       else m.carried = null;
+    } else if (slot && slot.container === m.picker && this.tab === 'hotbar' && this.hints.has(this.pickerIndex[slot.slot]!)) {
+      // the hint paper can't be taken (CustomCreativeLock)
     } else if (slot && slot.container === m.picker) {
       const c = m.carried;
       const it = slot.getItem();

@@ -60,6 +60,7 @@ import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { AbstractContainerScreen, InventoryScreen, screenForMenu, type ContainerHost } from './gui/containerscreen';
 import { CreativeScreen } from './gui/creative';
+import { saveHotbar, savedHotbars } from './gui/hotbars';
 import { InventoryMenu, createClientMenu, type Menu, type MenuType } from '@shared/menu/menu';
 import { InventoryContainer } from '@shared/menu/container';
 import { decodeStacks } from '@shared/protocol/packets';
@@ -532,6 +533,21 @@ export class Game implements ScreenHost, ContainerHost {
     this.entityRenderer.renderPlayers([pm], this.world, m, pl.x, pl.y, pl.z, 1, this.lightmap.tex, [0, 0, 0], 1e6, 1e6);
     gl.disable(gl.SCISSOR_TEST);
     g.ctx.drawImage(this.canvas, px, py, pw, ph, bx, by, bw, bh);
+  }
+
+  private loadOrSaveHotbar(row: number, load: boolean): void {
+    const inv = this.interaction.inventory;
+    if (load) {
+      const saved = savedHotbars()[row]!;
+      for (let j = 0; j < 9; j++) {
+        const st = saved[j] ? { ...saved[j]! } : null;
+        inv.set(j, st);
+        this.send({ t: 'creativeSlot', slot: j, item: st?.id ?? 0, count: st?.count ?? 0, damage: st?.damage ?? 0 });
+      }
+    } else {
+      saveHotbar(row, inv.slots.slice(0, 9));
+      this.hud.setOverlay(`Saved toolbar (restore with ${keyName(this.binds.key('loadToolbarActivator'))}+${keyName(this.binds.key(`hotbar.${row + 1}`))})`);
+    }
   }
 
   /** The menu a window id refers to (0 = inventory). */
@@ -1008,7 +1024,13 @@ export class Game implements ScreenHost, ContainerHost {
         for (let d = 1; d <= 9; d++) if (b.consume(`hotbar.${d}`)) this.spectatorGui.onHotbarSelected(d - 1);
       } else {
         if (b.consume('pickItem')) ia.pickBlock(this.target);
-        for (let d = 1; d <= 9; d++) if (b.consume(`hotbar.${d}`)) ia.select(d - 1);
+        for (let d = 1; d <= 9; d++) {
+          if (!b.consume(`hotbar.${d}`)) continue;
+          // creative: C/X + number saves/restores a toolbar (CreativeModeInventoryScreen.handleHotbarLoadOrSave)
+          const load = b.down('loadToolbarActivator'), save = b.down('saveToolbarActivator');
+          if (this.gameMode !== 1 || (!load && !save)) ia.select(d - 1);
+          else this.loadOrSaveHotbar(d - 1, load);
+        }
       }
       if (b.consume('inventory')) this.openInventory();
       // vanilla: Ctrl (Screen.hasControlDown) + drop throws the whole stack
