@@ -16542,5 +16542,77 @@
     "pitch": 0.8
    }
   ]
+ },
+ "entity.donkey.chest": {
+  "sounds": [
+   {
+    "name": "dig_cloth/0"
+   },
+   {
+    "name": "dig_cloth/1"
+   },
+   {
+    "name": "dig_cloth/2"
+   },
+   {
+    "name": "dig_cloth/3"
+   }
+  ]
+ },
+ "entity.donkey.eat": {
+  "sounds": [
+   {
+    "name": "eat/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "eat/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "eat/2",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.mule.angry": {
+  "sounds": [
+   {
+    "name": "horse_say/0",
+    "pitch": 1.3
+   }
+  ]
+ },
+ "entity.mule.eat": {
+  "sounds": [
+   {
+    "name": "eat/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "eat/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "eat/2",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.mule.chest": {
+  "sounds": [
+   {
+    "name": "dig_cloth/0"
+   },
+   {
+    "name": "dig_cloth/1"
+   },
+   {
+    "name": "dig_cloth/2"
+   },
+   {
+    "name": "dig_cloth/3"
+   }
+  ]
  }
 }
