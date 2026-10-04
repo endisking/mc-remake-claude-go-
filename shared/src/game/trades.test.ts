@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { JavaRandom } from '../util/random';
-import { itemName, stack } from '../item/stack';
+import { itemName, stack, Inventory } from '../item/stack';
+import { MerchantMenu, ClickType } from '../menu/menu';
+import { InventoryContainer } from '../menu/container';
 import { VILLAGER_TRADES, WANDERING_TRADES, offersForLevel, costA, takeOffer, updateDemand, isOutOfStock, JOB_SITES, maxXp, minXp, PROFESSIONS } from './trades';
 
 describe('villager trades (VillagerTrades 1.17.1)', () => {
@@ -41,5 +43,23 @@ describe('villager trades (VillagerTrades 1.17.1)', () => {
     expect(minXp(1)).toBe(0);
     expect(maxXp(1)).toBe(10);
     expect(maxXp(4)).toBe(250);
+  });
+});
+
+describe('MerchantMenu', () => {
+  it('selecting an offer moves the payment in; shift-taking the result pays and counts uses', () => {
+    const inv = new Inventory();
+    inv.set(0, stack('wheat', 45));
+    const m = new MerchantMenu(1, new InventoryContainer(inv));
+    const o = VILLAGER_TRADES.farmer![0]![0]!(new JavaRandom(0n)); // 20 wheat → emerald
+    m.setOffers([o]);
+    const p = { inventory: inv, creative: false, drop: () => {} };
+    m.clickMenuButton(p, 0);
+    expect(m.payments.getItem(0)?.count).toBe(45);
+    expect(itemName(m.result.getItem(0)!.id)).toBe('emerald');
+    m.clicked(2, 0, ClickType.QUICK_MOVE, p);
+    expect(o.uses).toBe(2);
+    expect(m.payments.getItem(0)?.count ?? 0).toBe(5);
+    expect(m.result.getItem(0)).toBeNull();
   });
 });

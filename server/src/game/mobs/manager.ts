@@ -70,6 +70,7 @@ export class MobManager {
   readonly phantoms: PhantomSpawner;
 
   constructor(private readonly s: GameServer) {
+    this.openMerchant = (p, v) => s.containers.openMerchant(p, v);
     this.spawners = new MobSpawners(s);
     this.phantoms = new PhantomSpawner(s);
   }

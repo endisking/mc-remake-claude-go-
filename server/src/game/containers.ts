@@ -3,6 +3,9 @@
  * chests, furnaces), applying window clicks authoritatively, syncing slots/data to the viewer,
  * block entity storage in chunks, furnace ticking and dropping contents when blocks go.
  */
+import { AbstractVillager, Villager } from './mobs/villager';
+
+const LEVEL_TITLES = ['Novice', 'Apprentice', 'Journeyman', 'Expert', 'Master'];
 import type { GameServer } from './server';
 import type { ServerPlayer } from './player';
 import type { C2S } from '@shared/protocol/packets';
@@ -12,7 +15,7 @@ import { blockNameOf, getProp, withProp } from '@shared/world/blockstate';
 import { BLOCKS_BY_NAME } from '@shared/data';
 import { FULL_COLLISION } from '@shared/world/blockinfo';
 import { isEmpty, type ItemStack } from '@shared/item/stack';
-import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, StonecutterMenu, SmithingMenu, GrindstoneMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
+import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, StonecutterMenu, SmithingMenu, GrindstoneMenu, MerchantMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
 import { CompoundContainer, InventoryContainer, SimpleContainer, type Container } from '@shared/menu/container';
 import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, newCampfire, placeCampfireFood, tickCampfire, type CampfireData, type FurnaceData, type FurnaceKind } from '@shared/menu/furnace';
 import { cookingRecipe } from '@shared/menu/smelting';
@@ -72,6 +75,31 @@ export class Containers {
     this.broadcastChanges(p);
   }
 
+  /** Villager / wandering trader trading screen (AbstractVillager.openTradingScreen). */
+  openMerchant(p: ServerPlayer, v: AbstractVillager): void {
+    const inv = new InventoryContainer(p.inventory);
+    const valid = () => v.tradingPlayer === p && !v.dead && !v.removed && (v.x - p.x) ** 2 + (v.y - p.y) ** 2 + (v.z - p.z) ** 2 < 64;
+    let menu: MerchantMenu | null = null;
+    const isVillager = v instanceof Villager;
+    const title = isVillager ? `${v.profession === 'none' ? 'Villager' : v.profession[0]!.toUpperCase() + v.profession.slice(1)} - ${LEVEL_TITLES[v.level - 1] ?? ''}` : 'Wandering Trader';
+    this.open(p, (id) => {
+      menu = new MerchantMenu(id, inv, valid);
+      menu.offers = v.offers;
+      menu.onTrade = (o) => {
+        v.notifyTrade(o, p);
+        this.sendOffers(p, menu!, v);
+      };
+      return menu;
+    }, title, null);
+    if (menu) this.sendOffers(p, menu, v);
+  }
+
+  private sendOffers(p: ServerPlayer, m: MerchantMenu, v: AbstractVillager): void {
+    const level = v instanceof Villager ? v.level : 0;
+    const xp = v instanceof Villager ? v.xp : 0;
+    this.server.send(p, { t: 'merchantOffers', windowId: m.containerId, offers: JSON.stringify(v.offers), level, xp, showProgress: v instanceof Villager });
+  }
+
   /** Close the open container menu (doCloseContainer); `notify` sends the close to the client. */
   closeContainer(p: ServerPlayer, notify: boolean): void {
     const s = this.state(p);
@@ -79,6 +107,7 @@ export class Containers {
     if (m === s.inventoryMenu) return;
     const snap = p.inventory.slots.map(stackKey);
     m.removed(this.menuPlayer(p));
+    if (m instanceof MerchantMenu) for (const v of this.server.mobs.mobs()) if (v instanceof AbstractVillager && v.tradingPlayer === p) v.stopTrading();
     s.inventoryMenu.carried = null;
     s.containerMenu = s.inventoryMenu;
     if (s.pos) this.stopViewing(s.pos, p);

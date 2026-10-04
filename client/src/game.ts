@@ -65,7 +65,7 @@ import { ClientMobs, isMobType, type ClientMob } from './world/mobs';
 import type { Screen } from './gui/screen';
 import { LoadingTerrainScreen, type LoadingHost } from './gui/loadingscreen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
-import { AbstractContainerScreen, InventoryScreen, screenForMenu, type ContainerHost } from './gui/containerscreen';
+import { AbstractContainerScreen, InventoryScreen, MerchantScreen, screenForMenu, type ContainerHost } from './gui/containerscreen';
 import { CreativeScreen } from './gui/creative';
 import { saveHotbar, savedHotbars } from './gui/hotbars';
 import { InventoryMenu, createClientMenu, type Menu, type MenuType } from '@shared/menu/menu';
@@ -927,6 +927,16 @@ export class Game implements ScreenHost, ContainerHost {
         const m = this.windowMenu(p.windowId);
         const sl = m?.slots[p.slot];
         if (sl) sl.container.setItem(sl.slot, st);
+        break;
+      }
+      case 'merchantOffers': {
+        const sc = this.screen;
+        if (sc instanceof MerchantScreen && sc.menu.containerId === p.windowId) {
+          sc.menu.setOffers(JSON.parse(p.offers) as MerchantScreen['menu']['offers']);
+          sc.menuLevel = p.level;
+          sc.menuXp = p.xp;
+          sc.menuShowProgress = p.showProgress;
+        }
         break;
       }
       case 'windowData': {

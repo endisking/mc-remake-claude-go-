@@ -14,9 +14,10 @@ import { copyStack } from '@shared/menu/container';
 import { drawItemStack } from './itemicons';
 import { attackDamageOf, attackSpeedOf } from '@shared/game/combat';
 import {
-  ClickType, SLOT_OUTSIDE, canItemQuickReplace, quickCraftSlotCount, ChestMenu, CraftingMenu, FurnaceMenu, InventoryMenu, StonecutterMenu, SmithingMenu, GrindstoneMenu,
+  ClickType, SLOT_OUTSIDE, canItemQuickReplace, quickCraftSlotCount, ChestMenu, CraftingMenu, FurnaceMenu, InventoryMenu, StonecutterMenu, SmithingMenu, GrindstoneMenu, MerchantMenu,
   type Menu, type MenuPlayer, type Slot,
 } from '@shared/menu/menu';
+import { costA, isOutOfStock, LEVEL_XP } from '@shared/game/trades';
 import { arrow, flame, inset, panel, resultSlot, silhouette, slot as slotWell, tooltip } from './containerart';
 
 export interface ContainerHost extends ScreenHost {
@@ -664,6 +665,119 @@ export class GrindstoneScreen extends AbstractContainerScreen<GrindstoneMenu> {
   }
 }
 
+/**
+ * MerchantScreen: the offers list (7 buttons with cost A, cost B → result, scrolling), the two
+ * payment slots and the result, the villager's level title and xp progress bar.
+ */
+export class MerchantScreen extends AbstractContainerScreen<MerchantMenu> {
+  private scrollOff = 0;
+  menuLevel = 0;
+  menuXp = 0;
+  menuShowProgress = false;
+  constructor(host: ContainerHost, menu: MerchantMenu, title: string) {
+    super(host, menu, title);
+    this.titleLabelY = 6;
+    this.inventoryLabelX = 107;
+  }
+  private visible(): number {
+    return Math.min(7, this.menu.offers.length);
+  }
+  protected override renderLabels(): void {
+    this.titleLabelX = 49 + Math.floor(this.imageWidth / 2) - Math.floor(this.gui.font.width(this.title) / 2);
+    super.renderLabels();
+  }
+  protected renderBg(mx: number, my: number): void {
+    const g = this.gui, l = this.leftPos, t = this.topPos, m = this.menu;
+    panel(g, l, t, this.imageWidth, this.imageHeight);
+    for (const s of m.slots) {
+      if (s.index === 2) resultSlot(g, l + s.x, t + s.y);
+      else slotWell(g, l + s.x, t + s.y);
+    }
+    arrow(g, l + 186, t + 35, 22, 15);
+    const selected = m.offers[m.selectionHint];
+    if (m.activeOffer === null && selected && isOutOfStock(selected)) {
+      for (let i = 0; i < 13; i++) {
+        g.fill(l + 190 + i, t + 36 + i, 2, 1, 0xffd02020);
+        g.fill(l + 202 - i, t + 36 + i, 2, 1, 0xffd02020);
+      }
+    }
+    // offers list
+    inset(g, l + 4, t + 17, 90, 142, 0xff8b8b8b);
+    const n = m.offers.length;
+    for (let i = 0; i < this.visible(); i++) {
+      const idx = i + this.scrollOff;
+      const o = m.offers[idx];
+      if (!o) break;
+      const bx = l + 5, by = t + 18 + i * 20;
+      const hover = mx >= bx && my >= by && mx < bx + 88 && my < by + 20;
+      const sel = idx === m.selectionHint;
+      g.fill(bx, by, 88, 20, sel ? 0xff5a5a5a : hover ? 0xffd8d8d8 : 0xffb0b0b0);
+      g.fill(bx, by, 88, 1, 0xffffffff);
+      g.fill(bx, by + 19, 88, 1, 0xff373737);
+      const a = costA(o);
+      drawStack(this.host, a, bx + 5, by + 2);
+      // a raised price (demand) is underlined red
+      if (a.count !== o.costA.count) g.fill(bx + 5, by + 18, 16, 1, 0xffff5555);
+      if (o.costB) drawStack(this.host, o.costB, bx + 30, by + 2);
+      arrow(g, bx + 52, by + 6, 10, 9);
+      if (isOutOfStock(o)) {
+        for (let k = 0; k < 8; k++) {
+          g.fill(bx + 53 + k, by + 6 + k, 1, 1, 0xffd02020);
+          g.fill(bx + 60 - k, by + 6 + k, 1, 1, 0xffd02020);
+        }
+      }
+      drawStack(this.host, o.result, bx + 68, by + 2);
+    }
+    // scrollbar
+    inset(g, l + 94, t + 18, 6, 139, 0xff8b8b8b);
+    const extra = n - 7;
+    const ty = extra > 0 ? t + 18 + Math.floor((113 * this.scrollOff) / extra) : t + 18;
+    panel(g, l + 94, ty, 6, 27);
+    // villager xp progress toward the next level
+    if (this.menuShowProgress && this.menuLevel > 0) {
+      const lv = this.menuLevel;
+      const bx = l + 136, by = t + 16;
+      g.fill(bx, by, 102, 5, 0xff303030);
+      if (lv < 5) {
+        const lo = LEVEL_XP[lv - 1]!, hi = LEVEL_XP[lv]!;
+        const w = Math.min(102, Math.floor((102 * (this.menuXp - lo)) / Math.max(1, hi - lo)));
+        g.fill(bx, by, Math.max(0, w), 5, 0xff40d040);
+      } else g.fill(bx, by, 102, 5, 0xff40d040);
+    }
+  }
+  protected override renderExtra(mx: number, my: number): void {
+    if (!isEmpty(this.menu.carried)) return;
+    for (let i = 0; i < this.visible(); i++) {
+      const o = this.menu.offers[i + this.scrollOff];
+      if (!o) break;
+      const bx = this.leftPos + 5, by = this.topPos + 18 + i * 20;
+      const hit = (x: number) => mx >= bx + x && mx < bx + x + 16 && my >= by + 2 && my < by + 18;
+      if (hit(5)) tooltip(this.gui, itemTooltip(costA(o)), mx, my);
+      else if (o.costB && hit(30)) tooltip(this.gui, itemTooltip(o.costB), mx, my);
+      else if (hit(68)) tooltip(this.gui, itemTooltip(o.result), mx, my);
+    }
+  }
+  protected override mouseClickedExtra(mx: number, my: number, button: number): boolean {
+    if (button !== 0) return false;
+    for (let i = 0; i < this.visible(); i++) {
+      const idx = i + this.scrollOff;
+      const bx = this.leftPos + 5, by = this.topPos + 18 + i * 20;
+      if (mx >= bx && my >= by && mx < bx + 88 && my < by + 20 && idx < this.menu.offers.length) {
+        this.menu.selectionHint = idx;
+        this.host.playUi?.('ui.button.click', 1);
+        this.host.send({ t: 'menuButton', windowId: this.menu.containerId, button: idx });
+        return true;
+      }
+    }
+    return false;
+  }
+  override mouseScrolled(_mx: number, _my: number, delta: number): void {
+    const extra = this.menu.offers.length - 7;
+    if (extra <= 0) return;
+    this.scrollOff = Math.max(0, Math.min(extra, this.scrollOff - Math.sign(delta)));
+  }
+}
+
 /** Screen for a server-opened menu. */
 export function screenForMenu(host: ContainerHost, menu: Menu, title: string): AbstractContainerScreen {
   if (menu instanceof CraftingMenu) return new CraftingScreen(host, menu, title);
@@ -671,6 +785,7 @@ export function screenForMenu(host: ContainerHost, menu: Menu, title: string): A
   if (menu instanceof StonecutterMenu) return new StonecutterScreen(host, menu, title);
   if (menu instanceof SmithingMenu) return new SmithingScreen(host, menu, title);
   if (menu instanceof GrindstoneMenu) return new GrindstoneScreen(host, menu, title);
+  if (menu instanceof MerchantMenu) return new MerchantScreen(host, menu, title);
   if (menu instanceof InventoryMenu) return new InventoryScreen(host, menu);
   if (menu.type === 'generic_3x3' || menu.type === 'hopper') return new SimpleContainerScreen(host, menu, title);
   return new ChestScreen(host, menu as ChestMenu, title);

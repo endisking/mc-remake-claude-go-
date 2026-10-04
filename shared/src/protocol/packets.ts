@@ -101,6 +101,8 @@ const S2C_SCHEMA = {
   windowSlot: [['windowId', 'i16'], ['slot', 'i16'], ['item', 'i16'], ['count', 'u8'], ['damage', 'i16']],
   /** Container data (vanilla ContainerSetData): furnace lit time, lit duration, cook progress, total cook time. */
   windowData: [['windowId', 'u8'], ['property', 'u8'], ['value', 'i16']],
+  /** ClientboundMerchantOffersPacket: the trader's offers (JSON MerchantOffer[]), villager level (0 = no bar), xp, progress bar */
+  merchantOffers: [['windowId', 'u8'], ['offers', 'str'], ['level', 'u8'], ['xp', 'i32'], ['showProgress', 'bool']],
   /** The server closed a window (vanilla ContainerClose). */
   closeWindow: [['windowId', 'u8']],
   // ---- commands & player list (Phase 9) ----

@@ -13,6 +13,7 @@ import { craftingRemainder, craftingResult } from './recipes';
 import { isFuel, cookingRecipe } from './smelting';
 import { stonecutterRecipes, type StonecutterRecipe } from './stonecutting';
 import { COOKING_TYPE, type FurnaceKind } from './furnace';
+import { costA, isOutOfStock, satisfiedBy, type MerchantOffer } from '../game/trades';
 
 export const enum ClickType {
   PICKUP = 0,
@@ -27,7 +28,7 @@ export const enum ClickType {
 /** The clicked slot id for "outside the window" (drop the carried stack). */
 export const SLOT_OUTSIDE = -999;
 
-export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter' | 'smithing' | 'grindstone';
+export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter' | 'smithing' | 'grindstone' | 'merchant';
 
 export interface MenuPlayer {
   readonly inventory: Inventory;
@@ -1074,6 +1075,175 @@ export class GrindstoneMenu extends Menu {
   }
 }
 
+/**
+ * MerchantMenu (vanilla MerchantMenu / MerchantContainer / MerchantResultSlot, 1.17.1):
+ * 0 payment A, 1 payment B, 2 result, 3–29 inventory, 30–38 hotbar. The result is the selected
+ * offer (selection hint) if the payments satisfy it, otherwise the first satisfied offer.
+ * Taking the result pays and counts a use; the trader's side effects run through `onTrade`.
+ */
+export class MerchantMenu extends Menu {
+  readonly payments = new SimpleContainer(2);
+  readonly result = new ResultContainer();
+  offers: MerchantOffer[] = [];
+  /** villager level (0 = wandering trader / no progress bar) and xp, for the screen */
+  traderLevel = 0;
+  traderXp = 0;
+  showProgress = false;
+  selectionHint = -1;
+  /** the offer the result currently comes from */
+  activeOffer: MerchantOffer | null = null;
+  /** server: a trade happened (uses/xp/sounds on the trader) */
+  onTrade: ((o: MerchantOffer) => void) | null = null;
+
+  constructor(id: number, inv: Container, private readonly valid: () => boolean = () => true) {
+    super('merchant', id);
+    this.imageWidth = 276;
+    this.imageHeight = 166;
+    this.payments.onChange = () => this.updateSellItem();
+    this.addSlot(new Slot(this.payments, 0, 136, 37));
+    this.addSlot(new Slot(this.payments, 1, 162, 37));
+    const menu = this;
+    this.addSlot(
+      new (class extends Slot {
+        override mayPlace(): boolean {
+          return false;
+        }
+        override onTake(p: MenuPlayer, st: ItemStack): void {
+          menu.take();
+          super.onTake(p, st);
+        }
+      })(this.result, 0, 220, 37),
+    );
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 9; j++) this.addSlot(new Slot(inv, j + i * 9 + 9, 108 + j * 18, 84 + i * 18));
+    for (let i = 0; i < 9; i++) this.addSlot(new Slot(inv, i, 108 + i * 18, 142));
+  }
+
+  override stillValid(): boolean {
+    return this.valid();
+  }
+
+  setOffers(o: MerchantOffer[]): void {
+    this.offers = o;
+    this.updateSellItem();
+  }
+
+  /** MerchantContainer.updateSellItem */
+  updateSellItem(): void {
+    let a = this.payments.getItem(0), b = this.payments.getItem(1);
+    if (isEmpty(a)) {
+      a = b;
+      b = null;
+    }
+    this.activeOffer = null;
+    this.result.items[0] = null;
+    if (isEmpty(a)) return;
+    const pick = (o: MerchantOffer | undefined) => !!o && satisfiedBy(o, a!, b ?? null);
+    let o = pick(this.offers[this.selectionHint]) ? this.offers[this.selectionHint]! : null;
+    if (!o) o = this.offers.find((x) => pick(x)) ?? null;
+    if (!o || isOutOfStock(o)) return;
+    this.activeOffer = o;
+    this.result.items[0] = { ...o.result };
+  }
+
+  /** MerchantResultSlot.onTake: pay for the active offer */
+  private take(): void {
+    const o = this.activeOffer;
+    if (!o) return;
+    let a = this.payments.getItem(0), b = this.payments.getItem(1);
+    let swapped = false;
+    if (isEmpty(a)) {
+      a = b;
+      b = null;
+      swapped = true;
+    }
+    if (a && satisfiedBy(o, a, b ?? null)) {
+      a.count -= costA(o).count;
+      if (o.costB && b) b.count -= o.costB.count;
+      if (swapped) {
+        if (a.count <= 0) this.payments.items[1] = null;
+      } else {
+        if (a.count <= 0) this.payments.items[0] = null;
+        if (b && b.count <= 0) this.payments.items[1] = null;
+      }
+      if (this.onTrade) this.onTrade(o);
+      else o.uses++;
+    }
+    this.updateSellItem();
+  }
+
+  /** ServerboundSelectTradePacket: select an offer and move matching payment items in */
+  override clickMenuButton(p: MenuPlayer, id: number): boolean {
+    if (id < 0 || id >= this.offers.length) return false;
+    this.selectionHint = id;
+    this.tryMoveItems(p, id);
+    this.updateSellItem();
+    return true;
+  }
+
+  /** MerchantMenu.tryMoveItems: return the payments, then fill both from the inventory */
+  private tryMoveItems(p: MenuPlayer, id: number): void {
+    for (let i = 0; i < 2; i++) {
+      const st = this.payments.items[i];
+      if (!isEmpty(st)) {
+        this.payments.items[i] = null;
+        placeBack(p, st);
+      }
+    }
+    const o = this.offers[id]!;
+    const want: (ItemStack | null)[] = [costA(o), o.costB];
+    for (let i = 0; i < 2; i++) {
+      const w = want[i];
+      if (!w) continue;
+      for (let s = 0; s < 36; s++) {
+        const st = p.inventory.get(s);
+        if (!st || st.id !== w.id || st.damage !== 0) continue;
+        const have = this.payments.items[i];
+        const room = 64 - (have?.count ?? 0);
+        if (room <= 0) break;
+        const n = Math.min(room, st.count);
+        this.payments.items[i] = { id: st.id, count: (have?.count ?? 0) + n, damage: 0 };
+        st.count -= n;
+        if (st.count <= 0) p.inventory.set(s, null);
+      }
+    }
+  }
+
+  override canTakeItemForPickAll(_s: ItemStack, slot: Slot): boolean {
+    return slot.container !== this.result;
+  }
+
+  quickMoveStack(p: MenuPlayer, index: number): ItemStack | null {
+    const slot = this.slots[index];
+    const st = slot?.getItem();
+    if (!slot || !st) return null;
+    const orig = copyStack(st)!;
+    if (index === 2) {
+      if (!this.moveItemStackTo(st, 3, 39, true)) return null;
+      slot.onQuickCraft(st, orig);
+    } else if (index !== 0 && index !== 1) {
+      if (index >= 3 && index < 30) {
+        if (!this.moveItemStackTo(st, 30, 39, false)) return null;
+      } else if (index >= 30 && index < 39 && !this.moveItemStackTo(st, 3, 30, false)) return null;
+    } else if (!this.moveItemStackTo(st, 3, 39, false)) return null;
+    if (st.count <= 0) slot.set(null);
+    else slot.setChanged();
+    if (st.count === orig.count) return null;
+    slot.onTake(p, st);
+    return orig;
+  }
+
+  /** MerchantMenu.removed: payments go back to the player */
+  override removed(p: MenuPlayer): void {
+    super.removed(p);
+    this.result.items[0] = null;
+    for (let i = 0; i < 2; i++) {
+      const it = this.payments.items[i];
+      this.payments.items[i] = null;
+      if (!isEmpty(it)) placeBack(p, it);
+    }
+  }
+}
+
 /** Menu with mirror containers (client prediction for server-opened windows). */
 export function createClientMenu(type: MenuType, id: number, inv: Container): Menu {
   switch (type) {
@@ -1099,6 +1269,8 @@ export function createClientMenu(type: MenuType, id: number, inv: Container): Me
       return new SmithingMenu(id, inv);
     case 'grindstone':
       return new GrindstoneMenu(id, inv);
+    case 'merchant':
+      return new MerchantMenu(id, inv);
   }
 }
 
