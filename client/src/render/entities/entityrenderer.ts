@@ -137,7 +137,7 @@ export class EntityRenderer {
   /** Bed yaw (Direction.toYRot of FACING) under a sleeping player — set by the game. */
   bedFacing: ((p: RemotePlayer) => number | null) | null = null;
   /** Resolves whether an item has a model and whether it is flat (generated) — set by the game. */
-  itemModel: (item: number) => { flat: boolean } | null = () => null;
+  itemModel: (item: number) => { flat: boolean; handheld?: boolean } | null = () => null;
 
   renderPlayers(
     players: Iterable<RemotePlayer>, world: ClientWorld, viewProj: Mat4, camX: number, camY: number, camZ: number, partial: number,
@@ -246,7 +246,7 @@ export class EntityRenderer {
         partMatrix(am, arm);
         const out = this.heldPool.pop() ?? mat4();
         multiply(out, m, am);
-        multiply(out, out, heldItemTransform(left, info.flat));
+        multiply(out, out, heldItemTransform(left, info.flat, info.handheld ?? false));
         this.held.push({ matrix: out, light, item, left });
       }
     }
@@ -305,7 +305,7 @@ export function recycleHeld(r: EntityRenderer): void {
  * transform (blocks: rot (75, 45, 0), 2.5 px up, scale 0.375; generated: 3 px up, 1 px forward,
  * scale 0.55), converted from vanilla's y-down model space by diag(1, −1, −1) and px scale.
  */
-function heldItemTransform(left: boolean, flat: boolean): Mat4 {
+function heldItemTransform(left: boolean, flat: boolean, handheld = false): Mat4 {
   const out = mat4();
   const mul = (b: Mat4) => multiply(out, out, b);
   const S = mat4();
@@ -315,7 +315,15 @@ function heldItemTransform(left: boolean, flat: boolean): Mat4 {
   mul(rot(0, 1, 0, 180));
   mul(tr((left ? -1 : 1) / 16, 0.125, -0.625));
   const sgn = left ? -1 : 1;
-  if (flat) {
+  if (handheld) {
+    // item/handheld thirdperson_righthand: rotation [0, −90, 55], translation [0, 4, 0.5], scale 0.85
+    mul(tr(0, 4 / 16, 0.5 / 16));
+    mul(rot(0, 1, 0, -90 * sgn));
+    mul(rot(0, 0, 1, 55 * sgn));
+    const k = mat4();
+    k[0] = k[5] = k[10] = 0.85;
+    mul(k);
+  } else if (flat) {
     mul(tr(0, 3 / 16, 1 / 16));
     const k = mat4();
     k[0] = k[5] = k[10] = 0.55;
