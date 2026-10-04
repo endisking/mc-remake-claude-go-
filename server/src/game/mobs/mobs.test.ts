@@ -461,4 +461,27 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     ticks(server, 25);
     expect(sq.health).toBeLessThan(10);
   });
+
+  it('save/load round-trips mob state; monsters near a bed prevent sleeping', () => {
+    const { server, a, p } = setup({ dayTime: 18000 });
+    const sh = server.mobs.spawn('sheep', 30.5, 64, 30.5) as Sheep;
+    sh.color = 14;
+    sh.sheared = true;
+    sh.ageTicks = -100;
+    const saved = server.mobs.save();
+    const json = JSON.parse(JSON.stringify(saved));
+    sh.removed = true;
+    const [back] = server.mobs.load(json.filter((o: { type: string }) => o.type === 'sheep')) as Sheep[];
+    expect(back!.color).toBe(14);
+    expect(back!.sheared).toBe(true);
+    expect(back!.isBaby()).toBe(true);
+    expect(back!.x).toBe(30.5);
+    // bed with a zombie next to it
+    server.world.setStateRaw(2, 64, 0, stateOf('red_bed', { facing: 'south', part: 'head', occupied: false }));
+    server.world.setStateRaw(2, 64, -1, stateOf('red_bed', { facing: 'south', part: 'foot', occupied: false }));
+    server.mobs.spawn('zombie', 4.5, 64, 3.5);
+    a.send({ t: 'useOn', x: 2, y: 64, z: 0, face: 1, cx: 0.5, cy: 0.5, cz: 0.5, hand: 0 });
+    expect(p.sleepingPos).toBeNull();
+    expect(a.received.some((m) => m.t === 'actionBar' && m.text.includes('monsters nearby'))).toBe(true);
+  });
 });

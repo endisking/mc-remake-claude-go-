@@ -25,12 +25,13 @@ import type { ServerPlayer } from '../player';
 import type { GameServer } from '../server';
 import { DAMAGE, type DamageSource } from '../survival';
 import { Mob, isMob, targetEye, type Target, type MobCategory } from './mob';
-import { Zombie, Husk, Drowned, Skeleton, Stray, Creeper, Spider } from './monsters';
+import { Zombie, Husk, Drowned, Skeleton, Stray, Creeper, Spider, Monster } from './monsters';
 import { Pig, Cow, Sheep, Chicken, Animal } from './animals';
 import { Arrow } from './arrow';
 import { Slime, isSlimeChunk, moonBrightness } from './slime';
 import { Enderman } from './enderman';
 import { Bat, Squid } from './ambient';
+import { saveMob, applyMobSave, type MobSave } from './persist';
 import { itemForBlock } from '@shared/game/loot';
 
 type MobCtor = new (id: number, s: GameServer) => Mob;
@@ -134,6 +135,12 @@ export class MobManager {
     return best;
   }
 
+  /** ServerPlayer.startSleepInBed: a hostile monster's box within (±8, ±5, ±8) of the bed. */
+  monstersNear(x: number, y: number, z: number): boolean {
+    const box = new AABB(x - 8, y - 5, z - 8, x + 8, y + 5, z + 8);
+    return this.nearbyMobs(x, z, 10).some((m) => m instanceof Monster && !m.dead && m.bb().intersects(box));
+  }
+
   isDay(): boolean {
     const s = this.s;
     return isDay(s.dayTime, s.rainLevel, s.thunderLevel * s.rainLevel);
@@ -161,6 +168,27 @@ export class MobManager {
     }
     this.s.spawnEntity(m);
     return m;
+  }
+
+  /** Save data of every living mob (optionally only those inside a chunk). */
+  save(cx?: number, cz?: number): MobSave[] {
+    return this.mobs().filter((m) => !m.dead && (cx === undefined || ((Math.floor(m.x) >> 4) === cx && (Math.floor(m.z) >> 4) === cz))).map(saveMob);
+  }
+
+  /** Recreate saved mobs (no spawn randomisation). */
+  load(list: MobSave[]): Mob[] {
+    const out: Mob[] = [];
+    for (const o of list) {
+      const C = MOB_TYPES[o.type];
+      if (!C) continue;
+      const m = new C(this.s.allocateEntityId(), this.s);
+      m.init();
+      applyMobSave(m, o);
+      if (m instanceof Skeleton) m.reassessWeaponGoal();
+      this.s.spawnEntity(m);
+      out.push(m);
+    }
+    return out;
   }
 
   /** ServerChunkCache.tickChunks → NaturalSpawner.spawnForChunk for every spawning chunk. */
