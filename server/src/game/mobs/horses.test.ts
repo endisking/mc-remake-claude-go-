@@ -63,11 +63,19 @@ describe('horses, donkeys, mules', () => {
     let tries = 0;
     while (!h.tame && tries < 100) {
       const before = h.temper;
+      // riding: an empty hand mounts; the horse bucks (temper + 5) or accepts within ~50 ticks
+      h.x = p.x + 1.5;
+      h.z = p.z;
       send({ t: 'interactEntity', id: h.id, hand: 0 });
+      expect(server.riding.vehicle(p)).toBe(h);
+      let t = 0;
+      while (server.riding.vehicle(p) && !h.tame && t++ < 2000) server.tick();
       tries++;
       if (!h.tame) expect(h.temper).toBe(Math.min(100, before + 5));
     }
     expect(h.tame).toBe(true);
+    send({ t: 'steerVehicle', forward: 0, strafe: 0, jump: false, sneak: true, jumpPower: -1 });
+    expect(server.riding.vehicle(p)).toBeNull();
     expect(h.ownerName).toBe('A');
     send({ t: 'chat', message: '/give @s saddle 1' });
     send({ t: 'interactEntity', id: h.id, hand: 0 });

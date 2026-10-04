@@ -263,7 +263,54 @@ export class Pig extends Animal {
       this.s.mobs.usePlayerItem(p, slot);
       return true;
     }
-    return super.interact(p, hand);
+    if (super.interact(p, hand)) return true;
+    // Pig.mobInteract: a saddled pig is mounted unless sneaking
+    if (hand === 0 && this.saddled && !this.isBaby() && !this.dead && !p.sneaking && !this.s.riding.isVehicle(this)) return this.s.riding.mount(p, this);
+    return false;
+  }
+
+  /** ItemBasedSteering: boosting with a carrot on a stick */
+  boosting = false;
+  boostTime = 0;
+  boostTimeTotal = 0;
+
+  /** ItemBasedSteering.boost (CarrotOnAStickItem.use): false when already boosting */
+  boost(): boolean {
+    if (this.boosting) return false;
+    this.boosting = true;
+    this.boostTime = 0;
+    this.boostTimeTotal = this.rng.nextInt(841) + 140;
+    return true;
+  }
+
+  /** Pig.getSteeringSpeed: movement speed × 0.225, times the boost curve */
+  steeringSpeed(): number {
+    let f = 1;
+    if (this.boosting) f = 1 + 1.15 * Math.sin((this.boostTime / this.boostTimeTotal) * Math.PI);
+    return this.movementSpeedValue() * 0.225 * f;
+  }
+
+  /** Pig.travel controlled branch: the rider holding a carrot on a stick steers by looking */
+  protected override steeredStep(inp: import('../riding').SteerInput): boolean {
+    const rider = this.s.riding.passengers(this)[0];
+    if (!rider || !this.saddled) return false;
+    const holds = [rider.inventory.get(rider.inventory.selected), rider.inventory.get(40)].some((st) => st && itemName(st.id) === 'carrot_on_a_stick');
+    if (!holds) return false;
+    this.navigation.stop();
+    this.yaw = inp.yaw;
+    this.pitch = inp.pitch * 0.5;
+    this.yBodyRot = this.yHeadRot = this.yaw;
+    if (this.boosting && this.boostTime++ > this.boostTimeTotal) this.boosting = false;
+    this.flyingSpeed = this.steeringSpeed() * 0.1;
+    this.speed = this.steeringSpeed();
+    // travel(new Vec3(0, 0, 1)): the aiStep 0.98 input scale is undone here
+    this.xxa = 0;
+    this.zza = 1 / 0.98;
+    this.jumping = false;
+    return true;
+  }
+  protected override afterTravel(): void {
+    if (!this.steer) this.flyingSpeed = 0.02;
   }
   override ambientSound(): string {
     return 'entity.pig.ambient';

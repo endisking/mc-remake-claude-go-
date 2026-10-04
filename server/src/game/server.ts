@@ -47,6 +47,7 @@ import { soundTypeOf } from '@shared/world/soundtype';
 import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
 import { MobManager, MOB_TYPES } from './mobs/manager';
+import { Riding } from './riding';
 import { Mob } from './mobs/mob';
 import type { MobSave } from './mobs/persist';
 // --- block behaviours (Phase 4: ticks, gravity, farming, doors)
@@ -212,6 +213,8 @@ export class GameServer {
   readonly sleep = new Sleep(this);
   /** mob spawning, combat, interactions and sync */
   readonly mobs = new MobManager(this);
+  /** passengers and vehicles (riding.ts) */
+  readonly riding = new Riding(this);
   /** Block behaviours: scheduled + random ticks, gravity blocks, farming, doors (blocks.ts). */
   readonly blocks = new BlockBehaviors(this);
   /** container menus, block entities and furnaces */
@@ -1111,8 +1114,10 @@ export class GameServer {
     // moves sent from the old dimension before the client saw the dimension change
     if (this.portals.ignoreMove(p, m.x, m.y, m.z)) return;
     // sleeping players stay in bed (rotation still updates)
-    if (p.sleepingPos) {
+    if (p.sleepingPos || this.riding.isPassenger(p)) {
+      // riders sit on the vehicle's seat (Riding.positionRiders); only the rotation counts
       p.yaw = m.yaw;
+      p.headYaw = m.yaw;
       p.pitch = Math.max(-90, Math.min(90, m.pitch));
       return;
     }
@@ -1332,6 +1337,9 @@ export class GameServer {
         break;
       case 'interactEntity':
         this.mobs.interact(p, m.id, m.hand);
+        break;
+      case 'steerVehicle':
+        this.riding.steer(p, m);
         break;
       case 'stopSleeping':
         this.sleep.wake(p, false);
@@ -1933,7 +1941,9 @@ export class GameServer {
       if (lv === overworld) this.mobs.tick();
       this.blocks.tick();
       this.redstone.tickLevel();
+      if (lv === overworld) this.riding.tick(); // riding: steering input → vehicles
       this.tickEntities();
+      if (lv === overworld) this.riding.positionRiders(); // riding: riders follow their seats
       this.items.tickClouds(); // Phase 7: lingering potion clouds of this dimension
       this.portals.tickEntities();
       this.theEnd.tickEntities();
