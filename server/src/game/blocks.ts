@@ -993,6 +993,7 @@ export class BlockBehaviors {
     const st = w.getState(x, y, z);
     const n = blockNameOf(st);
     const r = this.s.rand;
+    if (n === 'dragon_egg') return this.teleportEgg(x, y, z, st);
     if (n === 'sweet_berry_bush') {
       // SweetBerryBushBlock.use: bone meal on an unripe bush passes through to the item
       const age = getProp(st, 'age') as number;
@@ -1044,6 +1045,27 @@ export class BlockBehaviors {
       return true;
     }
     return false;
+  }
+
+  /** Block.attack (left click in survival/adventure): the dragon egg teleports away. */
+  attack(x: number, y: number, z: number): boolean {
+    const st = this.w.getState(x, y, z);
+    return blockNameOf(st) === 'dragon_egg' && this.teleportEgg(x, y, z, st);
+  }
+
+  /** DragonEggBlock.teleport: up to 1000 tries for an air block within ±15 / ±7. */
+  private teleportEgg(x: number, y: number, z: number, st: number): boolean {
+    const r = this.s.rand;
+    for (let i = 0; i < 1000; i++) {
+      const px = x + r.nextInt(16) - r.nextInt(16), py = y + r.nextInt(8) - r.nextInt(8), pz = z + r.nextInt(16) - r.nextInt(16);
+      // (vanilla also accepts positions outside the build height and loses the egg; we keep it)
+      if (py < 0 || py > 255 || !IS_AIR[this.w.getState(px, py, pz)] || !this.w.isLoaded(px, pz)) continue;
+      this.s.setBlock(px, py, pz, st);
+      this.s.setBlock(x, y, z, 0);
+      this.s.updateNeighbors(x, y, z);
+      return true;
+    }
+    return true;
   }
 
   /** /gamerule randomTickSpeed <n>; true when handled. */

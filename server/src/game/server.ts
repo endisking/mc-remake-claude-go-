@@ -386,6 +386,7 @@ export class GameServer {
     }
     if (action === 0) {
       if (hardness(state) < 0) return this.resendBlock(p, x, y, z);
+      if (this.blocks.attack(x, y, z)) return this.resendBlock(p, x, y, z);
       p.digging = { x, y, z, start: this.gameTime };
       if (destroyProgress(this.minerState(p), state) >= 1) {
         this.destroyBlock(x, y, z, p, true);

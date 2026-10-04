@@ -518,4 +518,15 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     expect(seen.some((p) => p.t === 'blockChange' && p.x === 12 && p.y === 152 && getProp(p.state, 'open') === true)).toBe(true);
     expect(seen.some((p) => p.t === 'sound')).toBe(true);
   });
+
+  it('the dragon egg teleports when clicked', () => {
+    const { server, set, get, send } = setup();
+    set(8, 150, 4, 'obsidian');
+    set(8, 151, 4, 'dragon_egg');
+    send({ t: 'useOn', x: 8, y: 151, z: 4, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(get(8, 151, 4)).toBe('air');
+    let eggs = 0;
+    for (let x = -10; x <= 26; x++) for (let y = 140; y <= 160; y++) for (let z = -12; z <= 20; z++) if (get(x, y, z) === 'dragon_egg') eggs++;
+    expect(eggs).toBe(1);
+  });
 });

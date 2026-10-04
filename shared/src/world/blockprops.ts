@@ -22,6 +22,7 @@ export const isViewBlocking = isSuffocating;
 export function isInteractive(state: number): boolean {
   if (isOpenableByHand(state)) return true;
   const name = blockNameOf(state);
+  if (name === 'dragon_egg') return true;
   // harvestable berries
   if (name === 'sweet_berry_bush' && (getPropOf(state, 'age') as number) > 1) return true;
   if ((name === 'cave_vines' || name === 'cave_vines_plant') && getPropOf(state, 'berries') === true) return true;
