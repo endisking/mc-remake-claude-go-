@@ -645,6 +645,50 @@ export function beeMesh(): VPart[] {
   ];
 }
 
+/** RabbitModel.createBodyLayer (64×32) */
+export function rabbitMesh(): VPart[] {
+  const tilt = -0.34906584;
+  return [
+    { name: 'left_hind_foot', pivot: [3, 17.5, 3.7], boxes: [b(26, 24, -1, 5.5, -3.7, 2, 1, 7)] },
+    { name: 'right_hind_foot', pivot: [-3, 17.5, 3.7], boxes: [b(8, 24, -1, 5.5, -3.7, 2, 1, 7)] },
+    { name: 'left_haunch', pivot: [3, 17.5, 3.7], rot: [tilt, 0, 0], boxes: [b(30, 15, -1, 0, 0, 2, 4, 5)] },
+    { name: 'right_haunch', pivot: [-3, 17.5, 3.7], rot: [tilt, 0, 0], boxes: [b(16, 15, -1, 0, 0, 2, 4, 5)] },
+    { name: 'body', pivot: [0, 19, 8], rot: [tilt, 0, 0], boxes: [b(0, 0, -3, -2, -10, 6, 5, 10)] },
+    { name: 'left_front_leg', pivot: [3, 17, -1], rot: [-0.19198622, 0, 0], boxes: [b(8, 15, -1, 0, -1, 2, 7, 2)] },
+    { name: 'right_front_leg', pivot: [-3, 17, -1], rot: [-0.19198622, 0, 0], boxes: [b(0, 15, -1, 0, -1, 2, 7, 2)] },
+    { name: 'head', pivot: [0, 16, -1], boxes: [b(32, 0, -2.5, -4, -5, 5, 4, 5)] },
+    { name: 'right_ear', pivot: [0, 16, -1], rot: [0, -0.2617994, 0], boxes: [b(52, 0, -2.5, -9, -1, 2, 5, 1)] },
+    { name: 'left_ear', pivot: [0, 16, -1], rot: [0, 0.2617994, 0], boxes: [b(58, 0, 0.5, -9, -1, 2, 5, 1)] },
+    { name: 'tail', pivot: [0, 20, 7], rot: [-0.3490659, 0, 0], boxes: [b(52, 6, -1.5, -1.5, 0, 3, 3, 2)] },
+    { name: 'nose', pivot: [0, 16, -1], boxes: [b(32, 9, -0.5, -2.5, -5.5, 1, 1, 1)] },
+  ];
+}
+
+/** LlamaModel.createBodyLayer (128×64) */
+export function llamaMesh(): VPart[] {
+  const leg = () => [b(29, 29, -2, 0, -2, 4, 14, 4)];
+  return [
+    { name: 'head', pivot: [0, 7, -6], boxes: [b(0, 0, -2, -14, -10, 4, 4, 9), b(0, 14, -4, -16, -6, 8, 18, 6), b(17, 0, -4, -19, -4, 3, 3, 2), b(17, 0, 1, -19, -4, 3, 3, 2)] },
+    { name: 'body', pivot: [0, 5, 2], rot: [PI / 2, 0, 0], boxes: [b(29, 0, -6, -10, -7, 12, 18, 10)] },
+    { name: 'right_hind_leg', pivot: [-3.5, 10, 6], boxes: leg() },
+    { name: 'left_hind_leg', pivot: [3.5, 10, 6], boxes: leg() },
+    { name: 'right_front_leg', pivot: [-3.5, 10, -5], boxes: leg() },
+    { name: 'left_front_leg', pivot: [3.5, 10, -5], boxes: leg() },
+  ];
+}
+
+/** TurtleModel.createBodyLayer (128×64) */
+export function turtleMesh(): VPart[] {
+  return [
+    { name: 'head', pivot: [0, 19, -10], boxes: [b(3, 0, -3, -1, -3, 6, 5, 6)] },
+    { name: 'body', pivot: [0, 11, -10], rot: [PI / 2, 0, 0], boxes: [b(7, 37, -9.5, 3, -10, 19, 20, 6), b(31, 1, -5.5, 3, -13, 11, 18, 3)] },
+    { name: 'right_hind_leg', pivot: [-3.5, 22, 11], boxes: [b(1, 23, -2, 0, 0, 4, 1, 10)] },
+    { name: 'left_hind_leg', pivot: [3.5, 22, 11], boxes: [b(1, 12, -2, 0, 0, 4, 1, 10)] },
+    { name: 'right_front_leg', pivot: [-5, 21, -4], boxes: [b(27, 30, -13, 0, -2, 13, 1, 5)] },
+    { name: 'left_front_leg', pivot: [5, 21, -4], boxes: [b(27, 24, 0, 0, -2, 13, 1, 5)] },
+  ];
+}
+
 // ------------------------------------------------------------------ animation helpers
 
 const RAD = PI / 180;
@@ -1122,6 +1166,30 @@ const beeAnim = (p: Poses, a: MobAnim) => {
   }
 };
 
+/** RabbitModel.setupAnim: head look and the hop (jump completion drives haunches and feet). */
+const rabbitAnim = (p: Poses, a: MobAnim) => {
+  const pitch = a.headPitch * RAD, yaw = a.netHeadYaw * RAD;
+  p.nose!.xRot = p.head!.xRot = p.right_ear!.xRot = p.left_ear!.xRot = pitch;
+  p.nose!.yRot = p.head!.yRot = yaw;
+  p.right_ear!.yRot = yaw - 0.2617994;
+  p.left_ear!.yRot = yaw + 0.2617994;
+  const j = Math.sin(a.mob.jumpCompletion(a.partial) * PI);
+  p.left_haunch!.xRot = p.right_haunch!.xRot = (j * 50 - 21) * RAD;
+  p.left_hind_foot!.xRot = p.right_hind_foot!.xRot = j * 50 * RAD;
+  p.left_front_leg!.xRot = p.right_front_leg!.xRot = (j * -40 - 11) * RAD;
+};
+
+/** TurtleModel.setupAnim (on land): slow paddling of the flippers. */
+const turtleAnim = (p: Poses, a: MobAnim) => {
+  const ls = a.limbSwing, amt = a.limbSwingAmount;
+  p.head!.xRot = a.headPitch * RAD;
+  p.head!.yRot = a.netHeadYaw * RAD;
+  p.right_hind_leg!.xRot = Math.cos(ls * 0.6662 * 0.6) * 0.5 * amt;
+  p.left_hind_leg!.xRot = Math.cos(ls * 0.6662 * 0.6 + PI) * 0.5 * amt;
+  p.right_front_leg!.zRot = -Math.cos(ls * 0.6662 * 0.6 + PI) * 0.5 * amt;
+  p.left_front_leg!.zRot = Math.cos(ls * 0.6662 * 0.6) * 0.5 * amt;
+};
+
 const none = () => {};
 
 export const MOB_MODELS: Record<string, MobModelDef> = {
@@ -1161,6 +1229,9 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   silverfish: { tex: [64, 32], parts: segmentedMesh(SILVERFISH_SIZES, SILVERFISH_TEXS, true), anim: segmentedAnim(0.05, 0.2) },
   endermite: { tex: [64, 32], parts: segmentedMesh(ENDERMITE_SIZES, ENDERMITE_TEXS, false), anim: segmentedAnim(0.01, 0.1) },
   bee: { tex: [64, 64], parts: beeMesh(), headParts: [], baby: { scaleHead: false, yHead: 24, zHead: 0, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: beeAnim },
+  rabbit: { tex: [64, 32], parts: rabbitMesh(), anim: rabbitAnim },
+  llama: { tex: [128, 64], parts: llamaMesh(), headParts: ['head'], baby: { scaleHead: false, yHead: 10, zHead: 4, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: quadrupedAnim },
+  turtle: { tex: [128, 64], parts: turtleMesh(), headParts: ['head'], baby: { scaleHead: true, yHead: 120, zHead: 0, headScale: 9, bodyScale: 6, bodyY: 120 }, anim: turtleAnim },
   unknown: { tex: [64, 32], parts: [{ name: 'box', pivot: [0, 0, 0], boxes: [b(0, 0, -8, 8, -8, 16, 16, 16)] }], anim: none },
 };
 
@@ -1242,6 +1313,10 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   silverfish: { layers: [{ model: 'silverfish', texture: 'silverfish' }] },
   endermite: { layers: [{ model: 'endermite', texture: 'endermite' }] },
   bee: { layers: [{ model: 'bee', texture: 'bee' }] },
+  rabbit: { layers: [{ model: 'rabbit', texture: 'rabbit' }] },
+  llama: { layers: [{ model: 'llama', texture: 'llama' }], scale: 0.8 },
+  trader_llama: { layers: [{ model: 'llama', texture: 'trader_llama' }], scale: 0.8 },
+  turtle: { layers: [{ model: 'turtle', texture: 'turtle' }] },
   /** fallback for mobs without a model: a hit-box-sized box */
   unknown: { layers: [{ model: 'unknown', texture: 'unknown' }] },
 };

@@ -64,6 +64,10 @@ export const MOB_INFO: Record<string, MobInfo> = {
   silverfish: H(0.3, { flip: 180 }),
   endermite: H(0.3, { flip: 180 }),
   bee: N(0.4, { flying: true, step: null }),
+  rabbit: N(0.3),
+  llama: N(0.7),
+  trader_llama: N(0.7),
+  turtle: N(0.7),
   cod: N(0.3, { category: 'neutral', step: null }),
   salmon: N(0.4, { category: 'neutral', step: null }),
   pillager: H(0.5),
@@ -132,6 +136,9 @@ export class ClientMob {
   mainHand = -1;
   offHand = 0;
   // per-type client state
+  /** Rabbit hop (entity event 1, or leaving the ground) */
+  private jumpTicks = 0;
+  private jumpDuration = 0;
   /** in water (set by the renderer from the block at the mob; fish flop on land) */
   inWater = true;
   /** IronGolem.attackAnimationTick (entity event 4) */
@@ -246,6 +253,10 @@ export class ClientMob {
         if (this.deathTime === 0) this.deathTime = 1;
         this.hurtTime = 10;
         return 'death';
+      case 1:
+        // Rabbit.handleEntityEvent: start a 10-tick hop
+        if (this.type === 'rabbit') this.startJump();
+        return null;
       case 4:
         // IronGolem.handleEntityEvent: arm slam (10 ticks)
         this.attackAnimationTick = 10;
@@ -366,6 +377,12 @@ export class ClientMob {
         this.swell = Math.min(30, Math.max(0, this.swell + (dir > 0 ? 1 : -1)));
         break;
       }
+      case 'rabbit':
+        // Rabbit.aiStep: hop timer; a hop also starts whenever it leaves the ground
+        if (!this.onGround && this.wasOnGround && this.jumpDuration === 0) this.startJump();
+        if (this.jumpTicks !== this.jumpDuration) this.jumpTicks++;
+        else if (this.jumpDuration !== 0) this.jumpTicks = this.jumpDuration = 0;
+        break;
       case 'squid':
       case 'glow_squid': {
         // Squid.aiStep (client part): tentacles pulse; a stroke restarts after each cycle
@@ -397,6 +414,16 @@ export class ClientMob {
         break;
       }
     }
+  }
+
+  private startJump(): void {
+    this.jumpDuration = 10;
+    this.jumpTicks = 0;
+  }
+
+  /** Rabbit.getJumpCompletion */
+  jumpCompletion(partial: number): number {
+    return this.jumpDuration === 0 ? 0 : (this.jumpTicks + partial) / this.jumpDuration;
   }
 
   /** Creeper.getSwelling(partial): 0..~1.07 */

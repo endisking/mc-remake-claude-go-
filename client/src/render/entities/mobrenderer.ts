@@ -408,6 +408,13 @@ export class MobRenderer {
     // V: vanilla model space (y down, front −Z, feet at y = 24) → y up, front +Z
     mulTranslate(E, 0, 24, 0);
     mulScale(E, 1, -1, -1);
+    if (m.type === 'rabbit') {
+      // RabbitModel.renderToBuffer: the model is drawn at 0.6 about its origin and moved down
+      // onto the ground (babies at 0.4)
+      const k = m.baby ? 0.4 : 0.6;
+      mulScale(E, k, k, k);
+      mulTranslate(E, 0, 24 / k - 24, 0);
+    }
     if (m.type === 'phantom') {
       // PhantomRenderer.scale: 1 + 0.15·size, then shifted down onto its flat hit box
       const k = 1 + 0.15 * (m.data.get('size') ?? 0);

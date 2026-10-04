@@ -1056,6 +1056,76 @@ export function bee(): Tex {
   return t;
 }
 
+/** Rabbit (64×32): grey-brown agouti fur, pale belly and tail, pink-lined ears. */
+export function rabbit(): Tex {
+  const t = new Tex(64, 32);
+  const F = hex('#8a7058'), FD = hex('#6e5844'), W = hex('#e0d4c4');
+  const fur = blotches(F, FD, 321, 1.4, 0.6, 0.07);
+  box(t, 26, 24, 2, 1, 7, fur);
+  box(t, 8, 24, 2, 1, 7, fur);
+  box(t, 30, 15, 2, 4, 5, fur);
+  box(t, 16, 15, 2, 4, 5, fur);
+  const body = box(t, 0, 0, 6, 5, 10, fur);
+  rect(t, body.bottom[0], body.bottom[1], 6, 10, noisy(W, 0.04, 322));
+  box(t, 8, 15, 2, 7, 2, fur);
+  box(t, 0, 15, 2, 7, 2, fur);
+  const head = box(t, 32, 0, 5, 4, 5, fur);
+  px(t, head.front[0], head.front[1] + 1, hex('#1a1210'));
+  px(t, head.front[0] + 4, head.front[1] + 1, hex('#1a1210'));
+  hline(t, head.front[0] + 1, head.front[1] + 3, 3, W);
+  box(t, 52, 0, 2, 5, 1, fur, { front: (_x, y) => (y > 0 && y < 4 ? hex('#d8a0a0') : F) });
+  box(t, 58, 0, 2, 5, 1, fur, { front: (_x, y) => (y > 0 && y < 4 ? hex('#d8a0a0') : F) });
+  box(t, 52, 6, 3, 3, 2, () => W);
+  box(t, 32, 9, 1, 1, 1, () => hex('#c88a8a'));
+  return t;
+}
+
+/** Llama layout (128×64): long neck, fluffy coat. */
+function llamaTex(coat: string, dark: string, blanket: string | null, seed: number): Tex {
+  const t = new Tex(128, 64);
+  const C = hex(coat), D = hex(dark);
+  const wool = blotches(C, D, seed, 1.6, 0.62, 0.05);
+  const head = box(t, 0, 0, 4, 4, 9, wool);
+  px(t, head.front[0], head.front[1] + 1, hex('#1a1612'));
+  px(t, head.front[0] + 3, head.front[1] + 1, hex('#1a1612'));
+  hline(t, head.front[0] + 1, head.front[1] + 3, 2, shade(D, 0.7));
+  box(t, 0, 14, 8, 18, 6, wool);
+  box(t, 17, 0, 3, 3, 2, wool);
+  const body = box(t, 29, 0, 12, 18, 10, wool);
+  if (blanket) {
+    const B = hex(blanket);
+    rect(t, body.back[0], body.back[1] + 3, 12, 10, (x, y) => ((x + y) % 4 === 0 ? hex('#e8d050') : B));
+    for (const k of ['right', 'left'] as const) {
+      const [x, y, w] = body[k];
+      rect(t, k === 'left' ? x + w - 4 : x, y + 3, 4, 10, (i, j) => ((i + j) % 4 === 0 ? hex('#e8d050') : B));
+    }
+  }
+  const leg = box(t, 29, 29, 4, 14, 4, wool);
+  for (const k of ['right', 'front', 'left', 'back'] as const) hline(t, leg[k][0], leg[k][1] + 13, 4, hex('#3a3028'));
+  return t;
+}
+
+export const llama = () => llamaTex('#d8c8a8', '#c0ae8c', null, 331);
+export const traderLlama = () => llamaTex('#a88a64', '#8c7050', '#2f4f8a', 333);
+
+/** Turtle (128×64): olive-green skin and a ridged dark-green shell. */
+export function turtle(): Tex {
+  const t = new Tex(128, 64);
+  const S = hex('#7a9a4a'), SD = hex('#5e7c38'), SH = hex('#3a5a2a'), SL = hex('#5a7a3a');
+  const skin = blotches(S, SD, 341, 1.5, 0.6, 0.05);
+  const head = box(t, 3, 0, 6, 5, 6, skin);
+  px(t, head.front[0] + 1, head.front[1] + 1, hex('#141410'));
+  px(t, head.front[0] + 4, head.front[1] + 1, hex('#141410'));
+  const shell: Paint = (x, y) => (x % 5 === 0 || y % 5 === 0 ? SH : SL);
+  box(t, 7, 37, 19, 20, 6, shell);
+  box(t, 31, 1, 11, 18, 3, () => hex('#c8c08a'));
+  box(t, 1, 23, 4, 1, 10, skin);
+  box(t, 1, 12, 4, 1, 10, skin);
+  box(t, 27, 30, 13, 1, 5, skin);
+  box(t, 27, 24, 13, 1, 5, skin);
+  return t;
+}
+
 // ------------------------------------------------------------------ misc layers
 
 /** Charged creeper energy swirl (tileable, scrolled and drawn additively). */
@@ -1140,5 +1210,5 @@ export const ENTITY_TEXTURES: Record<string, () => Tex> = {
   chicken, enderman, enderman_eyes: endermanEyes, slime, bat, squid,
   glow_squid: glowSquid, creeper_armor: creeperArmor, villager, wandering_trader: wanderingTrader, witch, zombie_villager: zombieVillager,
   unknown: unknownMob,
-  polar_bear: polarBear, snow_golem: snowGolem, silverfish, endermite, bee, horse, donkey, mule, skeleton_horse: skeletonHorse, zombie_horse: zombieHorse, cat, ocelot, cod, salmon, pillager, vindicator, evoker, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
+  rabbit, llama, trader_llama: traderLlama, turtle, polar_bear: polarBear, snow_golem: snowGolem, silverfish, endermite, bee, horse, donkey, mule, skeleton_horse: skeletonHorse, zombie_horse: zombieHorse, cat, ocelot, cod, salmon, pillager, vindicator, evoker, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
 };
