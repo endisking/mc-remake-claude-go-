@@ -106,4 +106,16 @@ await aim(X + 0.5, 118, 6.5, X + 0.5, 115, 0);
 await page.waitForTimeout(800);
 console.log('door at end', await name(X - 3, 115, 0), await name(X - 3, 116, 0));
 await shot('result');
+// TNT: light it and watch the crater form
+for (let x = -3; x <= 3; x++) for (let z = -2; z <= 1; z++) await cmd(page, `/setblock ${X + x} 113 ${z} stone`);
+await cmd(page, `/setblock ${X} 115 -1 tnt`);
+await hold('flint_and_steel');
+await aim(X + 0.5, 116.5, 1.5, X + 0.5, 115.5, -0.5);
+await click(2);
+await aim(X + 0.5, 121, 9.5, X + 0.5, 114, -1);
+await page.waitForTimeout(1500);
+await shot('tnt-lit');
+await page.waitForTimeout(3500);
+await shot('tnt-crater');
+console.log('crater', await name(X, 114, -1), await name(X, 113, -1));
 await browser.close();
