@@ -9,6 +9,7 @@ import http from 'node:http';
 import { existsSync } from 'node:fs';
 import { readFile, mkdir } from 'node:fs/promises';
 import { join, extname, normalize } from 'node:path';
+import { stateOf } from '../../shared/src/world/blockstate';
 
 const root = new URL('../../', import.meta.url).pathname;
 const WEB = join(root, 'client/dist');
@@ -80,7 +81,7 @@ await page.waitForTimeout(300);
 await shot('1-launcher-empty');
 await page.fill('#l-name', 'Tester');
 await page.fill('#l-wname', 'Persist Test');
-await page.fill('#l-seed', 'persistence');
+await page.fill('#l-seed', 'blockcraft');
 await page.selectOption('#l-gm', 'creative');
 await page.click('#l-play');
 await page.waitForURL(/world=/);
@@ -88,32 +89,45 @@ await waitLoaded(page);
 await page.keyboard.press('Escape').catch(() => {});
 await page.evaluate(() => (window as any).game.setScreen(null));
 
+/** Look around until the crosshair is on a block (other than `not`). */
+const OFF = [[0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0]];
+const near = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z) <= 1;
+async function aimAt(yaws: number[], not?: { x: number; y: number; z: number }) {
+  for (const pitch of [55, 65, 45, 75, 35])
+    for (const yaw of yaws) {
+      await look(page, yaw, pitch);
+      await page.waitForTimeout(150);
+      const t = await target(page);
+      if (!t) continue;
+      const o = OFF[t.face]!;
+      if (not && (near(t, not) || near({ x: t.x + o[0]!, y: t.y + o[1]!, z: t.z + o[2]! }, not))) continue;
+      return { t, yaw, pitch };
+    }
+  throw new Error('nothing to aim at');
+}
 // break a block on the ground ahead, then place glass on the ground behind
-await look(page, 30, 55);
-await page.waitForTimeout(300);
-const broken = await target(page);
-if (!broken) throw new Error('no target ahead of the player');
+const first = await aimAt([30, 60, 0, 90, 120]);
+const broken = first.t;
 await press(page, 'Mouse0');
 await page.waitForTimeout(400);
 await page.evaluate(() => (window as any).game.send({ t: 'chat', message: '/give @s glass 7' }));
 await page.waitForFunction(() => (window as any).game.interaction.inventory.slots.some((s: any) => s && s.count === 7), undefined, { timeout: 30000 });
-await look(page, 210, 55);
-await page.waitForTimeout(300);
-const aim = await target(page);
-if (!aim) throw new Error('no target behind');
+const second = await aimAt([210, 240, 180, 270, 300], broken);
+const aim = second.t;
 const glass = await page.evaluate(() => (window as any).game.interaction.inventory.slots.findIndex((s: any) => s && s.count === 7));
 if (glass < 0 || glass > 8) fail(`glass not in hotbar (slot ${glass})`);
 await page.evaluate((s) => ((window as any).game.interaction.inventory.selected = s), glass);
 await press(page, `Digit${glass + 1}`);
 await press(page, 'Mouse2');
-await page.waitForTimeout(500);
-const off = [[0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0]][aim.face]!;
+const off = OFF[aim.face]!;
 const placed = { x: aim.x + off[0]!, y: aim.y + off[1]!, z: aim.z + off[2]! };
+// the server confirms the placement with a block change
+await page.waitForFunction(([x, y, z, g]) => (window as any).game.world.getState(x, y, z) === g, [placed.x, placed.y, placed.z, stateOf('glass')] as const, { timeout: 15000 }).catch(() => {});
 const placedState = await blockAt(page, placed.x, placed.y, placed.z);
 const brokenState = await blockAt(page, broken.x, broken.y, broken.z);
 console.log('broke', broken, '→', brokenState, '; placed at', placed, '→', placedState);
 if (brokenState !== 0) fail('block was not broken');
-if (placedState === 0) fail('block was not placed');
+if (placedState !== stateOf('glass')) fail(`glass was not placed (state ${placedState})`);
 const before = await page.evaluate(() => {
   const g = (window as any).game;
   return { x: g.player.x, y: g.player.y, z: g.player.z, inv: g.interaction.inventory.slots.filter((s: any) => s).length };
@@ -146,8 +160,8 @@ if (placedAfter !== placedState) fail('placed block not persisted');
 if (brokenAfter !== 0) fail('broken block not persisted');
 if (Math.abs(after.x - before.x) > 0.01 || Math.abs(after.z - before.z) > 0.01) fail('player position not restored');
 if (after.inv !== before.inv) fail('inventory not restored');
-await look(page, 30, 55);
-await page.waitForTimeout(500);
+await look(page, second.yaw, second.pitch);
+await page.waitForTimeout(800);
 await shot('5-reopened');
 
 // export, import, delete
