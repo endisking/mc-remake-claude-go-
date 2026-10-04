@@ -368,6 +368,14 @@ describe('chat and suggestions', () => {
     expect(b.chat().at(-1)).toBe('A whispers to you: psst');
     a.run('/tell B again');
     expect(b.chat().at(-1)).toBe('A whispers to you: again');
+    a.run('/tellraw @a {"text":"Hi ","color":"gold","extra":[{"text":"there"}]}');
+    expect(b.chat().at(-1)).toBe('Hi there');
+    expect(a.run('/tellraw @a {oops')[0]).toBe('Invalid chat component: Not a JSON value');
+    expect(a.run('/spectate B')).toEqual(['A is not in spectator mode']);
+    a.run('/gamemode spectator');
+    expect(a.run('/spectate B')).toEqual(['Now spectating B']);
+    expect(server.players[0]!.camera).toBe(server.players[1]);
+    expect(a.run('/spectate')).toEqual(['No longer spectating an entity']);
     server.disconnect(b.conn);
     expect(a.chat().at(-1)).toBe('B left the game');
   });

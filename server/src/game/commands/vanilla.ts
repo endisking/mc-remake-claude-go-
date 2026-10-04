@@ -798,6 +798,39 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
   };
   d.register(literal<S>('list').executes((c) => list(c, false)).then(literal<S>('uuids').executes((c) => list(c, true))));
 
+  // ---------------------------------------------------------------- /tellraw, /spectate
+  d.register(literal<S>('tellraw').requires(lvl(2)).then(
+    argument<S, EntitySelector>('targets', entityArg(false, true)).then(
+      argument<S, TextComponent>('message', componentArg()).executes((c) => {
+        const targets = getPlayers(c.get('targets'), c.source);
+        const json = JSON.stringify(c.get('message'));
+        for (const t of targets) c.source.server.send(t, { t: 'chat', json });
+        return targets.length;
+      }),
+    ),
+  ));
+  const spectate = (c: Ctx, target: Target | null, p: ServerPlayer): number => {
+    const s = c.source.server;
+    if (p === target) throw new CommandError('Cannot spectate yourself');
+    if (p.gameMode !== 3) throw new CommandError(`${p.name} is not in spectator mode`);
+    // only players can be looked through so far (no other camera entities on the client yet)
+    if (target && !isPlayer(target)) throw new CommandError(`Cannot spectate ${nameOf(target)}`);
+    s.setCamera(p, target && isPlayer(target) ? target : null);
+    if (target) c.source.sendSuccess(`Now spectating ${nameOf(target)}`, false);
+    else c.source.sendSuccess('No longer spectating an entity', false);
+    return 1;
+  };
+  d.register(
+    literal<S>('spectate')
+      .requires(lvl(2))
+      .executes((c) => spectate(c, null, c.source.playerOrThrow()))
+      .then(
+        argument<S, EntitySelector>('target', entityArg(true, false))
+          .executes((c) => spectate(c, getEntity(c.get('target'), c.source), c.source.playerOrThrow()))
+          .then(argument<S, EntitySelector>('player', entityArg(true, true)).executes((c) => spectate(c, getEntity(c.get('target'), c.source), getPlayer(c.get('player'), c.source)))),
+      ),
+  );
+
   // ---------------------------------------------------------------- moderation
   const kick = (c: Ctx, reason: string): number => {
     const targets = getPlayers(c.get('targets'), c.source);
@@ -1031,6 +1064,47 @@ function angleArg() {
     },
     examples: ['0', '~', '~-5'],
   };
+}
+
+/** ComponentArgument: a JSON text component (rest of the command). */
+function componentArg() {
+  return {
+    parse(r: StringReader): TextComponent {
+      const start = r.cursor;
+      const text = r.remaining;
+      // the longest prefix that is valid JSON (vanilla reads one JSON value with a lenient reader)
+      for (let end = text.length; end > 0; end--) {
+        const ch = text[end - 1]!;
+        if (ch !== '}' && ch !== ']' && ch !== '"' && !/\w/.test(ch)) continue;
+        try {
+          const v = JSON.parse(text.slice(0, end)) as unknown;
+          r.cursor = start + end;
+          return normalizeComponent(v);
+        } catch (e) {
+          if (e instanceof CommandSyntaxError) throw e;
+        }
+      }
+      throw r.error(`Invalid chat component: ${text.length ? 'Not a JSON value' : 'Empty'}`);
+    },
+    examples: ['"hello world"', '""', '{"text":"hello world"}', '[""]'],
+  };
+}
+
+function normalizeComponent(v: unknown): TextComponent {
+  if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return { text: String(v) };
+  if (Array.isArray(v)) {
+    if (!v.length) throw new CommandSyntaxError('Invalid chat component: Unexpected empty array of components');
+    const [first, ...rest] = v.map(normalizeComponent);
+    return { ...first!, extra: [...(first!.extra ?? []), ...rest] };
+  }
+  if (v && typeof v === 'object') {
+    const o = v as Record<string, unknown>;
+    const out: TextComponent = { text: typeof o.text === 'string' ? o.text : typeof o.translate === 'string' ? o.translate : typeof o.selector === 'string' ? o.selector : '' };
+    for (const k of ['color', 'bold', 'italic', 'underlined'] as const) if (o[k] !== undefined) (out as unknown as Record<string, unknown>)[k] = o[k];
+    if (Array.isArray(o.extra)) out.extra = o.extra.map(normalizeComponent);
+    return out;
+  }
+  throw new CommandSyntaxError("Invalid chat component: Don't know how to turn null into a Component");
 }
 
 function snbtArg() {
