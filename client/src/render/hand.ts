@@ -8,15 +8,53 @@ import { createProgram, Uniforms } from './gl';
 import { mat4, perspective, multiply, type Mat4 } from './math';
 import type { EntityRenderer } from './entities/entityrenderer';
 import { LIGHT0, LIGHT1 } from './entities/entityrenderer';
-import type { BlockItemRenderer } from './blockitem';
 import type { ItemStack } from '@shared/item/stack';
+import {
+  FIRST_PERSON_DISPLAY, applyItemTransform, handSway, itemArmPose, playerArmPose,
+  type HandUse, type ItemDisplay,
+} from './handpose';
+
+/** A held item's model as the hand renderer needs it: which parent display it uses and how to draw it. */
+export interface HeldItemModel {
+  /** parent model whose firstperson display transform applies (block/block, item/generated, …) */
+  display: ItemDisplay;
+  /**
+   * Draw the model centred at the origin of `model` (the unit model space −0.5..0.5, i.e. after
+   * vanilla's translate(−0.5, −0.5, −0.5)), lit by the packed light and the two view-space lights.
+   */
+  draw(proj: Mat4, model: Mat4, light: number, lightmap: WebGLTexture, lights: [[number, number, number], [number, number, number]]): void;
+}
+
+/**
+ * Supplies held-item models: block items, extruded item sprites, … Plug in a better one (e.g.
+ * an item-texture mesh builder) with HandRenderer.setHeldItemProvider; null = nothing drawn.
+ */
+export type HeldItemProvider = (stack: ItemStack) => HeldItemModel | null;
+
+/** One hand's state for this frame. */
+export interface HandSide {
+  stack: ItemStack | null;
+  swing: number; // getAttackAnim(partial) if this hand is swinging, else 0
+  equip: number; // 1 − lerp(oHandHeight, handHeight)
+  /** the item this hand is using (eating, drawing a bow, …), or null */
+  use: HandUse | null;
+  /** held crossbow state, or null when not holding a crossbow */
+  crossbow: { charged: boolean } | null;
+}
 
 export interface HandFrame {
-  /** held item (main hand) and the block state it renders as, if any */
-  stack: ItemStack | null;
-  blockState: number | null;
-  swing: number; // getAttackAnim(partial), 0..1
-  equip: number; // 1 − lerp(oMainHandHeight, mainHandHeight)
+  main: HandSide;
+  off: HandSide;
+  /** evaluateWhichHandsToRender */
+  renderMain: boolean;
+  renderOff: boolean;
+  partial: number;
+  /** Riptide spin attack (isAutoSpinAttack) */
+  autoSpin: boolean;
+  /** looking through a spyglass: no hands */
+  scoping: boolean;
+  /** invisible player: no bare arm (held items still render) */
+  invisible: boolean;
   /** view rotation (deg) and the lagging xBob/yBob */
   pitch: number;
   yaw: number;
@@ -25,14 +63,12 @@ export interface HandFrame {
   light: number;
   skinName: string;
   aspect: number;
-  /** FOV multiplier for being in water/lava */
-  fluidFov: number;
+  /** FOV of the hand pass: 70 × fluid × death modifiers (never the FOV setting or sprint change) */
+  fov: number;
   /** extra transform from bobHurt/bobView (applied before the hand, like the projection side) */
   bob: Mat4 | null;
   /** world-space → view-space rotation, to bring the level lights into view space */
   viewRot: Mat4;
-  /** off hand item (vanilla renders it only when not empty) */
-  off: { stack: ItemStack | null; blockState: number | null; swing: number; equip: number } | null;
   /** draw the hand/item (false: only screen effects) */
   showHand: boolean;
   /** burning overlay */
@@ -83,7 +119,7 @@ export class HandRenderer {
   constructor(
     private gl: WebGL2RenderingContext,
     private entities: EntityRenderer,
-    private items: BlockItemRenderer,
+    private heldItems: HeldItemProvider,
     private texArray: () => WebGLTexture,
     private fireLayer: number,
   ) {
@@ -113,6 +149,11 @@ export class HandRenderer {
     gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 12);
     gl.bindVertexArray(null);
     void this.loadUnderwater();
+  }
+
+  /** Replace the held-item model source (one function: stack → model). */
+  setHeldItemProvider(p: HeldItemProvider): void {
+    this.heldItems = p;
   }
 
   private async loadUnderwater(): Promise<void> {
@@ -210,14 +251,14 @@ export class HandRenderer {
 
   render(f: HandFrame, lightmap: WebGLTexture): void {
     const gl = this.gl;
+    // GameRenderer.renderItemInHand: its own projection (fixed FOV) and a cleared depth range
     gl.clear(gl.DEPTH_BUFFER_BIT);
-    perspective(this.proj, ((70 * f.fluidFov) * Math.PI) / 180, f.aspect, 0.05, 100);
-    if (f.showHand) {
-      const base = mat4();
-      base.set(this.proj);
+    perspective(this.proj, (f.fov * Math.PI) / 180, f.aspect, 0.05, 100);
+    if (f.showHand && !f.scoping) {
+      this.base.set(this.proj);
       if (f.bob) multiply(this.proj, this.proj, f.bob);
-      this.renderHand(f, lightmap);
-      this.proj.set(base);
+      this.renderHands(f, lightmap);
+      this.proj.set(this.base);
     }
     // screen effects (ScreenEffectRenderer) use the projection without view bobbing
     if (f.inWallLayer >= 0) this.renderInWall(this.proj, f.inWallLayer);
@@ -225,71 +266,44 @@ export class HandRenderer {
     if (f.onFire) this.renderFire(this.proj);
   }
 
-  private renderHand(f: HandFrame, lightmap: WebGLTexture): void {
+  private readonly base = mat4();
+
+  /** ItemInHandRenderer.renderHandsWithItems (right-handed player: main hand = right arm). */
+  private renderHands(f: HandFrame, lightmap: WebGLTexture): void {
     // level lights in view space
     rotateDir(this.l0, f.viewRot, LIGHT0);
     rotateDir(this.l1, f.viewRot, LIGHT1);
-    // renderHandsWithItems: main hand (an empty one shows the arm), then the off hand item
-    this.renderArm(f, 1, f.stack, f.blockState, f.swing, f.equip, lightmap);
-    if (f.off?.stack) this.renderArm(f, -1, f.off.stack, f.off.blockState, f.off.swing, f.off.equip, lightmap);
+    if (f.renderMain) this.renderArmWithItem(f, 1, true, f.main, lightmap);
+    if (f.renderOff) this.renderArmWithItem(f, -1, false, f.off, lightmap);
   }
 
-  /** One hand (side 1 = right/main, −1 = left/off): the bare arm or the held item. */
-  private renderArm(f: HandFrame, side: 1 | -1, stack: ItemStack | null, blockState: number | null, sp: number, eq: number, lightmap: WebGLTexture): void {
+  /** renderArmWithItem: one hand (side 1 = right, −1 = left), the bare arm or the held item. */
+  private renderArmWithItem(f: HandFrame, side: 1 | -1, mainHand: boolean, h: HandSide, lightmap: WebGLTexture): void {
     const gl = this.gl;
     const ps = this.ps.reset();
-    // sway toward where the view is going
-    ps.rotX((f.pitch - f.xBob) * 0.1);
-    ps.rotY((f.yaw - f.yBob) * 0.1);
-    if (!stack) {
-      if (side !== 1) return;
-      // renderPlayerArm
-      const f1 = Math.sqrt(sp);
-      const f2 = -0.3 * Math.sin(f1 * Math.PI);
-      const f3 = 0.4 * Math.sin(f1 * Math.PI * 2);
-      const f4 = -0.4 * Math.sin(sp * Math.PI);
-      ps.translate(side * (f2 + 0.64000005), f3 - 0.6 + eq * -0.6, f4 - 0.71999997);
-      ps.rotY(side * 45);
-      const f5 = Math.sin(sp * sp * Math.PI);
-      const f6 = Math.sin(f1 * Math.PI);
-      ps.rotY(side * f6 * 70);
-      ps.rotZ(side * f5 * -20);
-      ps.translate(side * -1, 3.6, 3.5);
-      ps.rotZ(side * 120);
-      ps.rotX(200);
-      ps.rotY(side * -135);
-      ps.translate(side * 5.6, 0, 0);
-      this.entities.renderFirstPersonArm(this.proj, ps.last, f.skinName, f.light, lightmap, this.l0, this.l1);
+    handSway(ps, f.pitch, f.yaw, f.xBob, f.yBob);
+    if (!h.stack) {
+      // only the main hand shows the bare arm, and not while invisible
+      if (!mainHand || f.invisible) return;
+      playerArmPose(ps, side, h.swing, h.equip);
+      this.entities.renderFirstPersonArm(this.proj, ps.last, f.skinName, f.light, lightmap, this.l0, this.l1, side);
       return;
     }
-    if (blockState === null) return; // non-block items have no model yet
-    // renderArmWithItem (not using the item)
-    const f5 = -0.4 * Math.sin(Math.sqrt(sp) * Math.PI);
-    const f6 = 0.2 * Math.sin(Math.sqrt(sp) * Math.PI * 2);
-    const f10 = -0.2 * Math.sin(sp * Math.PI);
-    ps.translate(side * f5, f6, f10);
-    // applyItemArmTransform
-    ps.translate(side * 0.56, -0.52 + eq * -0.6, -0.72);
-    // applyItemArmAttackTransform
-    const a = Math.sin(sp * sp * Math.PI);
-    ps.rotY(side * (45 + a * -20));
-    const b = Math.sin(Math.sqrt(sp) * Math.PI);
-    ps.rotZ(side * b * -20);
-    ps.rotX(b * -80);
-    ps.rotY(side * -45);
-    // display transform firstperson_right/lefthand (ItemTransform.apply mirrors y/z rotation and x for the left)
-    if (this.items.isFlat(blockState)) {
-      ps.translate((side * 1.13) / 16, 3.2 / 16, 1.13 / 16);
-      ps.rotY(side * -90).rotZ(side * 25);
-      ps.scale(0.68, 0.68, 0.68);
-    } else {
-      ps.rotY(side === 1 ? 45 : -225);
-      ps.scale(0.4, 0.4, 0.4);
-    }
+    const model = this.heldItems(h.stack);
+    if (!model) return;
+    itemArmPose(ps, {
+      side, swing: h.swing, equip: h.equip, partial: f.partial, use: h.use, autoSpin: f.autoSpin,
+      crossbow: h.crossbow ? { charged: h.crossbow.charged, mainHand } : null,
+    });
+    // renderItem(FIRST_PERSON_RIGHT/LEFT_HAND): the model's display transform, then −0.5 centring
+    const d = FIRST_PERSON_DISPLAY[model.display];
+    applyItemTransform(ps, side === 1 ? d.right : d.left, side === -1);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
-    this.items.draw(blockState, this.proj, ps.last, f.light, lightmap, undefined, false, [this.l0, this.l1]);
+    model.draw(this.proj, ps.last, f.light, lightmap, this.lights);
   }
+
+  private readonly lights: [[number, number, number], [number, number, number]] = [this.l0, this.l1];
 }
 
 function rotateDir(out: [number, number, number], m: Mat4, v: [number, number, number]): void {
