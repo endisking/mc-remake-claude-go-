@@ -88,7 +88,7 @@ const S2C_SCHEMA = {
    * MOB_DATA_KEYS): color (sheep DyeColor id 0–15), sheared, baby, swell_dir (creeper −1/1),
    * charged, aggressive (zombie arms up / skeleton aiming / enderman creepy), saddle, size
    * (slime), carried (enderman block state), hanging (bat resting), bow (skeleton holds a bow),
-   * name_visible (custom name always shown).
+   * name_visible (custom name always shown), sitting / tame / health (wolf pose and tail).
    */
   mobData: [['id', 'i32'], ['key', 'str'], ['value', 'i32']],
   /** A mob's custom name (name tag); empty clears it. Shown when looked at, or always with mobData name_visible = 1. */
@@ -96,7 +96,7 @@ const S2C_SCHEMA = {
 } as const satisfies Schema;
 
 /** Keys of the mobData packet (client: client/src/world/mobs.ts). */
-export const MOB_DATA_KEYS = ['color', 'sheared', 'baby', 'swell_dir', 'charged', 'aggressive', 'saddle', 'size', 'carried', 'hanging', 'bow', 'name_visible'] as const;
+export const MOB_DATA_KEYS = ['color', 'sheared', 'baby', 'swell_dir', 'charged', 'aggressive', 'saddle', 'size', 'carried', 'hanging', 'bow', 'name_visible', 'sitting', 'tame', 'health'] as const;
 
 // ------------------------------------------------------------------ client → server
 const C2S_SCHEMA = {

@@ -416,6 +416,80 @@ export function zombieVillagerMesh(): VPart[] {
   ];
 }
 
+/** IronGolemModel.createBodyLayer (128×128) */
+export function ironGolemMesh(): VPart[] {
+  return [
+    { name: 'head', pivot: [0, -7, -2], boxes: [b(0, 0, -4, -12, -5.5, 8, 10, 8), b(24, 0, -1, -5, -7.5, 2, 4, 2)] },
+    { name: 'body', pivot: [0, -7, 0], boxes: [b(0, 40, -9, -2, -6, 18, 12, 11), b(0, 70, -4.5, 10, -3, 9, 5, 6, 0.5)] },
+    { name: 'right_arm', pivot: [0, -7, 0], boxes: [b(60, 21, -13, -2.5, -3, 4, 30, 6)] },
+    { name: 'left_arm', pivot: [0, -7, 0], boxes: [b(60, 58, 9, -2.5, -3, 4, 30, 6)] },
+    { name: 'right_leg', pivot: [-4, 11, 0], boxes: [b(37, 0, -3.5, -3, -3, 6, 16, 5)] },
+    { name: 'left_leg', pivot: [5, 11, 0], boxes: [b(60, 0, -3.5, -3, -3, 6, 16, 5, 0, true)] },
+  ];
+}
+
+/** WolfModel.createBodyLayer */
+export function wolfMesh(): VPart[] {
+  const leg = () => [b(0, 18, 0, 0, -1, 2, 8, 2)];
+  return [
+    {
+      name: 'head', pivot: [-1, 13.5, -7], boxes: [], children: [
+        { name: 'real_head', pivot: [0, 0, 0], boxes: [b(0, 0, -2, -3, -2, 6, 6, 4), b(16, 14, -2, -5, 0, 2, 2, 1), b(16, 14, 2, -5, 0, 2, 2, 1), b(0, 10, -0.5, 0, -5, 3, 3, 4)] },
+      ],
+    },
+    { name: 'body', pivot: [0, 14, 2], rot: [PI / 2, 0, 0], boxes: [b(18, 14, -3, -2, -3, 6, 9, 6)] },
+    { name: 'upper_body', pivot: [-1, 14, -3], rot: [PI / 2, 0, 0], boxes: [b(21, 0, -3, -3, -3, 8, 6, 7)] },
+    { name: 'right_hind_leg', pivot: [-2.5, 16, 7], boxes: leg() },
+    { name: 'left_hind_leg', pivot: [0.5, 16, 7], boxes: leg() },
+    { name: 'right_front_leg', pivot: [-2.5, 16, -4], boxes: leg() },
+    { name: 'left_front_leg', pivot: [0.5, 16, -4], boxes: leg() },
+    { name: 'tail', pivot: [-1, 12, 8], boxes: [], children: [{ name: 'real_tail', pivot: [0, 0, 0], boxes: [b(9, 18, 0, 0, -1, 2, 8, 2)] }] },
+  ];
+}
+
+/** PhantomModel.createBodyLayer: flat body, two-segment wings, tail. */
+export function phantomMesh(): VPart[] {
+  return [
+    {
+      name: 'body', pivot: [0, 0, 0], rot: [-0.1, 0, 0], boxes: [b(0, 8, -3, -2, -8, 5, 3, 9)], children: [
+        {
+          name: 'tail_base', pivot: [0, -2, 1], boxes: [b(3, 20, -2, 0, 0, 3, 2, 6)], children: [
+            { name: 'tail_tip', pivot: [0, 0.5, 6], boxes: [b(4, 29, -1, 0, 0, 1, 1, 6)] },
+          ],
+        },
+        {
+          name: 'left_wing_base', pivot: [2, -2, -8], rot: [0, 0, 0.1], boxes: [b(23, 12, 0, 0, 0, 6, 2, 9)], children: [
+            { name: 'left_wing_tip', pivot: [6, 0, 0], rot: [0, 0, 0.1], boxes: [b(16, 24, 0, 0, 0, 13, 1, 9)] },
+          ],
+        },
+        {
+          name: 'right_wing_base', pivot: [-3, -2, -8], rot: [0, 0, -0.1], boxes: [b(23, 12, -6, 0, 0, 6, 2, 9, 0, true)], children: [
+            { name: 'right_wing_tip', pivot: [-6, 0, 0], rot: [0, 0, -0.1], boxes: [b(16, 24, -13, 0, 0, 13, 1, 9, 0, true)] },
+          ],
+        },
+        { name: 'head', pivot: [0, 1, -7], rot: [0.2, 0, 0], boxes: [b(0, 0, -4, -2, -5, 7, 3, 5)] },
+      ],
+    },
+  ];
+}
+
+/** IllagerModel.createBodyLayer: villager-like head and robe, crossed arms or free arms. */
+export function illagerMesh(): VPart[] {
+  return [
+    {
+      name: 'head', pivot: [0, 0, 0], boxes: [b(0, 0, -4, -10, -4, 8, 10, 8)], children: [
+        { name: 'nose', pivot: [0, -2, 0], boxes: [b(24, 0, -1, -1, -6, 2, 4, 2)] },
+      ],
+    },
+    { name: 'body', pivot: [0, 0, 0], boxes: [b(16, 20, -4, 0, -3, 8, 12, 6), b(0, 38, -4, 0, -3, 8, 20, 6, 0.5)] },
+    { name: 'arms', pivot: [0, 3, -1], rot: [-0.75, 0, 0], boxes: [b(44, 22, -8, -2, -2, 4, 8, 4), b(44, 22, 4, -2, -2, 4, 8, 4, 0, true), b(40, 38, -4, 2, -2, 8, 4, 4)] },
+    { name: 'right_leg', pivot: [-2, 12, 0], boxes: [b(0, 22, -2, 0, -2, 4, 12, 4)] },
+    { name: 'left_leg', pivot: [2, 12, 0], boxes: [b(0, 22, -2, 0, -2, 4, 12, 4, 0, true)] },
+    { name: 'right_arm', pivot: [-5, 2, 0], boxes: [b(40, 46, -3, -2, -2, 4, 12, 4)] },
+    { name: 'left_arm', pivot: [5, 2, 0], boxes: [b(40, 46, -1, -2, -2, 4, 12, 4, 0, true)] },
+  ];
+}
+
 // ------------------------------------------------------------------ animation helpers
 
 const RAD = PI / 180;
@@ -686,6 +760,92 @@ const villagerAnim = (p: Poses, a: MobAnim) => {
   p.left_leg!.yRot = 0;
 };
 
+/** Mth.triangleWave */
+function triangleWave(f: number, g: number): number {
+  return (Math.abs((((f % g) + g) % g) - g * 0.5) - g * 0.25) / (g * 0.25);
+}
+
+/** IronGolemModel.prepareMobModel + setupAnim: stiff-legged walk, arms swing or slam. */
+const ironGolemAnim = (p: Poses, a: MobAnim) => {
+  const ls = a.limbSwing, amt = a.limbSwingAmount;
+  p.head!.yRot = a.netHeadYaw * RAD;
+  p.head!.xRot = a.headPitch * RAD;
+  p.right_leg!.xRot = -1.5 * triangleWave(ls, 13) * amt;
+  p.left_leg!.xRot = 1.5 * triangleWave(ls, 13) * amt;
+  const t = a.mob.attackAnimationTick;
+  if (t > 0) {
+    p.right_arm!.xRot = -2 + 1.5 * triangleWave(t - a.partial, 10);
+    p.left_arm!.xRot = -2 + 1.5 * triangleWave(t - a.partial, 10);
+  } else {
+    p.right_arm!.xRot = (-0.2 + 1.5 * triangleWave(ls, 13)) * amt;
+    p.left_arm!.xRot = (-0.2 - 1.5 * triangleWave(ls, 13)) * amt;
+  }
+};
+
+/** WolfModel.prepareMobModel + setupAnim: trot, tail angle by mood, sitting pose. */
+const wolfAnim = (p: Poses, a: MobAnim) => {
+  const m = a.mob, ls = a.limbSwing, amt = a.limbSwingAmount;
+  const tail = (m.data.get('aggressive') ?? 0) ? 1.5393804 : (m.data.get('tame') ?? 0) ? (0.55 - (20 - (m.data.get('health') ?? 20)) * 0.02) * PI : PI / 5;
+  if ((m.data.get('sitting') ?? 0) !== 0) {
+    p.upper_body!.setPos(-1, 16, -3);
+    p.upper_body!.xRot = (PI * 2) / 5;
+    p.body!.setPos(0, 18, 0);
+    p.body!.xRot = PI / 4;
+    p.tail!.setPos(-1, 21, 6);
+    p.right_hind_leg!.setPos(-2.5, 22.7, 2);
+    p.right_hind_leg!.xRot = (PI * 3) / 2;
+    p.left_hind_leg!.setPos(0.5, 22.7, 2);
+    p.left_hind_leg!.xRot = (PI * 3) / 2;
+    p.right_front_leg!.xRot = 5.811947;
+    p.right_front_leg!.setPos(-2.49, 17, -4);
+    p.left_front_leg!.xRot = 5.811947;
+    p.left_front_leg!.setPos(0.51, 17, -4);
+  } else {
+    p.right_hind_leg!.xRot = Math.cos(ls * 0.6662) * 1.4 * amt;
+    p.left_hind_leg!.xRot = Math.cos(ls * 0.6662 + PI) * 1.4 * amt;
+    p.right_front_leg!.xRot = Math.cos(ls * 0.6662 + PI) * 1.4 * amt;
+    p.left_front_leg!.xRot = Math.cos(ls * 0.6662) * 1.4 * amt;
+  }
+  p.head!.xRot = a.headPitch * RAD;
+  p.head!.yRot = a.netHeadYaw * RAD;
+  p.tail!.xRot = tail;
+};
+
+/** PhantomModel.setupAnim: slow wing beats and a swishing tail. */
+const phantomAnim = (p: Poses, a: MobAnim) => {
+  const f = (a.mob.id * 3 + a.ageInTicks) * 0.13;
+  const w = Math.cos(f) * 16 * RAD;
+  p.left_wing_base!.zRot = w;
+  p.left_wing_tip!.zRot = w;
+  p.right_wing_base!.zRot = -w;
+  p.right_wing_tip!.zRot = -w;
+  p.tail_base!.xRot = -(5 + Math.cos(f * 2) * 5) * RAD;
+  p.tail_tip!.xRot = -(5 + Math.cos(f * 2) * 5) * RAD;
+};
+
+/** IllagerModel.setupAnim: arms crossed when calm; raised weapon arms or a crossbow hold when hostile. */
+const illagerAnim = (p: Poses, a: MobAnim) => {
+  const head = p.head!, ra = p.right_arm!, la = p.left_arm!;
+  head.yRot = a.netHeadYaw * RAD;
+  head.xRot = a.headPitch * RAD;
+  p.right_leg!.xRot = Math.cos(a.limbSwing * 0.6662) * 1.4 * a.limbSwingAmount * 0.5;
+  p.left_leg!.xRot = Math.cos(a.limbSwing * 0.6662 + PI) * 1.4 * a.limbSwingAmount * 0.5;
+  const hostile = aggressive(a);
+  p.arms!.visible = !hostile;
+  ra.visible = la.visible = hostile;
+  if (!hostile) return;
+  if (a.mob.type === 'pillager') {
+    // AnimationUtils.animateCrossbowHold
+    ra.yRot = -0.3 + head.yRot;
+    la.yRot = 0.6 + head.yRot;
+    ra.xRot = -PI / 2 + head.xRot + 0.1;
+    la.xRot = -1.5 + head.xRot;
+  } else {
+    // swinging a weapon (vindicator axe) or casting (evoker): arms raised like a zombie's
+    zombieArms(p, true, a.attackTime, a.ageInTicks);
+  }
+};
+
 const none = () => {};
 
 export const MOB_MODELS: Record<string, MobModelDef> = {
@@ -711,6 +871,10 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   villager: { tex: [64, 64], parts: villagerMesh(), anim: villagerAnim },
   witch: { tex: [64, 128], parts: witchMesh(), headParts: ['head'], anim: villagerAnim },
   zombie_villager: { tex: [64, 64], parts: zombieVillagerMesh(), headParts: ['head', 'hat'], baby: HUMANOID_BABY, anim: zombieAnim },
+  iron_golem: { tex: [128, 128], parts: ironGolemMesh(), anim: ironGolemAnim },
+  wolf: { tex: [64, 32], parts: wolfMesh(), headParts: ['head'], baby: { scaleHead: false, yHead: 5, zHead: 2, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: wolfAnim },
+  phantom: { tex: [64, 64], parts: phantomMesh(), anim: phantomAnim },
+  illager: { tex: [64, 64], parts: illagerMesh(), anim: illagerAnim },
   unknown: { tex: [64, 32], parts: [{ name: 'box', pivot: [0, 0, 0], boxes: [b(0, 0, -8, 8, -8, 16, 16, 16)] }], anim: none },
 };
 
@@ -771,6 +935,13 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   wandering_trader: { layers: [{ model: 'villager', texture: 'wandering_trader' }], scale: 0.9375 },
   witch: { layers: [{ model: 'witch', texture: 'witch' }], scale: 0.9375 },
   zombie_villager: { layers: [{ model: 'zombie_villager', texture: 'zombie_villager' }] },
+  mooshroom: { layers: [{ model: 'cow', texture: 'mooshroom' }] },
+  iron_golem: { layers: [{ model: 'iron_golem', texture: 'iron_golem' }] },
+  wolf: { layers: [{ model: 'wolf', texture: 'wolf' }] },
+  phantom: { layers: [{ model: 'phantom', texture: 'phantom' }, { model: 'phantom', texture: 'phantom_eyes', emissive: true }] },
+  pillager: { layers: [{ model: 'illager', texture: 'pillager' }], scale: 0.9375 },
+  vindicator: { layers: [{ model: 'illager', texture: 'vindicator' }], scale: 0.9375 },
+  evoker: { layers: [{ model: 'illager', texture: 'evoker' }], scale: 0.9375 },
   /** fallback for mobs without a model: a hit-box-sized box */
   unknown: { layers: [{ model: 'unknown', texture: 'unknown' }] },
 };

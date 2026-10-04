@@ -711,6 +711,163 @@ export function witch(): Tex {
   return t;
 }
 
+/** Illagers: grey-skinned villager layout with a 20-tall coat and free arms (40,46). */
+function illagerTex(look: VillagerLook, extra?: (t: Tex) => void): Tex {
+  const t = villagerTex(look);
+  const R = hex(look.robe), RD = hex(look.robeDark), TR = hex(look.trim), S = hex(look.skin);
+  const robe = blotches(R, RD, look.seed + 7, 2.5, 0.62, 0.05);
+  const coat = box(t, 0, 38, 8, 20, 6, robe);
+  for (const k of ['right', 'front', 'left', 'back'] as const) {
+    const [x, y, w] = coat[k];
+    hline(t, x, y + 7, w, TR);
+    hline(t, x, y + 19, w, shade(RD, 0.75));
+  }
+  rect(t, coat.top[0], coat.top[1], 8, 6, () => CLEAR);
+  const arm = box(t, 40, 46, 4, 12, 4, robe);
+  for (const k of ['right', 'front', 'left', 'back'] as const) {
+    const [x, y, w] = arm[k];
+    rect(t, x, y + 9, w, 3, noisy(S, 0.04, look.seed + 8));
+    hline(t, x, y + 8, w, TR);
+  }
+  rect(t, arm.bottom[0], arm.bottom[1], 4, 4, () => S);
+  extra?.(t);
+  return t;
+}
+
+export const pillager = () => illagerTex({ skin: '#8a8f92', skinDark: '#6c7174', hair: '#2a2622', eye: '#3a7a5a', robe: '#4a4038', robeDark: '#3a322c', trim: '#7a5a3a', seed: 211 });
+export const vindicator = () => illagerTex({ skin: '#8a8f92', skinDark: '#6c7174', hair: '#1e1c1a', eye: '#2a6a4a', robe: '#3a3a44', robeDark: '#2c2c34', trim: '#5a3a2a', seed: 213 });
+export const evoker = () => illagerTex({ skin: '#8a8f92', skinDark: '#6c7174', hair: '#d8d8d0', eye: '#3a7a5a', robe: '#1e1e22', robeDark: '#141418', trim: '#c8a040', seed: 217 }, (t) => {
+  // gold embroidery down the robe front
+  const [x, y] = faceRects(0, 38, 8, 20, 6).front;
+  for (let j = 9; j < 19; j += 2) { px(t, x + 2, y + j, hex('#c8a040')); px(t, x + 5, y + j, hex('#c8a040')); }
+});
+
+/** Iron golem (128×128): riveted pale metal, rust streaks, moss tufts, amber eyes. */
+export function ironGolem(): Tex {
+  const t = new Tex(128, 128);
+  const M = hex('#cfc8bc'), MD = hex('#a8a094'), RU = hex('#a8623a'), MO = hex('#4f7a32');
+  const metal: Paint = blotches(M, MD, 221, 3, 0.66, 0.05);
+  const r = rng(222);
+  const dress = (f: [number, number, number, number], rivets: boolean) => {
+    const [x, y, w, h] = f;
+    if (rivets) for (let j = 2; j < h; j += 5) { px(t, x + 1, y + j, shade(MD, 0.8)); px(t, x + w - 2, y + j, shade(MD, 0.8)); }
+    for (let i = 0; i < Math.max(1, (w * h) / 40); i++) {
+      // rust streak running down
+      const sx = x + Math.floor(r() * w), sy = y + Math.floor(r() * h), n = 1 + Math.floor(r() * 4);
+      for (let k = 0; k < n; k++) px(t, sx, sy + k, k === 0 ? RU : shade(RU, 1.1));
+    }
+    for (let i = 0; i < Math.max(1, (w * h) / 90); i++) {
+      const mx = x + Math.floor(r() * w), my = y + Math.floor(r() * h);
+      px(t, mx, my, MO);
+      px(t, mx + 1, my, shade(MO, 1.15));
+      if (my + 1 < y + h) px(t, mx, my + 1, shade(MO, 0.85));
+    }
+  };
+  const head = box(t, 0, 0, 8, 10, 8, metal);
+  const [fx, fy] = head.front;
+  hline(t, fx, fy + 3, 8, shade(MD, 0.75)); // heavy brow
+  rect(t, fx + 1, fy + 4, 2, 1, () => hex('#2a2018'));
+  rect(t, fx + 5, fy + 4, 2, 1, () => hex('#2a2018'));
+  px(t, fx + 2, fy + 4, hex('#f0b030'));
+  px(t, fx + 5, fy + 4, hex('#f0b030'));
+  hline(t, fx + 2, fy + 8, 4, shade(MD, 0.7)); // mouth slot
+  box(t, 24, 0, 2, 4, 2, metal);
+  const body = box(t, 0, 40, 18, 12, 11, metal);
+  for (const k of ['front', 'back', 'right', 'left'] as const) dress(body[k], true);
+  // chest plate seams
+  vline(t, body.front[0] + 9, body.front[1] + 1, 10, shade(MD, 0.8));
+  hline(t, body.front[0] + 2, body.front[1] + 6, 14, shade(MD, 0.85));
+  box(t, 0, 70, 9, 5, 6, metal);
+  for (const [u, v] of [[60, 21], [60, 58]] as const) {
+    const arm = box(t, u, v, 4, 30, 6, metal);
+    for (const k of ['front', 'back', 'right', 'left'] as const) {
+      dress(arm[k], false);
+      hline(t, arm[k][0], arm[k][1] + 12, arm[k][2], shade(MD, 0.75)); // elbow joint
+    }
+    rect(t, arm.bottom[0], arm.bottom[1], 4, 6, () => shade(MD, 0.8));
+  }
+  for (const u of [37, 60]) {
+    const leg = box(t, u, 0, 6, 16, 5, metal);
+    for (const k of ['front', 'back', 'right', 'left'] as const) {
+      dress(leg[k], false);
+      hline(t, leg[k][0], leg[k][1] + 7, leg[k][2], shade(MD, 0.8));
+    }
+  }
+  return t;
+}
+
+/** Wolf: sandy coat with a smoky grey saddle, pale muzzle and dark nose. */
+export function wolf(): Tex {
+  const t = new Tex(64, 32);
+  const F = hex('#c8b08a'), FD = hex('#a8906c'), G = hex('#6a6460'), W = hex('#ece4d4');
+  const fur = blotches(F, FD, 231, 1.6, 0.6, 0.06);
+  const head = box(t, 0, 0, 6, 6, 4, fur);
+  const [fx, fy] = head.front;
+  px(t, fx + 1, fy + 2, hex('#2a1e14'));
+  px(t, fx + 4, fy + 2, hex('#2a1e14'));
+  px(t, fx + 1, fy + 1, G);
+  px(t, fx + 4, fy + 1, G);
+  rect(t, fx + 2, fy + 3, 2, 3, () => W); // blaze down to the muzzle
+  rect(t, head.top[0], head.top[1], 6, 4, blotches(G, shade(G, 0.85), 232, 1.5, 0.5));
+  box(t, 16, 14, 2, 2, 1, (x, y) => (y === 1 && x === 0 ? hex('#8a6a5a') : G));
+  const snout = box(t, 0, 10, 3, 3, 4, () => W);
+  px(t, snout.front[0] + 1, snout.front[1], hex('#1a1414'));
+  hline(t, snout.front[0], snout.front[1] + 2, 3, shade(W, 0.85));
+  // body: grey saddle along the spine (back face), pale belly (front face)
+  const body = box(t, 18, 14, 6, 9, 6, fur);
+  rect(t, body.back[0], body.back[1], 6, 9, blotches(G, shade(G, 0.85), 233, 1.5, 0.5));
+  rect(t, body.front[0], body.front[1], 6, 9, noisy(W, 0.04, 234));
+  for (const k of ['right', 'left'] as const) {
+    const [x, y, w, h] = body[k];
+    rect(t, k === 'left' ? x + w - 2 : x, y, 2, h, blotches(G, shade(G, 0.85), 235, 1.5, 0.5));
+  }
+  // mane: thick ruff, grey on top
+  const mane = box(t, 21, 0, 8, 6, 7, blotches(F, W, 236, 1.5, 0.65, 0.06));
+  rect(t, mane.back[0], mane.back[1], 8, 6, blotches(G, F, 237, 1.5, 0.6));
+  // legs and tail
+  const leg = box(t, 0, 18, 2, 8, 2, fur);
+  for (const k of ['right', 'front', 'left', 'back'] as const) hline(t, leg[k][0], leg[k][1] + 7, 2, W);
+  const tail = box(t, 9, 18, 2, 8, 2, fur);
+  for (const k of ['right', 'front', 'left', 'back'] as const) { hline(t, tail[k][0], tail[k][1] + 6, 2, G); hline(t, tail[k][0], tail[k][1] + 7, 2, shade(G, 0.8)); }
+  return t;
+}
+
+/** Phantom: slate-blue leathery flyer with bony wing ribs. */
+export function phantom(): Tex {
+  const t = new Tex(64, 64);
+  const B = hex('#3e4a6e'), BD = hex('#2c3654'), BONE = hex('#a8b0a0'), M = hex('#5a6488');
+  const hide = blotches(B, BD, 241, 1.8, 0.6, 0.06);
+  const head = box(t, 0, 0, 7, 3, 5, hide);
+  hline(t, head.front[0], head.front[1] + 2, 7, BD);
+  box(t, 0, 8, 5, 3, 9, hide);
+  box(t, 3, 20, 3, 2, 6, hide);
+  box(t, 4, 29, 1, 1, 6, () => BD);
+  const membrane: Paint = (x, y) => (y % 3 === 0 ? BONE : (x + y) % 4 === 0 ? shade(M, 0.9) : M);
+  box(t, 23, 12, 6, 2, 9, hide, { top: membrane, bottom: membrane });
+  box(t, 16, 24, 13, 1, 9, hide, { top: membrane, bottom: membrane });
+  return t;
+}
+
+export function phantomEyes(): Tex {
+  const t = new Tex(64, 64);
+  const [fx, fy] = faceRects(0, 0, 7, 3, 5).front;
+  for (const x of [1, 2, 4, 5]) px(t, fx + x, fy + 1, x === 2 || x === 4 ? hex('#f0ff9a') : hex('#a8e050'));
+  return t;
+}
+
+/** Mooshroom: brick-red hide with cream patches (cow layout). */
+export function mooshroom(): Tex {
+  const t = cow();
+  const R = hex('#a8302a'), RD = hex('#8a2420');
+  // recolour the chestnut to red, keep the cream
+  return t.map((c) => {
+    const [r, g, b, a] = c;
+    if (a === 0 || r + g + b > 520) return c;
+    if (r > g * 1.3 && r > 80) return mix(shade(R, (r + g + b) / 300), RD, 0.2);
+    return c;
+  });
+}
+
 // ------------------------------------------------------------------ misc layers
 
 /** Charged creeper energy swirl (tileable, scrolled and drawn additively). */
@@ -795,4 +952,5 @@ export const ENTITY_TEXTURES: Record<string, () => Tex> = {
   chicken, enderman, enderman_eyes: endermanEyes, slime, bat, squid,
   glow_squid: glowSquid, creeper_armor: creeperArmor, villager, wandering_trader: wanderingTrader, witch, zombie_villager: zombieVillager,
   unknown: unknownMob,
+  pillager, vindicator, evoker, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
 };

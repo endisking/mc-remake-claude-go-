@@ -55,6 +55,8 @@ const SHOTS: Record<string, Shot> = {
   e_front: { cam: NEAR, mobs: row(['villager', 'witch', 'zombie_villager', 'wandering_trader']) },
   e_side: { cam: NEAR, mobs: row(['villager', 'witch', 'zombie_villager', 'wandering_trader'], { yaw: 120, walk: true }), wait: 1100 },
   f_front: { cam: NEAR, mobs: row(['creeper', 'glow_squid', 'wolf', 'villager']).map((m, i) => ({ ...m, data: ([{ charged: 1 }, {}, {}, { baby: 1 }] as Record<string, number>[])[i] })) },
+  g_front: { cam: FAR, mobs: row(['iron_golem', 'wolf', 'wolf', 'phantom', 'pillager', 'vindicator', 'evoker', 'mooshroom'], { yaw: 160 }).map((m, i) => ({ ...m, data: ([{}, {}, { sitting: 1, tame: 1 }, {}, {}, { aggressive: 1 }, {}, {}] as Record<string, number>[])[i] })) },
+  g_walk: { cam: FAR, mobs: row(['iron_golem', 'wolf', 'pillager', 'vindicator', 'mooshroom', 'phantom', 'wolf', 'evoker'], { yaw: 110, walk: true }).map((m, i) => ({ ...m, data: ([{}, {}, { aggressive: 1 }, {}, {}, {}, { baby: 1 }, { aggressive: 1 }] as Record<string, number>[])[i] })), wait: 1100 },
   night: { cam: NEAR + '&time=18000', mobs: row(['spider', 'enderman', 'zombie', 'cave_spider']) },
 };
 

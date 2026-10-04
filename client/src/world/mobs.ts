@@ -48,6 +48,13 @@ export const MOB_INFO: Record<string, MobInfo> = {
   villager: N(0.5),
   wandering_trader: N(0.5),
   witch: H(0.5),
+  mooshroom: N(0.7, { ambientInterval: 120 }),
+  iron_golem: N(0.7),
+  wolf: N(0.5),
+  phantom: H(0.75, { flying: true, step: null }),
+  pillager: H(0.5),
+  vindicator: H(0.5),
+  evoker: H(0.5),
   bat: N(0.25, { category: 'ambient', flying: true, step: null }),
 };
 
@@ -111,6 +118,8 @@ export class ClientMob {
   mainHand = -1;
   offHand = 0;
   // per-type client state
+  /** IronGolem.attackAnimationTick (entity event 4) */
+  attackAnimationTick = 0;
   /** Sheep.eatAnimationTick */
   eatAnimationTick = 0;
   /** Chicken flap state */
@@ -221,6 +230,10 @@ export class ClientMob {
         if (this.deathTime === 0) this.deathTime = 1;
         this.hurtTime = 10;
         return 'death';
+      case 4:
+        // IronGolem.handleEntityEvent: arm slam (10 ticks)
+        this.attackAnimationTick = 10;
+        return null;
       case 10:
         // Sheep: start grazing (40 ticks)
         if (this.type === 'sheep') this.eatAnimationTick = 40;
@@ -310,6 +323,7 @@ export class ClientMob {
   }
 
   private typeTick(): void {
+    if (this.attackAnimationTick > 0) this.attackAnimationTick--;
     switch (this.type) {
       case 'sheep':
         // Sheep.aiStep (client): the grazing timer runs down locally

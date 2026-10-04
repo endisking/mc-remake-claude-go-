@@ -341,6 +341,16 @@ export class MobRenderer {
       const hanging = (m.data.get('hanging') ?? 0) !== 0;
       mulTranslate(E, 0, hanging ? -0.1 : Math.cos((m.tickCount + partial) * 0.3) * 0.1, 0);
     }
+    if (m.type === 'iron_golem' && m.animationSpeed >= 0.01) {
+      // IronGolemRenderer.setupRotations: side-to-side sway in step with the stride
+      const f1 = m.animationPosition - m.animationSpeed * (1 - partial) + 6;
+      const f2 = (Math.abs((f1 % 13) - 6.5) - 3.25) / 3.25;
+      mulRotZ(E, (-6.5 * f2 * Math.PI) / 180);
+    }
+    if (m.type === 'phantom') {
+      // PhantomRenderer.setupRotations: the body pitches with its flight
+      mulRotX(E, ((m.pitchO + (m.pitch - m.pitchO) * partial) * Math.PI) / 180);
+    }
     if (m.type === 'squid') {
       // SquidRenderer.setupRotations: pivot about the mantle, tilted by the swim angle
       mulTranslate(E, 0, 0.5, 0);
@@ -377,6 +387,12 @@ export class MobRenderer {
     // V: vanilla model space (y down, front −Z, feet at y = 24) → y up, front +Z
     mulTranslate(E, 0, 24, 0);
     mulScale(E, 1, -1, -1);
+    if (m.type === 'phantom') {
+      // PhantomRenderer.scale: 1 + 0.15·size, then shifted down onto its flat hit box
+      const k = 1 + 0.15 * (m.data.get('size') ?? 0);
+      mulScale(E, k, k, k);
+      mulTranslate(E, 0, 21, 3);
+    }
     // baby roots (AgeableListModel)
     const [rPlain, rHead, rBody] = this.roots;
     rPlain!.set(E);
