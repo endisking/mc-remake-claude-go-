@@ -319,4 +319,33 @@ describe('survival', () => {
     expect(died.message).toBe('B was slain by A');
     void pa;
   });
+
+  it('beds: sleeping by night skips to morning; by day only sets the spawn; respawn at the bed', () => {
+    const { server, a, p } = setup();
+    p.inventory.set(0, { id: ITEMS_BY_NAME.get('red_bed')!.id, count: 1, damage: 0 });
+    p.inventory.selected = 0;
+    // facing south (yaw 0): foot at (31,101,8), head at (31,101,9)
+    a.send({ t: 'useOn', x: 31, y: 100, z: 8, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(blockNameOf(server.world.getState(31, 101, 8))).toBe('red_bed');
+    expect(getProp(server.world.getState(31, 101, 9), 'part')).toBe('head');
+    server.setDayTime(6000);
+    a.send({ t: 'useOn', x: 31, y: 101, z: 9, face: 1, cx: 0.5, cy: 0.5, cz: 0.5, hand: 0 });
+    expect(p.sleepingPos).toBeNull();
+    expect(p.respawn).toEqual({ x: 31, y: 101, z: 9, angle: 0 });
+    expect(a.received.some((m) => m.t === 'actionBar' && m.text === 'You can sleep only at night or during thunderstorms')).toBe(true);
+    server.setDayTime(18000);
+    a.send({ t: 'useOn', x: 31, y: 101, z: 8, face: 1, cx: 0.5, cy: 0.5, cz: 0.5, hand: 0 });
+    expect(p.sleepingPos).toEqual([31, 101, 9]);
+    expect(getProp(server.world.getState(31, 101, 9), 'occupied')).toBe(true);
+    server.tick();
+    expect(p.pose).toBe('sleeping');
+    for (let i = 0; i < 99; i++) server.tick();
+    expect(p.sleepingPos).toBeNull();
+    expect(server.dayTime % 24000).toBeLessThan(10);
+    expect(getProp(server.world.getState(31, 101, 9), 'occupied')).toBe(false);
+    // die and respawn next to the bed
+    a.send({ t: 'chat', message: '/kill' });
+    a.send({ t: 'respawn' });
+    expect(Math.abs(p.x - 31.5) <= 2 && Math.abs(p.z - 9.5) <= 3).toBe(true);
+  });
 });

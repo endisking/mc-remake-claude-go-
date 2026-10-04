@@ -54,6 +54,14 @@ export class Hud {
   private highlightName = '';
   private lastHighlight = '';
 
+  // overlay message (action bar): shown above the hotbar for 3 s
+  private overlay = '';
+  private overlayTime = 0;
+  setOverlay(text: string): void {
+    this.overlay = text;
+    this.overlayTime = 60;
+  }
+
   // chat (vanilla ChatComponent, closed): newest at the bottom, fading after 10 s
   private chatLines: { text: string; tick: number }[] = [];
 
@@ -91,6 +99,7 @@ export class Hud {
 
   tick(inv: Inventory): void {
     this.tickCount++;
+    if (this.overlayTime > 0) this.overlayTime--;
     const st = inv.selectedStack;
     const key = st ? String(st.id) : '';
     if (!st) this.highlightTimer = 0;
@@ -123,6 +132,16 @@ export class Hud {
     if (survival) {
       this.renderPlayerHealth(g, p);
       this.renderExperienceBar(g, p);
+    }
+    // overlay message (Gui.render: alpha from the remaining time)
+    if (this.overlay && this.overlayTime > 0) {
+      const a = Math.min(255, Math.floor((this.overlayTime * 255) / 20));
+      if (a > 8) {
+        g.ctx.save();
+        g.ctx.globalAlpha = a / 255;
+        g.centeredText(this.overlay, mid, g.height - 68 - 4, 0xffffff);
+        g.ctx.restore();
+      }
     }
     // selected item name
     if (this.highlightTimer > 0 && this.highlightName) {

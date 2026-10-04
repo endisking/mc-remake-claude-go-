@@ -121,6 +121,8 @@ export class LivingState {
   lastClimbableTick = -1000;
   lastFallDistanceWhenHurt = 0;
   lastAttacker: string | null = null;
+  /** ticks since the player last slept (phantoms, Phase 6) */
+  timeSinceRest = 0;
 
   get dead(): boolean {
     return this.health <= 0;
@@ -501,13 +503,15 @@ export class Survival {
       p.living.totalExperience = old.totalExperience;
     }
     p.fallDistance = 0;
-    const [x, y, z] = this.s.spawnPosition();
+    const { pos: [x, y, z], yaw } = this.s.sleep.respawnPosition(p);
     p.x = x;
     p.y = y;
     p.z = z;
+    p.yaw = yaw;
+    p.pitch = 0;
     p.flying = p.gameMode === 3;
     this.s.send(p, { t: 'respawn', gameMode: p.gameMode });
-    this.s.send(p, { t: 'teleport', x, y, z, yaw: 0, pitch: 0 });
+    this.s.send(p, { t: 'teleport', x, y, z, yaw, pitch: 0 });
     this.sync(p);
     p.stateDirty = true;
   }

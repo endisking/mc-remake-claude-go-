@@ -63,6 +63,8 @@ const S2C_SCHEMA = {
   equipment: [['id', 'i32'], ['mainHand', 'i16'], ['offHand', 'i16']],
   /** Set an entity's velocity (vanilla SetEntityMotion) — knockback for the local player. */
   entityMotion: [['id', 'i32'], ['vx', 'f32'], ['vy', 'f32'], ['vz', 'f32']],
+  /** Message shown above the hotbar (vanilla overlay / action bar). */
+  actionBar: [['text', 'str']],
   /** World difficulty (vanilla ChangeDifficulty). */
   difficulty: [['difficulty', 'u8']],
   /** Remaining air (300 = full). */
@@ -104,6 +106,8 @@ const C2S_SCHEMA = {
   attack: [['target', 'i32'], ['sneaking', 'bool']],
   /** F: swap the selected hotbar item with the off hand (vanilla PlayerAction SWAP_ITEM_WITH_OFFHAND). */
   swapOffhand: [],
+  /** "Leave Bed" (vanilla PlayerCommand STOP_SLEEPING). */
+  stopSleeping: [],
   /** Death screen "Respawn" (vanilla ClientCommand PERFORM_RESPAWN). */
   respawn: [],
 } as const satisfies Schema;

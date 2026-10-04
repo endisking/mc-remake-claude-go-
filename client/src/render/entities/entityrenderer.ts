@@ -133,6 +133,8 @@ export class EntityRenderer {
   /** Held-item draws queued by renderPlayers (camera-relative matrix, light, item, left hand). */
   readonly held: { matrix: Mat4; light: number; item: number; left: boolean }[] = [];
   private heldPool: Mat4[] = [];
+  /** Bed yaw (Direction.toYRot of FACING) under a sleeping player — set by the game. */
+  bedFacing: ((p: RemotePlayer) => number | null) | null = null;
   /** Resolves whether an item has a model and whether it is flat (generated) — set by the game. */
   itemModel: (item: number) => { flat: boolean } | null = () => null;
 
@@ -182,9 +184,25 @@ export class EntityRenderer {
       });
       // entity base transform: translate, rotate by body yaw (yaw 0 faces +Z), scale px → blocks
       const m = this.m;
-      const a = (-bodyYaw * Math.PI) / 180;
-      const c = Math.cos(a), s = Math.sin(a);
-      m.set([c * PLAYER_SCALE, 0, -s * PLAYER_SCALE, 0, 0, PLAYER_SCALE, 0, 0, s * PLAYER_SCALE, 0, c * PLAYER_SCALE, 0, x, y + (p.crouching ? -0.125 : 0), z, 1]);
+      const bed = p.pose === 'sleeping' ? this.bedFacing?.(p) ?? null : null;
+      if (bed !== null) {
+        // LivingEntityRenderer.setupRotations (sleeping): lie along the bed, head on the pillow
+        const yr = (bed * Math.PI) / 180;
+        const sx = -Math.sin(yr), sz = Math.cos(yr); // bed facing (foot → head) as a vector
+        const back = 1.62 - 0.1;
+        m.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x - sx * back, y, z - sz * back, 1]);
+        // model up (+Y) points toward the head end, model front (+Z) points up
+        const r = mat4();
+        r.set([-sz, 0, sx, 0, sx, 0, sz, 0, 0, 1, 0, 0, 0, 0, 0, 1]);
+        multiply(m, m, r);
+        const sc = mat4();
+        sc[0] = sc[5] = sc[10] = PLAYER_SCALE;
+        multiply(m, m, sc);
+      } else {
+        const a = (-bodyYaw * Math.PI) / 180;
+        const c = Math.cos(a), s = Math.sin(a);
+        m.set([c * PLAYER_SCALE, 0, -s * PLAYER_SCALE, 0, 0, PLAYER_SCALE, 0, 0, s * PLAYER_SCALE, 0, c * PLAYER_SCALE, 0, x, y + (p.crouching ? -0.125 : 0), z, 1]);
+      }
       const light = world.getLight(Math.floor(p.x), Math.floor(p.y + 1.62), Math.floor(p.z));
       gl.uniform2f(this.u.get('uLight'), ((light & 15) + 0.5) / 16, ((light >> 4) + 0.5) / 16);
       gl.bindTexture(gl.TEXTURE_2D, this.skins.get(this.skinFor(p.name, p.skin)) ?? null);

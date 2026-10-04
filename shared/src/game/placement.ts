@@ -254,6 +254,16 @@ export function stateForPlacement(block: string, ctx: PlaceContext, existing: nu
     s = withProp(s, 'half', 'lower');
     return s;
   }
+  if (block.endsWith('_bed')) {
+    // BedBlock.getStateForPlacement: the head goes one block further in the look direction
+    const d = DIRS.indexOf(playerFacing as (typeof DIRS)[number]);
+    const head = ctx.world.getState(ctx.x + DX[d]!, ctx.y, ctx.z + DZ[d]!);
+    if (!isReplaceable(head, block)) return null;
+    s = withProp(s, 'facing', playerFacing);
+    s = withProp(s, 'part', 'foot');
+    s = withProp(s, 'occupied', false);
+    return s;
+  }
   if (FENCES.has(block) || PANES.has(block) || WALLS.has(block)) {
     setWater();
     return updateShape(ctx.world, ctx.x, ctx.y, ctx.z, s);
@@ -310,6 +320,10 @@ export function plantSurvives(_block: string, below: number): boolean {
 /** States that must accompany a placement (door upper half, bed head, tall plant top). */
 export function companionPlacement(block: string, state: number): { dx: number; dy: number; dz: number; state: number }[] {
   if (block.endsWith('_door')) return [{ dx: 0, dy: 1, dz: 0, state: withProp(state, 'half', 'upper') }];
+  if (block.endsWith('_bed')) {
+    const d = DIRS.indexOf(getProp(state, 'facing') as (typeof DIRS)[number]);
+    return [{ dx: DX[d]!, dy: 0, dz: DZ[d]!, state: withProp(state, 'part', 'head') }];
+  }
   if (['tall_grass', 'large_fern', 'sunflower', 'lilac', 'rose_bush', 'peony'].includes(block)) return [{ dx: 0, dy: 1, dz: 0, state: withProp(state, 'half', 'upper') }];
   return [];
 }

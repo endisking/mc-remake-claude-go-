@@ -12,8 +12,9 @@ import { JavaRandom } from '@shared/util/random';
 import { ServerPlayer } from './player';
 import { AABB, noCollision } from '@shared/entity/aabb';
 import { ItemEntity, LightningBolt, type ServerEntity } from './entity';
+import { Sleep } from './sleep';
 import { isRainingAt } from '@shared/world/weather';
-import { stateForPlacement, updateShape, isReplaceable, companionPlacement, DX, DY, DZ } from '@shared/game/placement';
+import { stateForPlacement, updateShape, isReplaceable, companionPlacement, DIRS, DX, DY, DZ } from '@shared/game/placement';
 import { canSurvive } from '@shared/game/support';
 import { destroyProgress, hardness, canHarvest } from '@shared/game/mining';
 import { blockDrops, blockForItem, itemForBlock } from '@shared/game/loot';
@@ -70,6 +71,13 @@ export class GameServer {
   readonly survival = new Survival(this);
   /** server.properties pvp */
   pvp = true;
+  readonly sleep = new Sleep(this);
+  /** gamerules playersSleepingPercentage and spawnRadius */
+  playersSleepingPercentage = 100;
+  spawnRadius = 10;
+  /** world spawn (set on the first join at the origin) */
+  worldSpawn: [number, number, number] = [8, 64, 8];
+  private worldSpawnSet = false;
   /** Server simulation distance (chunks); the single-player host's setting overrides it. */
   simulationDistance = 10;
   private nextEntityId = 1;
@@ -228,10 +236,31 @@ export class GameServer {
     }
   }
 
-  /** World spawn: on top of the terrain at the world origin. */
+  /** World spawn: on top of the terrain at the world origin (fixed once found). */
   spawnPosition(): [number, number, number] {
-    const spawn = this.ensureChunk(0, 0);
-    return [8.5, spawn.topY(8, 8) + 1, 8.5];
+    if (!this.worldSpawnSet) {
+      const spawn = this.ensureChunk(0, 0);
+      this.worldSpawn = [8, spawn.topY(8, 8) + 1, 8];
+      this.worldSpawnSet = true;
+    }
+    return [this.worldSpawn[0] + 0.5, this.worldSpawn[1], this.worldSpawn[2] + 0.5];
+  }
+
+  actionBar(p: ServerPlayer, text: string): void {
+    this.send(p, { t: 'actionBar', text });
+  }
+
+  setDayTime(t: number): void {
+    this.dayTime = t;
+    for (const pl of this.players) this.send(pl, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
+  }
+
+  /** ServerLevel.resetWeatherCycle (after sleeping through the night). */
+  resetWeatherCycle(): void {
+    this.rainTime = 0;
+    this.raining = false;
+    this.thunderTime = 0;
+    this.thundering = false;
   }
 
   /**
@@ -391,6 +420,22 @@ export class GameServer {
       const items = blockDrops(state, { silkTouch: false, canHarvest: canHarvest(held?.id ?? 0, state), random: () => this.rand.nextFloat() });
       for (const it of items) this.popResource(x, y, z, it);
     }
+    // beds: the other half goes too (BedBlock.updateShape → destroyBlock), dropping its loot
+    // (the bed item comes from the head) unless the breaker is in creative
+    if (name.endsWith('_bed')) {
+      const d = DIRS.indexOf(getProp(state, 'facing') as (typeof DIRS)[number]);
+      const sgn = getProp(state, 'part') === 'foot' ? 1 : -1;
+      const ox = x + DX[d]! * sgn, oz = z + DZ[d]! * sgn;
+      const other = this.world.getState(ox, y, oz);
+      if (blockNameOf(other) === name && getProp(other, 'part') !== getProp(state, 'part')) {
+        this.setBlock(ox, y, oz, 0);
+        for (const o of this.players) if (o !== breaker) this.send(o, { t: 'levelEvent', event: 2001, x: ox, y, z: oz, data: other });
+        if (drops && (!breaker || breaker.gameMode !== 1)) {
+          for (const it of blockDrops(other, { silkTouch: false, canHarvest: true, random: () => this.rand.nextFloat() })) this.popResource(ox, y, oz, it);
+        }
+        this.updateNeighbors(ox, y, oz);
+      }
+    }
     // two-block structures lose their other half without drops
     if (name.endsWith('_door') || ['tall_grass', 'large_fern', 'sunflower', 'lilac', 'rose_bush', 'peony'].includes(name)) {
       const oy = getProp(state, 'half') === 'upper' || getProp(state, 'half') === 'upper' ? -1 : 1;
@@ -424,6 +469,9 @@ export class GameServer {
   private handleUseOn(p: ServerPlayer, m: Extract<C2S, { t: 'useOn' }>): void {
     const { x, y, z, face } = m;
     if (!this.inReach(p, x, y, z) || p.gameMode === 3) return this.resendBlock(p, x, y, z);
+    // block interaction first unless sneaking with something in hand (secondary use)
+    const holding = !!p.inventory.selectedStack || !!p.inventory.get(40);
+    if (!(p.sneaking && holding) && this.useBlock(p, x, y, z)) return;
     const slot = m.hand === 1 ? 40 : p.inventory.selected;
     const held = p.inventory.get(slot);
     const block = held ? blockForItem(held.id) : null;
@@ -615,6 +663,12 @@ export class GameServer {
    * and spectator exempt), and refuse moving into solid blocks.
    */
   private handleMove(p: ServerPlayer, m: Extract<C2S, { t: 'move' }>): void {
+    // sleeping players stay in bed (rotation still updates)
+    if (p.sleepingPos) {
+      p.yaw = m.yaw;
+      p.pitch = Math.max(-90, Math.min(90, m.pitch));
+      return;
+    }
     const dx = m.x - p.x, dy = m.y - p.y, dz = m.z - p.z;
     const dist2 = dx * dx + dy * dy + dz * dz;
     if (!Number.isFinite(dist2)) return this.rejectMove(p);
@@ -657,6 +711,13 @@ export class GameServer {
       p.fallDistance = 0;
     } else if (dy < 0) p.fallDistance -= dy;
     if (p.flying) p.fallDistance = 0;
+  }
+
+  /** BlockState.use for interactive blocks; returns true when the click was consumed. */
+  private useBlock(p: ServerPlayer, x: number, y: number, z: number): boolean {
+    const st = this.world.getState(x, y, z);
+    if (blockNameOf(st).endsWith('_bed')) return this.sleep.useBed(p, x, y, z);
+    return false;
   }
 
   /** ServerGamePacketListenerImpl.handleInteract (attack) → Player.attack. */
@@ -762,6 +823,9 @@ export class GameServer {
       case 'attack':
         this.handleAttack(p, m.target);
         break;
+      case 'stopSleeping':
+        this.sleep.wake(p, false);
+        break;
       case 'swapOffhand': {
         if (p.gameMode === 3) break;
         const inv = p.inventory;
@@ -849,6 +913,22 @@ export class GameServer {
       const rel = (v: string | undefined, base: number) => (v === undefined ? base : v.startsWith('~') ? base + (Number(v.slice(1)) || 0) : Number(v));
       const x = rel(a[2], p.x), y = rel(a[3], p.y), z = rel(a[4], p.z);
       if ([x, y, z].every(Number.isFinite)) this.strikeLightning(x, y, z);
+    } else if (a[0] === 'spawnpoint') {
+      const t = a[1] && !a[1].startsWith('~') && isNaN(Number(a[1])) ? this.players.find((o) => o.name === a[1] || a[1] === '@s' || a[1] === '@p') : p;
+      const c = a.slice(a[1] && isNaN(Number(a[1])) && !a[1].startsWith('~') ? 2 : 1);
+      const rel = (v: string | undefined, base: number) => (v === undefined ? Math.floor(base) : v.startsWith('~') ? Math.floor(base) + (Number(v.slice(1)) || 0) : Math.floor(Number(v)));
+      if (!t) return;
+      const x = rel(c[0], t.x), y = rel(c[1], t.y), z = rel(c[2], t.z);
+      t.respawn = { x, y, z, angle: t.yaw };
+      this.send(p, { t: 'chat', json: JSON.stringify({ text: `Set spawn point to ${x}, ${y}, ${z} in minecraft:overworld for ${t.name}` }) });
+    } else if (a[0] === 'setworldspawn') {
+      const rel = (v: string | undefined, base: number) => (v === undefined ? Math.floor(base) : v.startsWith('~') ? Math.floor(base) + (Number(v.slice(1)) || 0) : Math.floor(Number(v)));
+      this.worldSpawn = [rel(a[1], p.x), rel(a[2], p.y), rel(a[3], p.z)];
+      this.worldSpawnSet = true;
+      this.send(p, { t: 'chat', json: JSON.stringify({ text: `Set the world spawn point to ${this.worldSpawn.join(', ')} [0.0]` }) });
+    } else if (a[0] === 'gamerule' && (a[1] === 'playersSleepingPercentage' || a[1] === 'spawnRadius') && a[2] !== undefined && Number.isFinite(Number(a[2]))) {
+      if (a[1] === 'playersSleepingPercentage') this.playersSleepingPercentage = Math.max(0, Math.floor(Number(a[2])));
+      else this.spawnRadius = Math.max(0, Math.floor(Number(a[2])));
     } else if (a[0] === 'kill') {
       this.survival.hurt(p, DAMAGE.outOfWorld, 3.4028235e38);
     } else if (a[0] === 'difficulty' && a[1]) {
@@ -918,6 +998,7 @@ export class GameServer {
     }
     this.advanceWeather();
     this.tickLightning();
+    this.sleep.tick();
     for (const p of this.players) {
       p.updatePose();
       this.survival.tick(p);

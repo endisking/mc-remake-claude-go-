@@ -13,3 +13,11 @@ export function isSuffocating(state: number): boolean {
 }
 
 export const isViewBlocking = isSuffocating;
+
+/**
+ * Blocks whose BlockState.use consumes a right click (so nothing is placed against them unless
+ * sneaking with an item in hand). Grows as block interactions are implemented.
+ */
+export function isInteractive(state: number): boolean {
+  return blockNameOf(state).endsWith('_bed');
+}

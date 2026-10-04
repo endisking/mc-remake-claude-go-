@@ -22,7 +22,7 @@ import { CrackRenderer } from './render/overlay';
 import { bakeBlockModels } from './render/blockmodels';
 import { raycastBlocks, type BlockHit } from '@shared/world/raycast';
 import { outlineBoxes } from '@shared/world/shapes';
-import { blockNameOf, propsOf } from '@shared/world/blockstate';
+import { blockNameOf, propsOf, getProp } from '@shared/world/blockstate';
 import { PlayerPhysics, type MoveInput } from '@shared/entity/playerphysics';
 import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes, type Mat4 } from './render/math';
 import type { TextureManifest } from './render/blockmodels';
@@ -34,11 +34,13 @@ import { BlockItemRenderer } from './render/blockitem';
 import { HandRenderer, attackSpeedOf } from './render/hand';
 import { Hud, type HudPlayer } from './gui/hud';
 import { DeathScreen } from './gui/deathscreen';
+import { InBedScreen } from './gui/inbed';
 import { ClientBolt, LightningRenderer } from './render/lightning';
 import { SoundEngine, type SoundCategory } from './audio/engine';
 import { soundName, SOUND_SOURCES } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { attackStrengthScale } from '@shared/game/combat';
+import { skyDarkenLevel } from '@shared/world/daylight';
 import { isRainingAt } from '@shared/world/weather';
 import { StepTracker } from '@shared/entity/steps';
 import { Button } from './gui/screen';
@@ -89,6 +91,9 @@ export class Game implements ScreenHost {
   private flashOnSetHealth = false;
   onFire = false;
   private waterVisionTime = 0;
+  /** in bed (server pose) and the client-side Player.sleepCounter for the fade */
+  sleeping = false;
+  private sleepCounter = 0;
   private skyFlashTime = 0;
   readonly bolts = new Map<number, ClientBolt>();
   private readonly boltRand = new JavaRandom(BigInt(Date.now()));
@@ -324,6 +329,11 @@ export class Game implements ScreenHost {
       return t === null ? null : (mainBake.textures.get(t)?.layer ?? mainBake.textures.get('missing')!.layer);
     }, (layer) => this.textures.alpha[layer]);
     this.lightning = new LightningRenderer(this.gl);
+    this.entityRenderer.bedFacing = (rp) => {
+      const st = this.world.getState(Math.floor(rp.x), Math.floor(rp.y), Math.floor(rp.z));
+      if (!blockNameOf(st).endsWith('_bed')) return null;
+      return ({ south: 0, west: 90, north: 180, east: 270 } as Record<string, number>)[getProp(st, 'facing') as string] ?? null;
+    };
     this.entityRenderer.itemModel = (item) => {
       const block = blockForItem(item);
       if (!block) return null;
@@ -492,6 +502,14 @@ export class Game implements ScreenHost {
       case 'entityState': {
         if (p.id === this.entityId) {
           this.onFire = (p.flags & 1) !== 0;
+          const sleeping = p.pose === 'sleeping';
+          if (sleeping !== this.sleeping) {
+            this.sleeping = sleeping;
+            if (sleeping) {
+              this.interaction.stopDestroy();
+              this.setScreen(new InBedScreen(this));
+            } else if (this.screen instanceof InBedScreen) this.setScreen(null);
+          }
           break;
         }
         const rp = this.players.get(p.id);
@@ -527,6 +545,9 @@ export class Game implements ScreenHost {
         }
         break;
       }
+      case 'actionBar':
+        this.hud.setOverlay(p.text);
+        break;
       case 'difficulty':
         this.difficulty = p.difficulty;
         break;
@@ -726,7 +747,8 @@ export class Game implements ScreenHost {
     };
     pl.autoJumpEnabled = this.settings.autoJump;
     const bx = pl.x, by = pl.y, bz = pl.z;
-    if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
+    if (this.sleeping) pl.pose = 'sleeping';
+    else if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
       pl.tick(move);
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
     }
@@ -1078,6 +1100,8 @@ export class Game implements ScreenHost {
   }
 
   private tickLiving(): void {
+    if (this.sleeping) this.sleepCounter = Math.min(100, this.sleepCounter + 1);
+    else if (this.sleepCounter > 0 && ++this.sleepCounter >= 110) this.sleepCounter = 0;
     if (this.hurtTime > 0) this.hurtTime--;
     if (this.invulnerableTime > 0) this.invulnerableTime--;
     if (this.dead) this.deathTime = Math.min(20, this.deathTime + 1);
@@ -1125,6 +1149,14 @@ export class Game implements ScreenHost {
     const m = this.hurtMat;
     m.set([c, sn, 0, 0, -sn, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
     multiply(target, target, m);
+  }
+
+  /** Yaw of the bed we sleep in (Direction.toYRot of its facing), or null. */
+  private bedFacing(): number | null {
+    const p = this.player;
+    const st = this.world.getState(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z));
+    if (!blockNameOf(st).endsWith('_bed')) return null;
+    return ({ south: 0, west: 90, north: 180, east: 270 } as Record<string, number>)[getProp(st, 'facing') as string] ?? null;
   }
 
   /** Test hook: default state of a block by name. */
@@ -1199,13 +1231,7 @@ export class Game implements ScreenHost {
 
   /** Level.getSkyDarken as an integer light reduction (0..11). */
   private skyDarkenLevel(): number {
-    const tod = timeOfDay(this.world.dayTime);
-    let d = 1 - (Math.cos(tod * Math.PI * 2) * 2 + 0.5);
-    d = Math.max(0, Math.min(1, d));
-    d = 1 - d;
-    d *= 1 - (this.world.rain * 5) / 16;
-    d *= 1 - (this.world.thunder * 5) / 16;
-    return Math.floor((1 - d) * 11);
+    return skyDarkenLevel(this.world.dayTime, this.world.rain, this.world.thunder);
   }
 
   /**
@@ -1296,7 +1322,7 @@ export class Game implements ScreenHost {
 
   private readonly handBob = mat4();
   private renderHand(partial: number, medium: string): void {
-    const showHand = !this.hideHud && this.gameMode !== 3 && this.cameraType === 0;
+    const showHand = !this.hideHud && this.gameMode !== 3 && this.cameraType === 0 && !this.sleeping;
     const fire = this.onFire && this.gameMode !== 3 && this.cameraType === 0;
     // bobHurt then bobView, like the level camera
     const hb = this.handBob;
@@ -1437,6 +1463,15 @@ export class Game implements ScreenHost {
     const ez = this.prevZ + (this.z - this.prevZ) * partial;
     let camYaw = this.yaw, camPitch = this.pitch;
     let cx = ex, cy = ey, cz = ez;
+    const bedFacing = this.sleeping ? this.bedFacing() : null;
+    if (bedFacing !== null) {
+      // Camera.setup in bed: look from the pillow toward the foot, nudged back 0.3
+      camYaw = bedFacing - 180;
+      camPitch = 0;
+      const yr0 = (camYaw * Math.PI) / 180;
+      cx -= -Math.sin(yr0) * 0.3;
+      cz -= Math.cos(yr0) * 0.3;
+    }
     if (this.cameraType !== 0) {
       if (this.cameraType === 2) {
         camYaw += 180;
@@ -1602,6 +1637,12 @@ export class Game implements ScreenHost {
         ctx.restore();
       }
       this.hud.render(g, this.hudState(), (id, c, x, y) => this.renderGuiItem(id, c, x, y));
+      // Gui.render: fade to dark blue while falling asleep
+      if (this.sleepCounter > 0) {
+        let f1 = this.sleepCounter / 100;
+        if (f1 > 1) f1 = 1 - (this.sleepCounter - 100) / 10;
+        g.fill(0, 0, g.width, g.height, ((Math.floor(220 * f1) & 255) << 24) | 0x101020);
+      }
     }
     if (this.screen) this.screen.render(this.mouseGX, this.mouseGY);
   }

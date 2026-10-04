@@ -230,6 +230,57 @@ export function doorDef(name: string, top: string, bottom: string): BlockStateDe
   return { variants };
 }
 
+/**
+ * Bed halves: a 6-px mattress (y 3–9) on two 3×3×3 legs at the outer corners. Modelled with
+ * the head toward north (−Z); FACING (foot → head) rotates it.
+ */
+export function bedDef(name: string): BlockStateDef {
+  const color = name.replace(/_bed$/, '');
+  const wood = 'bed_wood';
+  const leg = (x: number, z: number) => ({
+    from: [x, 0, z] as [number, number, number],
+    to: [x + 3, 3, z + 3] as [number, number, number],
+    faces: Object.fromEntries((['down', 'north', 'south', 'west', 'east'] as const).map((f) => [f, { texture: wood, ...(f === 'down' ? { cull: 'down' as const } : {}) }])),
+  });
+  MODELS[`block/${name}_head`] = {
+    elements: [
+      {
+        from: [0, 3, 0], to: [16, 9, 16],
+        faces: {
+          up: { texture: `${color}_bed_top_head` },
+          down: { texture: wood },
+          north: { texture: 'bed_end_head' },
+          west: { texture: `${color}_bed_side_head`, uv: [16, 7, 0, 13] },
+          east: { texture: `${color}_bed_side_head` },
+        },
+      },
+      leg(0, 0),
+      leg(13, 0),
+    ],
+  };
+  MODELS[`block/${name}_foot`] = {
+    elements: [
+      {
+        from: [0, 3, 0], to: [16, 9, 16],
+        faces: {
+          up: { texture: `${color}_bed_top_foot` },
+          down: { texture: wood },
+          south: { texture: `${color}_bed_end_foot` },
+          west: { texture: `${color}_bed_side_foot` },
+          east: { texture: `${color}_bed_side_foot` },
+        },
+      },
+      leg(0, 13),
+      leg(13, 13),
+    ],
+  };
+  const y: Record<string, Rot> = { north: 0, east: 90, south: 180, west: 270 };
+  const variants: Record<string, ModelRef> = {};
+  for (const facing of ['north', 'south', 'west', 'east'])
+    for (const part of ['head', 'foot']) variants[`facing=${facing},part=${part}`] = { model: `block/${name}_${part}`, y: y[facing]! };
+  return { variants };
+}
+
 export function trapdoorDef(name: string, texture: string): BlockStateDef {
   const bottom = model(`${name}_bottom`, 'trapdoor_bottom', { texture });
   const top = model(`${name}_top`, 'trapdoor_top', { texture });
@@ -267,6 +318,7 @@ export function blockStateDef(name: string, hasTexture: (t: string) => boolean):
   const ex = EXPLICIT[name];
   if (ex) return ex();
   if (FLUID_BLOCKS.has(name)) return { variants: {} };
+  if (name.endsWith('_bed')) return bedDef(name);
   if (name.endsWith('_leaves')) return single({ model: model(name, 'leaves', { all: name }) });
   if ((name.endsWith('_log') || name.endsWith('_stem')) && hasTexture(name)) return column(name, name, `${name}_top`);
   if (name.endsWith('_wood') || name.endsWith('_hyphae')) {

@@ -433,6 +433,383 @@
    "cutout": true
   },
   {
+   "name": "white_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "white_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "white_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "white_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "white_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "orange_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "orange_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "orange_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "orange_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "orange_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "magenta_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "magenta_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "magenta_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "magenta_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "magenta_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "light_blue_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "light_blue_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "light_blue_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "light_blue_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "light_blue_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "yellow_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "yellow_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "yellow_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "yellow_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "yellow_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "lime_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "lime_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "lime_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "lime_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "lime_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pink_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "pink_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "pink_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pink_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pink_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "gray_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "gray_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "gray_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "gray_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "gray_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "light_gray_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "light_gray_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "light_gray_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "light_gray_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "light_gray_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cyan_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "cyan_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "cyan_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cyan_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cyan_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "purple_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "purple_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "purple_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "purple_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "purple_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "blue_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "blue_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "blue_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "blue_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "blue_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "brown_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "brown_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "brown_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "brown_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "brown_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "green_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "green_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "green_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "green_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "green_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "red_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "red_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "red_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "red_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "red_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "black_bed_top_head",
+   "frames": 1
+  },
+  {
+   "name": "black_bed_top_foot",
+   "frames": 1
+  },
+  {
+   "name": "black_bed_side_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "black_bed_side_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "black_bed_end_foot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "bed_end_head",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "bed_wood",
+   "frames": 1
+  },
+  {
    "name": "fire_0",
    "frames": 32,
    "cutout": true

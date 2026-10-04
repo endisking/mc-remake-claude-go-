@@ -109,10 +109,11 @@ export function blockDrops(state: number, ctx: LootContext): ItemStack[] {
     rule(state, ctx, out);
     return out;
   }
-  // doors and tall structures drop only from their lower half; beds from the foot
+  // doors and tall structures drop only from their lower half; beds only from the head
+  // (vanilla loot tables: block_state_property half=lower / part=head)
   const half = getProp(state, 'half');
   if (half === 'upper' && name.endsWith('_door')) return out;
-  if (name.endsWith('_bed') && getProp(state, 'part') === 'foot') return [{ id: ID(name), count: 1, damage: 0 }];
+  if (name.endsWith('_bed')) return getProp(state, 'part') === 'head' ? [{ id: ID(name), count: 1, damage: 0 }] : out;
   for (const id of b.drops) out.push({ id, count: 1, damage: 0 });
   // double slabs drop two
   if (name.endsWith('_slab') && getProp(state, 'type') === 'double') for (const s of out) s.count = 2;

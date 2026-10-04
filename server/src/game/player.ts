@@ -54,6 +54,11 @@ export class ServerPlayer {
   vy = 0;
   vz = 0;
   knockbackDirty = false;
+  /** bed head position while sleeping */
+  sleepingPos: [number, number, number] | null = null;
+  sleepCounter = 0;
+  /** respawn point (bed head) and the yaw it was set with */
+  respawn: { x: number; y: number; z: number; angle: number } | null = null;
   walkDistO = 0;
   sentOffHand = -1;
   readonly inventory = new Inventory();
@@ -83,6 +88,13 @@ export class ServerPlayer {
 
   /** Recompute the pose from the latest state, as vanilla does server-side. */
   updatePose(): void {
+    if (this.sleepingPos) {
+      if (this.pose !== 'sleeping') {
+        this.pose = 'sleeping';
+        this.stateDirty = true;
+      }
+      return;
+    }
     const p = this.phys;
     p.x = this.x;
     p.y = this.y;

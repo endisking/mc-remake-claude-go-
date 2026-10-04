@@ -12,6 +12,7 @@ import { getProp, blockNameOf, stateOf } from '@shared/world/blockstate';
 
 const WATER = stateOf('water');
 import { FLUID } from '@shared/world/blockinfo';
+import { isInteractive } from '@shared/world/blockprops';
 import type { BlockHit } from '@shared/world/raycast';
 import type { C2S } from '@shared/protocol/packets';
 import type { ClientWorld } from './world/clientworld';
@@ -190,6 +191,14 @@ export class Interaction {
     if (!(pressed || (held && this.rightClickDelay === 0))) return;
     this.rightClickDelay = 4;
     if (!target || this.host.gameMode === 3) return;
+    // using an interactive block (beds…) consumes the click unless sneaking with an item
+    const holding = !!this.inventory.selectedStack || !!this.inventory.get(40);
+    if (isInteractive(target.state) && !(this.host.player.shiftDown && holding)) {
+      const { x, y, z, face } = target;
+      this.host.send({ t: 'useOn', x, y, z, face, cx: target.px - x, cy: target.py - y, cz: target.pz - z, hand: 0 });
+      this.host.swing(0);
+      return;
+    }
     for (const hand of [0, 1] as const) {
       const slot = hand === 0 ? this.inventory.selected : 40;
       const stack = this.inventory.get(slot);

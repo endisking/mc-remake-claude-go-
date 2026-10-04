@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 123 / 4140**
+**Progress: 124 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -190,7 +190,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 - [ ] Beds: sleeping, skipping night, phantom reset, "You may not rest now" <!--p2:beds_sleeping_skipping_night_phantom_reset_you_may_not_rest_now-->
 - [ ] Bed explosion in Nether/End <!--p2:bed_explosion_in_nether_end-->
-- [ ] Spawn point setting and world spawn radius <!--p2:spawn_point_setting_and_world_spawn_radius-->
+- [x] Spawn point setting and world spawn radius <!--p2:spawn_point_setting_and_world_spawn_radius-->
 - [x] Death screen with score and respawn <!--p2:death_screen_with_score_and_respawn-->
 - [ ] Dropped inventory and XP on death <!--p2:dropped_inventory_and_xp_on_death-->
 - [ ] Death messages (all 1.17.1 variants, original text where needed) <!--p2:death_messages_all_1_17_1_variants_original_text_where_needed-->

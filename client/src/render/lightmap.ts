@@ -105,10 +105,4 @@ export function skyDarken(timeOfDay: number, rain: number, thunder: number): num
   return f * 0.8 + 0.2;
 }
 
-/** Vanilla celestial angle (DimensionType.timeOfDay) for a day time in ticks. */
-export function timeOfDay(dayTime: number): number {
-  const d = ((dayTime / 24000) % 1 + 1) % 1 - 0.25;
-  const frac = d < 0 ? d + 1 : d;
-  const e = 0.5 - Math.cos(frac * Math.PI) / 2;
-  return (frac * 2 + e) / 3;
-}
+export { timeOfDay } from '@shared/world/daylight';

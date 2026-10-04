@@ -13,6 +13,7 @@ import type { TexDef } from './registry';
 import { terrainTextures } from './blocks/terrain';
 import { floraTextures } from './blocks/flora';
 import { miscTextures } from './blocks/misc';
+import { bedTextures } from './blocks/beds';
 import { animatedTextures } from './blocks/animated';
 import { grassColormap, foliageColormap } from './colormap';
 import { widgets, optionsBackground, icons } from './gui';
@@ -36,6 +37,7 @@ export const ALL_BLOCK_TEXTURES: TexDef[] = [
   ...terrainTextures,
   ...floraTextures,
   ...miscTextures,
+  ...bedTextures,
   ...animatedTextures,
   ...destroyStages().map((t, i): TexDef => ({ name: `destroy_stage_${i}`, make: () => t, cutout: true })),
 ];
