@@ -9,17 +9,9 @@ export function timeOfDay(dayTime: number): number {
 }
 
 // Mth.sin/cos use a 65536-entry float table; gameplay thresholds depend on its rounding
-const SIN = new Float32Array(65536);
-for (let i = 0; i < 65536; i++) SIN[i] = Math.sin((i * Math.PI * 2) / 65536);
+import { mthCos, mthSin } from '../util/mth';
+export { mthCos, mthSin };
 const f = Math.fround;
-/** Mth.cos (table lookup, float precision). */
-export function mthCos(x: number): number {
-  return SIN[(Math.trunc(f(f(x) * f(10430.378)) + 16384) | 0) & 65535]!;
-}
-/** Mth.sin (table lookup, float precision). */
-export function mthSin(x: number): number {
-  return SIN[(Math.trunc(f(f(x) * f(10430.378))) | 0) & 65535]!;
-}
 
 /** DimensionType.timeOfDay as the float vanilla stores. */
 function timeOfDayF(dayTime: number): number {

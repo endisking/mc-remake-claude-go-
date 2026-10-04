@@ -5,6 +5,8 @@
 import { BlockWorld } from '@shared/world/world';
 import { LightEngine } from '@shared/world/light';
 import { Chunk, chunkKey } from '@shared/world/chunk';
+import { writeChunk, readChunk } from '@shared/protocol/chunkcodec';
+import { ByteWriter, ByteReader } from '@shared/protocol/buffer';
 import { DevGenerator } from '@shared/worldgen/devgen';
 import { OverworldGenerator } from '@shared/worldgen/overworld/generator';
 import { obfuscateSeed } from '@shared/worldgen/biome/zoom';
@@ -252,7 +254,7 @@ export class GameServer {
   /** World spawn: on top of the terrain at the world origin (fixed once found). */
   spawnPosition(): [number, number, number] {
     if (!this.worldSpawnSet) {
-      const spawn = this.ensureChunk(0, 0);
+      const spawn = this.prepareChunk(0, 0);
       this.worldSpawn = [8, spawn.topY(8, 8) + 1, 8];
       this.worldSpawnSet = true;
     }
@@ -1093,21 +1095,58 @@ export class GameServer {
   }
 
   // ---------------------------------------------------------------- world access
-  ensureChunk(cx: number, cz: number): Chunk {
+  /** Chunks unloaded this session (serialized with their generation stage), restored instead of regenerated. */
+  private readonly stored = new Map<number, { data: ArrayBuffer; stage: number; lit: boolean }>();
+
+  /**
+   * Bring a chunk up to a generation stage, like vanilla's ChunkStatus pyramid: features (stage 2)
+   * need the 8 neighbours carved, because they write into them; a full chunk (stage 3) needs its
+   * neighbours decorated, so nothing writes into it any more.
+   */
+  ensureStage(cx: number, cz: number, stage: number): Chunk {
     let c = this.world.getChunk(cx, cz);
     if (!c) {
-      c = this.generator.generate(cx, cz);
+      const saved = this.stored.get(chunkKey(cx, cz));
+      if (saved) {
+        c = readChunk(new ByteReader(saved.data), true);
+        c.stage = saved.stage;
+        c.lit = saved.lit;
+        this.stored.delete(chunkKey(cx, cz));
+      } else {
+        c = this.generator.generate(cx, cz);
+        if (this.generator instanceof OverworldGenerator) c.stage = 1;
+      }
       this.world.addChunk(c);
+    }
+    if (stage >= 2 && c.stage < 2) {
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (dx || dz) this.ensureStage(cx + dx, cz + dz, 1);
+      if (this.generator instanceof OverworldGenerator) this.generator.decorate(this.world, cx, cz);
+      c.stage = 2;
+    }
+    if (stage >= 3 && c.stage < 3) {
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (dx || dz) this.ensureStage(cx + dx, cz + dz, 2);
+      c.stage = 3;
     }
     return c;
   }
 
-  /** A chunk is ready to send once it and its 8 neighbors exist and it is lit. */
+  ensureChunk(cx: number, cz: number): Chunk {
+    return this.ensureStage(cx, cz, 1);
+  }
+
+  /** A chunk is ready to send once it is full (neighbours decorated) and lit. */
   private prepareChunk(cx: number, cz: number): Chunk {
-    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) this.ensureChunk(cx + dx, cz + dz);
-    const c = this.world.getChunk(cx, cz)!;
+    const c = this.ensureStage(cx, cz, 3);
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) this.ensureStage(cx + dx, cz + dz, 1);
     if (!c.lit) this.light.lightChunk(c);
     return c;
+  }
+
+  /** Keep an unloaded chunk (blocks, light, stage) so coming back finds it as it was. */
+  private storeChunk(c: Chunk): void {
+    const w = new ByteWriter(65536);
+    writeChunk(w, c, true);
+    this.stored.set(chunkKey(c.x, c.z), { data: w.finish(), stage: c.stage, lit: c.lit });
   }
 
   setBlock(x: number, y: number, z: number, state: number): void {
@@ -1254,7 +1293,10 @@ export class GameServer {
           const pcx = Math.floor(p.x) >> 4, pcz = Math.floor(p.z) >> 4;
           return Math.abs(c.x - pcx) <= p.viewDistance + 3 && Math.abs(c.z - pcz) <= p.viewDistance + 3;
         });
-        if (!needed) this.world.removeChunk(c.x, c.z);
+        if (!needed) {
+          this.storeChunk(c);
+          this.world.removeChunk(c.x, c.z);
+        }
       }
     }
   }

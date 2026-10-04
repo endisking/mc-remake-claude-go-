@@ -126,6 +126,11 @@ export class Chunk {
   readonly motionBlocking = new Int16Array(256);
   /** Set once lighting has been computed for this chunk. */
   lit = false;
+  /**
+   * Generation stage (a subset of vanilla ChunkStatus): 1 carved (terrain, surface, carvers),
+   * 2 decorated (features; may still receive blocks from neighbours' features), 3 full.
+   */
+  stage = 3;
   /** Incremented on every change; used by renderers/savers to detect dirtiness. */
   version = 0;
 

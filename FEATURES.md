@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 138 / 4140**
+**Progress: 141 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -210,9 +210,9 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Surface builders (grass/dirt, sand, gravel, badlands bands, mountains, swamp, etc.) <!--p3:surface_builders_grass_dirt_sand_gravel_badlands_bands_mountains_swamp_etc-->
 - [x] Bedrock floor pattern (0–4) <!--p3:bedrock_floor_pattern_0_4-->
 - [x] Sea level 63, oceans and rivers <!--p3:sea_level_63_oceans_and_rivers-->
-- [ ] Cave carver <!--p3:cave_carver-->
-- [ ] Ravine (canyon) carver <!--p3:ravine_canyon_carver-->
-- [ ] Underwater caves and underwater ravines <!--p3:underwater_caves_and_underwater_ravines-->
+- [x] Cave carver <!--p3:cave_carver-->
+- [x] Ravine (canyon) carver <!--p3:ravine_canyon_carver-->
+- [x] Underwater caves and underwater ravines <!--p3:underwater_caves_and_underwater_ravines-->
 - [ ] Lakes (water and lava) <!--p3:lakes_water_and_lava-->
 - [ ] Springs (water and lava) <!--p3:springs_water_and_lava-->
 - [ ] Ice and snow placement by temperature <!--p3:ice_and_snow_placement_by_temperature-->

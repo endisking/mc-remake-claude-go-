@@ -10,6 +10,9 @@ import { obfuscateSeed, zoomToQuart } from '../biome/zoom';
 import { TerrainNoise, SEA_LEVEL } from './terrain';
 import { SurfaceBuilders, placeBedrock, type ProtoBlocks } from './surface';
 import { seeded, terrainSeed } from '../rand';
+import { Carvers } from './carvers';
+import { decorateChunk } from './features';
+import type { BlockWorld } from '../../world/world';
 
 const STONE = stateOf('stone');
 const WATER = stateOf('water', { level: 0 });
@@ -25,6 +28,7 @@ export class OverworldGenerator {
   readonly biomeSeed: bigint;
   readonly terrain: TerrainNoise;
   readonly surface: SurfaceBuilders;
+  readonly carvers: Carvers;
   private readonly density = new Float64Array(65536);
   private readonly q: [number, number] = [0, 0];
 
@@ -33,6 +37,7 @@ export class OverworldGenerator {
     this.biomeSeed = obfuscateSeed(seed);
     this.terrain = new TerrainNoise(seed, this.layers.quart, !!opts.amplified);
     this.surface = new SurfaceBuilders(seed);
+    this.carvers = new Carvers(seed);
   }
 
   /** Biome at quart coordinates (OverworldBiomeSource.getNoiseBiome). */
@@ -44,6 +49,14 @@ export class OverworldGenerator {
   blockBiome(x: number, z: number): number {
     zoomToQuart(this.biomeSeed, x, z, this.q);
     return this.layers.quart.get(this.q[0], this.q[1]);
+  }
+
+  /**
+   * ChunkStatus.FEATURES for chunk (cx, cz): runs once its 8 neighbours are carved; features may
+   * write into those neighbours through `world`.
+   */
+  decorate(world: BlockWorld, cx: number, cz: number): void {
+    decorateChunk(this, world, cx, cz);
   }
 
   /** Terrain + surface + bedrock for one chunk, as a fresh Chunk (sections and heightmaps filled). */
@@ -72,6 +85,8 @@ export class OverworldGenerator {
         this.surface.build(this.blockBiome(bx + x, bz + z), blocks, rand, bx + x, bz + z, start, noise);
       }
     placeBedrock(blocks, rand);
+    // carvers (ChunkStatus.CARVERS, LIQUID_CARVERS): the carver list comes from this chunk's corner biome
+    this.carvers.carve({ blocks, cx, cz, biomeAt: (x, z) => this.blockBiome(x, z) }, this.quartBiome(cx << 2, cz << 2));
     for (let s = 0; s < 16; s++) {
       const sec = chunk.sections[s]!;
       const part = blocks.subarray(s * 4096, (s + 1) * 4096);
