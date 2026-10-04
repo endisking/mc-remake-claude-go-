@@ -775,6 +775,27 @@ export function vexMesh(): VPart[] {
   return m;
 }
 
+/** ParrotModel.createBodyLayer (32×32), with the standing-pose rotations of prepare(). */
+export function parrotMesh(): VPart[] {
+  const leg = () => [b(14, 18, -0.5, 0, -0.5, 1, 2, 1)];
+  return [
+    { name: 'body', pivot: [0, 16.5, -3], rot: [0.4937, 0, 0], boxes: [b(2, 8, -1.5, 0, -1.5, 3, 6, 3)] },
+    { name: 'tail', pivot: [0, 21.07, 1.16], rot: [1.015, 0, 0], boxes: [b(22, 1, -1.5, -1, -1, 3, 4, 1)] },
+    { name: 'left_wing', pivot: [1.5, 16.94, -2.76], rot: [-0.6981, -PI, 0], boxes: [b(19, 8, -0.5, 0, -1.5, 1, 5, 3)] },
+    { name: 'right_wing', pivot: [-1.5, 16.94, -2.76], rot: [-0.6981, -PI, 0], boxes: [b(19, 8, -0.5, 0, -1.5, 1, 5, 3)] },
+    {
+      name: 'head', pivot: [0, 15.69, -2.76], boxes: [b(2, 2, -1, -1.5, -1, 2, 3, 2)], children: [
+        { name: 'head2', pivot: [0, -2, -1], boxes: [b(10, 0, -1, -0.5, -2, 2, 1, 4)] },
+        { name: 'beak1', pivot: [0, -0.5, -1.5], boxes: [b(11, 7, -0.5, -1, -0.5, 1, 2, 1)] },
+        { name: 'beak2', pivot: [0, -1.75, -2.45], boxes: [b(16, 7, -0.5, 0, -0.5, 1, 2, 1)] },
+        { name: 'feather', pivot: [0, -2.15, 0.15], rot: [-0.2214, 0, 0], boxes: [b(2, 18, 0, -4, -2, 0, 5, 4)] },
+      ],
+    },
+    { name: 'left_leg', pivot: [1, 22, -1.05], rot: [-0.0299, 0, 0], boxes: leg() },
+    { name: 'right_leg', pivot: [-1, 22, -1.05], rot: [-0.0299, 0, 0], boxes: leg() },
+  ];
+}
+
 // ------------------------------------------------------------------ animation helpers
 
 const RAD = PI / 180;
@@ -1330,6 +1351,29 @@ const vexAnim = (p: Poses, a: MobAnim) => {
   rw.zRot = 0.47123894;
 };
 
+/** ParrotModel.setupAnim: head look; walking legs on the ground, bobbing flight with spread wings. */
+const parrotAnim = (p: Poses, a: MobAnim) => {
+  p.head!.xRot = a.headPitch * RAD;
+  p.head!.yRot = a.netHeadYaw * RAD;
+  if (a.mob.onGround) {
+    p.left_leg!.xRot += Math.cos(a.limbSwing * 0.6662) * 1.4 * a.limbSwingAmount;
+    p.right_leg!.xRot += Math.cos(a.limbSwing * 0.6662 + PI) * 1.4 * a.limbSwingAmount;
+    return;
+  }
+  const bob = a.mob.chickenBob(a.partial);
+  p.head!.y = 15.69 + bob;
+  p.tail!.xRot = 1.015 + Math.cos(a.limbSwing * 0.6662) * 0.3 * a.limbSwingAmount;
+  p.tail!.y = 21.07 + bob;
+  p.body!.y = 16.5 + bob;
+  p.left_wing!.zRot = -0.0873 - bob;
+  p.left_wing!.y = 16.94 + bob;
+  p.right_wing!.zRot = 0.0873 + bob;
+  p.right_wing!.y = 16.94 + bob;
+  p.left_leg!.y = 22 + bob;
+  p.right_leg!.y = 22 + bob;
+  p.left_wing!.xRot = p.right_wing!.xRot = -0.6981;
+};
+
 const none = () => {};
 
 export const MOB_MODELS: Record<string, MobModelDef> = {
@@ -1378,6 +1422,7 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   ghast: { tex: [64, 32], parts: ghastMesh(), anim: ghastAnim },
   piglin: { tex: [64, 64], parts: piglinMesh(), headParts: ['head', 'hat'], baby: HUMANOID_BABY, anim: piglinAnim },
   vex: { tex: [64, 64], parts: vexMesh(), anim: vexAnim },
+  parrot: { tex: [32, 32], parts: parrotMesh(), anim: parrotAnim },
   unknown: { tex: [64, 32], parts: [{ name: 'box', pivot: [0, 0, 0], boxes: [b(0, 0, -8, 8, -8, 16, 16, 16)] }], anim: none },
 };
 
@@ -1475,6 +1520,7 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   zombified_piglin: { layers: [{ model: 'piglin', texture: 'zombified_piglin' }] },
   illusioner: { layers: [{ model: 'illager', texture: 'illusioner' }], scale: 0.9375 },
   vex: { layers: [{ model: 'vex', texture: 'vex' }], scale: 0.4, bright: true },
+  parrot: { layers: [{ model: 'parrot', texture: 'parrot' }] },
   /** fallback for mobs without a model: a hit-box-sized box */
   unknown: { layers: [{ model: 'unknown', texture: 'unknown' }] },
 };

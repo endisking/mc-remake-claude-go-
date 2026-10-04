@@ -72,6 +72,7 @@ export const MOB_INFO: Record<string, MobInfo> = {
   endermite: H(0.3, { flip: 180 }),
   bee: N(0.4, { flying: true, step: null }),
   rabbit: N(0.3),
+  parrot: N(0.3, { flying: true }),
   fox: N(0.4),
   llama: N(0.7),
   trader_llama: N(0.7),
@@ -375,7 +376,8 @@ export class ClientMob {
         // Sheep.aiStep (client): the grazing timer runs down locally
         this.eatAnimationTick = Math.max(0, this.eatAnimationTick - 1);
         break;
-      case 'chicken': {
+      case 'chicken':
+      case 'parrot': {
         // Chicken.aiStep: wings flap while airborne
         this.oFlap = this.flap;
         this.oFlapSpeed = this.flapSpeed;
