@@ -6,6 +6,8 @@ import { createProgram, Uniforms } from '../gl';
 import { mat4, multiply, type Mat4 } from '../math';
 import { bakeEntityModel, FLOATS_PER_VERTEX, PartPose, type BakedEntityModel, type PartDef } from './model';
 import { playerParts, animateHumanoid } from './playermodel';
+import { PoseStack } from '../posestack';
+import { armPartTransform } from '../handpose';
 import type { RemotePlayer } from '../../world/entities';
 import type { ClientWorld } from '../../world/clientworld';
 
@@ -89,6 +91,8 @@ export class EntityRenderer {
     this.defaultSkins = (await (await fetch(`${base}skins.json`)).json()) as string[];
     await Promise.all(this.defaultSkins.map(async (n) => this.skins.set(n, await this.loadTexture(`${base}${n}.png`, n))));
   }
+
+  private readonly armPose = new PoseStack();
 
   /** Skins with 3-px ("slim") arms. */
   private readonly slimSkins = new Set<string>();
@@ -297,15 +301,12 @@ export class EntityRenderer {
     gl.bindTexture(gl.TEXTURE_2D, lightmap);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.skins.get(skin) ?? null);
-    // pivot (∓5, 2, 0) in vanilla model space, zRot ±0.1 (bobModelPart at age 0), px → blocks, then our model space
-    // (y up, facing +Z) → vanilla's (y down, facing −Z): diag(1, −1, −1)
-    const m = this.tmp;
-    m.set(base);
-    const c = Math.cos(side * 0.1), s = Math.sin(side * 0.1), k = 1 / 16;
-    const r = this.m;
-    r.set([c * k, s * k, 0, 0, s * k, -c * k, 0, 0, 0, 0, -k, 0, (side * -5) / 16, 2 / 16, 0, 1]);
-    multiply(m, m, r);
-    gl.uniformMatrix4fv(this.u.get('uModel'), false, m);
+    // the arm ModelPart (pivot (∓5, 2, 0), zRot ±0.1 from bobModelPart at age 0, px → blocks), then
+    // our model space (y up, facing +Z) → vanilla's (y down, facing −Z): diag(1, −1, −1)
+    const ps = this.armPose.reset(base);
+    armPartTransform(ps, side);
+    ps.scale(1, -1, -1);
+    gl.uniformMatrix4fv(this.u.get('uModel'), false, ps.last);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
     gl.bindVertexArray(model.vao);
