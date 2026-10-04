@@ -2,17 +2,7 @@
 import { BIOMES } from '../data';
 import type { BlockWorld } from './world';
 
-/**
- * Biome temperature at a height (vanilla Biome.getTemperature; the small per-column noise
- * term above y=64 is left out).
- */
-export function temperatureAt(biomeId: number, y: number): number {
-  const b = BIOMES[biomeId];
-  if (!b) return 0.8;
-  let t = b.temperature;
-  if (y > 64) t -= ((y - 64) * 0.05) / 30;
-  return t;
-}
+import { getTemperature } from './climate';
 
 /** Level.isRainingAt: raining, open to the sky, and a biome warm enough for rain. */
 export function isRainingAt(world: BlockWorld, raining: boolean, x: number, y: number, z: number): boolean {
@@ -22,5 +12,5 @@ export function isRainingAt(world: BlockWorld, raining: boolean, x: number, y: n
   if (chunk.motionBlocking[(z & 15) * 16 + (x & 15)]! > y) return false;
   const biome = world.getBiome(x, y, z);
   const b = BIOMES[biome];
-  return !!b && b.precipitation !== 'none' && temperatureAt(biome, y) >= 0.15;
+  return !!b && b.precipitation !== 'none' && getTemperature(biome, x, y, z) >= 0.15;
 }

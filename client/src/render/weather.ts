@@ -3,7 +3,7 @@
  * radius of 5 (Fast) or 10 (Fancy) columns around the camera, from the precipitation
  * height up to camera+radius, oriented radially, scrolling over time.
  */
-import { temperatureAt } from '@shared/world/weather';
+import { getTemperature } from '@shared/world/climate';
 import { BIOMES } from '@shared/data';
 import { JavaRandom } from '@shared/util/random';
 import type { ClientWorld } from '../world/clientworld';
@@ -46,7 +46,7 @@ for (let i = 0; i < 32; i++)
     SIZE_Z[(i << 5) | j] = f / f2;
   }
 
-export { temperatureAt };
+
 
 export class WeatherRenderer {
   private prog: WebGLProgram;
@@ -138,7 +138,8 @@ export class WeatherRenderer {
         const lu = ((light & 15) + 0.5) / 16, lv = ((light >> 4) + 0.5) / 16;
         const px0 = x - camX - d0 + 0.5, pz0 = z - camZ - d1 + 0.5, px1 = x - camX + d0 + 0.5, pz1 = z - camZ + d1 + 0.5;
         const y0 = k2 - camY, y1 = j2 - camY;
-        if (temperatureAt(biome, j2) >= 0.15) {
+        // vanilla samples the temperature at the bottom of the visible sheet
+        if (getTemperature(biome, x, k2, z) >= 0.15) {
           const i3 = (ticks + Math.imul(Math.imul(x, x), 3121) + Math.imul(x, 45238971) + Math.imul(Math.imul(z, z), 418711) + Math.imul(z, 13761)) & 31;
           const f2 = (-(i3 + partial) / 32) * (3 + this.rand.nextFloat());
           const a = ((1 - f3 * f3) * 0.5 + 0.5) * rainLevel;

@@ -141,6 +141,11 @@ export class PerlinNoise {
     return total;
   }
 
+  /** PerlinNoise.getOctaveNoise(i): octave i counted from the highest frequency (octave 0). */
+  getOctaveNoise(i: number): ImprovedNoise | null {
+    return this.levels[this.levels.length - 1 - i] ?? null;
+  }
+
   /** Convenience: octaves -n+1..0 with amplitude 1 each. */
   static simple(random: JavaRandom, octaves: number): PerlinNoise {
     return new PerlinNoise(random, -(octaves - 1), new Array(octaves).fill(1));
