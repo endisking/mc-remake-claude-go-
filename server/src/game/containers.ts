@@ -13,6 +13,8 @@ import { BLOCKS_BY_NAME } from '@shared/data';
 import { FULL_COLLISION } from '@shared/world/blockinfo';
 import { isEmpty, encodeTag, type ItemStack } from '@shared/item/stack';
 import { EnchantmentMenu } from '@shared/menu/enchanting';
+import { BrewingStandMenu, BrewingContainer } from '@shared/menu/brewing';
+import { newBrewingStand, tickBrewingStand, bottleBits, type BrewingData } from '@shared/game/potions';
 import { countBookshelves } from '@shared/game/enchantments';
 import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, StonecutterMenu, SmithingMenu, GrindstoneMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
 import { CompoundContainer, InventoryContainer, SimpleContainer, type Container } from '@shared/menu/container';
@@ -240,6 +242,19 @@ export class Containers {
       }, 'Stonecutter', [x, y, z]);
       return true;
     }
+    // ---- Phase 7: brewing stand ----
+    if (name === 'brewing_stand') {
+      const be = this.getOrCreate(x, y, z, 'brewing_stand', () => newBrewingStand() as unknown as BlockEntityData) as unknown as BrewingData;
+      const valid = this.validFor(p, x, y, z, (n) => n === 'brewing_stand');
+      const c = new BrewingContainer(be, () => this.markDirty(x, z), valid);
+      this.open(p, (id) => {
+        const m = new BrewingStandMenu(id, inv, c);
+        m.data[0] = be.brewTime;
+        m.data[1] = be.fuel;
+        return m;
+      }, 'Brewing Stand', [x, y, z]);
+      return true;
+    }
     // ---- Phase 7: enchanting table ----
     if (name === 'enchanting_table') {
       const valid = this.validFor(p, x, y, z, (n) => n === 'enchanting_table');
@@ -452,6 +467,23 @@ export class Containers {
           this.markDirty(x, z);
           continue;
         }
+        if (be.id === 'brewing_stand') {
+          const st = srv.world.getState(x, y, z);
+          if (blockNameOf(st) !== 'brewing_stand') {
+            c.blockEntities.delete(k);
+            continue;
+          }
+          const b = be as unknown as BrewingData;
+          const r = tickBrewingStand(b);
+          if (r.changed) this.markDirty(x, z);
+          if (r.brewed) srv.playSound(null, 'block.brewing_stand.brew', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+          if (r.drop) this.dropItemStack(x, y, z, r.drop);
+          const bits = bottleBits(b);
+          let ns = st;
+          for (let i = 0; i < 3; i++) if (getProp(ns, `has_bottle_${i}`) !== bits[i]) ns = withProp(ns, `has_bottle_${i}`, bits[i]!);
+          if (ns !== st) srv.setBlock(x, y, z, ns);
+          continue;
+        }
         if (!FURNACES.has(be.id)) continue;
         const st = srv.world.getState(x, y, z);
         if (blockNameOf(st) !== be.id) {
@@ -471,6 +503,13 @@ export class Containers {
       if (!m.stillValid(this.menuPlayer(p)) || p.living.dead) {
         this.closeContainer(p, true);
         continue;
+      }
+      if (m instanceof BrewingStandMenu && s.pos) {
+        const be = this.blockEntity(s.pos[0], s.pos[1], s.pos[2]) as unknown as BrewingData | undefined;
+        if (be && be.id === 'brewing_stand') {
+          m.data[0] = be.brewTime;
+          m.data[1] = be.fuel;
+        }
       }
       if (m instanceof FurnaceMenu && s.pos) {
         const be = this.blockEntity(s.pos[0], s.pos[1], s.pos[2]);

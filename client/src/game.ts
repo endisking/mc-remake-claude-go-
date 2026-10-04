@@ -58,6 +58,7 @@ import { BLOCKS_BY_NAME, ITEMS_BY_ID, ITEMS_BY_NAME } from '@shared/data';
 import { itemName, decodeTag, type ItemStack, type ItemTag } from '@shared/item/stack';
 import { EffectsClient } from './effects';
 import './gui/enchantmentscreen';
+import './gui/brewingscreen';
 import { entityEnchLevel } from '@shared/game/enchantments';
 import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
@@ -995,6 +996,12 @@ export class Game implements ScreenHost, ContainerHost {
       case 'levelEvent':
         if (p.event === 2001) this.blockBroken(p.x, p.y, p.z, p.data);
         else if (p.event === 1505) this.growthParticles(p.x, p.y, p.z, p.data);
+        else if (p.event === 2002 || p.event === 2007) {
+          // splash potion: a burst of potion-coloured swirls (LevelRenderer.levelEvent 2002/2007)
+          this.ensureFlatParticles();
+          const r = ((p.data >> 16) & 255) / 255, g = ((p.data >> 8) & 255) / 255, b = (p.data & 255) / 255;
+          for (let i = 0; i < 100; i++) this.particles.spell(p.x + 0.5 + (Math.random() - 0.5), p.y + 0.5, p.z + 0.5 + (Math.random() - 0.5), r, g, b, false);
+        }
         else if (p.event === 1501) {
           // LevelRenderer.levelEvent LAVA_FIZZ: extinguish hiss (large smoke particles: no smoke particle type yet)
           const r = this.sfxRand;
@@ -1552,14 +1559,18 @@ export class Game implements ScreenHost, ContainerHost {
     } else if (event === 3) this.playPlayer('entity.player.death', 1, voice);
   }
 
+  /** Texture layer for flat-colour particles (potion swirls, splashes). */
+  private ensureFlatParticles(): void {
+    if (this.particles.flatLayer) return;
+    const white = BLOCKS_BY_NAME.get('white_concrete');
+    if (white) this.particles.flatLayer = this.particleLayer(white.defaultState);
+  }
+
   /** Potion swirls around players with effects (DATA_EFFECT_COLOR_ID). */
   private tickEffectParticles(): void {
     const fx = this.effectsClient;
     if (fx.swirl.size === 0) return;
-    if (!this.particles.flatLayer) {
-      const white = BLOCKS_BY_NAME.get('white_concrete');
-      if (white) this.particles.flatLayer = this.particleLayer(white.defaultState);
-    }
+    this.ensureFlatParticles();
     const list: { id: number; x: number; y: number; z: number; width: number; height: number; invisible: boolean }[] = [];
     // vanilla shows the local player's own swirls in every perspective
     list.push({ id: this.entityId, x: this.player.x, y: this.player.y, z: this.player.z, width: 0.6, height: 1.8, invisible: this.localEffects.has('invisibility') });

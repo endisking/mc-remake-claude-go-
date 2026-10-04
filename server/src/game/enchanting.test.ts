@@ -6,6 +6,7 @@ import { stack, itemName } from '@shared/item/stack';
 import { capturePlayer, applyPlayer } from '../storage/codec';
 import { DAMAGE } from './survival';
 import { ServerPlayer } from './player';
+import { potionStack } from '@shared/game/potions';
 
 function client(server: GameServer, name: string) {
   const received: S2C[] = [];
@@ -102,5 +103,33 @@ describe('enchanting table and enchantment gameplay', () => {
     expect(p.inventory.get(0)!.tag?.Enchantments).toEqual([{ id: 'efficiency', lvl: 5 }]);
     a.send({ t: 'chat', message: '/enchant @s efficiency 1' });
     expect(p.inventory.get(0)!.tag?.Enchantments?.length).toBe(1);
+  });
+});
+
+describe('brewing stand and potions (server)', () => {
+  it('brews awkward potions with blaze powder fuel, and a drunk potion applies its effect', () => {
+    const { server, a, p } = setup();
+    const x = Math.floor(p.x) + 2, y = Math.floor(p.y), z = Math.floor(p.z);
+    server.setBlock(x, y, z, stateOf('brewing_stand'));
+    p.inventory.set(0, potionStack('potion', 'water'));
+    p.inventory.set(1, stack('nether_wart', 1));
+    p.inventory.set(2, stack('blaze_powder', 1));
+    a.send({ t: 'useOn', x, y, z, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    const open = a.received.filter((m) => m.t === 'openWindow').at(-1) as Extract<S2C, { t: 'openWindow' }>;
+    expect(open).toMatchObject({ type: 'brewing_stand', title: 'Brewing Stand' });
+    // hotbar starts at 5 + 27
+    for (const i of [0, 1, 2]) a.send({ t: 'clickWindow', windowId: open.windowId, slot: 32 + i, button: 0, clickType: 1 });
+    for (let i = 0; i < 405; i++) server.tick();
+    const be = server.containers.blockEntity(x, y, z) as unknown as { items: ({ tag?: { Potion?: string } } | null)[]; fuel: number };
+    expect(be.items[0]?.tag?.Potion).toBe('awkward');
+    expect(be.fuel).toBe(19);
+    a.send({ t: 'closeWindow', windowId: open.windowId });
+    // drinking a potion of swiftness
+    p.inventory.set(0, potionStack('potion', 'swiftness'));
+    p.inventory.selected = 0;
+    a.send({ t: 'useItem', hand: 0 });
+    for (let i = 0; i < 40; i++) server.tick();
+    expect(p.living.effects.amplifier('speed')).toBe(0);
+    expect(itemName(p.inventory.get(0)?.id ?? 0)).toBe('glass_bottle');
   });
 });

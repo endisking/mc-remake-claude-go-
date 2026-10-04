@@ -13,6 +13,7 @@
 import { ITEMS_BY_ID } from '@shared/data';
 import type { ItemStack } from '@shared/item/stack';
 import { hasFoil } from '@shared/game/enchantments';
+import { isPotionItem, potionColor } from '@shared/game/potions';
 import type { Gui } from './gui';
 import type { ItemTextures } from '../render/itemtextures';
 
@@ -58,6 +59,41 @@ export function spriteLayerFor(sprites: ItemTextures, itemId: number): number {
     spriteCache.set(itemId, l);
   }
   return l;
+}
+
+// ------------------------------------------------------------------ potion colours
+const potionCache = new Map<string, HTMLCanvasElement>();
+
+/**
+ * Potion bottles: the liquid (baked in the water-bottle blue) is recoloured with the potion's
+ * colour (PotionUtils.getColor, the item colour of layer 0 in vanilla), keeping its shading.
+ */
+function drawPotionIcon(g: Gui, stack: ItemStack, x: number, y: number): void {
+  if (typeof document === 'undefined') return drawItemIcon(g, stack.id, x, y);
+  const color = potionColor(stack);
+  const key = `${stack.id}:${color}`;
+  let c = potionCache.get(key);
+  if (!c) {
+    c = Object.assign(document.createElement('canvas'), { width: 16, height: 16 });
+    const ctx = c.getContext('2d')!;
+    ctx.imageSmoothingEnabled = false;
+    drawItemIcon({ blit: (img: CanvasImageSource, sx: number, sy: number, w: number, h: number, dx: number, dy: number, dw = w, dh = h) => ctx.drawImage(img, sx, sy, w, h, dx, dy, dw, dh), fill: () => {} } as unknown as Gui, stack.id, 0, 0);
+    const im = ctx.getImageData(0, 0, 16, 16), d = im.data;
+    const base = 0.3 * 0x38 + 0.59 * 0x5d + 0.11 * 0xc6;
+    const cr = (color >> 16) & 255, cg = (color >> 8) & 255, cb = color & 255;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i]!, gg = d[i + 1]!, b = d[i + 2]!;
+      if (d[i + 3]! < 128 || !(b > r + 40 && b > gg + 25)) continue; // only the blue liquid
+      const k = (0.3 * r + 0.59 * gg + 0.11 * b) / base;
+      d[i] = Math.min(255, cr * k);
+      d[i + 1] = Math.min(255, cg * k);
+      d[i + 2] = Math.min(255, cb * k);
+    }
+    ctx.putImageData(im, 0, 0);
+    if (potionCache.size > 256) potionCache.clear();
+    potionCache.set(key, c);
+  }
+  g.ctx.drawImage(c, x, y);
 }
 
 // ------------------------------------------------------------------ enchantment glint
@@ -154,7 +190,8 @@ export function drawItemStack(g: Gui, stack: ItemStack | null | undefined, x: nu
     g.ctx.translate(-(x + 8), -(y + 12));
     drawItemIcon(g, stack.id, x, y);
     g.ctx.restore();
-  } else drawItemIcon(g, stack.id, x, y);
+  } else if (stack.tag?.Potion !== undefined && isPotionItem(stack.id)) drawPotionIcon(g, stack, x, y);
+  else drawItemIcon(g, stack.id, x, y);
   if (hasFoil(stack)) drawGlint(g, stack.id, x, y);
   const max = ITEMS_BY_ID[stack.id]?.maxDurability ?? 0;
   if (max > 0 && stack.damage > 0) {
