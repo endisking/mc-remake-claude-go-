@@ -175,6 +175,17 @@ export class MobManager {
     return this.mobs().filter((m) => !m.dead && (cx === undefined || ((Math.floor(m.x) >> 4) === cx && (Math.floor(m.z) >> 4) === cz))).map(saveMob);
   }
 
+  /** A chunk is unloading: save its mobs and take them out of the world (they return with the chunk). */
+  unloadChunk(cx: number, cz: number): MobSave[] {
+    const out: MobSave[] = [];
+    for (const m of this.nearbyMobs(cx * 16 + 8, cz * 16 + 8, 8)) {
+      if (m.dead || m.removed || Math.floor(m.x) >> 4 !== cx || Math.floor(m.z) >> 4 !== cz) continue;
+      out.push(saveMob(m));
+      m.removed = true;
+    }
+    return out;
+  }
+
   /** Recreate saved mobs (no spawn randomisation). */
   load(list: MobSave[]): Mob[] {
     const out: Mob[] = [];

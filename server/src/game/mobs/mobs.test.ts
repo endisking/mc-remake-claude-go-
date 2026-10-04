@@ -484,4 +484,19 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     expect(p.sleepingPos).toBeNull();
     expect(a.received.some((m) => m.t === 'actionBar' && m.text.includes('monsters nearby'))).toBe(true);
   });
+
+  it('mobs unload with their chunk and come back when it reloads', () => {
+    const { server, a } = setup();
+    const cow = server.mobs.spawn('cow', 20.5, 64, 20.5) as Cow;
+    cow.ageTicks = 0;
+    a.send({ t: 'chat', message: '/tp 1000.5 64 0.5' });
+    ticks(server, 81);
+    expect(cow.removed).toBe(true);
+    expect(server.mobs.mobs().some((m) => m.type === 'cow')).toBe(false);
+    a.send({ t: 'chat', message: '/tp 0.5 64 0.5' });
+    ticks(server, 5);
+    const back = server.mobs.mobs().filter((m) => m.type === 'cow');
+    expect(back.length).toBe(1);
+    expect(back[0]!.x).toBeCloseTo(cow.x, 6);
+  });
 });
