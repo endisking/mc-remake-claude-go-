@@ -114,7 +114,7 @@ export class GenLevel {
     return h;
   }
 
-  /** Fluid ticks scheduled by features (springs); fluids don't flow yet, so nothing consumes them. */
+  /** Fluid ticks scheduled by features (springs, delay 0); the server schedules them after decoration. */
   readonly fluidTicks: [number, number, number][] = [];
   scheduleFluidTick(x: number, y: number, z: number): void {
     this.fluidTicks.push([x, y, z]);

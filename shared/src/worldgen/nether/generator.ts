@@ -52,8 +52,9 @@ export class NetherGenerator {
     return false;
   }
 
-  decorate(world: BlockWorld, cx: number, cz: number): void {
-    decorateChunk(this, world, cx, cz);
+  /** Features; returns the fluid ticks they scheduled (springs). */
+  decorate(world: BlockWorld, cx: number, cz: number): [number, number, number][] {
+    return decorateChunk(this, world, cx, cz);
   }
 
   generate(cx: number, cz: number): Chunk {

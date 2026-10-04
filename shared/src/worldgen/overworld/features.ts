@@ -40,8 +40,8 @@ export function biomeFeatures(biome: number): Placer[][] {
   return lists;
 }
 
-/** ChunkGenerator.applyBiomeDecoration for chunk (cx, cz). */
-export function decorateChunk(gen: GenSource, world: BlockWorld, cx: number, cz: number): void {
+/** ChunkGenerator.applyBiomeDecoration for chunk (cx, cz). Returns the fluid ticks features scheduled (springs). */
+export function decorateChunk(gen: GenSource, world: BlockWorld, cx: number, cz: number): [number, number, number][] {
   const x = cx << 4, z = cz << 4;
   // BiomeSource.getPrimaryBiome: the quart cell at the chunk centre
   const biome = gen.quartBiome((cx << 2) + 2, (cz << 2) + 2);
@@ -56,4 +56,5 @@ export function decorateChunk(gen: GenSource, world: BlockWorld, cx: number, cz:
   });
   const chunk = world.getChunk(cx, cz);
   if (chunk) chunk.carvingMasks = null;
+  return level.fluidTicks;
 }

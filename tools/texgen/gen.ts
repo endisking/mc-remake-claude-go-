@@ -18,6 +18,7 @@ import { animatedTextures } from './blocks/animated';
 import { grassColormap, foliageColormap } from './colormap';
 import { widgets, optionsBackground, icons, spectatorWidgets } from './gui';
 import { allSkins } from './skins';
+import { writeItemTextures } from './items';
 import { sun, moonPhases, clouds, rain, snowflakes, destroyStages, underwater, experienceOrbs, powderSnowOutline } from './environment';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -94,8 +95,9 @@ function main(): void {
   writePng(join(outDir, 'environment', 'powder_snow_outline.png'), powderSnowOutline());
   mkdirSync(join(outDir, 'entity'), { recursive: true });
   writePng(join(outDir, 'entity', 'experience_orb.png'), experienceOrbs());
+  const itemCount = writeItemTextures(outDir);
   const overrides = existsSync(join(outDir, 'overrides')) ? readdirSync(join(outDir, 'overrides')).filter((f) => f.endsWith('.png')) : [];
-  console.log(`texgen: ${entries.length} textures (${totalFrames} frames), ${overrides.length} overrides present`);
+  console.log(`texgen: ${entries.length} textures (${totalFrames} frames), ${itemCount} item sprites, ${overrides.length} overrides present`);
 }
 
 main();
