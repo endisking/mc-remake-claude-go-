@@ -298,6 +298,9 @@ Object.assign(EVENTS, {
   'entity.snowball.throw': [{ set: 'attack_sweep', pitch: 1.1 }],
   'entity.egg.throw': [{ set: 'attack_sweep', pitch: 1.1 }],
   'entity.ender_pearl.throw': [{ set: 'attack_sweep', pitch: 0.9 }],
+  'item.shield.block': [{ set: 'step_wood', pitch: 0.9 }],
+  'item.shield.break': [{ set: 'dig_wood', pitch: 0.8 }],
+  'item.totem.use': [{ set: 'levelup', pitch: 1.2 }],
 } satisfies Record<string, Ref[]>);
 
 /** Events the game currently plays (missing ones are reported). */
@@ -309,7 +312,7 @@ const HOOKED = new Set<string>([
   'ui.button.click', 'entity.player.attack.strong', 'entity.player.attack.weak', 'entity.player.attack.crit',
   'entity.player.attack.knockback', 'entity.player.attack.nodamage', 'entity.player.attack.sweep',
   'entity.experience_orb.pickup', 'entity.player.levelup',
-  'item.bucket.fill', 'item.bucket.empty', 'item.bucket.fill_lava', 'item.bucket.empty_lava', 'item.bucket.fill_powder_snow', 'item.armor.equip_leather', 'item.armor.equip_chain', 'item.armor.equip_iron', 'item.armor.equip_gold', 'item.armor.equip_diamond', 'item.armor.equip_netherite', 'item.armor.equip_elytra', 'item.armor.equip_generic', 'item.armor.equip_turtle', 'entity.arrow.shoot', 'entity.arrow.hit', 'entity.arrow.hit_player', 'item.flintandsteel.use', 'block.pumpkin.carve', 'entity.generic.eat', 'entity.generic.drink', 'item.honey_bottle.drink', 'entity.item.break', 'entity.snowball.throw', 'entity.egg.throw', 'entity.ender_pearl.throw', 'entity.player.burp', 'item.chorus_fruit.teleport', 'entity.generic.burn',
+  'item.bucket.fill', 'item.bucket.empty', 'item.bucket.fill_lava', 'item.bucket.empty_lava', 'item.bucket.fill_powder_snow', 'item.armor.equip_leather', 'item.armor.equip_chain', 'item.armor.equip_iron', 'item.armor.equip_gold', 'item.armor.equip_diamond', 'item.armor.equip_netherite', 'item.armor.equip_elytra', 'item.armor.equip_generic', 'item.armor.equip_turtle', 'entity.arrow.shoot', 'entity.arrow.hit', 'entity.arrow.hit_player', 'item.flintandsteel.use', 'block.pumpkin.carve', 'entity.generic.eat', 'entity.generic.drink', 'item.honey_bottle.drink', 'entity.item.break', 'entity.snowball.throw', 'entity.egg.throw', 'entity.ender_pearl.throw', 'item.shield.block', 'item.shield.break', 'item.totem.use', 'entity.player.burp', 'item.chorus_fruit.teleport', 'entity.generic.burn',
 ]);
 
 // ------------------------------------------------------------------ build
