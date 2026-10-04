@@ -1272,6 +1272,16 @@ export class Game implements ScreenHost {
       return;
     }
     if (event >= 47 && event <= 52) return this.itemBroke(id, event);
+    if (event === 35) {
+      // Totem of Undying: the sound and a burst of totem particles around the saved player
+      const v = id === this.entityId ? { x: this.x, y: this.y - this.player.eyeHeight, z: this.z } : this.players.get(id);
+      if (v) {
+        this.playAt('item.totem.use', 'player', v.x, v.y, v.z, 1, 1);
+        const totem = ITEMS_BY_NAME.get('totem_of_undying')!.id;
+        this.itemUse.spawnItemParticles(id, totem, 30);
+      }
+      return;
+    }
     const hurt = event === 2 || event === 33 || event === 36 || event === 37 || event === 44 || event === 57;
     if (id !== this.entityId) {
       const rp = this.players.get(id);

@@ -254,6 +254,23 @@ describe('thrown items', { timeout: 60000 }, () => {
   });
 });
 
+describe('totem of undying', { timeout: 60000 }, () => {
+  it('saves a dying player from the off hand, not from the void', () => {
+    const { server, p } = setup();
+    p.inventory.set(40, { id: id('totem_of_undying'), count: 1, damage: 0 });
+    server.survival.hurt(p, { id: 'generic', bypassArmor: true }, 50);
+    expect(p.living.dead).toBe(false);
+    expect(p.living.health).toBe(1);
+    expect(p.inventory.get(40)).toBeNull();
+    expect(p.living.effects.get('regeneration')).toMatchObject({ amplifier: 1, duration: 900 });
+    expect(p.living.absorption).toBe(8);
+    p.inventory.set(0, { id: id('totem_of_undying'), count: 1, damage: 0 });
+    p.living.invulnerableTime = 0;
+    server.survival.hurt(p, { id: 'outOfWorld', bypassArmor: true, bypassInvul: true }, 100);
+    expect(p.living.dead).toBe(true);
+  });
+});
+
 describe('item entities', { timeout: 60000 }, () => {
   it('burn in lava', () => {
     const { server, p } = setup();

@@ -308,6 +308,34 @@ export class ItemUse {
     this.s.broadcastToTrackers(p, { t: 'animate', id: p.id, action: hand === 1 ? 3 : 0 });
   }
 
+  // ---------------------------------------------------------------- totem
+
+  /**
+   * LivingEntity.checkTotemDeathProtection: consume a totem from the main or off hand, back to
+   * 1 health, effects cleared, then Regeneration II 45 s, Absorption II 5 s, Fire Resistance 40 s.
+   */
+  useTotem(p: ServerPlayer, src: DamageSource): boolean {
+    if (src.bypassInvul) return false;
+    for (const slot of [p.inventory.selected, 40]) {
+      const st = p.inventory.get(slot);
+      if (!st || nameOf(st.id) !== 'totem_of_undying') continue;
+      st.count--;
+      if (st.count <= 0) p.inventory.set(slot, null);
+      this.s.syncSlot(p, slot);
+      const l = p.living, t = this.effectTarget(p);
+      l.health = 1;
+      l.effects.clear(t);
+      l.effects.add('regeneration', 900, 1, t);
+      l.effects.add('absorption', 100, 1, t);
+      l.effects.add('fire_resistance', 800, 0, t);
+      // entity event 35: totem animation, particles and sound on every client
+      this.s.broadcastToTrackers(p, { t: 'entityEvent', id: p.id, event: 35 }, true);
+      this.s.survival.sync(p);
+      return true;
+    }
+    return false;
+  }
+
   // ---------------------------------------------------------------- thrown items
 
   /** SnowballItem / EggItem / EnderpearlItem.use: throw at 1.5 blocks/tick, inaccuracy 1. */

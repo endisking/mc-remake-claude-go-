@@ -166,6 +166,8 @@ export class Survival {
     const r = this.s.rand;
     const voice = (r.nextFloat() - r.nextFloat()) * 0.2 + 1;
     if (l.dead) {
+      // LivingEntity.checkTotemDeathProtection: a Totem of Undying in either hand saves us
+      if (this.s.items.useTotem(p, src)) return true;
       if (fresh) this.s.playSound(p, 'entity.player.death', 'player', p.x, p.y, p.z, 1, voice);
       this.die(p, src);
     } else if (fresh) {
