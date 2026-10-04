@@ -8,6 +8,8 @@ import { chromium, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 
 const base = process.argv[2] ?? 'http://localhost:4173/';
+/** 'third' runs only the third-person part */
+const only = process.argv[3] ?? '';
 const out = new URL('../bench/out/shots/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -33,6 +35,7 @@ const inv = 'window.game.interaction.inventory';
 for (let x = 33; x <= 48; x++) for (let z = 34; z <= 50; z++) await cmd(page, `/setblock ${x} 200 ${z} stone`);
 await cmd(page, '/tp 40.5 201 37.5');
 await page.waitForFunction(() => (window as any).game.player.onGround && Math.abs((window as any).game.player.y - 201) < 0.01, undefined, { timeout: 20000 });
+if (only !== 'third') {
 // drop a spread of items on the ground in front of us (Q with the slot selected, turning between throws)
 await cmd(page, '/clear');
 const drops = ['iron_ingot', 'diamond', 'stick', 'oak_log', 'golden_apple', 'iron_pickaxe', 'redstone', 'wheat_seeds', 'dirt'];
@@ -78,6 +81,8 @@ for (const slot of [0, 1, 2, 3, 6]) {
   await page.waitForTimeout(700);
   await shot(`held-${slot}`);
 }
+}
+if (only === 'third') for (const it of ['diamond_pickaxe', 'iron_sword', 'bread']) await cmd(page, `/give @s ${it} 1`);
 // third person (front view) holding the sword and the pickaxe: handheld transform
 await page.evaluate(() => { const g = (window as any).game; g.cameraType = 2; g.pitch = 10; });
 for (const slot of [1, 0, 2]) {
