@@ -330,9 +330,25 @@ export class Game implements ScreenHost {
     return c;
   }
 
-  /** "Save and Quit to Title": back to the launcher. */
+  private quitting = false;
+
+  /** "Save and Quit to Title": save the world (showing "Saving world"), then back to the launcher. */
   quitToTitle(): void {
-    location.href = location.pathname;
+    if (this.quitting) return;
+    this.quitting = true;
+    const leave = () => {
+      location.href = location.pathname;
+    };
+    if (!this.integrated?.worldId) {
+      leave();
+      return;
+    }
+    void import('./gui/savingscreen').then(({ MessageScreen }) => this.setScreen(new MessageScreen(this.gui, 'Saving world')));
+    this.integrated.saveAndStop().then(leave, (e: unknown) => {
+      console.error('saving failed', e);
+      alert(`Saving the world failed: ${(e as Error).message}`);
+      leave();
+    });
   }
 
   async start(): Promise<void> {
@@ -438,8 +454,19 @@ export class Game implements ScreenHost {
       } else {
         const seed = BigInt(q.get('seed') ?? '12345');
         const gm = { survival: 0, creative: 1, adventure: 2, spectator: 3 }[q.get('gamemode') ?? 'survival'] ?? 0;
-        const { server, transport } = await startIntegratedServer(seed, q.get('scene') ?? '', gm);
+        // ?world=<id>: a saved world from the launcher (IndexedDB); otherwise a transient one
+        const { server, transport } = await startIntegratedServer(seed, q.get('scene') ?? '', gm, q.get('world'));
         this.integrated = server;
+        if (server.worldId) {
+          // best effort: save when the tab is hidden or closed (the worker may not finish on close)
+          const flush = () => {
+            if (!this.quitting) server.save().catch(() => {});
+          };
+          window.addEventListener('pagehide', flush);
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') flush();
+          });
+        }
         this.connect(transport);
         if (q.has('host')) this.openToLan(q.get('host') || undefined);
       }
