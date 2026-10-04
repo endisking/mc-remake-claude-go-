@@ -8,10 +8,40 @@ const ICE: RTCConfiguration = {
   iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
 };
 
-/** Signaling endpoint: explicit, or the page's own origin when served by the Node server. */
-export function signalingUrl(explicit?: string | null): string {
-  if (explicit) return explicit;
-  return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/signal`;
+/** Port of the desktop app's local server (which also relays signaling). */
+export const DESKTOP_PORT = 47615;
+
+/**
+ * Signaling endpoint: explicit, or the page's own origin when served by the Node server or the
+ * desktop app. An explicit value may be a full ws(s):// URL, an http(s):// origin, or just a
+ * host name or IP. A bare LAN IP (a friend's desktop app) gets the desktop app's port and plain
+ * ws://; a bare host name follows the page's security (wss:// on https pages).
+ */
+export function signalingUrl(explicit?: string | null, pageProtocol = globalThis.location?.protocol ?? 'http:', pageHost = globalThis.location?.host ?? ''): string {
+  const s = explicit?.trim();
+  if (!s) return `${pageProtocol === 'https:' ? 'wss' : 'ws'}://${pageHost}/signal`;
+  if (/^wss?:\/\//i.test(s)) return s;
+  const m = /^(https?):\/\/(.*)$/i.exec(s);
+  let rest = (m ? m[2]! : s).replace(/\/+$/, '');
+  const hostPart = rest.split('/')[0]!;
+  const ip = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(hostPart) || /^localhost(:\d+)?$/i.test(hostPart);
+  const secure = m ? m[1]!.toLowerCase() === 'https' : !ip && pageProtocol === 'https:';
+  if (!m && ip && !/:\d+$/.test(hostPart)) rest = `${hostPart}:${DESKTOP_PORT}${rest.slice(hostPart.length)}`;
+  if (!/\/signal$/.test(rest)) rest += '/signal';
+  return `${secure ? 'wss' : 'ws'}://${rest}`;
+}
+
+/** The desktop app's LAN address info (null on web hosting, where /lan-info doesn't exist). */
+export async function fetchLanInfo(): Promise<{ addresses: string[]; port: number; signaling: boolean } | null> {
+  try {
+    const r = await fetch('/lan-info', { cache: 'no-store' });
+    if (!r.ok || !(r.headers.get('content-type') ?? '').includes('json')) return null;
+    const j = (await r.json()) as { addresses?: unknown; port?: unknown; signaling?: unknown };
+    if (!Array.isArray(j.addresses) || typeof j.port !== 'number') return null;
+    return { addresses: j.addresses.filter((a): a is string => typeof a === 'string'), port: j.port, signaling: !!j.signaling };
+  } catch {
+    return null;
+  }
 }
 
 export function randomRoomCode(): string {
@@ -34,7 +64,7 @@ export class LanHost {
   constructor(
     private server: IntegratedServer,
     readonly code: string,
-    signal: string,
+    readonly signal: string,
   ) {
     this.ws = new WebSocket(signal);
     this.ws.onopen = () => this.ws.send(JSON.stringify({ type: 'host', code }));

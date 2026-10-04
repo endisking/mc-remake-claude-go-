@@ -250,6 +250,9 @@ export class Game implements ScreenHost, ContainerHost {
   integrated: import('./net/connection').IntegratedServer | null = null;
   lanHost: import('./net/lan').LanHost | null = null;
   lanStatus = '';
+  get canOpenToLan(): boolean {
+    return !!this.integrated;
+  }
   screen: Screen | null = null;
   private mouseGX = 0;
   private mouseGY = 0;

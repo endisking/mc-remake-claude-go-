@@ -4,8 +4,9 @@
  * Usage: pnpm package [--platform win32|linux|darwin] (default win32)
  */
 import { execSync } from 'node:child_process';
-import { cpSync, mkdirSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { cpSync, mkdirSync, rmSync, existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
+import { createRequire } from 'node:module';
 import { packager } from '@electron/packager';
 
 const root = new URL('../', import.meta.url).pathname;
@@ -30,6 +31,13 @@ rmSync(stage, { recursive: true, force: true });
 mkdirSync(stage, { recursive: true });
 cpSync(join(root, 'desktop/main.cjs'), join(stage, 'main.cjs'));
 cpSync(join(root, 'desktop/package.json'), join(stage, 'package.json'));
+// the LAN signaling relay (SignalingHub + ws) as one self-contained CommonJS file; esbuild ships
+// with vite, so it is resolved from there
+const esbuild = createRequire(realpathSync(join(root, 'node_modules/vite/package.json')))('esbuild') as { build(options: Record<string, unknown>): Promise<unknown> };
+await esbuild.build({
+  entryPoints: [join(root, 'server/src/node/desktop-signal.ts')], outfile: join(stage, 'signaling.cjs'),
+  bundle: true, platform: 'node', format: 'cjs', target: 'node20', external: ['bufferutil', 'utf-8-validate'], logLevel: 'warning',
+});
 cpSync(dist, join(stage, 'web'), { recursive: true, filter: (src) => !src.endsWith('.map') });
 const [appDir] = await packager({
   dir: stage, out: join(root, 'build/desktop'), name: 'Blockcraft', executableName: 'Blockcraft', platform, arch: 'x64',

@@ -14,6 +14,77 @@ export interface ScreenHost {
   /** Apply and persist settings; `reloadChunks` when meshing options changed. */
   applySettings(reloadChunks: boolean): void;
   quitToTitle(): void;
+  /** single-player only: whether the world can be opened to LAN */
+  readonly canOpenToLan?: boolean;
+  openToLan?(): Promise<string | null>;
+  lanStatus?: string;
+  lanHost?: { readonly code: string; readonly signal: string } | null;
+}
+
+/** "Open to LAN": starts hosting the integrated world over WebRTC and shows how friends join. */
+export class OpenToLanScreen extends Screen {
+  private info: { addresses: string[]; port: number; signaling: boolean } | null = null;
+  private starting = false;
+  constructor(private host: ScreenHost, private parent: Screen | null) {
+    super(host.gui, 'Open to LAN');
+    void import('../net/lan').then((m) => m.fetchLanInfo()).then((i) => (this.info = i));
+  }
+  init(): void {
+    const cx = Math.floor(this.gui.width / 2), by = this.gui.height - 28;
+    if (this.host.lanHost) {
+      this.widgets = [new Button(cx - 100, by, 200, 20, 'Done', () => this.host.setScreen(this.parent))];
+      return;
+    }
+    this.widgets = [
+      new Button(cx - 155, by, 150, 20, 'Start LAN World', (b) => {
+        if (this.starting) return;
+        this.starting = true;
+        b.active = false;
+        void this.host.openToLan?.().then(() => this.init());
+      }),
+      new Button(cx + 5, by, 150, 20, 'Cancel', () => this.host.setScreen(this.parent)),
+    ];
+  }
+  /** Lines shown under the title: the room code, the relay status and how friends connect. */
+  lines(): string[] {
+    const lan = this.host.lanHost;
+    const out: string[] = [];
+    const ip = this.info?.addresses[0];
+    if (!lan) {
+      out.push('Other players can join your world through a room code.');
+      if (ip) out.push(`Your LAN address: ${ip}:${this.info!.port}`);
+      return out;
+    }
+    out.push(`Room code: ${lan.code}`);
+    if (this.host.lanStatus) out.push(this.host.lanStatus);
+    if (ip && this.info!.signaling) {
+      const others = this.info!.addresses.slice(1, 3);
+      out.push(`Your LAN address: ${ip}:${this.info!.port}${others.length ? ` (also ${others.join(', ')})` : ''}`);
+      out.push('Friends on the same network either open in a browser:');
+      out.push(`http://${ip}:${this.info!.port}/?join=${lan.code}`);
+      out.push(`or, in their Blockcraft app, enter code ${lan.code} and signaling server ${ip}.`);
+    } else {
+      out.push(`Signaling: ${lan.signal}`);
+      out.push('Friends enter the room code (and the same signaling server) under Multiplayer.');
+    }
+    return out;
+  }
+  override render(mx: number, my: number): void {
+    super.render(mx, my);
+    this.gui.centeredText(this.title, this.gui.width / 2, 20);
+    let y = 50;
+    for (const [i, l] of this.lines().entries()) {
+      this.gui.centeredText(l, this.gui.width / 2, y, i === 0 && this.host.lanHost ? 0xffff55 : 0xffffff);
+      y += 12;
+    }
+  }
+  override keyDown(code: string): boolean {
+    if (code === 'Escape') {
+      this.host.setScreen(this.parent);
+      return true;
+    }
+    return false;
+  }
 }
 
 export class PauseScreen extends Screen {
@@ -34,11 +105,13 @@ export class PauseScreen extends Screen {
       new Button(cx - 102, y + 72 - 16, 98, 20, 'Give Feedback', () => {}),
       new Button(cx + 4, y + 72 - 16, 98, 20, 'Report Bugs', () => {}),
       new Button(cx - 102, y + 96 - 16, 98, 20, 'Options...', () => this.host.setScreen(new OptionsScreen(this.host, this))),
-      new Button(cx + 4, y + 96 - 16, 98, 20, 'Open to LAN', () => {}),
+      new Button(cx + 4, y + 96 - 16, 98, 20, 'Open to LAN', () => this.host.setScreen(new OpenToLanScreen(this.host, this))),
       new Button(cx - 102, y + 120 - 16, 204, 20, 'Save and Quit to Title', () => this.host.quitToTitle()),
     ];
     // not yet implemented screens are shown disabled rather than doing nothing
-    for (const i of [1, 2, 3, 4, 6]) this.widgets[i]!.active = false;
+    for (const i of [1, 2, 3, 4]) this.widgets[i]!.active = false;
+    // greyed out on servers (vanilla also greys it once open; here it reopens the join info)
+    this.widgets[6]!.active = !!this.host.canOpenToLan;
   }
   override render(mx: number, my: number): void {
     if (!this.showMenu) {

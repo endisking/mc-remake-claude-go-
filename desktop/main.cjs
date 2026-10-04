@@ -1,9 +1,13 @@
 // Blockcraft desktop app: serves the bundled web build from a local HTTP server (fetch and
-// workers need http, not file://) and opens it in a window.
+// workers need http, not file://) and opens it in a window. The same server relays WebRTC
+// signaling at /signal (signaling.cjs, bundled by tools/package.ts) so "Open to LAN" works:
+// friends on the same network join through http://<host LAN IP>:<port>/ or by entering the
+// host's IP as the signaling server in their launcher. /lan-info tells the page the LAN address.
 const { app, BrowserWindow, shell } = require('electron');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
 
 const WEB = path.join(__dirname, 'web');
 const TYPES = {
@@ -11,10 +15,30 @@ const TYPES = {
   '.png': 'image/png', '.ogg': 'audio/ogg', '.wasm': 'application/wasm', '.map': 'application/json', '.svg': 'image/svg+xml',
 };
 
+/** Non-internal IPv4 addresses of this machine (what friends on the LAN connect to). */
+function lanAddresses() {
+  const out = [];
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const a of list || []) if ((a.family === 'IPv4' || a.family === 4) && !a.internal) out.push(a.address);
+  }
+  return out;
+}
+
+let signaling = false;
 function serve() {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
-      const url = decodeURIComponent((req.url || '/').split('?')[0]);
+      let url;
+      try {
+        url = decodeURIComponent((req.url || '/').split('?')[0]);
+      } catch {
+        res.writeHead(400);
+        return res.end();
+      }
+      if (url === '/lan-info') {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        return res.end(JSON.stringify({ addresses: lanAddresses(), port: server.address().port, signaling }));
+      }
       let file = path.normalize(path.join(WEB, url === '/' ? 'index.html' : url));
       if (!file.startsWith(WEB)) { res.writeHead(403); return res.end(); }
       fs.readFile(file, (err, data) => {
@@ -23,8 +47,16 @@ function serve() {
         res.end(data);
       });
     });
-    // a fixed port keeps localStorage (settings, launcher choices) between runs
-    server.listen(47615, '127.0.0.1', () => resolve(47615)).on('error', () => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
+    try {
+      require('./signaling.cjs').attachSignaling(server);
+      signaling = true;
+    } catch (e) {
+      console.warn('LAN signaling unavailable:', e && e.message);
+    }
+    // a fixed port keeps localStorage (settings, launcher choices) between runs; listening on all
+    // interfaces lets friends on the LAN reach the relay and the game (the window uses 127.0.0.1)
+    server.once('error', () => server.listen(0, '0.0.0.0', () => resolve(server.address().port)));
+    server.listen(47615, '0.0.0.0', () => resolve(47615));
   });
 }
 

@@ -42,11 +42,13 @@ interface Saved {
   server: string;
   room: string;
   join: string;
+  /** optional WebRTC signaling relay for LAN worlds on static web hosting (passed as ?signal=) */
+  signal: string;
   selected: string;
 }
 
 function load(): Saved {
-  const d: Saved = { name: 'Player', seed: '', gamemode: 'survival', server: '', room: 'default', join: '', selected: '' };
+  const d: Saved = { name: 'Player', seed: '', gamemode: 'survival', server: '', room: 'default', join: '', signal: '', selected: '' };
   try {
     return { ...d, ...(JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Saved>) };
   } catch {
@@ -156,7 +158,10 @@ export function showLauncher(): void {
       <div><label for="l-room">Room</label><input id="l-room"></div>
     </div>
     <button id="l-connect">Join Server</button>
-    <label for="l-join">LAN room code</label><input id="l-join" placeholder="code from the host">
+    <div class="row">
+      <div><label for="l-join">LAN room code</label><input id="l-join" placeholder="code from the host"></div>
+      <div><label for="l-signal">Signaling server (optional)</label><input id="l-signal" placeholder="host's IP, or wss://relay"></div>
+    </div>
     <button id="l-lan">Join LAN Game</button>
   </fieldset>
   <div class="note">Worlds are saved in this browser. Export them to back them up or move them to another computer.</div>
@@ -174,6 +179,7 @@ export function showLauncher(): void {
   $<HTMLInputElement>('l-server').value = s.server;
   $<HTMLInputElement>('l-room').value = s.room;
   $<HTMLInputElement>('l-join').value = s.join;
+  $<HTMLInputElement>('l-signal').value = s.signal;
 
   let worlds: WorldSummary[] = [];
   let selected: string | null = s.selected || null;
@@ -189,7 +195,7 @@ export function showLauncher(): void {
       name: $<HTMLInputElement>('l-name').value.trim().slice(0, 16) || 'Player', seed: $<HTMLInputElement>('l-seed').value,
       gamemode: $<HTMLSelectElement>('l-gm').value, server: $<HTMLInputElement>('l-server').value.trim(),
       room: $<HTMLInputElement>('l-room').value.trim() || 'default', join: $<HTMLInputElement>('l-join').value.trim(),
-      selected: selected ?? '', ...extra,
+      signal: $<HTMLInputElement>('l-signal').value.trim(), selected: selected ?? '', ...extra,
     };
     try {
       localStorage.setItem(KEY, JSON.stringify(saved));
@@ -200,7 +206,9 @@ export function showLauncher(): void {
   };
   const go = (params: Record<string, string>, extra: Partial<Saved> = {}) => {
     const saved = remember(extra);
-    location.search = new URLSearchParams({ name: saved.name, ...params }).toString();
+    // the signaling relay is used both to join a LAN game and to open a world to LAN later
+    const signal: Record<string, string> = saved.signal && !params.server ? { signal: saved.signal } : {};
+    location.search = new URLSearchParams({ name: saved.name, ...signal, ...params }).toString();
   };
 
   const updateButtons = () => {
