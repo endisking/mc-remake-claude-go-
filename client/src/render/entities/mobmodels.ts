@@ -796,6 +796,29 @@ export function parrotMesh(): VPart[] {
   ];
 }
 
+/** DolphinModel.createBodyLayer (64×64) */
+export function dolphinMesh(): VPart[] {
+  return [
+    {
+      name: 'body', pivot: [0, 22, -5], boxes: [b(22, 0, -4, -7, 0, 8, 7, 13)], children: [
+        { name: 'back_fin', pivot: [0, 0, 0], rot: [PI / 3, 0, 0], boxes: [b(51, 0, -0.5, 0, 8, 1, 4, 5)] },
+        { name: 'left_fin', pivot: [2, -2, 4], rot: [PI / 3, 0, 2.0943952], boxes: [b(48, 20, -0.5, -4, 0, 1, 4, 7, 0, true)] },
+        { name: 'right_fin', pivot: [-2, -2, 4], rot: [PI / 3, 0, -2.0943952], boxes: [b(48, 20, -0.5, -4, 0, 1, 4, 7)] },
+        {
+          name: 'tail', pivot: [0, -2.5, 11], rot: [-0.10471976, 0, 0], boxes: [b(0, 19, -2, -2.5, 0, 4, 5, 11)], children: [
+            { name: 'tail_fin', pivot: [0, 0, 9], boxes: [b(19, 20, -5, -0.5, 0, 10, 1, 6)] },
+          ],
+        },
+        {
+          name: 'head', pivot: [0, -4, -3], boxes: [b(0, 0, -4, -3, -3, 8, 7, 6)], children: [
+            { name: 'nose', pivot: [0, 0, 0], boxes: [b(0, 13, -1, 2, -7, 2, 2, 4)] },
+          ],
+        },
+      ],
+    },
+  ];
+}
+
 // ------------------------------------------------------------------ animation helpers
 
 const RAD = PI / 180;
@@ -1374,6 +1397,17 @@ const parrotAnim = (p: Poses, a: MobAnim) => {
   p.left_wing!.xRot = p.right_wing!.xRot = -0.6981;
 };
 
+/** DolphinModel.setupAnim: the whole body looks; swimming flexes body, tail and fluke. */
+const dolphinAnim = (p: Poses, a: MobAnim) => {
+  p.body!.xRot = a.headPitch * RAD;
+  p.body!.yRot = a.netHeadYaw * RAD;
+  if (a.limbSwingAmount > 0.01) {
+    p.body!.xRot += -0.05 - 0.05 * Math.cos(a.ageInTicks * 0.3);
+    p.tail!.xRot = -0.1 * Math.cos(a.ageInTicks * 0.3);
+    p.tail_fin!.xRot = -0.2 * Math.cos(a.ageInTicks * 0.3);
+  }
+};
+
 const none = () => {};
 
 export const MOB_MODELS: Record<string, MobModelDef> = {
@@ -1423,6 +1457,7 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   piglin: { tex: [64, 64], parts: piglinMesh(), headParts: ['head', 'hat'], baby: HUMANOID_BABY, anim: piglinAnim },
   vex: { tex: [64, 64], parts: vexMesh(), anim: vexAnim },
   parrot: { tex: [32, 32], parts: parrotMesh(), anim: parrotAnim },
+  dolphin: { tex: [64, 64], parts: dolphinMesh(), anim: dolphinAnim },
   unknown: { tex: [64, 32], parts: [{ name: 'box', pivot: [0, 0, 0], boxes: [b(0, 0, -8, 8, -8, 16, 16, 16)] }], anim: none },
 };
 
@@ -1521,6 +1556,7 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   illusioner: { layers: [{ model: 'illager', texture: 'illusioner' }], scale: 0.9375 },
   vex: { layers: [{ model: 'vex', texture: 'vex' }], scale: 0.4, bright: true },
   parrot: { layers: [{ model: 'parrot', texture: 'parrot' }] },
+  dolphin: { layers: [{ model: 'dolphin', texture: 'dolphin' }] },
   /** fallback for mobs without a model: a hit-box-sized box */
   unknown: { layers: [{ model: 'unknown', texture: 'unknown' }] },
 };

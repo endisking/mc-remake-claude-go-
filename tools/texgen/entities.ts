@@ -1290,6 +1290,32 @@ export function parrot(): Tex {
   return t;
 }
 
+/** Dolphin (64×64): blue-grey back, pale belly, dark eye stripe. */
+export function dolphin(): Tex {
+  const t = new Tex(64, 64);
+  const G = hex('#6a7e94'), GD = hex('#56687c'), W = hex('#d8dee4');
+  const skin = blotches(G, GD, 411, 2.2, 0.66, 0.04);
+  const body = box(t, 22, 0, 8, 7, 13, skin);
+  rect(t, body.bottom[0], body.bottom[1], 8, 13, noisy(W, 0.03, 412));
+  for (const k of ['right', 'left'] as const) {
+    const [x, y, w, h] = body[k];
+    rect(t, x, y + h - 2, w, 2, () => W);
+  }
+  box(t, 51, 0, 1, 4, 5, () => GD);
+  box(t, 48, 20, 1, 4, 7, () => GD);
+  const tail = box(t, 0, 19, 4, 5, 11, skin);
+  rect(t, tail.bottom[0], tail.bottom[1], 4, 11, () => W);
+  box(t, 19, 20, 10, 1, 6, () => GD);
+  const head = box(t, 0, 0, 8, 7, 6, skin);
+  for (const k of ['right', 'left'] as const) {
+    px(t, head[k][0] + 3, head[k][1] + 3, hex('#141820'));
+    hline(t, head[k][0], head[k][1] + 5, 6, W);
+  }
+  rect(t, head.front[0], head.front[1] + 5, 8, 2, () => W);
+  box(t, 0, 13, 2, 2, 4, (_x, y) => (y === 1 ? W : G));
+  return t;
+}
+
 // ------------------------------------------------------------------ misc layers
 
 /** Charged creeper energy swirl (tileable, scrolled and drawn additively). */
@@ -1374,5 +1400,5 @@ export const ENTITY_TEXTURES: Record<string, () => Tex> = {
   chicken, enderman, enderman_eyes: endermanEyes, slime, bat, squid,
   glow_squid: glowSquid, creeper_armor: creeperArmor, villager, wandering_trader: wanderingTrader, witch, zombie_villager: zombieVillager,
   unknown: unknownMob,
-  blaze, magma_cube: magmaCube, ghast, ghast_shooting: ghastShooting, piglin, piglin_brute: piglinBrute, zombified_piglin: zombifiedPiglin, parrot, rabbit, fox, llama, trader_llama: traderLlama, turtle, polar_bear: polarBear, snow_golem: snowGolem, silverfish, endermite, bee, horse, donkey, mule, skeleton_horse: skeletonHorse, zombie_horse: zombieHorse, cat, ocelot, cod, salmon, pillager, vindicator, evoker, illusioner, vex, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
+  blaze, magma_cube: magmaCube, ghast, ghast_shooting: ghastShooting, piglin, piglin_brute: piglinBrute, zombified_piglin: zombifiedPiglin, dolphin, parrot, rabbit, fox, llama, trader_llama: traderLlama, turtle, polar_bear: polarBear, snow_golem: snowGolem, silverfish, endermite, bee, horse, donkey, mule, skeleton_horse: skeletonHorse, zombie_horse: zombieHorse, cat, ocelot, cod, salmon, pillager, vindicator, evoker, illusioner, vex, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
 };

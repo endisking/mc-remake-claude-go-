@@ -76,6 +76,7 @@ const SHOTS: Record<string, Shot> = {
   ghast: { cam: 'x=24.2&y=200&z=-8&lookat=24.2,203,4.5&fov=70', mobs: [{ type: 'ghast', x: 20.5, z: 4.5, yaw: 180 }, { type: 'ghast', x: 28.5, z: 4.5, yaw: 180, data: { aggressive: 1 } }] },
   l_front: { cam: NEAR, mobs: row(['illusioner', 'vex', 'vex', 'evoker'], { yaw: 150 }).map((m, i) => (i === 2 ? { ...m, data: { aggressive: 1 } } : m)) },
   parrot: { cam: 'x=24.2&y=200&z=2.5&lookat=24.2,200.3,4.5&fov=60', mobs: row(['parrot', 'parrot', 'parrot'], { yaw: 140 }).map((m, i) => (i === 1 ? { ...m, yaw: 90 } : m)) },
+  dolphin: { cam: 'x=24.2&y=200&z=1&lookat=24.2,200.3,4.5&fov=60', mobs: row(['dolphin', 'dolphin'], { yaw: 140 }).map((m, i) => (i === 1 ? { ...m, yaw: 90, walk: true } : m)), wait: 900 },
   night: { cam: NEAR + '&time=18000', mobs: row(['spider', 'enderman', 'zombie', 'cave_spider']) },
 };
 
