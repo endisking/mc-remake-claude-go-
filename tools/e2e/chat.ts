@@ -75,8 +75,8 @@ try {
   await wait(1500);
   // T opens the chat; typing a command shows suggestions from the server
   await tap(a, 'KeyT');
-  await wait(300);
-  check('T opened the chat screen', await a.evaluate(() => (window as any).game.screen?.title === 'Chat screen'));
+  const opened = await a.waitForFunction(() => (window as any).game.screen?.title === 'Chat screen', null, { timeout: 5000 }).then(() => true, () => false);
+  check('T opened the chat screen', opened);
   await a.keyboard.type('/gamemode ');
   await wait(500);
   await a.screenshot({ path: `${out}chat-suggestions.png` });

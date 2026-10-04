@@ -59,7 +59,7 @@ import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
-import { ChatScreen, DisconnectedScreen, componentToLegacy, renderPlayerList, type SuggestionReply } from './gui/chat';
+import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
 export class Game implements ScreenHost {
   readonly gl: WebGL2RenderingContext;
@@ -562,8 +562,8 @@ export class Game implements ScreenHost {
             this.sleeping = sleeping;
             if (sleeping) {
               this.interaction.stopDestroy();
-              this.setScreen(new InBedScreen(this));
-            } else if (this.screen instanceof InBedScreen) this.setScreen(null);
+              this.setScreen(new InBedChatScreen(this.chatHost(), () => this.send({ t: 'stopSleeping' })));
+            } else if (this.screen instanceof InBedScreen || this.screen instanceof InBedChatScreen) this.setScreen(null);
           }
           break;
         }
@@ -1962,7 +1962,11 @@ export class Game implements ScreenHost {
   }
 
   openChat(initial: string): void {
-    this.setScreen(new ChatScreen({
+    this.setScreen(new ChatScreen(this.chatHost(), initial));
+  }
+
+  private chatHost(): ChatHost {
+    return {
       gui: this.gui,
       setScreen: (sc) => {
         this.setScreen(sc);
@@ -1973,7 +1977,7 @@ export class Game implements ScreenHost {
       history: this.hud.sentHistory,
       renderChatFocused: (g) => this.hud.renderChat(g, true),
       scrollChat: (n) => this.hud.scrollChat(n),
-    }, initial));
+    };
   }
 
   /**

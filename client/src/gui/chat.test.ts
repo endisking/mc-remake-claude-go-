@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { componentToLegacy } from './chat';
+import { componentToLegacy, formatCommand } from './chat';
 
 describe('chat text components', () => {
   it('turns JSON components into §-coloured lines with inherited colours', () => {
@@ -13,5 +13,20 @@ describe('chat text components', () => {
     expect(componentToLegacy('{"text":"Seed: ","extra":[{"text":"[","color":"green","extra":[{"text":"7","color":"green"},"]"]}]}')).toBe('Seed: §a[§a7§a]');
     expect(componentToLegacy('not json')).toBe('not json');
     expect(componentToLegacy('"plain string"')).toBe('plain string');
+  });
+});
+
+describe('command colouring', () => {
+  it('colours arguments in turn, literals grey and the unparsed tail red', () => {
+    expect(formatCommand('/tp @p ~ ~ ~', [[4, 6], [7, 12]], -1)).toEqual([
+      { text: '/tp ', color: 0xaaaaaa },
+      { text: '@p', color: 0x55ffff },
+      { text: ' ', color: 0xaaaaaa },
+      { text: '~ ~ ~', color: 0xffff55 },
+    ]);
+    expect(formatCommand('/time set banana', [], 10)).toEqual([
+      { text: '/time set ', color: 0xaaaaaa },
+      { text: 'banana', color: 0xff5555 },
+    ]);
   });
 });

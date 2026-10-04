@@ -66,6 +66,38 @@ export interface SuggestionReply {
   usage: string[];
   error: { message: string; at: number } | null;
   parsedTo: number;
+  /** [start, end) of each parsed argument */
+  args?: [number, number][];
+  /** where unparsable input starts, −1 if none */
+  unparsed?: number;
+}
+
+/** CommandSuggestions argument colours: aqua, yellow, green, light purple, gold; literals grey; unparsed red. */
+const ARG_COLORS = [0x55ffff, 0xffff55, 0x55ff55, 0xff55ff, 0xffaa00];
+const LITERAL = 0xaaaaaa, UNPARSED = 0xff5555;
+
+/** Coloured runs of a command line (CommandSuggestions.formatText). */
+export function formatCommand(text: string, args: [number, number][], unparsed: number): { text: string; color: number }[] {
+  const out: { text: string; color: number }[] = [];
+  let i = 0, j = -1;
+  for (const [start, end] of args) {
+    j = (j + 1) % ARG_COLORS.length;
+    const k = Math.max(start, 0);
+    if (k >= text.length) break;
+    const l = Math.min(end, text.length);
+    if (l > 0 && k >= i) {
+      out.push({ text: text.slice(i, k), color: LITERAL });
+      out.push({ text: text.slice(k, l), color: ARG_COLORS[j]! });
+      i = l;
+    }
+  }
+  if (unparsed >= 0 && unparsed < text.length && unparsed >= i) {
+    out.push({ text: text.slice(i, unparsed), color: LITERAL });
+    out.push({ text: text.slice(unparsed), color: UNPARSED });
+    i = text.length;
+  }
+  out.push({ text: text.slice(i), color: LITERAL });
+  return out.filter((r) => r.text);
 }
 
 export class ChatScreen extends Screen {
@@ -92,7 +124,7 @@ export class ChatScreen extends Screen {
   };
   private listening = false;
 
-  constructor(private host: ChatHost, initial = '') {
+  constructor(protected host: ChatHost, initial = '') {
     super(host.gui, 'Chat screen');
     this.pausesGame = false;
     this.value = initial;
@@ -190,15 +222,31 @@ export class ChatScreen extends Screen {
     this.cycleText = this.value;
   }
 
-  private send(): void {
+  /** Send the typed line (history + server); returns whether anything was sent. */
+  protected sendLine(): boolean {
     const msg = this.value.trim().replace(/\s+/g, ' ');
-    if (msg) {
-      const h = this.host.history;
-      if (h[h.length - 1] !== msg) h.push(msg);
-      if (h.length > 100) h.shift();
-      this.host.sendChat(msg);
-    }
+    if (!msg) return false;
+    const h = this.host.history;
+    if (h[h.length - 1] !== msg) h.push(msg);
+    if (h.length > 100) h.shift();
+    this.host.sendChat(msg);
+    this.historyPos = h.length;
+    return true;
+  }
+
+  /** Enter: send and close (InBedChatScreen keeps the screen open). */
+  protected onEnter(): void {
+    this.sendLine();
     this.host.setScreen(null);
+  }
+
+  /** Escape with no suggestion list showing. */
+  protected onEscape(): void {
+    this.host.setScreen(null);
+  }
+
+  protected clearInput(): void {
+    this.setValue('');
   }
 
   private moveHistory(dir: number): void {
@@ -229,11 +277,11 @@ export class ChatScreen extends Screen {
     switch (e.key) {
       case 'Escape':
         if (sugg) this.hidden = true;
-        else this.host.setScreen(null);
+        else this.onEscape();
         break;
       case 'Enter':
       case 'NumpadEnter':
-        this.send();
+        this.onEnter();
         break;
       case 'Tab':
         if (this.reply && this.reply.list.length) {
@@ -317,17 +365,18 @@ export class ChatScreen extends Screen {
     return { x, y: g.height - 12 - h - 3, w: w + 1, h, first, count };
   }
 
-  override render(): void {
+  override render(mx = 0, my = 0): void {
     const g = this.gui;
     this.host.renderChatFocused(g);
+    for (const w of this.widgets) if (w.visible) w.render(g, mx, my);
     // input box (vanilla: fill(2, h-14, w-2, h-2, background) + EditBox at (4, h-12))
     g.fill(2, g.height - 14, g.width - 4, 12, 0x80000000);
     const y = g.height - 12;
     const err = this.reply?.error && this.value.startsWith('/') ? this.reply.error : null;
-    if (err && err.at >= 0 && err.at <= this.value.length) {
-      const ok = this.value.slice(0, err.at);
-      const x = g.text(ok, 4, y, 0xe0e0e0, true);
-      g.text(this.value.slice(err.at), x, y, 0xff5555, true);
+    if (this.value.startsWith('/') && this.reply) {
+      // the reply describes the text up to the cursor; whatever follows stays literal grey
+      let x = 4;
+      for (const r of formatCommand(this.value, this.reply.args ?? [], this.reply.unparsed ?? -1)) x = g.text(r.text, x, y, r.color, true);
     } else g.text(this.value, 4, y, 0xe0e0e0, true);
     // cursor: blinks every 6 ticks; "_" at the end, "|" inside
     if (Math.floor(this.frame / 6) % 2 === 0) {
@@ -447,5 +496,30 @@ export class DisconnectedScreen extends Screen {
   }
   override keyDown(code: string): boolean {
     return code === 'Escape';
+  }
+}
+
+// ------------------------------------------------------------------ in bed
+/** Vanilla InBedChatScreen: the chat box stays open while sleeping, with "Leave Bed" below it. */
+export class InBedChatScreen extends ChatScreen {
+  constructor(host: ChatHost, private wake: () => void) {
+    super(host, '');
+    this.title = 'Leave Bed';
+  }
+  override init(): void {
+    super.init();
+    this.widgets = [new Button(Math.floor(this.gui.width / 2) - 100, this.gui.height - 40, 200, 20, 'Leave Bed', () => this.wake())];
+  }
+  override mouseDown(mx: number, my: number): void {
+    for (const w of this.widgets) if (w.contains(mx, my) && w.active) return w.onClick(mx, my);
+    super.mouseDown(mx, my);
+  }
+  protected override onEnter(): void {
+    this.sendLine();
+    this.clearInput();
+    this.host.scrollChat(-1e9);
+  }
+  protected override onEscape(): void {
+    this.wake();
   }
 }

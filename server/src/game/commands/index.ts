@@ -189,7 +189,10 @@ export class Commands {
       const e = [...parse.errors.values()][0]!;
       error = { message: e.message, at: e.cursor + offset };
     }
-    const json = JSON.stringify({ start: res.start + offset, list: res.list.slice(0, 200), usage: usage.slice(0, 20), error, parsedTo: parse.reader.cursor + offset });
+    // argument ranges and the unparsed tail for the chat box colouring (CommandSuggestions.formatText)
+    const args = parse.nodes.filter((n) => n.node.kind === 'argument').map((n) => [n.start + offset, n.end + offset]);
+    const unparsed = parse.reader.canRead() ? parse.reader.cursor + offset : -1;
+    const json = JSON.stringify({ start: res.start + offset, list: res.list.slice(0, 200), usage: usage.slice(0, 20), error, parsedTo: parse.reader.cursor + offset, args, unparsed });
     this.server.send(p, { t: 'commandSuggestions', id, json });
   }
 
