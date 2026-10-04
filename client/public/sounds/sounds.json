@@ -16154,5 +16154,60 @@
     "name": "rain_above/2"
    }
   ]
+ },
+ "entity.hostile.big_fall": {
+  "sounds": [
+   {
+    "name": "fall_big/0"
+   }
+  ]
+ },
+ "entity.hostile.small_fall": {
+  "sounds": [
+   {
+    "name": "fall_small/0"
+   }
+  ]
+ },
+ "entity.zombie.converted_to_drowned": {
+  "sounds": [
+   {
+    "name": "zombie_say/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "zombie_say/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "zombie_say/2",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.husk.converted_to_zombie": {
+  "sounds": [
+   {
+    "name": "zombie_say/0"
+   },
+   {
+    "name": "zombie_say/1"
+   },
+   {
+    "name": "zombie_say/2"
+   }
+  ]
+ },
+ "entity.slime.attack": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1.1
+   }
+  ]
  }
 }
