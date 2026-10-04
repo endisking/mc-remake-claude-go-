@@ -10,7 +10,8 @@ import type { C2S } from '@shared/protocol/packets';
 import type { KeyBindings } from '../keybinds';
 import { ITEMS_BY_ID } from '@shared/data';
 import { isEmpty, itemName, maxStackSize, type Inventory, type ItemStack } from '@shared/item/stack';
-import { copyStack, maxDamage } from '@shared/menu/container';
+import { copyStack } from '@shared/menu/container';
+import { drawItemStack } from './itemicons';
 import { attackDamageOf, attackSpeedOf } from '@shared/game/combat';
 import {
   ClickType, SLOT_OUTSIDE, canItemQuickReplace, quickCraftSlotCount, ChestMenu, CraftingMenu, FurnaceMenu, InventoryMenu,
@@ -35,27 +36,9 @@ export interface ContainerHost extends ScreenHost {
  * durability bar. Swap the icon renderer here when the item icon API lands.
  */
 export function drawStack(host: ContainerHost, st: ItemStack, x: number, y: number, countText?: string | null): void {
-  const g = host.gui;
-  host.renderGuiItem(st.id, 1, x, y);
-  // ItemRenderer.renderGuiItemDecorations: durability bar, then the count
-  const max = maxDamage(st.id);
-  if (max > 0 && st.damage > 0) {
-    const w = Math.round(13 - (st.damage * 13) / max);
-    const f = Math.max(0, (max - st.damage) / max);
-    const [r, gg, b] = hsvToRgb(f / 3, 1, 1);
-    g.fill(x + 2, y + 13, 13, 2, 0xff000000);
-    g.fill(x + 2, y + 13, w, 1, 0xff000000 | (r << 16) | (gg << 8) | b);
-  }
-  const s = countText !== undefined ? countText : st.count !== 1 ? String(st.count) : null;
-  if (s) g.text(s, x + 19 - 2 - g.font.width(s), y + 6 + 3, 0xffffff, true);
+  drawItemStack(host.gui, st, x, y, countText === null ? '' : countText);
 }
 
-function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
-  const i = Math.floor(h * 6) % 6, f = h * 6 - Math.floor(h * 6);
-  const p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
-  const [r, g, b] = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][i]!;
-  return [Math.round(r! * 255), Math.round(g! * 255), Math.round(b! * 255)];
-}
 
 // ArmorMaterials defense per slot (feet, legs, chest, head), toughness, knockback resistance
 const ARMOR: Record<string, [number[], number, number]> = {

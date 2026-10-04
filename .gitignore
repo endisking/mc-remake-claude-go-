@@ -11,3 +11,4 @@ playwright-report/
 /tools/cache/
 /build/
 /.claude/worktrees/
+/worlds/

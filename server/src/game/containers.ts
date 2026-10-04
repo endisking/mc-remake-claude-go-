@@ -29,7 +29,6 @@ interface PlayerMenus {
   lastData: number[];
   /** block the open menu belongs to */
   pos: [number, number, number] | null;
-  enderChest: SimpleContainer;
 }
 
 const stackKey = (s: ItemStack | null) => (isEmpty(s) ? '' : `${s.id}:${s.count}:${s.damage}`);
@@ -46,7 +45,7 @@ export class Containers {
     let s = this.menus.get(p);
     if (!s) {
       const inv = new InventoryMenu(new InventoryContainer(p.inventory));
-      s = { inventoryMenu: inv, containerMenu: inv, counter: 0, lastSlots: [], lastData: [], pos: null, enderChest: new SimpleContainer(27) };
+      s = { inventoryMenu: inv, containerMenu: inv, counter: 0, lastSlots: [], lastData: [], pos: null };
       this.menus.set(p, s);
     }
     return s;
@@ -54,11 +53,6 @@ export class Containers {
 
   menuPlayer(p: ServerPlayer): MenuPlayer {
     return { inventory: p.inventory, creative: p.gameMode === 1, drop: (st) => this.server.tossItem(p, st) };
-  }
-
-  /** The player's ender chest contents (saved with the player once player saving exists). */
-  enderChestItems(p: ServerPlayer): (ItemStack | null)[] {
-    return this.state(p).enderChest.items;
   }
 
   private open(p: ServerPlayer, make: (id: number) => Menu, title: string, pos: [number, number, number] | null): void {
@@ -234,9 +228,8 @@ export class Containers {
     }
     if (name === 'ender_chest') {
       if (this.chestBlocked(x, y, z)) return true;
-      const c = this.state(p).enderChest;
       const valid = this.validFor(p, x, y, z, (n) => n === 'ender_chest');
-      const view = new SimpleContainer(c.items);
+      const view = new SimpleContainer(p.enderChest);
       (view as Container).stillValid = valid;
       this.open(p, (id) => new ChestMenu(id, inv, view, 3), 'Ender Chest', [x, y, z]);
       this.startViewing([x, y, z], p, 'block.ender_chest');

@@ -139,6 +139,8 @@ export class Chunk {
    * blockEntityKey(x & 15, y, z & 15). Saved and sent with the chunk.
    */
   readonly blockEntities = new Map<number, BlockEntityData>();
+  /** Worldgen only: carving masks of the AIR and LIQUID carver steps as bit sets (bit y << 8 | z << 4 | x), dropped once decorated. */
+  carvingMasks: (Uint8Array | null)[] | null = null;
 
   constructor(
     readonly x: number,
