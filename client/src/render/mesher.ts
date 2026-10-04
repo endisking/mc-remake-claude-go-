@@ -10,6 +10,8 @@
 import { BLOCKS } from '@shared/data';
 import { STATE_TO_BLOCK, getProp } from '@shared/world/blockstate';
 import { FULL_COLLISION, FLUID, FLUID_LEVEL, IS_AIR } from '@shared/world/blockinfo';
+import { MATERIAL_SOLID } from '@shared/world/blockprops';
+import { getFlow } from '@shared/game/fluids';
 import { BLOCK_STATE_COUNT } from '@shared/data';
 import { PASS_SOLID, PASS_CUTOUT, PASS_TRANSLUCENT, type BakeResult, type BakedQuad } from '../models/bake';
 import { TINT_KIND, TINT_CONST_COLOR, TINT_GRASS, TINT_FOLIAGE, TINT_WATER, TINT_CONST, TINT_REDSTONE, TINT_STEM, redstoneColor, stemColor } from './tints';
@@ -307,41 +309,38 @@ export class Mesher {
   }
 
   // ------------------------------------------------------------------ fluids
-  /** Height of the fluid surface in a cell (0..1), 1 when the same fluid is above, -1 for solid. */
-  private fluidHeight(input: MeshInput, x: number, y: number, z: number, kind: number): number {
-    const s = input.states[padIndex(x, y, z)]!;
-    if (FLUID[s] === kind) {
-      if (y < 16 && FLUID[input.states[padIndex(x, y + 1, z)]!] === kind) return 1;
-      const lvl = FLUID_LEVEL[s]!;
-      const amount = lvl >= 8 ? 8 : 8 - lvl;
-      return amount / 9;
-    }
-    return FULL_COLLISION[s] === 1 || this.bake.occludes[s] === 63 ? -1 : 0;
-  }
+  /** Section-local state reader over the padded snapshot (for the shared fluid flow code). */
+  private fluidInput: MeshInput | null = null;
+  private readonly fluidReader = {
+    getState: (x: number, y: number, z: number): number => this.fluidInput!.states[padIndex(x, y, z)]!,
+  };
+  private readonly flowVec: [number, number, number] = [0, 0, 0];
 
-  private cornerHeight(input: MeshInput, kind: number, self: number, x: number, y: number, z: number, dx: number, dz: number): number {
-    const h1 = this.fluidHeight(input, x + dx, y, z, kind);
-    const h2 = this.fluidHeight(input, x, y, z + dz, kind);
-    if (h1 >= 1 || h2 >= 1) return 1;
-    let sum = 0, w = 0;
-    const add = (h: number) => {
-      if (h >= 0.8) {
-        sum += h * 10;
-        w += 10;
-      } else if (h >= 0) {
-        sum += h;
-        w += 1;
-      }
-    };
-    if (h1 > 0 || h2 > 0) {
-      const hc = this.fluidHeight(input, x + dx, y, z + dz, kind);
-      if (hc >= 1) return 1;
-      add(hc);
+  /**
+   * LiquidBlockRenderer.getWaterHeight (1.17.1): the surface height at the corner shared by the
+   * cell (x, z) and its −x / −z neighbours. 1 if any of them has the fluid above; fluids count
+   * ×10 when at least 0.8 high, solid blocks are skipped, anything else counts as 0.
+   */
+  private cornerHeight(input: MeshInput, kind: number, x: number, y: number, z: number): number {
+    const states = input.states;
+    let sum = 0, n = 0;
+    for (let j = 0; j < 4; j++) {
+      const px = x - (j & 1), pz = z - ((j >> 1) & 1);
+      if (FLUID[states[padIndex(px, y + 1, pz)]!] === kind) return 1;
+      const s = states[padIndex(px, y, pz)]!;
+      if (FLUID[s] === kind) {
+        const lvl = FLUID_LEVEL[s]!;
+        const g = (lvl === 0 || lvl >= 8 ? 8 : 8 - lvl) / 9;
+        if (g >= 0.8) {
+          sum += g * 10;
+          n += 10;
+        } else {
+          sum += g;
+          n++;
+        }
+      } else if (MATERIAL_SOLID[s] !== 1) n++;
     }
-    add(self);
-    add(h1);
-    add(h2);
-    return w === 0 ? 0 : sum / w;
+    return sum / n;
   }
 
   private fluid(input: MeshInput, x: number, y: number, z: number, st: number): void {
@@ -353,12 +352,11 @@ export class Mesher {
     const flowTex = water ? this.fluids.waterFlow : this.fluids.lavaFlow;
     const pass = water ? PASS_TRANSLUCENT : PASS_SOLID;
     const buf = this.bufs[pass]!;
-    const self = this.fluidHeight(input, x, y, z, kind);
     const above = states[padIndex(x, y + 1, z)]!;
-    const h00 = this.cornerHeight(input, kind, self, x, y, z, -1, -1); // NW
-    const h10 = this.cornerHeight(input, kind, self, x, y, z, 1, -1); // NE
-    const h11 = this.cornerHeight(input, kind, self, x, y, z, 1, 1); // SE
-    const h01 = this.cornerHeight(input, kind, self, x, y, z, -1, 1); // SW
+    const h00 = this.cornerHeight(input, kind, x, y, z); // NW
+    const h10 = this.cornerHeight(input, kind, x + 1, y, z); // NE
+    const h11 = this.cornerHeight(input, kind, x + 1, y, z + 1); // SE
+    const h01 = this.cornerHeight(input, kind, x, y, z + 1); // SW
     const lAt = (i: number) => light[i]!;
     const emit = (verts: number[], uvs: number[], l: number, shade: number, tex: number) => {
       const sky = (l >> 4) * 2, blk = Math.max(l & 15, water ? 0 : 15) * 2;
@@ -380,9 +378,10 @@ export class Mesher {
       const hm = 0.001;
       const t00 = h00 - hm, t10 = h10 - hm, t11 = h11 - hm, t01 = h01 - hm;
       const lt = Math.max(lAt(padIndex(x, y, z)), lAt(padIndex(x, y + 1, z)));
-      // flow direction from height gradient
-      const fx = (h00 + h01) - (h10 + h11);
-      const fz = (h00 + h10) - (h01 + h11);
+      // flow direction: FluidState.getFlow
+      this.fluidInput = input;
+      const flow = getFlow(this.fluidReader, x, y, z, this.flowVec);
+      const fx = flow[0], fz = flow[2];
       let tex = stillTex;
       let uv = [0, 0, 0, 16, 16, 16, 16, 0];
       if (Math.abs(fx) > 1e-4 || Math.abs(fz) > 1e-4) {
