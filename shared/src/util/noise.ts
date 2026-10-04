@@ -58,7 +58,8 @@ export class ImprovedNoise {
     let fyAdj = fy;
     if (yScale !== 0) {
       const t = yMax >= 0 && yMax < fy ? yMax : fy;
-      fyAdj = fy - Math.floor(t / yScale + 1e-7) * yScale;
+      // (1.0E-7F: the float literal vanilla adds)
+      fyAdj = fy - Math.floor(t / yScale + 1.0000000116860974e-7) * yScale;
     }
     return this.sampleAndLerp(ix, iy, iz, fx, fyAdj, fz, fy);
   }
@@ -192,5 +193,47 @@ export class SimplexNoise {
     const g1 = this.perm(ii + i1 + this.perm(jj + j1)) % 12;
     const g2 = this.perm(ii + 1 + this.perm(jj + 1)) % 12;
     return 70 * (this.corner(g0, x0, y0, 0, 0.5) + this.corner(g1, x1, y1, 0, 0.5) + this.corner(g2, x2, y2, 0, 0.5));
+  }
+}
+
+/**
+ * Octaves of 2D simplex noise (vanilla PerlinSimplexNoise, the surface-depth noise): octave 0 is
+ * built first, then lower octaves; the highest frequency comes first in the sum.
+ */
+export class PerlinSimplexNoise {
+  private readonly levels: (SimplexNoise | null)[];
+  private readonly highestFreqInputFactor: number;
+  private readonly highestFreqValueFactor: number;
+
+  constructor(random: JavaRandom, octaves: number[]) {
+    const sorted = [...octaves].sort((a, b) => a - b);
+    const first = -sorted[0]!, last = sorted[sorted.length - 1]!;
+    const n = first + last + 1;
+    const has = new Set(sorted);
+    const base = new SimplexNoise(random);
+    this.levels = new Array(n).fill(null);
+    if (last >= 0 && last < n && has.has(0)) this.levels[last] = base;
+    for (let i = last + 1; i < n; i++) {
+      if (i >= 0 && has.has(last - i)) this.levels[i] = new SimplexNoise(random);
+      else random.skip(262);
+    }
+    if (last > 0) throw new Error('positive simplex octaves are not used by 1.17.1 generation');
+    this.highestFreqInputFactor = Math.pow(2, last);
+    this.highestFreqValueFactor = 1 / (Math.pow(2, n) - 1);
+  }
+
+  getValue(x: number, y: number, useOffsets: boolean): number {
+    let total = 0, input = this.highestFreqInputFactor, value = this.highestFreqValueFactor;
+    for (const s of this.levels) {
+      if (s) total += s.getValue(x * input + (useOffsets ? s.xo : 0), y * input + (useOffsets ? s.yo : 0)) * value;
+      input /= 2;
+      value *= 2;
+    }
+    return total;
+  }
+
+  /** SurfaceNoise.getSurfaceNoiseValue (PerlinSimplexNoise implements it as getValue(x, y, true) × 0.55). */
+  getSurfaceNoiseValue(x: number, y: number): number {
+    return this.getValue(x, y, true) * 0.55;
   }
 }
