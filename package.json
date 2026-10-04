@@ -17,9 +17,11 @@
     "e2e": "playwright test",
     "atlas": "tsx tools/serve.ts",
     "fontgen": "tsx tools/fontgen/gen.ts",
-    "soundgen": "tsx tools/soundgen/build.ts"
+    "soundgen": "tsx tools/soundgen/build.ts",
+    "package": "tsx tools/package.ts"
   },
   "devDependencies": {
+    "@electron/packager": "^18.4.4",
     "@playwright/test": "1.56.1",
     "@types/node": "^22.10.0",
     "@types/pngjs": "^6.0.5",

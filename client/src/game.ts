@@ -330,8 +330,9 @@ export class Game implements ScreenHost {
     return c;
   }
 
+  /** "Save and Quit to Title": back to the launcher. */
   quitToTitle(): void {
-    location.reload();
+    location.href = location.pathname;
   }
 
   async start(): Promise<void> {

@@ -28,6 +28,8 @@ function textureOverrides(): Plugin {
 }
 
 export default defineConfig({
+  // relative asset paths so the build runs from any folder (static hosts, the desktop app)
+  base: './',
   plugins: [textureOverrides()],
   resolve: {
     alias: { '@shared': fileURLToPath(new URL('../shared/src', import.meta.url)), '@server': fileURLToPath(new URL('../server/src', import.meta.url)) },

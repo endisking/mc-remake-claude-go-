@@ -9,3 +9,4 @@ playwright-report/
 .DS_Store
 /tools/soundgen/cache/
 /tools/cache/
+/build/

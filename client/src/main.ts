@@ -1,13 +1,22 @@
 /**
- * Client entry: boots the integrated server (single-player), connects to it, and runs
- * the render loop.
+ * Client entry: without parameters, shows the launcher; otherwise boots the integrated server
+ * (single-player) or connects to a server, and runs the render loop.
  */
 import { Game } from './game';
+import { showLauncher } from './launcher';
 
-const canvas = document.getElementById('game') as HTMLCanvasElement;
-const game = new Game(canvas);
-(window as unknown as { game: Game }).game = game;
-game.start().catch((e) => {
-  console.error(e);
-  document.getElementById('click')!.textContent = `Failed to start: ${(e as Error).message}`;
-});
+const q = new URLSearchParams(location.search);
+if (![...q.keys()].length) {
+  showLauncher();
+} else {
+  const canvas = document.getElementById('game') as HTMLCanvasElement;
+  const game = new Game(canvas);
+  (window as unknown as { game: Game }).game = game;
+  game.start().catch((e) => {
+    console.error(e);
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:16px monospace;background:#000';
+    el.textContent = `Failed to start: ${(e as Error).message}`;
+    document.body.appendChild(el);
+  });
+}
