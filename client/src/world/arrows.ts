@@ -6,6 +6,8 @@ import type { S2C } from '@shared/protocol/packets';
 import type { LineRenderer } from '../render/lines';
 
 interface ClientArrow {
+  /** thrown item id (snowball, egg, ender pearl), 0 for arrows */
+  item: number;
   x: number; y: number; z: number;
   xo: number; yo: number; zo: number;
   lx: number; ly: number; lz: number;
@@ -20,9 +22,11 @@ export class ClientArrows {
   handle(p: S2C): boolean {
     switch (p.t) {
       case 'addEntity': {
-        if (p.type !== 'arrow') return false;
+        const thrown = p.type === 'snowball' || p.type === 'egg' || p.type === 'ender_pearl';
+        if (p.type !== 'arrow' && !thrown) return false;
         const h = Math.hypot(p.vx, p.vz);
         this.arrows.set(p.id, {
+          item: thrown ? p.data : 0,
           x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z,
           yaw: (Math.atan2(p.vx, p.vz) * 180) / Math.PI, pitch: (Math.atan2(p.vy, h) * 180) / Math.PI, steps: 0,
         });
@@ -67,6 +71,7 @@ export class ClientArrows {
   matrices(cx: number, cy: number, cz: number, partial: number, scale: number, fn: (m: Float32Array, x: number, y: number, z: number) => void): void {
     const D = Math.PI / 180, m = this.mat;
     for (const a of this.arrows.values()) {
+      if (a.item) continue;
       const x = a.xo + (a.x - a.xo) * partial, y = a.yo + (a.y - a.yo) * partial, z = a.zo + (a.z - a.zo) * partial;
       const fx = Math.sin(a.yaw * D) * Math.cos(a.pitch * D), fy = Math.sin(a.pitch * D), fz = Math.cos(a.yaw * D) * Math.cos(a.pitch * D);
       // u: world up made perpendicular to the flight direction
@@ -86,6 +91,18 @@ export class ClientArrows {
     }
   }
   private readonly mat = new Float32Array(16);
+
+  /** ThrownItemRenderer: thrown items as camera-facing sprites (right/up = camera axes). */
+  thrownMatrices(cx: number, cy: number, cz: number, partial: number, right: [number, number, number], up: [number, number, number], fn: (m: Float32Array, item: number, x: number, y: number, z: number) => void): void {
+    const m = this.mat, s = 0.5;
+    const fx = right[1] * up[2] - right[2] * up[1], fy = right[2] * up[0] - right[0] * up[2], fz = right[0] * up[1] - right[1] * up[0];
+    for (const a of this.arrows.values()) {
+      if (!a.item) continue;
+      const x = a.xo + (a.x - a.xo) * partial, y = a.yo + (a.y - a.yo) * partial, z = a.zo + (a.z - a.zo) * partial;
+      m.set([right[0] * s, right[1] * s, right[2] * s, 0, up[0] * s, up[1] * s, up[2] * s, 0, fx * s, fy * s, fz * s, 0, x - cx, y + 0.125 - cy, z - cz, 1]);
+      fn(m, a.item, Math.floor(x), Math.floor(y), Math.floor(z));
+    }
+  }
 
   /** Draw every arrow as a 0.5-block shaft with a pale tail (camera-relative). */
   render(L: LineRenderer, cx: number, cy: number, cz: number, partial: number): boolean {

@@ -2121,6 +2121,13 @@ export class Game implements ScreenHost {
         this.blockItems.draw(arrowKey, this.viewProj, m, this.world.getLight(bx, by, bz), this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
       });
     } else if (this.arrows.render(this.lines, cx, cy, cz, partial)) this.lines.flush(this.viewProj, this.canvas.width, this.canvas.height);
+    {
+      const v = this.view;
+      this.arrows.thrownMatrices(cx, cy, cz, partial, [v[0]!, v[4]!, v[8]!], [v[1]!, v[5]!, v[9]!], (m, item, bx, by, bz) => {
+        const key = this.blockItems.modelKey(item);
+        if (key !== null) this.blockItems.draw(key, this.viewProj, m, this.world.getLight(bx, by, bz), this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
+      });
+    }
     if (this.bolts.size) {
       const ed = 64 * this.settings.entityDistance;
       this.lightning.render([...this.bolts.values()].filter((b) => (b.x - cx) ** 2 + (b.y - cy) ** 2 + (b.z - cz) ** 2 < ed * ed), this.viewProj, cx, cy, cz);

@@ -233,6 +233,27 @@ describe('bow', { timeout: 60000 }, () => {
   });
 });
 
+describe('thrown items', { timeout: 60000 }, () => {
+  it('an ender pearl teleports its thrower and costs 5 fall damage', () => {
+    const { server, p, c } = setup();
+    const x0 = p.x, z0 = p.z, y = Math.floor(p.y);
+    // a wall 6 blocks ahead (+Z at yaw 0)
+    for (let dy = -1; dy <= 3; dy++) for (let dx = -2; dx <= 2; dx++) server.setBlock(Math.floor(x0) + dx, y + dy, Math.floor(z0) + 6, stateOf('stone'));
+    p.yaw = 0;
+    p.pitch = 0;
+    p.inventory.set(0, { id: id('ender_pearl'), count: 2, damage: 0 });
+    c.send({ t: 'useItem', hand: 0 });
+    expect(p.inventory.get(0)?.count).toBe(1);
+    // cooldown: a second throw right away does nothing
+    c.send({ t: 'useItem', hand: 0 });
+    expect(p.inventory.get(0)?.count).toBe(1);
+    for (let i = 0; i < 10; i++) server.tick();
+    expect(p.z).toBeGreaterThan(z0 + 3);
+    expect(p.z).toBeLessThan(Math.floor(z0) + 6);
+    expect(p.living.health).toBe(15);
+  });
+});
+
 describe('item entities', { timeout: 60000 }, () => {
   it('burn in lava', () => {
     const { server, p } = setup();

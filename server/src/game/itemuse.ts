@@ -25,6 +25,7 @@ import {
 import { EFFECT_NAME, type EffectInstance, type EffectTarget } from '@shared/game/effects';
 import { DAMAGE, type DamageSource } from './survival';
 import { commandHooks } from './commands/hooks';
+import { Thrown, type ThrownKind, type ThrowHit } from './throwable';
 
 interface UseState {
   hand: 0 | 1;
@@ -137,6 +138,11 @@ export class ItemUse {
       this.s.syncSlot(p, inv);
       const a = armorInfo(stack.id);
       this.s.playSound(null, a ? a.equipSound : n === 'elytra' ? 'item.armor.equip_elytra' : 'item.armor.equip_generic', 'player', p.x, p.y, p.z, 1, 1);
+      this.swing(p, hand);
+      return;
+    }
+    if (n === 'snowball' || n === 'egg' || n === 'ender_pearl') {
+      this.throwItem(p, n, slot, stack);
       this.swing(p, hand);
       return;
     }
@@ -300,6 +306,61 @@ export class ItemUse {
 
   private swing(p: ServerPlayer, hand: 0 | 1): void {
     this.s.broadcastToTrackers(p, { t: 'animate', id: p.id, action: hand === 1 ? 3 : 0 });
+  }
+
+  // ---------------------------------------------------------------- thrown items
+
+  /** SnowballItem / EggItem / EnderpearlItem.use: throw at 1.5 blocks/tick, inaccuracy 1. */
+  private throwItem(p: ServerPlayer, kind: ThrownKind, slot: number, stack: ItemStack): void {
+    const r = this.s.rand;
+    const sound = kind === 'snowball' ? 'entity.snowball.throw' : kind === 'egg' ? 'entity.egg.throw' : 'entity.ender_pearl.throw';
+    this.s.playSound(null, sound, 'neutral', p.x, p.y, p.z, 0.5, 0.4 / (r.nextFloat() * 0.4 + 0.8));
+    const t = new Thrown(this.s.newEntityId(), kind, stack.id, this.arrowHost);
+    t.x = p.x;
+    t.y = p.y + p.phys.eyeHeight - 0.1;
+    t.z = p.z;
+    t.ownerId = p.id;
+    t.shootFromRotation(p.pitch, p.yaw, 1.5, 1);
+    t.onHit = (e, hit) => this.thrownHit(e, hit);
+    this.s.spawnEntity(t);
+    if (kind === 'ender_pearl') {
+      // ItemCooldowns: 20 ticks before the next pearl
+      let m = this.cooldowns.get(p.id);
+      if (!m) this.cooldowns.set(p.id, (m = new Map()));
+      m.set(stack.id, this.s.gameTime + 20);
+    }
+    if (p.gameMode !== 1) {
+      stack.count--;
+      if (stack.count <= 0) p.inventory.set(slot, null);
+      this.s.syncSlot(p, slot);
+    }
+  }
+
+  /** Snowball/ThrownEgg/ThrownEnderpearl.onHit. */
+  private thrownHit(e: Thrown, hit: ThrowHit): void {
+    const r = this.s.rand;
+    // the 0-damage "thrown" hit does nothing to players (Player.hurt ignores 0 damage)
+    if (e.type === 'egg') {
+      // 1 in 8 eggs hatches a chick, 1 in 32 of those four
+      if (r.nextInt(8) === 0) {
+        const n = r.nextInt(32) === 0 ? 4 : 1;
+        const summon = commandHooks.summon.get('chicken');
+        for (let i = 0; i < n && summon; i++) summon(this.s, hit.x, hit.y, hit.z, '{Age:-24000}');
+      }
+    } else if (e.type === 'ender_pearl') {
+      const owner = this.s.players.find((pl) => pl.id === e.ownerId);
+      if (owner && !owner.living.dead && !owner.sleepingPos) {
+        // 5% chance of an endermite at the landing spot
+        if (r.nextFloat() < 0.05) commandHooks.summon.get('endermite')?.(this.s, owner.x, owner.y, owner.z, null);
+        // teleportTo(the pearl's position at the start of the tick it hit)
+        owner.x = e.x;
+        owner.y = e.y;
+        owner.z = e.z;
+        owner.fallDistance = 0;
+        this.s.send(owner, { t: 'teleport', x: e.x, y: e.y, z: e.z, yaw: owner.yaw, pitch: owner.pitch });
+        this.s.survival.hurt(owner, DAMAGE.fall, 5);
+      }
+    }
   }
 
   // ---------------------------------------------------------------- buckets

@@ -98,6 +98,18 @@ await page.waitForTimeout(150);
 console.log('shot', await state());
 await shot('arrow-flying');
 
+// snowball
+await cmd(page, '/give @s snowball 4');
+await page.waitForTimeout(300);
+await select('snowball');
+await page.evaluate(() => { (window as any).game.pitch = -5; });
+await mouse(page, 2, true);
+await page.waitForTimeout(80);
+await mouse(page, 2, false);
+await page.waitForTimeout(120);
+console.log('snowball', await page.evaluate(() => (window as any).game.arrows.arrows.size));
+await shot('snowball');
+
 // armour
 await cmd(page, '/give @s iron_chestplate 1');
 await cmd(page, '/give @s diamond_helmet 1');
