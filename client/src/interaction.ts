@@ -40,6 +40,8 @@ export interface InteractionHost {
   onAttack(): void;
   /** Item.use with a non-block item (food, bow, armour, buckets): see ClientItemUse.tryUse */
   useItem?(hand: 0 | 1, stack: ItemStack): 'consume' | 'swing' | 'pass';
+  /** Haste / Mining Fatigue levels (amplifier + 1, 0 = none) for digging prediction */
+  miningEffects?(): { haste: number; miningFatigue: number };
 }
 
 export class Interaction {
@@ -70,7 +72,8 @@ export class Interaction {
     const p = this.host.player;
     const held = this.inventory.selectedStack;
     const eye = this.host.world.getState(Math.floor(p.x), Math.floor(p.y + p.eyeHeight), Math.floor(p.z));
-    return { item: held?.id ?? 0, efficiency: 0, haste: 0, miningFatigue: 0, underwater: FLUID[eye] === 1, aquaAffinity: false, onGround: p.onGround };
+    const fx = this.host.miningEffects?.() ?? { haste: 0, miningFatigue: 0 };
+    return { item: held?.id ?? 0, efficiency: 0, haste: fx.haste, miningFatigue: fx.miningFatigue, underwater: FLUID[eye] === 1, aquaAffinity: false, onGround: p.onGround };
   }
 
   private breakLocally(x: number, y: number, z: number): void {

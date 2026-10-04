@@ -148,6 +148,24 @@ describe('buckets and flint and steel', { timeout: 60000 }, () => {
   });
 });
 
+describe('shears', { timeout: 60000 }, () => {
+  it('carve pumpkins (4 seeds) and wear by 1 per block', () => {
+    const { server, p, c } = setup();
+    const x = Math.floor(p.x) + 2, y = Math.floor(p.y), z = Math.floor(p.z);
+    server.setBlock(x, y, z, stateOf('pumpkin'));
+    p.inventory.set(0, { id: id('shears'), count: 1, damage: 0 });
+    c.send({ t: 'useOn', x, y, z, face: 4, cx: 0, cy: 0.5, cz: 0.5, hand: 0 });
+    expect(blockNameOf(server.world.getState(x, y, z))).toBe('carved_pumpkin');
+    expect(getProp(server.world.getState(x, y, z), 'facing')).toBe('west');
+    expect([...server.entities.values()].some((e) => e instanceof ItemEntity && e.stack.id === id('pumpkin_seeds') && e.stack.count === 4)).toBe(true);
+    server.setBlock(x, y + 1, z, stateOf('oak_leaves'));
+    server.destroyBlock(x, y + 1, z, p, true);
+    expect(p.inventory.get(0)?.damage).toBe(2);
+    // shears keep the leaves
+    expect([...server.entities.values()].some((e) => e instanceof ItemEntity && e.stack.id === id('oak_leaves'))).toBe(true);
+  });
+});
+
 describe('bow', { timeout: 60000 }, () => {
   it('a full draw shoots a critical arrow at speed 3 and uses an arrow', () => {
     const { server, p, c } = setup();

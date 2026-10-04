@@ -270,6 +270,33 @@ Object.assign(EVENTS, {
   'block.chest.close': [{ set: 'door_close', pitch: 1.1 }],
 } satisfies Record<string, Ref[]>);
 
+// item use (server/src/game/itemuse.ts): reuses of the recordings above until dedicated clips are cut
+Object.assign(EVENTS, {
+  'item.bucket.fill': [{ set: 'splash', pitch: 1.2 }],
+  'item.bucket.empty': [{ set: 'splash', pitch: 0.9 }],
+  'item.bucket.fill_lava': [{ set: 'splash', pitch: 0.6 }],
+  'item.bucket.empty_lava': [{ set: 'splash', pitch: 0.55 }],
+  'item.bucket.fill_powder_snow': [{ set: 'dig_snow' }],
+  'item.armor.equip_leather': [{ set: 'dig_cloth' }],
+  'item.armor.equip_chain': [{ set: 'metal_latch', pitch: 1.3 }],
+  'item.armor.equip_iron': [{ set: 'metal_latch' }],
+  'item.armor.equip_gold': [{ set: 'metal_latch', pitch: 1.2 }],
+  'item.armor.equip_diamond': [{ set: 'metal_latch', pitch: 0.9 }],
+  'item.armor.equip_netherite': [{ set: 'metal_latch', pitch: 0.7 }],
+  'item.armor.equip_elytra': [{ set: 'dig_cloth', pitch: 1.2 }],
+  'item.armor.equip_generic': [{ set: 'dig_cloth' }],
+  'item.armor.equip_turtle': [{ set: 'dig_wood', pitch: 1.3 }],
+  'entity.arrow.shoot': [{ set: 'attack_sweep', pitch: 1.3 }],
+  'entity.arrow.hit': [{ set: 'step_wood', pitch: 1.2 }],
+  'entity.arrow.hit_player': [{ set: 'orb' }],
+  'item.flintandsteel.use': [{ set: 'metal_latch', pitch: 1.6 }],
+  'block.pumpkin.carve': [{ set: 'dig_wood', pitch: 1.2 }],
+  'entity.generic.eat': [{ set: 'dig_snow', pitch: 1.5 }],
+  'entity.generic.drink': [{ set: 'swim', pitch: 1.5 }],
+  'item.honey_bottle.drink': [{ set: 'swim', pitch: 1.2 }],
+  'entity.item.break': [{ set: 'glass_break', pitch: 1.5 }],
+} satisfies Record<string, Ref[]>);
+
 /** Events the game currently plays (missing ones are reported). */
 const HOOKED = new Set<string>([
   ...Object.values(SOUND_TYPES).flatMap((t) => [t.break, t.step, t.place, t.hit, t.fall]),
@@ -279,6 +306,7 @@ const HOOKED = new Set<string>([
   'ui.button.click', 'entity.player.attack.strong', 'entity.player.attack.weak', 'entity.player.attack.crit',
   'entity.player.attack.knockback', 'entity.player.attack.nodamage', 'entity.player.attack.sweep',
   'entity.experience_orb.pickup', 'entity.player.levelup',
+  'item.bucket.fill', 'item.bucket.empty', 'item.bucket.fill_lava', 'item.bucket.empty_lava', 'item.bucket.fill_powder_snow', 'item.armor.equip_leather', 'item.armor.equip_chain', 'item.armor.equip_iron', 'item.armor.equip_gold', 'item.armor.equip_diamond', 'item.armor.equip_netherite', 'item.armor.equip_elytra', 'item.armor.equip_generic', 'item.armor.equip_turtle', 'entity.arrow.shoot', 'entity.arrow.hit', 'entity.arrow.hit_player', 'item.flintandsteel.use', 'block.pumpkin.carve', 'entity.generic.eat', 'entity.generic.drink', 'item.honey_bottle.drink', 'entity.item.break', 'entity.player.burp', 'item.chorus_fruit.teleport', 'entity.generic.burn',
 ]);
 
 // ------------------------------------------------------------------ build

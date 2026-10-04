@@ -60,6 +60,15 @@ import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
 import { ClientItemUse } from './itemuse';
+import { maxDamage } from '@shared/game/items';
+
+/** Mth.hsvToRgb → 0xRRGGBB. */
+function hsvToRgb(h: number, s: number, v: number): number {
+  const i = Math.floor(h * 6) % 6, f = h * 6 - Math.floor(h * 6);
+  const p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+  const [r, g, b] = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][i]!;
+  return (Math.floor(r! * 255) << 16) | (Math.floor(g! * 255) << 8) | Math.floor(b! * 255);
+}
 import { ClientArrows } from './world/arrows';
 import { itemName as itemNameOfId } from '@shared/item/stack';
 
@@ -426,6 +435,10 @@ export class Game implements ScreenHost {
         this.resetAttackStrength();
       },
       useItem: (hand, stack) => this.itemUse.tryUse(hand, stack, this.interaction.inventory),
+      miningEffects: () => ({
+        haste: Math.max(this.itemUse.amplifier('haste'), this.itemUse.amplifier('conduit_power')) + 1,
+        miningFatigue: this.itemUse.amplifier('mining_fatigue') + 1,
+      }),
     });
     this.itemUse = new ClientItemUse({
       send: (p) => this.send(p),
@@ -1980,7 +1993,7 @@ export class Game implements ScreenHost {
         g.ctx.drawImage(this.frostOverlay, 0, 0, g.width, g.height);
         g.ctx.restore();
       }
-      this.hud.render(g, this.hudState(), (id, c, x, y) => this.renderGuiItem(id, c, x, y));
+      this.hud.render(g, this.hudState(), (id, c, x, y, d) => this.renderGuiItem(id, c, x, y, d));
       if (this.gameMode === 3) {
         this.spectatorGui.renderHotbar(g);
         this.spectatorGui.renderTooltip(g);
@@ -1996,7 +2009,7 @@ export class Game implements ScreenHost {
   }
 
   /** A 16×16 item in the GUI with its stack count (vanilla ItemRenderer.renderGuiItem + decorations). */
-  renderGuiItem(id: number, count: number, x: number, y: number): void {
+  renderGuiItem(id: number, count: number, x: number, y: number, damage = 0): void {
     const g = this.gui;
     const block = blockForItem(id);
     const icon = block ? this.blockItems.icon(BLOCKS_BY_NAME.get(block)!.defaultState) : null;
@@ -2011,6 +2024,14 @@ export class Game implements ScreenHost {
     if (count !== 1) {
       const s = String(count);
       g.text(s, x + 19 - 2 - g.font.width(s), y + 6 + 3, 0xffffff, true);
+    }
+    // ItemRenderer.renderGuiItemDecorations: durability bar (Item.getBarWidth / getBarColor)
+    const max = maxDamage(id);
+    if (damage > 0 && max > 0) {
+      const w = Math.round(13 - (damage * 13) / max);
+      const hue = Math.max(0, (max - damage) / max) / 3;
+      g.fill(x + 2, y + 13, 13, 2, 0xff000000);
+      g.fill(x + 2, y + 13, w, 1, 0xff000000 | hsvToRgb(hue, 1, 1));
     }
   }
 

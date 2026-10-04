@@ -92,6 +92,12 @@ export class ClientItemUse {
     return armorTotals([inv.get(36), inv.get(37), inv.get(38), inv.get(39)]).armor;
   }
 
+  /** Amplifier of an active effect, −1 when absent. */
+  amplifier(name: string): number {
+    for (const e of this.effects.values()) if (e.name === name) return e.amplifier;
+    return -1;
+  }
+
   hasEffect(name: string): boolean {
     for (const e of this.effects.values()) if (e.name === name) return true;
     return false;

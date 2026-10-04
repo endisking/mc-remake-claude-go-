@@ -367,11 +367,33 @@ export class ItemUse {
     const stack = p.inventory.get(slot);
     if (isEmpty(stack) || p.gameMode === 2) return false;
     const n = nameOf(stack.id);
-    if (n !== 'flint_and_steel') return false;
     const w = this.s.world;
     const r = this.s.rand;
     const st = w.getState(x, y, z);
     const name = blockNameOf(st);
+    if (n === 'shears' && name === 'pumpkin') {
+      // PumpkinBlock.use: carve the clicked side (or the side facing the player), 4 seeds pop out
+      const HDIR = ['north', 'south', 'west', 'east'];
+      let d = face >= 2 ? face : -1;
+      if (d < 0) {
+        const yaw = ((p.yaw % 360) + 360) % 360;
+        // opposite of the player's facing (south, west, north, east → north, east, south, west)
+        d = [2, 5, 3, 4][Math.floor(yaw / 90 + 0.5) & 3]!;
+      }
+      this.s.playSound(null, 'block.pumpkin.carve', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+      this.s.setBlock(x, y, z, stateOf('carved_pumpkin', { facing: HDIR[d - 2]! }));
+      const e = new ItemEntity(this.s.newEntityId(), { id: id('pumpkin_seeds'), count: 4, damage: 0 });
+      e.x = x + 0.5 + DX[d]! * 0.65;
+      e.y = y + 0.1;
+      e.z = z + 0.5 + DZ[d]! * 0.65;
+      e.vx = 0.05 * DX[d]! + r.nextDouble() * 0.02;
+      e.vy = 0.05;
+      e.vz = 0.05 * DZ[d]! + r.nextDouble() * 0.02;
+      this.s.spawnEntity(e);
+      this.damageHeld(p, hand, 1);
+      return true;
+    }
+    if (n !== 'flint_and_steel') return false;
     // FlintAndSteelItem: light campfires, candles and candle cakes
     const lightable = (name === 'campfire' || name === 'soul_campfire') ? getProp(st, 'waterlogged') !== true : name.endsWith('candle') || name.endsWith('candle_cake');
     if (lightable && getProp(st, 'lit') === false) {
