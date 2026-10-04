@@ -65,6 +65,8 @@ const REPLACEABLE = new Set([
 
 export function isReplaceable(state: number, placing?: string): boolean {
   const name = blockNameOf(state);
+  // CandleBlock / SeaPickleBlock.canBeReplaced: up to four in one block
+  if (placing === name && (name.endsWith('candle') || name === 'sea_pickle')) return (getProp(state, name === 'sea_pickle' ? 'pickles' : 'candles') as number) < 4;
   if (name === 'snow') return getProp(state, 'layers') === 1 && placing !== 'snow';
   return REPLACEABLE.has(name);
 }
@@ -215,6 +217,11 @@ export function stateForPlacement(block: string, ctx: PlaceContext, existing: nu
     s = withProp(s, 'type', top ? 'top' : 'bottom');
     setWater();
     return s;
+  }
+  if ((block.endsWith('candle') || block === 'sea_pickle') && blockNameOf(existing) === block) {
+    const prop = block === 'sea_pickle' ? 'pickles' : 'candles';
+    const c = getProp(existing, prop) as number;
+    return c < 4 ? withProp(existing, prop, c + 1) : null;
   }
   if (block === 'snow' && blockNameOf(existing) === 'snow') {
     const l = getProp(existing, 'layers') as number;

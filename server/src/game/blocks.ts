@@ -1309,6 +1309,29 @@ export class BlockBehaviors {
     const n = blockNameOf(st);
     const r = this.s.rand;
     if (n === 'dragon_egg') return this.teleportEgg(x, y, z, st);
+    const held = p.inventory.selectedStack;
+    const heldName = held ? ITEMS_BY_ID[held.id]?.name ?? '' : '';
+    if (n === 'cake') {
+      // CakeBlock.use: a candle on an uneaten cake, otherwise eat a slice
+      if (heldName.endsWith('candle') && getProp(st, 'bites') === 0) {
+        if (p.gameMode !== 1) this.shrink(p, p.inventory.selected, held!);
+        this.s.playSound(null, 'block.cake.add_candle', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+        this.s.setBlock(x, y, z, defaultState(`${heldName}_cake`));
+        return true;
+      }
+      return this.eatCake(p, x, y, z, st);
+    }
+    if (n.endsWith('candle_cake')) {
+      if (heldName === 'flint_and_steel' || heldName === 'fire_charge') return false;
+      if (getProp(st, 'lit') === true && !held) return this.extinguish(x, y, z, st);
+      // CandleCakeBlock.use: eating takes the candle off
+      if (this.eatCake(p, x, y, z, defaultState('cake'))) {
+        this.s.popResource(x, y, z, { id: itemForBlock(defaultState(n.replace('_cake', ''))), count: 1, damage: 0 });
+        return true;
+      }
+      return false;
+    }
+    if (n.endsWith('candle') && getProp(st, 'lit') === true && !held) return this.extinguish(x, y, z, st);
     if (n === 'sweet_berry_bush') {
       // SweetBerryBushBlock.use: bone meal on an unripe bush passes through to the item
       const age = getProp(st, 'age') as number;
@@ -1336,6 +1359,24 @@ export class BlockBehaviors {
       return true;
     }
     return false;
+  }
+
+  /** CakeBlock.eat: 2 food, 0.1 saturation per slice, 7 slices. */
+  private eatCake(p: ServerPlayer, x: number, y: number, z: number, st: number): boolean {
+    if (!(p.gameMode === 1 || p.gameMode === 3 || p.living.food.needsFood())) return false;
+    p.living.food.eat(2, 0.1);
+    this.s.survival.sync(p);
+    const bites = getProp(st, 'bites') as number;
+    this.s.setBlock(x, y, z, bites < 6 ? withProp(defaultState('cake'), 'bites', bites + 1) : 0);
+    if (bites >= 6) this.s.updateNeighbors(x, y, z);
+    return true;
+  }
+
+  /** AbstractCandleBlock.extinguish */
+  private extinguish(x: number, y: number, z: number, st: number): boolean {
+    this.s.setBlock(x, y, z, withProp(st, 'lit', false));
+    this.s.playSound(null, 'block.candle.extinguish', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+    return true;
   }
 
   /** Block.attack (left click in survival/adventure): the dragon egg teleports away. */

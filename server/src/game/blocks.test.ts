@@ -689,4 +689,29 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     expect(holes).toBeGreaterThan(10);
     expect([...server.entities.values()].some((e) => e instanceof ItemEntity && e.stack.id === ITEMS_BY_NAME.get('cobblestone')!.id)).toBe(true);
   });
+
+  it('cake is eaten slice by slice; candles stack, light and go out', () => {
+    const { server, set, get, give, use, p } = setup();
+    set(9, 150, 9, 'stone');
+    set(9, 151, 9, 'cake');
+    p.living.food.foodLevel = 6;
+    p.inventory.set(p.inventory.selected, null);
+    for (let i = 0; i < 6; i++) use(9, 151, 9);
+    expect(getProp(server.world.getState(9, 151, 9), 'bites')).toBe(6);
+    expect(p.living.food.foodLevel).toBe(18);
+    p.living.food.foodLevel = 18;
+    use(9, 151, 9);
+    expect(get(9, 151, 9)).toBe('air');
+    set(10, 150, 9, 'stone');
+    give('white_candle', 3);
+    use(10, 150, 9);
+    use(10, 151, 9);
+    expect(getProp(server.world.getState(10, 151, 9), 'candles')).toBe(2);
+    give('flint_and_steel');
+    use(10, 151, 9);
+    expect(getProp(server.world.getState(10, 151, 9), 'lit')).toBe(true);
+    p.inventory.set(p.inventory.selected, null);
+    use(10, 151, 9);
+    expect(getProp(server.world.getState(10, 151, 9), 'lit')).toBe(false);
+  });
 });
