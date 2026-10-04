@@ -21,14 +21,17 @@ export const isViewBlocking = isSuffocating;
  */
 export function isInteractive(state: number): boolean {
   if (isOpenableByHand(state)) return true;
-  const name = blockNameOf(state);
-  if (name === 'dragon_egg' || name === 'cake' || name.endsWith('candle_cake')) return true;
-  if (name.endsWith('candle') && getPropOf(state, 'lit') === true) return true;
+  const n = blockNameOf(state);
+  if (n === 'dragon_egg' || n === 'cake' || n.endsWith('candle_cake')) return true;
+  if (n.endsWith('candle') && getPropOf(state, 'lit') === true) return true;
   // harvestable berries
-  if (name === 'sweet_berry_bush' && (getPropOf(state, 'age') as number) > 1) return true;
-  if ((name === 'cave_vines' || name === 'cave_vines_plant') && getPropOf(state, 'berries') === true) return true;
-  return blockNameOf(state).endsWith('_bed');
+  if (n === 'sweet_berry_bush' && (getPropOf(state, 'age') as number) > 1) return true;
+  if ((n === 'cave_vines' || n === 'cave_vines_plant') && getPropOf(state, 'berries') === true) return true;
+  return n.endsWith('_bed') || OPENABLE_CONTAINERS.has(n) || n.endsWith('shulker_box');
 }
+
+/** Container blocks whose menus are implemented (server Containers.useBlock). */
+const OPENABLE_CONTAINERS = new Set(['crafting_table', 'chest', 'trapped_chest', 'ender_chest', 'barrel', 'furnace', 'blast_furnace', 'smoker', 'dispenser', 'dropper', 'hopper', 'stonecutter', 'smithing_table', 'grindstone']);
 
 /** Doors, trapdoors and fence gates that open with a click (iron ones need redstone). */
 export function isOpenableByHand(state: number): boolean {

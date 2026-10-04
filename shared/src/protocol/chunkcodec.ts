@@ -2,7 +2,7 @@
  * Chunk column serialization, shared by the network protocol and the save format.
  * Sections are paletted: a palette of state ids + 8-bit or 16-bit indices.
  */
-import { Chunk, ChunkSection, SECTION_VOLUME } from '../world/chunk';
+import { Chunk, ChunkSection, SECTION_VOLUME, type BlockEntityData } from '../world/chunk';
 import { ByteReader, ByteWriter } from './buffer';
 
 const F_BLOCKS = 1;
@@ -84,20 +84,40 @@ export function readSection(r: ByteReader, s: ChunkSection, withLight: boolean):
   }
 }
 
-export function writeChunk(w: ByteWriter, c: Chunk, withLight = true): void {
+/** `withBlockEntities`: false only for save formats that predate block entities. */
+export function writeChunk(w: ByteWriter, c: Chunk, withLight = true, withBlockEntities = true): void {
   w.i32(c.x).i32(c.z);
   w.bytes(c.biomes);
   for (let i = 0; i < 256; i++) w.i16(c.skyTop[i]!);
   for (let i = 0; i < 256; i++) w.i16(c.motionBlocking[i]!);
   for (const s of c.sections) writeSection(w, s, withLight);
+  if (withBlockEntities) writeBlockEntities(w, c);
 }
 
-export function readChunk(r: ByteReader, withLight = true): Chunk {
+/** Block entities: count, then (u16 key, JSON data) pairs. */
+function writeBlockEntities(w: ByteWriter, c: Chunk): void {
+  w.varint(c.blockEntities.size);
+  for (const [k, data] of c.blockEntities) {
+    w.u16(k);
+    w.str(JSON.stringify(data));
+  }
+}
+
+function readBlockEntities(r: ByteReader, c: Chunk): void {
+  const n = r.varint();
+  for (let i = 0; i < n; i++) {
+    const k = r.u16();
+    c.blockEntities.set(k, JSON.parse(r.str()) as BlockEntityData);
+  }
+}
+
+export function readChunk(r: ByteReader, withLight = true, withBlockEntities = true): Chunk {
   const c = new Chunk(r.i32(), r.i32());
   c.biomes.set(r.bytes(1024));
   for (let i = 0; i < 256; i++) c.skyTop[i] = r.i16();
   for (let i = 0; i < 256; i++) c.motionBlocking[i] = r.i16();
   for (const s of c.sections) readSection(r, s, withLight);
+  if (withBlockEntities) readBlockEntities(r, c);
   c.lit = withLight;
   return c;
 }

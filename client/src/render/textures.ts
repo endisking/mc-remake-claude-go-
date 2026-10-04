@@ -81,9 +81,12 @@ export class BlockTextureArray {
   ) {
     this.layers = layers;
     this.mipLevels = mipLevels;
+    // WebGL2 only guarantees 256 layers; desktop and Chromebook GPUs report 2048
+    const maxLayers = gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS) as number;
+    if (layers > maxLayers) console.error(`block textures need ${layers} texture array layers but this GPU allows ${maxLayers}; some blocks will render untextured`);
     this.tex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.tex);
-    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, mipLevels + 1, gl.RGBA8, SIZE, SIZE, layers);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, mipLevels + 1, gl.RGBA8, SIZE, SIZE, Math.min(layers, maxLayers));
     gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, mipLevels > 0 ? gl.NEAREST_MIPMAP_LINEAR : gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAX_LEVEL, mipLevels);

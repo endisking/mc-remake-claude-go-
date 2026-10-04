@@ -65,6 +65,8 @@ export interface PlayerData {
   score: number;
   /** 41 slots (vanilla Inventory numbering), null = empty */
   inventory: (ItemStack | null)[];
+  /** ender chest contents (27), absent in older saves */
+  enderItems?: (ItemStack | null)[];
   selected: number;
   respawn: { x: number; y: number; z: number; angle: number } | null;
 }
