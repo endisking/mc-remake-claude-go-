@@ -1,3 +1,5 @@
+import { itemTagFromSnbt } from '@shared/util/snbt';
+import type { ItemStack, ItemTag } from '@shared/item/stack';
 /**
  * The 1.17.1 commands (syntax, permission levels and feedback text as in vanilla en_us).
  */
@@ -218,7 +220,18 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
     ),
   );
   function give(c: Ctx, count: number): number {
-    const item = c.get<ItemInput>('item').item;
+    const input = c.get<ItemInput>('item');
+    const item = input.item;
+    // Phase 7: item NBT (enchantments, potions, names) from {…}
+    let tag: ItemTag | undefined;
+    if (input.nbt) {
+      try {
+        tag = itemTagFromSnbt(input.nbt) as ItemTag | undefined;
+      } catch (e) {
+        throw new CommandError(`Invalid NBT: ${(e as Error).message}`);
+      }
+    }
+    const withTag = (st: ItemStack): ItemStack => (tag ? { ...st, tag: JSON.parse(JSON.stringify(tag)) as ItemTag } : st);
     const targets = getPlayers(c.get('targets'), c.source);
     const max = maxStackSize(item.id);
     if (count > max * 100) throw new CommandError(`Can't give more than ${max * 100} of ${itemDisplay(item.id).text}`);
@@ -228,10 +241,10 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
       while (left > 0) {
         const n = Math.min(left, max);
         left -= n;
-        const rest = t.inventory.add({ id: item.id, count: n, damage: 0 });
+        const rest = t.inventory.add(withTag({ id: item.id, count: n, damage: 0 }));
         if (rest > 0) {
           // GiveCommand: what doesn't fit drops at the player's feet, immediately collectable
-          const e = new ItemEntity(s.nextEntityId++, { id: item.id, count: rest, damage: 0 });
+          const e = new ItemEntity(s.nextEntityId++, withTag({ id: item.id, count: rest, damage: 0 }));
           e.x = t.x;
           e.y = t.y;
           e.z = t.z;

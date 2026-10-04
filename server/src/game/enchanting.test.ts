@@ -151,3 +151,17 @@ describe('frost walker', () => {
     expect(frosted).toBeGreaterThan(10);
   });
 });
+
+describe('/give with item NBT', () => {
+  it('gives potions and enchanted items', () => {
+    const { a, p } = setup();
+    a.send({ t: 'chat', message: '/give @s potion{Potion:"minecraft:swiftness"} 2' });
+    a.send({ t: 'chat', message: '/give @s diamond_sword{Enchantments:[{id:"minecraft:knockback",lvl:2s}]}' });
+    const pot = [...p.inventory.slots].find((s) => s && itemName(s.id) === 'potion');
+    expect(pot?.tag?.Potion).toBe('swiftness');
+    expect(pot?.count).toBe(1);
+    const sw = [...p.inventory.slots].find((s) => s && itemName(s.id) === 'diamond_sword');
+    expect(sw?.tag?.Enchantments).toEqual([{ id: 'knockback', lvl: 2 }]);
+    expect(a.received.some((m) => m.t === 'slotTag')).toBe(true);
+  });
+});
