@@ -117,7 +117,7 @@ export class ClientItemUse {
       this.host.send({ t: 'useItem', hand });
       return 'swing';
     }
-    if (n === 'bucket' || n === 'water_bucket' || n === 'lava_bucket' || n === 'snowball' || n === 'egg' || n === 'ender_pearl') {
+    if (n === 'bucket' || n === 'water_bucket' || n === 'lava_bucket' || n === 'snowball' || n === 'egg' || n === 'ender_pearl' || n === 'ender_eye') {
       this.host.send({ t: 'useItem', hand });
       return 'swing';
     }

@@ -144,6 +144,10 @@ export class ItemUse {
       this.swing(p, hand);
       return;
     }
+    if (n === 'ender_eye') {
+      if (this.s.theEnd.throwEye(p, slot, stack)) this.swing(p, hand);
+      return;
+    }
     if (n === 'snowball' || n === 'egg' || n === 'ender_pearl') {
       this.throwItem(p, n, slot, stack);
       this.swing(p, hand);

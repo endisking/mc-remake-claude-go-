@@ -35,6 +35,8 @@ export class ServerPlayer {
   prevTickZ = 0;
   /** Dimension the player is in (GameServer.levels key: overworld, the_nether, the_end). */
   dimension = 'overworld';
+  /** ServerPlayer.seenCredits: the End credits have been shown once */
+  seenCredits = false;
   /** The world's host in single-player/LAN: exempt from "moved too quickly". */
   isOwner = false;
   /** Chunks this client currently has. */

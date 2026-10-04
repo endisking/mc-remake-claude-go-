@@ -73,6 +73,8 @@ export interface PlayerData {
   enderItems?: (ItemStack | null)[];
   selected: number;
   respawn: { x: number; y: number; z: number; angle: number; dimension?: string } | null;
+  /** the End credits were shown (absent in older saves) */
+  seenCredits?: boolean;
   /** active status effects (vanilla ActiveEffects) */
   effects?: { id: number; amplifier: number; duration: number; ambient: boolean; visible: boolean; showIcon: boolean }[];
 }

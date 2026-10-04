@@ -252,6 +252,11 @@ export class Interaction {
         }
         // Item.useOn (flint and steel…), then Item.use (food, bows, buckets, armour)
         this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
+        // EnderEyeItem: a frame takes the eye (useOn); use() passes when aimed at any frame
+        if (itemNameOf(stack.id) === 'ender_eye' && blockNameOf(target.state) === 'end_portal_frame') {
+          if (getProp(target.state, 'eye') !== true) this.host.swing(hand);
+          return;
+        }
         if (itemNameOf(stack.id) === 'flint_and_steel') {
           this.host.swing(hand);
           return;

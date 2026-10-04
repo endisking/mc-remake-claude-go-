@@ -10,6 +10,8 @@ import { SAVE_FORMAT_VERSION, type WorldStorage, type LevelMeta, type PlayerData
 import { DevGenerator } from '@shared/worldgen/devgen';
 import { OverworldGenerator } from '@shared/worldgen/overworld/generator';
 import { NetherGenerator } from '@shared/worldgen/nether/generator';
+import { EndGenerator } from '@shared/worldgen/end/generator';
+import { TheEnd, EyeOfEnder } from './theend';
 import { ServerLevel, DIMENSION_TYPES, type DimensionType, type LevelGenerator } from './level';
 import { Portals } from './portals';
 import { useAnchor } from './anchor';
@@ -142,6 +144,7 @@ export class GameServer {
     return this.levels.get(p.dimension) ?? this.levels.get('overworld')!;
   }
   readonly portals: Portals;
+  readonly theEnd = new TheEnd(this);
   /**
    * Move a player to another dimension (ServerPlayer.changeDimension → PlayerList.respawn): the
    * client gets a `dimension` packet, drops its chunks and entities, and the new dimension's
@@ -265,6 +268,7 @@ export class GameServer {
       return lv;
     };
     mkLevel(DIMENSION_TYPES.the_nether, dev ? new DevGenerator(opts.seed, opts.scene) : new NetherGenerator(opts.seed));
+    mkLevel(DIMENSION_TYPES.the_end, dev ? new DevGenerator(opts.seed, opts.scene) : new EndGenerator(opts.seed));
     this.level = mkLevel(DIMENSION_TYPES.overworld, dev ? new DevGenerator(opts.seed, opts.scene) : new OverworldGenerator(opts.seed));
     this.portals = new Portals(this);
     this.chunkGenBudget = opts.chunkGenBudget ?? 6;
@@ -973,7 +977,7 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId :  e instanceof Thrown ? e.item : 0 });
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId :  e instanceof Thrown || e instanceof EyeOfEnder ? e.item : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
           this.mobs.onStartTracking(p, e);
         } else if (!visible && p.tracking.has(e.id)) {
@@ -1803,6 +1807,8 @@ export class GameServer {
         this.tickPlayer(p);
         // nether portals (Entity.handleNetherPortal); may move the player to another dimension
         this.portals.tickPlayer(p);
+        // end portals (EndPortalBlock.entityInside)
+        if (p.dimension === lv.id) this.theEnd.tickPlayer(p);
       }
       // mobs exist in the overworld only so far (no nether mobs yet)
       if (lv === overworld) this.mobs.tick();

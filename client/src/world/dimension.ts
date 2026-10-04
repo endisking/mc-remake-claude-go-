@@ -156,3 +156,29 @@ export function insidePortal(world: BlockWorld, x: number, y: number, z: number,
       for (let bz = Math.floor(z - h); bz <= Math.floor(z + h); bz++) if (isPortal(world.getState(bx, by, bz))) return true;
   return false;
 }
+
+/** fog_color of the End biomes (all five share it) */
+export const END_FOG = 0xa080a0;
+
+/**
+ * FogRenderer.setupColor in the End: the biome fog colour through EndEffects.getBrightnessDependentFogColor
+ * (× 0.15), pulled toward the black End sky by the render-distance factor, darkened below y 32 (void fade).
+ */
+export function endFogColor(y: number, renderChunks: number, out: [number, number, number]): [number, number, number] {
+  let u = 0.25 + (0.75 * renderChunks) / 32;
+  u = 1 - Math.pow(u, 0.25);
+  const k = (0.15 * (1 - u)) / 255;
+  let r = ((END_FOG >> 16) & 255) * k, g = ((END_FOG >> 8) & 255) * k, b = (END_FOG & 255) * k;
+  let d = y * 0.03125;
+  if (d < 1) {
+    if (d < 0) d = 0;
+    d *= d;
+    r *= d;
+    g *= d;
+    b *= d;
+  }
+  out[0] = r;
+  out[1] = g;
+  out[2] = b;
+  return out;
+}
