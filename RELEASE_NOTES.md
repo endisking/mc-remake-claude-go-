@@ -1,18 +1,25 @@
-# Blockcraft 0.4.2 (pre-release)
+# Blockcraft 0.4.3 (pre-release)
 
 A browser voxel sandbox that plays like Minecraft Java Edition 1.17.1, with 100% original art, sounds and code.
 This is an early development snapshot. Expect bugs and missing features.
 
 ## Downloads
-- **Blockcraft-0.4.2-win32-x64.zip**: the Windows desktop app. Unzip it anywhere and run `Blockcraft.exe`.
+- **Blockcraft-0.4.3-win32-x64.zip**: the Windows desktop app. Unzip it anywhere and run `Blockcraft.exe`.
   Worlds are saved inside the app.
-- **Blockcraft-0.4.2-macos-arm64.zip**: macOS for Apple Silicon (M1/M2/M3/M4 Macs).
-- **Blockcraft-0.4.2-macos-x64.zip**: macOS for Intel Macs.
+- **Blockcraft-0.4.3-macos-arm64.zip**: macOS for Apple Silicon (M1/M2/M3/M4 Macs).
+- **Blockcraft-0.4.3-macos-x64.zip**: macOS for Intel Macs.
   Unzip, drag `Blockcraft.app` to Applications. The app isn't notarized by Apple, so the first launch is blocked:
   open it once, then go to System Settings → Privacy & Security and click **Open Anyway** (or run
   `xattr -cr /Applications/Blockcraft.app` in Terminal).
-- **Blockcraft-0.4.2-web.zip**: the web app. Serve the folder with any static web server (it must be http://,
+- **Blockcraft-0.4.3-server.zip**: the dedicated server. Needs Node.js 20 or newer (https://nodejs.org). Unzip,
+  run `start.bat` (Windows) or `./start.sh` (macOS/Linux). Friends open the address it prints
+  (`http://<your IP>:8080/`) and click Join Server. README.txt inside covers settings, rooms, ops and internet play.
+- **Blockcraft-0.4.3-web.zip**: the web app. Serve the folder with any static web server (it must be http://,
   not file://), for example `npx serve .`, then open it in Chrome, Edge or Firefox.
+
+## New in 0.4.3
+- **Server download:** the dedicated server as a ready-to-run zip (above). The launcher fills in the server's address
+  when opened from the server, and LAN addresses in the 172.16–31.x.x range now connect without encryption.
 
 ## New in 0.4.2
 - **Offline LAN for browsers:** Open to LAN → "Play Offline" shows a QR code. Friends on the same Wi-Fi choose
@@ -39,22 +46,26 @@ This is an early development snapshot. Expect bugs and missing features.
 - **Riding:** horses (taming, saddles, jump bar), pigs with a carrot on a stick, and boats.
 - **Dimensions:** the Nether (portals of any size, all five biomes) and the End (eyes of ender, end portals,
   pillars, end crystals, the ender dragon fight, the egg and the exit portal, credits).
-- **Multiplayer:** a dedicated server (`pnpm server` from the source; rooms, ops, whitelist, bans) and
-  browser-hosted "Open to LAN" games.
+- **Multiplayer:** a dedicated server (the server download; rooms, ops, whitelist, bans) and "Open to LAN"
+  games hosted from the browser or the desktop app.
 - **Sound and settings:** sounds for every block and mob, music and ambience, and the full options screens.
 
 ## Playing
 The start page lets you pick a name, then:
 - **Singleplayer:** create a world (name, seed, game mode) or play, export, import or delete a saved one.
 - **Join Server:** a dedicated server address and room.
-- **Join LAN Game:** a room code from a friend who opened their world to LAN (Esc → Open to LAN).
+- **Join LAN Game:** a room code from a friend who opened their world to LAN (Esc → Open to LAN), or a world from
+  the LAN Worlds list in the desktop app.
+- **Join Offline:** scan a friend's "Play Offline" QR code; no internet needed (same Wi-Fi).
 
 ## Known issues
 - No minecarts or striders yet; end gateways and end cities are not done. Some mobs without a model are drawn
   as plain boxes.
 - Pistons move instantly (no animation). The dragon flies a simplified path compared with vanilla's.
-- "Open to LAN" works from the desktop app (it runs the relay; friends enter the host's IP shown on the Open to
-  LAN screen and Windows may ask to allow the app through the firewall) and from the dedicated server. On plain
-  static web hosting, fill in the launcher's "Signaling server" field.
+- "Open to LAN" with a room code needs a relay: the desktop app (friends enter the host's IP shown on the Open to
+  LAN screen; Windows may ask to allow the app through the firewall) or the dedicated server. On the web site,
+  use "Play Offline" (QR codes) instead, which needs no relay.
+- The web site (https) can't join a dedicated server on your LAN (browsers block unencrypted connections from
+  https pages): open the server's own address, `http://<server IP>:8080/`, instead.
 - Some numbers (smelting recipes, structure loot weights) were written from memory and may differ slightly from
   vanilla.

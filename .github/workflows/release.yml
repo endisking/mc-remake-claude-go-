@@ -1,4 +1,4 @@
-# Builds the web app and the Windows desktop app and publishes them as a GitHub Release.
+# Builds the web app, the dedicated server and the desktop apps and publishes them as a GitHub Release.
 # Runs when a version tag (v*) is pushed, or by hand from the Actions tab.
 name: Release
 
@@ -27,7 +27,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm vitest run --retry=2 --testTimeout=60000
-      - name: Build web + Windows app
+      - name: Build web, server + Windows app
         run: pnpm package
       - uses: softprops/action-gh-release@v2
         with:

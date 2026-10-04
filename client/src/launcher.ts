@@ -378,6 +378,13 @@ export function showLauncher(): void {
   };
   void refresh();
   void scanLan();
+  // opened from a dedicated server (http://<server>:8080/): that server is the one to join
+  void fetch('/server-info', { cache: 'no-store' })
+    .then((r) => (r.ok && (r.headers.get('content-type') ?? '').includes('json') ? r.json() : null))
+    .then((j: { server?: string } | null) => {
+      if (j?.server === 'blockcraft' && !$<HTMLInputElement>('l-server').value) $<HTMLInputElement>('l-server').value = location.host;
+    })
+    .catch(() => {});
 }
 
 /**

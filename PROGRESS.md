@@ -335,3 +335,14 @@ Still not vanilla:
     reopened).
   - Limit: browser tabs can't send or receive UDP. Browser-hosted worlds aren't discoverable; browsers pair by
     QR code instead.
+
+## 2026-10-04 — Dedicated server release build (0.4.3)
+
+- `pnpm package` now also writes `Blockcraft-<version>-server.zip`, containing `server.mjs` (the dedicated server
+  with `ws`, bundled by esbuild as ESM for Node 20+), the web client in `web/`, `start.bat`, `start.sh` and
+  `README.txt`. The server serves `web/` when it sits next to the bundle; from the source it serves
+  `client/dist` as before. On startup it prints the LAN address(es) friends should open.
+- `/server-info` lets the launcher served by a dedicated server fill in that server's address. `playUrl` treats
+  172.16–31.x.x and the page's own http:// host as plain `ws://`.
+- Verified: unzipped the release zip into a clean folder and ran `node server.mjs`. Two browser players joined
+  through the launcher, saw each other, and a console command (`say`) reached the room.

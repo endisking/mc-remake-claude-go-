@@ -24,6 +24,7 @@ import { createServer as createHttps } from 'node:https';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { join, extname, normalize, dirname } from 'node:path';
+import { networkInterfaces } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { GameServer, type Connection } from '../game/server';
@@ -32,7 +33,8 @@ import { SignalingHub } from './signaling';
 import { DiskStorage } from '../storage/disk';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const STATIC_DIR = process.env.STATIC_DIR ?? join(here, '..', '..', '..', 'client', 'dist');
+// the release build (tools/package.ts) puts the client next to the bundled server in web/
+const STATIC_DIR = process.env.STATIC_DIR ?? [join(here, 'web'), join(here, '..', '..', '..', 'client', 'dist')].find((d) => existsSync(d))!;
 const PORT = Number(process.env.PORT ?? 8080);
 
 const MIME: Record<string, string> = {
@@ -42,6 +44,11 @@ const MIME: Record<string, string> = {
 
 function serveStatic(req: IncomingMessage, res: ServerResponse): void {
   const url = new URL(req.url ?? '/', 'http://x');
+  if (url.pathname === '/server-info') {
+    // lets the launcher served from here fill in this server's address
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify({ server: 'blockcraft' }));
+    return;
+  }
   let path = normalize(decodeURIComponent(url.pathname)).replace(/^(\.\.[/\\])+/, '');
   if (path.endsWith('/')) path += 'index.html';
   let file = join(STATIC_DIR, path);
@@ -220,4 +227,9 @@ createInterface({ input: process.stdin }).on('line', (line) => {
   roomFor(code).ready.then((server) => server.commands.perform(server.commands.consoleSource(), cmd), () => {});
 });
 
-http.listen(PORT, () => console.log(`Blockcraft server on ${tls ? 'https' : 'http'}://localhost:${PORT} (client from ${STATIC_DIR})`));
+http.listen(PORT, () => {
+  const scheme = tls ? 'https' : 'http';
+  console.log(`Blockcraft server on ${scheme}://localhost:${PORT} (client from ${STATIC_DIR})`);
+  const lan = Object.values(networkInterfaces()).flatMap((l) => l ?? []).filter((a) => a.family === 'IPv4' && !a.internal);
+  for (const a of lan) console.log(`  friends on your network open ${scheme}://${a.address}:${PORT}/ and choose Join Server`);
+});

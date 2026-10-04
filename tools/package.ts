@@ -1,8 +1,10 @@
 /**
- * Release builds: the web app (static files, zipped) and the desktop app (Electron) for each
- * target — Windows (folder with Blockcraft.exe), macOS (Blockcraft.app; Apple Silicon and Intel)
- * or Linux. Output in build/release/.
+ * Release builds: the web app (static files, zipped), the dedicated server (one bundled server.mjs
+ * + the web app + start scripts; needs Node.js) and the desktop app (Electron) for each target —
+ * Windows (folder with Blockcraft.exe), macOS (Blockcraft.app; Apple Silicon and Intel) or Linux.
+ * Output in build/release/.
  * Usage: pnpm package [--targets win32-x64,darwin-arm64,darwin-x64,linux-x64] [--no-web]
+ *   (--no-web skips the web and server zips)
  *   (default win32-x64; the old --platform <p> still works and means <p>-x64)
  * On macOS the .app is ad-hoc signed (Apple Silicon refuses unsigned code) and zipped with ditto
  * so the framework symlinks and signature survive.
@@ -40,14 +42,34 @@ if (buildWeb) {
   console.log(`web → ${webZip}`);
 }
 
+// esbuild ships with vite, so it is resolved from there
+const esbuild = createRequire(realpathSync(join(root, 'node_modules/vite/package.json')))('esbuild') as { build(options: Record<string, unknown>): Promise<unknown> };
+
+// dedicated server: server.mjs (game server + ws, bundled) next to web/, start scripts, README
+if (buildWeb) {
+  const srvStage = join(root, 'build/server/blockcraft-server');
+  rmSync(join(root, 'build/server'), { recursive: true, force: true });
+  mkdirSync(srvStage, { recursive: true });
+  await esbuild.build({
+    entryPoints: [join(root, 'server/src/node/main.ts')], outfile: join(srvStage, 'server.mjs'),
+    bundle: true, platform: 'node', format: 'esm', target: 'node20', external: ['bufferutil', 'utf-8-validate'], logLevel: 'warning',
+    // bundled CommonJS dependencies (ws) call require() for Node built-ins
+    banner: { js: "import { createRequire as __bcRequire } from 'node:module'; const require = __bcRequire(import.meta.url);" },
+  });
+  for (const f of ['start.bat', 'start.sh', 'README.txt']) cpSync(join(root, 'server/dist-files', f), join(srvStage, f));
+  cpSync(dist, join(srvStage, 'web'), { recursive: true, filter: (src) => !src.endsWith('.map') });
+  const srvZip = join(out, `Blockcraft-${version}-server.zip`);
+  if (existsSync(srvZip)) rmSync(srvZip);
+  execSync(`zip -qr ${srvZip} blockcraft-server`, { cwd: join(root, 'build/server') });
+  console.log(`server → ${srvZip}`);
+}
+
 // desktop: stage main.cjs + package.json + web/, then package Electron
 rmSync(stage, { recursive: true, force: true });
 mkdirSync(stage, { recursive: true });
 cpSync(join(root, 'desktop/main.cjs'), join(stage, 'main.cjs'));
 cpSync(join(root, 'desktop/package.json'), join(stage, 'package.json'));
-// the LAN signaling relay (SignalingHub + ws) as one self-contained CommonJS file; esbuild ships
-// with vite, so it is resolved from there
-const esbuild = createRequire(realpathSync(join(root, 'node_modules/vite/package.json')))('esbuild') as { build(options: Record<string, unknown>): Promise<unknown> };
+// the LAN signaling relay (SignalingHub + ws) as one self-contained CommonJS file
 await esbuild.build({
   entryPoints: [join(root, 'server/src/node/desktop-signal.ts')], outfile: join(stage, 'signaling.cjs'),
   bundle: true, platform: 'node', format: 'cjs', target: 'node20', external: ['bufferutil', 'utf-8-validate'], logLevel: 'warning',

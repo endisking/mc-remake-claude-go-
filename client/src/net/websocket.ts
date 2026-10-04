@@ -35,7 +35,8 @@ export class WebSocketTransport implements ClientTransport {
 export function playUrl(address: string, room: string): string {
   let base = address.trim();
   if (!/^wss?:\/\//.test(base)) {
-    const secure = location.protocol === 'https:' || !/^(localhost|127\.|192\.168\.|10\.)/.test(base);
+    // plain ws:// for LAN addresses and for the server this page came from over http://
+    const secure = location.protocol === 'https:' || (!/^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(base) && base !== location.host);
     base = `${secure ? 'wss' : 'ws'}://${base}`;
   }
   const u = new URL(base);
