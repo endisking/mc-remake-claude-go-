@@ -1704,6 +1704,7 @@ export class GameServer {
       }
       this.blocks.tick();
       this.tickEntities();
+      this.portals.tickEntities();
       this.containers.tick();
       this.updateChunks();
       this.updateTracking();

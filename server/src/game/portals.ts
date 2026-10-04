@@ -8,6 +8,7 @@
 import type { GameServer } from './server';
 import type { ServerPlayer } from './player';
 import type { ServerLevel } from './level';
+import { ItemEntity, ExperienceOrb, type ServerEntity } from './entity';
 import { blockNameOf } from '@shared/world/blockstate';
 import { DX, DY, DZ } from '@shared/game/placement';
 import {
@@ -144,6 +145,58 @@ export class Portals {
       if (st.portalTime < 0) st.portalTime = 0;
     }
     if (st.cooldown > 0) st.cooldown--;
+  }
+
+  private readonly entityCooldowns = new WeakMap<ServerEntity, number>();
+
+  /**
+   * Items and experience orbs in portals (Entity.handleNetherPortal with getPortalWaitTime 0 and a
+   * 300-tick cooldown): they travel the moment they touch a portal block. Runs in the current level.
+   */
+  tickEntities(): void {
+    const s = this.s, lv = s.level;
+    if (lv.id !== 'overworld' && lv.id !== 'the_nether') return;
+    for (const e of [...lv.entities.values()]) {
+      if (e.removed || !(e instanceof ItemEntity || e instanceof ExperienceOrb)) continue;
+      let cd = this.entityCooldowns.get(e) ?? 0;
+      const b = e.bb().deflate(0.001);
+      let entrance: [number, number, number] | null = null;
+      for (let x = Math.floor(b.minX); x <= Math.floor(b.maxX) && !entrance; x++)
+        for (let y = Math.floor(b.minY); y <= Math.floor(b.maxY) && !entrance; y++)
+          for (let z = Math.floor(b.minZ); z <= Math.floor(b.maxZ) && !entrance; z++) if (isPortal(lv.world.getState(x, y, z))) entrance = [x, y, z];
+      if (entrance) {
+        if (cd > 0) cd = 300;
+        else if (this.travelEntity(e, entrance)) cd = 300;
+      }
+      if (cd > 0) cd--;
+      this.entityCooldowns.set(e, cd);
+    }
+  }
+
+  private travelEntity(e: ServerEntity, ent: [number, number, number]): boolean {
+    const s = this.s, from = s.level;
+    const toId = from.id === 'the_nether' ? 'overworld' : 'the_nether';
+    const to = s.levels.get(toId);
+    if (!to) return false;
+    const [tx, ty, tz] = scaledTarget(e.x, e.y, e.z, from.type.coordinateScale, to.type.coordinateScale);
+    const entState = from.world.getState(ent[0], ent[1], ent[2]);
+    const entryAxis: Axis = portalAxis(entState) ?? 'x';
+    const rel = relativePortalPosition(portalRectangle(from.world, ent[0], ent[1], ent[2]), entryAxis, e.x, e.y, e.z, e.width, e.height);
+    const exit = s.inLevel(to, () => this.findOrCreateExit(to, tx, ty, tz, toId === 'the_nether', entryAxis));
+    if (!exit) return false;
+    const exitAxis = portalAxis(to.world.getState(exit.x, exit.y, exit.z)) ?? 'x';
+    const a = portalArrival(exit, exitAxis, entryAxis, rel, e.width, e.height, e.yaw);
+    // leave this level (trackers forget it), join the other one where its trackers pick it up
+    from.entities.delete(e.id);
+    for (const p of from.players) if (p.tracking.delete(e.id)) s.send(p, { t: 'removeEntities', ids: [e.id] });
+    if (entryAxis !== exitAxis) [e.vx, e.vz] = [e.vz, -e.vx];
+    e.x = a.x;
+    e.y = a.y;
+    e.z = a.z;
+    e.yaw = a.yaw;
+    e.sentX = e.sentY = e.sentZ = NaN;
+    to.entities.set(e.id, e);
+    return true;
   }
 
   /** Teleport through the portal the player stands in (findDimensionEntryPoint + changeDimension). */

@@ -3,6 +3,7 @@ import { GameServer, type Connection } from './server';
 import { encodeC2S, decodeS2C, PROTOCOL_VERSION, type S2C } from '@shared/protocol/packets';
 import { stateOf, blockNameOf } from '@shared/world/blockstate';
 import { MemoryStorage } from '../storage/memory';
+import { ITEMS_BY_NAME } from '@shared/data';
 
 function client(server: GameServer, name: string) {
   const received: S2C[] = [];
@@ -120,5 +121,19 @@ describe('nether portals on the server', () => {
     a.send({ t: 'respawn' });
     expect(p.dimension).toBe('overworld');
     expect(a.received.filter((m) => m.t === 'dimension').at(-1)).toMatchObject({ dimension: 'overworld' });
+  });
+
+  it('items dropped into a portal travel to the nether', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true });
+    client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    const x = Math.floor(p.x) + 3, y = Math.floor(p.y) + 1, z = Math.floor(p.z);
+    buildFrame(server, x, y, z);
+    server.setBlock(x, y, z, stateOf('fire'));
+    server.popResource(x, y + 1, z, { id: ITEMS_BY_NAME.get('diamond')!.id, count: 1, damage: 0 });
+    for (let i = 0; i < 10; i++) server.tick();
+    const nether = server.levels.get('the_nether')!;
+    expect([...nether.entities.values()].some((e) => e.type === 'item')).toBe(true);
   });
 });
