@@ -82,11 +82,13 @@ export class RemotePlayer {
     this.lheadSteps = 1;
   }
 
-  swing(): void {
+  swingingArm: 'right' | 'left' = 'right';
+  swing(arm: 'right' | 'left' = 'right'): void {
     // LivingEntity.swing: restart if not swinging or past halfway
     if (!this.swinging || this.swingTime >= 3 || this.swingTime < 0) {
       this.swingTime = -1;
       this.swinging = true;
+      this.swingingArm = arm;
     }
   }
 

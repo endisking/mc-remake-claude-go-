@@ -33,6 +33,18 @@ export function widgets(): Tex {
       const border = slotX === 0 || slotX === 19 || y === 1 || y === 20;
       t.set(x, 80 + y, edge ? frame : border ? hex('#2e2e31') : mix(well, frame, 0.55));
     }
+  // offhand slot frames 29×24 (left variant at x=24, right at x=53): a single slot with a rim
+  for (const [ox, rimLeft] of [[24, true], [53, false]] as const) {
+    for (let y = 0; y < 24; y++)
+      for (let x = 0; x < 29; x++) {
+        // the 22-px tall slot box sits 1 px down, 22 px wide, on the side away from the hotbar
+        const bx = rimLeft ? x : x - 7, by = y - 1;
+        if (bx < 0 || bx >= 22 || by < 0 || by >= 22) continue;
+        const edge = bx === 0 || by === 0 || bx === 21 || by === 21;
+        const border = bx === 1 || by === 1 || bx === 20 || by === 20;
+        t.set(ox + x, 104 + y, edge ? frame : border ? hex('#2e2e31') : mix(well, frame, 0.55));
+      }
+  }
   // selection frame 24×24
   for (let y = 0; y < 24; y++)
     for (let x = 0; x < 24; x++) {

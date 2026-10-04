@@ -32,7 +32,7 @@ export interface InteractionHost {
   onDigSound(x: number, y: number, z: number, state: number): void;
   /** a block was placed by the local player (prediction) */
   onBlockPlaced(x: number, y: number, z: number, state: number): void;
-  swing(): void;
+  swing(hand?: 0 | 1): void;
   /** attack at nothing: swing and reset the attack strength (vanilla startAttack miss) */
   missSwing(): void;
 }
@@ -175,21 +175,41 @@ export class Interaction {
     return !!h && /_sword$/.test(itemNameOf(h.id));
   }
 
-  /** Use key: pressed (fresh) or held (repeats every 4 ticks). */
+  /** Use key: pressed (fresh) or held (repeats every 4 ticks). Tries the main hand, then the off hand. */
   use(pressed: boolean, held: boolean, target: BlockHit | null): void {
     if (this.rightClickDelay > 0) this.rightClickDelay--;
     if (!(pressed || (held && this.rightClickDelay === 0))) return;
     this.rightClickDelay = 4;
     if (!target || this.host.gameMode === 3) return;
-    const stack = this.inventory.selectedStack;
-    const block = stack ? blockForItem(stack.id) : null;
-    const { x, y, z, face } = target;
-    const hx = target.px - x, hy = target.py - y, hz = target.pz - z;
-    this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand: 0 });
-    if (!block || this.host.gameMode === 2) return;
-    this.host.swing();
-    // client-side prediction of the placement (server corrects with block updates)
+    for (const hand of [0, 1] as const) {
+      const slot = hand === 0 ? this.inventory.selected : 40;
+      const stack = this.inventory.get(slot);
+      const block = stack ? blockForItem(stack.id) : null;
+      const { x, y, z, face } = target;
+      const hx = target.px - x, hy = target.py - y, hz = target.pz - z;
+      if (!block) {
+        // an empty or non-placing main hand passes to the off hand (vanilla InteractionResult.PASS)
+        if (hand === 0) continue;
+        this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
+        return;
+      }
+      this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
+      if (this.host.gameMode === 2) return;
+      if (this.placeLocally(block, target, hx, hy, hz)) {
+        this.host.swing(hand);
+        if (this.host.gameMode === 0 && stack) {
+          stack.count--;
+          if (stack.count <= 0) this.inventory.set(slot, null);
+        }
+      }
+      return;
+    }
+  }
+
+  /** Client-side prediction of a placement (server corrects with block updates). */
+  private placeLocally(block: string, target: BlockHit, hx: number, hy: number, hz: number): boolean {
     const w = this.host.world;
+    const { x, y, z, face } = target;
     const clicked = w.getState(x, y, z);
     let px = x, py = y, pz = z;
     const slabMerge = block.endsWith('_slab') && blockNameOf(clicked) === block && getProp(clicked, 'type') !== 'double' &&
@@ -199,11 +219,11 @@ export class Interaction {
       py += DY[face]!;
       pz += DZ[face]!;
     }
-    if (py < 0 || py > 255) return;
+    if (py < 0 || py > 255) return false;
     const existing = w.getState(px, py, pz);
-    if (!(isReplaceable(existing, block) || (block.endsWith('_slab') && blockNameOf(existing) === block))) return;
+    if (!(isReplaceable(existing, block) || (block.endsWith('_slab') && blockNameOf(existing) === block))) return false;
     const state = stateForPlacement(block, { world: w, x: px, y: py, z: pz, face, hx, hy, hz, yaw: this.host.yaw, pitch: this.host.pitch, sneaking: this.host.player.shiftDown }, existing);
-    if (state === null || !canSurvive(w, px, py, pz, state)) return;
+    if (state === null || !canSurvive(w, px, py, pz, state)) return false;
     w.setStateRaw(px, py, pz, state);
     w.markBlockDirty(px, py, pz);
     this.host.onBlockPlaced(px, py, pz, state);
@@ -211,10 +231,17 @@ export class Interaction {
       w.setStateRaw(px + e.dx, py + e.dy, pz + e.dz, e.state);
       w.markBlockDirty(px + e.dx, py + e.dy, pz + e.dz);
     }
-    if (this.host.gameMode === 0 && stack) {
-      stack.count--;
-      if (stack.count <= 0) this.inventory.set(this.inventory.selected, null);
-    }
+    return true;
+  }
+
+  /** F: swap main hand and off hand (predicted). */
+  swapOffhand(): void {
+    if (this.host.gameMode === 3) return;
+    const inv = this.inventory;
+    const main = inv.get(inv.selected);
+    inv.set(inv.selected, inv.get(40));
+    inv.set(40, main);
+    this.host.send({ t: 'swapOffhand' });
   }
 
   pickBlock(target: BlockHit | null): void {

@@ -98,6 +98,8 @@ const C2S_SCHEMA = {
   dropItem: [['all', 'bool']],
   /** Middle click in creative: put the block's item in the hotbar (vanilla pick block). */
   pickBlock: [['x', 'i32'], ['y', 'i16'], ['z', 'i32']],
+  /** F: swap the selected hotbar item with the off hand (vanilla PlayerAction SWAP_ITEM_WITH_OFFHAND). */
+  swapOffhand: [],
   /** Death screen "Respawn" (vanilla ClientCommand PERFORM_RESPAWN). */
   respawn: [],
 } as const satisfies Schema;

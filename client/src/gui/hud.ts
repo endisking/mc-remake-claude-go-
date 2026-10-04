@@ -109,6 +109,12 @@ export class Hud {
     const inv = p.inventory;
     g.blit(g.widgets, 0, 80, 182, 22, mid - 91, g.height - 22);
     g.blit(g.widgets, 0, 104, 24, 22, mid - 91 - 1 + inv.selected * 20, g.height - 22 - 1);
+    // off hand slot (left of the hotbar for a right-handed player)
+    const off = inv.get(40);
+    if (off) {
+      g.blit(g.widgets, 24, 104, 29, 24, mid - 91 - 29, g.height - 23);
+      item(off.id, off.count, mid - 91 - 26, g.height - 16 - 3);
+    }
     for (let i = 0; i < 9; i++) {
       const st = inv.get(i);
       if (st) item(st.id, st.count, mid - 90 + i * 20 + 2, g.height - 16 - 3);

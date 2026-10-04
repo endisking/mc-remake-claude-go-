@@ -32,6 +32,8 @@ export interface HandFrame {
   bob: Mat4 | null;
   /** world-space → view-space rotation, to bring the level lights into view space */
   viewRot: Mat4;
+  /** off hand item (vanilla renders it only when not empty) */
+  off: { stack: ItemStack | null; blockState: number | null; swing: number; equip: number } | null;
   /** draw the hand/item (false: only screen effects) */
   showHand: boolean;
   /** burning overlay */
@@ -235,17 +237,23 @@ export class HandRenderer {
   }
 
   private renderHand(f: HandFrame, lightmap: WebGLTexture): void {
-    const gl = this.gl;
     // level lights in view space
     rotateDir(this.l0, f.viewRot, LIGHT0);
     rotateDir(this.l1, f.viewRot, LIGHT1);
+    // renderHandsWithItems: main hand (an empty one shows the arm), then the off hand item
+    this.renderArm(f, 1, f.stack, f.blockState, f.swing, f.equip, lightmap);
+    if (f.off?.stack) this.renderArm(f, -1, f.off.stack, f.off.blockState, f.off.swing, f.off.equip, lightmap);
+  }
 
+  /** One hand (side 1 = right/main, −1 = left/off): the bare arm or the held item. */
+  private renderArm(f: HandFrame, side: 1 | -1, stack: ItemStack | null, blockState: number | null, sp: number, eq: number, lightmap: WebGLTexture): void {
+    const gl = this.gl;
     const ps = this.ps.reset();
-    // renderHandsWithItems: sway toward where the view is going
+    // sway toward where the view is going
     ps.rotX((f.pitch - f.xBob) * 0.1);
     ps.rotY((f.yaw - f.yBob) * 0.1);
-    const sp = f.swing, eq = f.equip, side = 1;
-    if (!f.stack) {
+    if (!stack) {
+      if (side !== 1) return;
       // renderPlayerArm
       const f1 = Math.sqrt(sp);
       const f2 = -0.3 * Math.sin(f1 * Math.PI);
@@ -265,7 +273,7 @@ export class HandRenderer {
       this.entities.renderFirstPersonArm(this.proj, ps.last, f.skinName, f.light, lightmap, this.l0, this.l1);
       return;
     }
-    if (f.blockState === null) return; // non-block items have no model yet
+    if (blockState === null) return; // non-block items have no model yet
     // renderArmWithItem (not using the item)
     const f5 = -0.4 * Math.sin(Math.sqrt(sp) * Math.PI);
     const f6 = 0.2 * Math.sin(Math.sqrt(sp) * Math.PI * 2);
@@ -280,18 +288,18 @@ export class HandRenderer {
     ps.rotZ(side * b * -20);
     ps.rotX(b * -80);
     ps.rotY(side * -45);
-    // display transform firstperson_righthand (translation in px), then the model is centred
-    if (this.items.isFlat(f.blockState)) {
-      ps.translate(1.13 / 16, 3.2 / 16, 1.13 / 16);
-      ps.rotY(-90).rotZ(25);
+    // display transform firstperson_right/lefthand (ItemTransform.apply mirrors y/z rotation and x for the left)
+    if (this.items.isFlat(blockState)) {
+      ps.translate((side * 1.13) / 16, 3.2 / 16, 1.13 / 16);
+      ps.rotY(side * -90).rotZ(side * 25);
       ps.scale(0.68, 0.68, 0.68);
     } else {
-      ps.rotY(45);
+      ps.rotY(side === 1 ? 45 : -225);
       ps.scale(0.4, 0.4, 0.4);
     }
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
-    this.items.draw(f.blockState, this.proj, ps.last, f.light, lightmap, undefined, false, [this.l0, this.l1]);
+    this.items.draw(blockState, this.proj, ps.last, f.light, lightmap, undefined, false, [this.l0, this.l1]);
   }
 }
 

@@ -106,6 +106,9 @@ export class Game implements ScreenHost {
   private mainHandHeight = 0;
   private oMainHandHeight = 0;
   private handItem: { id: number; count: number; damage: number } | null = null;
+  private offHandHeight = 0;
+  private oOffHandHeight = 0;
+  private offHandItem: { id: number; count: number; damage: number } | null = null;
   attackStrengthTicker = 0;
   particles!: ParticleEngine;
   blockItems!: BlockItemRenderer;
@@ -342,7 +345,7 @@ export class Game implements ScreenHost {
         const t = soundTypeOf(st);
         this.playAt(t.place, 'block', x + 0.5, y + 0.5, z + 0.5, (t.volume + 1) / 2, t.pitch * 0.8);
       },
-      swing: () => this.swingArm(),
+      swing: (hand) => this.swingArm(hand ?? 0),
       missSwing: () => {
         this.swingArm();
         this.resetAttackStrength();
@@ -486,7 +489,7 @@ export class Game implements ScreenHost {
         break;
       }
       case 'animate':
-        if (p.action === 0 || p.action === 3) this.players.get(p.id)?.swing();
+        if (p.action === 0 || p.action === 3) this.players.get(p.id)?.swing(p.action === 3 ? 'left' : 'right');
         else if (p.action === 1) {
           const rp = this.players.get(p.id);
           if (rp) rp.hurtTime = 10;
@@ -766,6 +769,7 @@ export class Game implements ScreenHost {
       if (b.consume('pickItem')) ia.pickBlock(this.target);
       for (let d = 1; d <= 9; d++) if (b.consume(`hotbar.${d}`)) ia.select(d - 1);
       // vanilla: Ctrl (Screen.hasControlDown) + drop throws the whole stack
+      if (b.consume('swapOffhand')) ia.swapOffhand();
       if (b.consume('drop')) ia.drop(i.isDown('ControlLeft') || i.isDown('ControlRight') || i.isDown('MetaLeft'));
     }
     if (this.loggedIn) {
@@ -872,13 +876,17 @@ export class Game implements ScreenHost {
   private swinging = false;
   private attackAnim = 0;
   private attackAnimO = 0;
-  swingArm(): void {
+  /** Hand that is swinging (LivingEntity.swingingArm). */
+  private swingingHand: 0 | 1 = 0;
+  swingArm(hand: 0 | 1 = 0): void {
     if (!this.swinging || this.swingTime >= 3 || this.swingTime < 0) {
       this.swingTime = -1;
       this.swinging = true;
-      if (this.loggedIn) this.send({ t: 'swing', hand: 0 });
-      this.selfModel?.swing();
+      this.swingingHand = hand;
+      this.selfModel?.swing(hand === 1 ? 'left' : 'right');
     }
+    // LocalPlayer.swing always tells the server
+    if (this.loggedIn) this.send({ t: 'swing', hand });
   }
   private swingTick(): void {
     this.attackAnimO = this.attackAnim;
@@ -1130,6 +1138,14 @@ export class Game implements ScreenHost {
     const same = this.handItem === cur;
     this.mainHandHeight += Math.max(-0.4, Math.min(0.4, (same ? f * f * f : 0) - this.mainHandHeight));
     if (this.mainHandHeight < 0.1) this.handItem = cur;
+    // off hand: no attack-strength dip (ItemInHandRenderer.tick)
+    this.oOffHandHeight = this.offHandHeight;
+    const off = this.interaction.inventory.get(40);
+    const ho = this.offHandItem;
+    const offMatches = (!ho && !off) || (!!ho && !!off && ho.id === off.id && ho.count === off.count && ho.damage === off.damage);
+    if (offMatches) this.offHandItem = off;
+    this.offHandHeight += Math.max(-0.4, Math.min(0.4, (this.offHandItem === off ? 1 : 0) - this.offHandHeight));
+    if (this.offHandHeight < 0.1) this.offHandItem = off;
   }
 
   /** Called by a swing at nothing (vanilla startAttack on a miss). */
@@ -1233,11 +1249,22 @@ export class Game implements ScreenHost {
     const st = this.handItem;
     const block = st ? blockForItem(st.id) : null;
     const sw = this.attackAnim - this.attackAnimO;
+    const swingNow = this.attackAnimO + (sw < 0 ? sw + 1 : sw) * partial;
+    const offSt = this.offHandItem;
+    const offBlock = offSt ? blockForItem(offSt.id) : null;
     const eyeX = Math.floor(this.x), eyeY = Math.floor(this.y), eyeZ = Math.floor(this.z);
     this.hand.render({
       stack: st,
       blockState: block ? BLOCKS_BY_NAME.get(block)!.defaultState : null,
-      swing: this.attackAnimO + (sw < 0 ? sw + 1 : sw) * partial,
+      swing: this.swingingHand === 0 ? swingNow : 0,
+      off: offSt
+        ? {
+            stack: offSt,
+            blockState: offBlock ? BLOCKS_BY_NAME.get(offBlock)!.defaultState : null,
+            swing: this.swingingHand === 1 ? swingNow : 0,
+            equip: 1 - (this.oOffHandHeight + (this.offHandHeight - this.oOffHandHeight) * partial),
+          }
+        : null,
       equip: 1 - (this.oMainHandHeight + (this.mainHandHeight - this.oMainHandHeight) * partial),
       pitch: this.pitch,
       yaw: this.yaw,

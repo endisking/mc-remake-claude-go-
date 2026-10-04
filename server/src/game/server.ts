@@ -421,7 +421,8 @@ export class GameServer {
   private handleUseOn(p: ServerPlayer, m: Extract<C2S, { t: 'useOn' }>): void {
     const { x, y, z, face } = m;
     if (!this.inReach(p, x, y, z) || p.gameMode === 3) return this.resendBlock(p, x, y, z);
-    const held = p.inventory.selectedStack;
+    const slot = m.hand === 1 ? 40 : p.inventory.selected;
+    const held = p.inventory.get(slot);
     const block = held ? blockForItem(held.id) : null;
     if (!held || !block || p.gameMode === 2) return;
     const clicked = this.world.getState(x, y, z);
@@ -459,8 +460,8 @@ export class GameServer {
     this.playSound(p, st.place, 'block', px + 0.5, py + 0.5, pz + 0.5, (st.volume + 1) / 2, st.pitch * 0.8);
     if (p.gameMode !== 1) {
       held.count--;
-      if (held.count <= 0) p.inventory.set(p.inventory.selected, null);
-      this.syncSlot(p, p.inventory.selected);
+      if (held.count <= 0) p.inventory.set(slot, null);
+      this.syncSlot(p, slot);
     }
   }
 
@@ -700,6 +701,16 @@ export class GameServer {
       case 'heldSlot':
         if (m.slot >= 0 && m.slot < 9) p.inventory.selected = m.slot;
         break;
+      case 'swapOffhand': {
+        if (p.gameMode === 3) break;
+        const inv = p.inventory;
+        const main = inv.get(inv.selected);
+        inv.set(inv.selected, inv.get(40));
+        inv.set(40, main);
+        this.syncSlot(p, inv.selected);
+        this.syncSlot(p, 40);
+        break;
+      }
       case 'creativeSlot':
         if (p.gameMode === 1 && m.slot >= 0 && m.slot < 41) {
           p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: 0 } : null);

@@ -47,6 +47,8 @@ export interface HumanoidAnim {
   crouching: boolean;
   /** 0..1 progress of the arm swing (attack/use) */
   attackTime: number;
+  /** which arm swings (the off hand swings the left arm for a right-handed player) */
+  attackArm?: 'right' | 'left';
   swimAmount: number;
 }
 
@@ -66,7 +68,9 @@ export function animateHumanoid(p: Record<string, PartPose>, a: HumanoidAnim): v
   // attack / use swing (HumanoidModel.setupAttackAnimation, right arm)
   if (a.attackTime > 0) {
     let f = a.attackTime;
+    const left = a.attackArm === 'left';
     body.yRot = -Math.sin(Math.sqrt(f) * Math.PI * 2) * 0.2;
+    if (left) body.yRot *= -1;
     rightArm.z = Math.sin(body.yRot) * 5;
     rightArm.x = -Math.cos(body.yRot) * 5;
     leftArm.z = -Math.sin(body.yRot) * 5;
@@ -80,9 +84,10 @@ export function animateHumanoid(p: Record<string, PartPose>, a: HumanoidAnim): v
     f = 1 - f;
     const f2 = Math.sin(f * Math.PI);
     const f3 = Math.sin(a.attackTime * Math.PI) * -(head.xRot - 0.7) * 0.75;
-    rightArm.xRot -= f2 * 1.2 + f3;
-    rightArm.yRot += body.yRot * 2;
-    rightArm.zRot += Math.sin(a.attackTime * Math.PI) * -0.4;
+    const arm = left ? leftArm : rightArm;
+    arm.xRot -= f2 * 1.2 + f3;
+    arm.yRot += body.yRot * 2;
+    arm.zRot += Math.sin(a.attackTime * Math.PI) * -0.4;
   }
   // crouching: lean forward, lower the head, pull the legs back
   if (a.crouching) {

@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 121 / 4140**
+**Progress: 122 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -141,7 +141,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Rebindable keys <!--p2:rebindable_keys-->
 - [x] Scroll / number-key hotbar selection <!--p2:scroll_number_key_hotbar_selection-->
 - [x] Q drop / Ctrl+Q drop stack <!--p2:q_drop_ctrl_q_drop_stack-->
-- [ ] F swap offhand <!--p2:f_swap_offhand-->
+- [x] F swap offhand <!--p2:f_swap_offhand-->
 - [x] Middle-click pick block <!--p2:middle_click_pick_block-->
 - [x] Hurt camera tilt and red flash <!--p2:hurt_camera_tilt_and_red_flash-->
 - [x] Hunger HUD shake <!--p2:hunger_hud_shake-->

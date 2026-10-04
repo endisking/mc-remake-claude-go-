@@ -108,4 +108,14 @@ console.log('dropped item', it);
 await page.waitForTimeout(300);
 await shot('dropped');
 console.log(await state());
+// off hand: torch to the off hand with F, hold planks in the main hand
+await key(page, 'Digit4');
+await page.waitForTimeout(100);
+await key(page, 'KeyF');
+await page.waitForTimeout(150);
+await key(page, 'Digit2');
+await page.evaluate(() => ((window as any).game.pitch = 10));
+await page.waitForTimeout(600);
+console.log('offhand', await page.evaluate(() => (window as any).game.interaction.inventory.get(40)));
+await shot('offhand');
 await browser.close();

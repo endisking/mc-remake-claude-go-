@@ -177,6 +177,7 @@ export class EntityRenderer {
         headPitch: p.pitchO + (p.pitch - p.pitchO) * partial,
         crouching: p.crouching,
         attackTime: p.attackAnimO + (p.attackAnim - p.attackAnimO) * partial,
+        attackArm: p.swingingArm,
         swimAmount: 0,
       });
       // entity base transform: translate, rotate by body yaw (yaw 0 faces +Z), scale px → blocks
