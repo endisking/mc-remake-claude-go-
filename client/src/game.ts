@@ -55,7 +55,7 @@ import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
 import { isViewBlocking, hasMenuProvider } from '@shared/world/blockprops';
 import { JavaRandom } from '@shared/util/random';
-import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
+import { EntityRenderer, recycleHeld, heldItemTransform } from './render/entities/entityrenderer';
 import { MobRenderer } from './render/entities/mobrenderer';
 import { ClientMobs, isMobType, type ClientMob } from './world/mobs';
 import type { Screen } from './gui/screen';
@@ -382,6 +382,14 @@ export class Game implements ScreenHost {
     await this.entityRenderer.loadSkins();
     this.mobRenderer = new MobRenderer(this.gl);
     await this.mobRenderer.load();
+    // items in mobs' hands join the players' held-item queue (drawn after the entities)
+    this.mobRenderer.onHeld = (arm, light, item, left) => {
+      const info = this.entityRenderer.itemModel(item);
+      if (!info) return;
+      const out = mat4();
+      multiply(out, arm, heldItemTransform(left, info.flat));
+      this.entityRenderer.held.push({ matrix: out, light, item, left });
+    };
     const mainBake = bakeBlockModels(this.manifest, this.settings.graphics === 'fancy');
     this.bake = mainBake.bake;
     this.particles = new ParticleEngine(this.gl, this.world);

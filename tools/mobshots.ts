@@ -5,13 +5,14 @@
  */
 import { chromium, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
+import { ITEMS_BY_NAME } from '../shared/src/data/index';
 
 const base = process.argv[2] ?? 'http://localhost:5173/';
 const filter = process.argv[3] ?? '';
 const out = new URL('./bench/out/mobs/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true });
 
-interface MobSpec { type: string; x: number; z: number; yaw?: number; data?: Record<string, number>; walk?: boolean; flags?: number; hurt?: boolean; die?: number; name?: string }
+interface MobSpec { type: string; x: number; z: number; yaw?: number; data?: Record<string, number>; walk?: boolean; flags?: number; hurt?: boolean; die?: number; name?: string; hold?: number }
 interface Shot { cam: string; mobs: MobSpec[]; wait?: number; y?: number }
 
 const A = ['zombie', 'skeleton', 'creeper', 'spider'];
@@ -57,6 +58,9 @@ const SHOTS: Record<string, Shot> = {
   f_front: { cam: NEAR, mobs: row(['creeper', 'glow_squid', 'wolf', 'villager']).map((m, i) => ({ ...m, data: ([{ charged: 1 }, {}, {}, { baby: 1 }] as Record<string, number>[])[i] })) },
   g_front: { cam: FAR, mobs: row(['iron_golem', 'wolf', 'wolf', 'phantom', 'pillager', 'vindicator', 'evoker', 'mooshroom'], { yaw: 160 }).map((m, i) => ({ ...m, data: ([{}, {}, { sitting: 1, tame: 1 }, {}, {}, { aggressive: 1 }, {}, {}] as Record<string, number>[])[i] })) },
   g_walk: { cam: FAR, mobs: row(['iron_golem', 'wolf', 'pillager', 'vindicator', 'mooshroom', 'phantom', 'wolf', 'evoker'], { yaw: 110, walk: true }).map((m, i) => ({ ...m, data: ([{}, {}, { aggressive: 1 }, {}, {}, {}, { baby: 1 }, { aggressive: 1 }] as Record<string, number>[])[i] })), wait: 1100 },
+  held: { cam: NEAR, mobs: row(['zombie', 'skeleton', 'zombie', 'husk']).map((m, i) => ({ ...m, yaw: 150, hold: [ITEMS_BY_NAME.get('torch')!.id, 0, ITEMS_BY_NAME.get('oak_planks')!.id, ITEMS_BY_NAME.get('glass')!.id][i] })) },
+  heldclose: { cam: 'x=24.2&y=200&z=1.8&lookat=24.2,200.8,4.5&fov=65', mobs: [{ type: 'zombie', x: 24.2, z: 4.5, yaw: 180, hold: ITEMS_BY_NAME.get('oak_planks')!.id }] },
+  heldtop: { cam: 'x=26.2&y=201.5&z=4.5&lookat=24.2,201,4.5&fov=65', mobs: [{ type: 'zombie', x: 24.2, z: 4.5, yaw: 180, hold: ITEMS_BY_NAME.get('oak_planks')!.id }] },
   night: { cam: NEAR + '&time=18000', mobs: row(['spider', 'enderman', 'zombie', 'cave_spider']) },
 };
 
@@ -75,6 +79,7 @@ async function spawn(page: Page, mobs: MobSpec[]): Promise<void> {
       h({ t: 'entityMove', id: eid, x: s.x, y: Y, z: s.z, yaw, pitch: 0, headYaw: yaw, onGround: true });
       for (const [key, value] of Object.entries(s.data ?? {})) h({ t: 'mobData', id: eid, key, value });
       if (s.name) h({ t: 'mobName', id: eid, name: s.name });
+      if (s.hold) h({ t: 'equipment', id: eid, mainHand: s.hold, offHand: 0 });
       if (s.flags) h({ t: 'entityState', id: eid, flags: s.flags, pose: 'standing', frozen: 0 });
       if (s.hurt) {
         h({ t: 'entityEvent', id: eid, event: 2 });

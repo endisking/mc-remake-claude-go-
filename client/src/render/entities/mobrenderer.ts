@@ -9,6 +9,7 @@ import { createProgram, Uniforms } from '../gl';
 import { mat4, multiply, type Mat4 } from '../math';
 import { FLOATS_PER_VERTEX } from './model';
 import { LIGHT0, LIGHT1 } from './entityrenderer';
+import { ITEMS_BY_NAME } from '@shared/data';
 import { MOB_MODELS, MOB_RENDER, MOB_TEXTURES, MOB_SCROLLING, bakeMobModel, createPoses, type BakedMobModel, type MobAnim, type MobModelDef, type Poses, type VPose } from './mobmodels';
 import type { ClientMob } from '../../world/mobs';
 import type { ClientWorld } from '../../world/clientworld';
@@ -141,6 +142,12 @@ export class MobRenderer {
   target: number | null = null;
   /** name tags are hidden with the HUD (F1) */
   names = true;
+  /**
+   * Receives a held item to draw (ItemInHandLayer): the arm's camera-relative matrix in
+   * y-up / +Z-front model space (as the player renderer produces), light, item id, hand.
+   */
+  onHeld: ((arm: Mat4, light: number, item: number, left: boolean) => void) | null = null;
+  private readonly armTmp = mat4();
   /** Entity Shadows video option */
   shadows = true;
 
@@ -482,6 +489,7 @@ export class MobRenderer {
         gl.depthMask(true);
       }
       if (layer.scroll) gl.uniform4f(this.u.get('uUVRect'), 0, 0, 1, 1);
+      if (layer === rdef.layers[0] && this.onHeld) this.emitHeld(m, gm, poses, light);
     }
   }
 
@@ -566,6 +574,20 @@ export class MobRenderer {
     gl.uniform4f(this.u.get('uUVRect'), 0, 0, 1, 1);
     gl.uniform1f(this.u.get('uNoShade'), 0);
     gl.enable(gl.CULL_FACE);
+  }
+
+  /** ItemInHandLayer for humanoid mobs: the main-hand item at the right arm. */
+  private emitHeld(m: ClientMob, gm: GpuModel, poses: Poses, light: number): void {
+    let item = m.mainHand;
+    if (item < 0) item = DEFAULT_HELD.get(m.type) ?? 0;
+    if (item <= 0 || m.deathTime > 0) return;
+    const idx = gm.baked.parts.findIndex((p) => p.def.name === 'right_arm');
+    if (idx < 0 || !poses.right_arm!.visible) return;
+    // our-space arm matrix = (vanilla-space arm matrix) · diag(1, −1, −1)
+    const a = this.armTmp;
+    a.set(this.mats[idx]!);
+    for (let i = 4; i < 12; i++) a[i] = -a[i]!;
+    this.onHeld!(a, light, item, false);
   }
 
   private nameTexture(name: string): { tex: WebGLTexture; w: number; h: number; used: number } | null {
@@ -725,6 +747,12 @@ export class MobRenderer {
     gl.enable(gl.CULL_FACE);
   }
 }
+
+/** Items mobs spawn holding (FinalizeSpawn equipment) until the server says otherwise. */
+const DEFAULT_HELD = new Map<string, number>(
+  ([['skeleton', 'bow'], ['stray', 'bow'], ['wither_skeleton', 'stone_sword'], ['pillager', 'crossbow'], ['vindicator', 'iron_axe']] as const)
+    .map(([t, i]) => [t, ITEMS_BY_NAME.get(i)?.id ?? 0]),
+);
 
 function shadowVertex(v: Float32Array, o: number, x: number, y: number, z: number, u: number, vv: number, a: number): number {
   v[o] = x;
