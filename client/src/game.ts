@@ -423,6 +423,23 @@ export class Game implements ScreenHost, ContainerHost {
     }
   }
 
+  private pairingHost: import('./net/pairing').PairingHost | null = null;
+
+  /** Offline LAN: friends on the same Wi-Fi join by scanning QR codes (no relay, no internet). */
+  startOfflineLan(): void {
+    if (!this.integrated) return;
+    void Promise.all([import('./net/pairing'), import('./gui/pairui')]).then(([{ PairingHost }, { showHostPairing }]) => {
+      if (!this.pairingHost) {
+        this.pairingHost = new PairingHost(this.integrated!);
+        this.pairingHost.onStatus = (msg) => {
+          this.lanStatus = msg;
+          console.info('[LAN offline]', msg);
+        };
+      }
+      showHostPairing(this.pairingHost, () => {});
+    });
+  }
+
   /** Open the integrated world to other players (WebRTC); returns the room code. */
   async openToLan(code?: string): Promise<string | null> {
     if (!this.integrated) return null;
@@ -642,7 +659,16 @@ export class Game implements ScreenHost, ContainerHost {
       const { WebSocketTransport, playUrl } = await import('./net/websocket');
       this.connect(new WebSocketTransport(playUrl(q.get('server')!, q.get('room') ?? 'default')));
     } else {
-      if (q.has('join')) {
+      if (q.has('pair')) {
+        // offline LAN guest: pair with the host by scanning codes; cancelling goes back to the launcher
+        const { pairAsGuest } = await import('./gui/pairui');
+        try {
+          this.connect(await pairAsGuest());
+        } catch {
+          location.href = location.pathname;
+          return;
+        }
+      } else if (q.has('join')) {
         // LAN guest: join a browser-hosted world by room code
         const { LanGuestTransport, signalingUrl } = await import('./net/lan');
         this.connect(new LanGuestTransport(q.get('join')!, signalingUrl(q.get('signal'))));

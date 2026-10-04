@@ -17,6 +17,8 @@ export interface ScreenHost {
   /** single-player only: whether the world can be opened to LAN */
   readonly canOpenToLan?: boolean;
   openToLan?(): Promise<string | null>;
+  /** offline LAN: invite friends by QR code, no network services needed (net/pairing.ts) */
+  startOfflineLan?(): void;
   lanStatus?: string;
   lanHost?: { readonly code: string; readonly signal: string } | null;
 }
@@ -31,11 +33,14 @@ export class OpenToLanScreen extends Screen {
   }
   init(): void {
     const cx = Math.floor(this.gui.width / 2), by = this.gui.height - 28;
+    const offline = new Button(cx - 155, by - 24, 310, 20, 'Play Offline (scan codes, no internet)', () => this.host.startOfflineLan?.());
+    offline.active = !!this.host.startOfflineLan;
     if (this.host.lanHost) {
-      this.widgets = [new Button(cx - 100, by, 200, 20, 'Done', () => this.host.setScreen(this.parent))];
+      this.widgets = [offline, new Button(cx - 100, by, 200, 20, 'Done', () => this.host.setScreen(this.parent))];
       return;
     }
     this.widgets = [
+      offline,
       new Button(cx - 155, by, 150, 20, 'Start LAN World', (b) => {
         if (this.starting) return;
         this.starting = true;
@@ -52,6 +57,7 @@ export class OpenToLanScreen extends Screen {
     const ip = this.info?.addresses[0];
     if (!lan) {
       out.push('Other players can join your world through a room code.');
+      out.push('No internet? Use Play Offline: friends on the same Wi-Fi scan codes.');
       if (ip) out.push(`Your LAN address: ${ip}:${this.info!.port}`);
       return out;
     }

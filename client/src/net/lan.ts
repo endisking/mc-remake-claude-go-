@@ -55,6 +55,34 @@ export function randomRoomCode(): string {
 /** Max bytes queued on a data channel before we wait (keeps memory bounded). */
 const HIGH_WATER = 4 * 1024 * 1024;
 
+/**
+ * Host side of one guest's data channel: once open, the guest becomes a remote connection of the
+ * integrated server. Sends wait in a backlog while the channel's buffer is full.
+ */
+export function serveDataChannel(server: IntegratedServer, ch: RTCDataChannel, onJoined: (close: () => void) => void): void {
+  ch.binaryType = 'arraybuffer';
+  ch.bufferedAmountLowThreshold = HIGH_WATER / 4;
+  const backlog: ArrayBuffer[] = [];
+  const flush = () => {
+    while (backlog.length && ch.bufferedAmount < HIGH_WATER) ch.send(backlog.shift()!);
+  };
+  ch.onbufferedamountlow = flush;
+  ch.onopen = () => {
+    const link = server.addRemote(
+      (data) => {
+        if (ch.readyState !== 'open') return;
+        if (backlog.length || ch.bufferedAmount >= HIGH_WATER) backlog.push(data);
+        else ch.send(data);
+      },
+      () => ch.close(),
+    );
+    ch.onmessage = (e) => {
+      if (e.data instanceof ArrayBuffer) link.receive(e.data);
+    };
+    onJoined(link.close);
+  };
+}
+
 export class LanHost {
   private ws: WebSocket;
   private peers = new Map<number, { pc: RTCPeerConnection; close?: () => void }>();
@@ -94,29 +122,11 @@ export class LanHost {
       if (e.candidate) this.ws.send(JSON.stringify({ type: 'signal', to: id, data: { ice: e.candidate.toJSON() } }));
     };
     const ch = pc.createDataChannel('game', { ordered: true });
-    ch.binaryType = 'arraybuffer';
-    ch.bufferedAmountLowThreshold = HIGH_WATER / 4;
-    const backlog: ArrayBuffer[] = [];
-    const flush = () => {
-      while (backlog.length && ch.bufferedAmount < HIGH_WATER) ch.send(backlog.shift()!);
-    };
-    ch.onbufferedamountlow = flush;
-    ch.onopen = () => {
+    serveDataChannel(this.server, ch, (close) => {
+      entry.close = close;
       this.guests++;
-      const link = this.server.addRemote(
-        (data) => {
-          if (ch.readyState !== 'open') return;
-          if (backlog.length || ch.bufferedAmount >= HIGH_WATER) backlog.push(data);
-          else ch.send(data);
-        },
-        () => ch.close(),
-      );
-      entry.close = link.close;
-      ch.onmessage = (e) => {
-        if (e.data instanceof ArrayBuffer) link.receive(e.data);
-      };
       this.onStatus?.(`A player joined (${this.guests} connected)`);
-    };
+    });
     ch.onclose = () => this.dropGuest(id);
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);

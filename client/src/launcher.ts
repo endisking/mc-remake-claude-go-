@@ -163,7 +163,9 @@ export function showLauncher(): void {
       <div><label for="l-signal">Signaling server (optional)</label><input id="l-signal" placeholder="host's IP, or wss://relay"></div>
     </div>
     <button id="l-lan">Join LAN Game</button>
+    <button id="l-pair">Join Offline (scan code, no internet)</button>
   </fieldset>
+  <div class="note" id="l-offline" hidden>Ready to play offline. To open Blockcraft without internet, install it from the browser menu (Install Blockcraft / Add to Home Screen) or bookmark this page.</div>
   <div class="note">Worlds are saved in this browser. Export them to back them up or move them to another computer.</div>
 </div>
 <div class="modal" id="l-confirm"><div class="box panel">
@@ -361,6 +363,9 @@ export function showLauncher(): void {
     const server = $<HTMLInputElement>('l-server').value.trim();
     if (server) go({ server, room: $<HTMLInputElement>('l-room').value.trim() || 'default' });
   };
+  $('l-pair').onclick = () => go({ pair: '1' });
+  // the offline cache (main.ts) is only registered on web hosting, so the desktop app never shows this
+  void navigator.serviceWorker?.ready.then(() => ($('l-offline').hidden = false));
   $('l-lan').onclick = () => {
     const join = $<HTMLInputElement>('l-join').value.trim();
     if (join) go({ join });
