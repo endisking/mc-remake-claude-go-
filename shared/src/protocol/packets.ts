@@ -121,7 +121,23 @@ const S2C_SCHEMA = {
   effectCloud: [['id', 'i32'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['radius', 'f32'], ['color', 'i32']],
   /** Item NBT of an item entity (enchantment glint, potion colour); JSON of ItemTag. */
   itemEntityTag: [['id', 'i32'], ['tag', 'str']],
+  // ---- mobs (Phase 6) ----
+  /**
+   * Per-mob synced state (vanilla SynchedEntityData subset), one key at a time. Keys (see
+   * MOB_DATA_KEYS): color (sheep DyeColor id 0–15), sheared, baby, swell_dir (creeper −1/1),
+   * charged, aggressive (zombie arms up / skeleton aiming / enderman creepy), saddle, size
+   * (slime), carried (enderman block state), hanging (bat resting), bow (skeleton holds a bow),
+   * name_visible (custom name always shown), sitting / tame / health (wolf pose and tail).
+   */
+  mobData: [['id', 'i32'], ['key', 'str'], ['value', 'i32']],
+  /** A mob's custom name (name tag); empty clears it. Shown when looked at, or always with mobData name_visible = 1. */
+  mobName: [['id', 'i32'], ['name', 'str']],
+  /** Explosion at a point (vanilla ClientboundExplodePacket without the block list): particles; power ≥ 2 and destroy = big emitter. */
+  explode: [['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['power', 'f32'], ['destroy', 'bool']],
 } as const satisfies Schema;
+
+/** Keys of the mobData packet (client: client/src/world/mobs.ts). */
+export const MOB_DATA_KEYS = ['color', 'sheared', 'baby', 'swell_dir', 'charged', 'aggressive', 'saddle', 'size', 'carried', 'hanging', 'bow', 'name_visible', 'sitting', 'tame', 'health'] as const;
 
 // ------------------------------------------------------------------ client → server
 const C2S_SCHEMA = {
@@ -171,6 +187,9 @@ const C2S_SCHEMA = {
   keepAlive: [['id', 'f64']],
   /** Creative inventory: NBT for a slot just set with creativeSlot (slot −1: the next thrown stack); Phase 7. */
   creativeSlotTag: [['slot', 'i16'], ['tag', 'str']],
+  // ---- mobs
+  /** Right-click an entity (vanilla Interact INTERACT): breeding food, shears, buckets, saddles, flint and steel, bones. */
+  interactEntity: [['id', 'i32'], ['hand', 'u8']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;

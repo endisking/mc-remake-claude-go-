@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { GameServer, type Connection } from './server';
+import { ItemEntity } from './entity';
 import { encodeC2S, decodeS2C, PROTOCOL_VERSION, type S2C } from '@shared/protocol/packets';
 import { stateOf, getProp, blockNameOf } from '@shared/world/blockstate';
 import { ITEMS_BY_NAME } from '@shared/data';
@@ -318,7 +319,9 @@ describe('survival', () => {
     const died = a.received.find((m) => m.t === 'playerDied') as Extract<S2C, { t: 'playerDied' }>;
     expect(died.message).toBe('A fell out of the world');
     expect(p.inventory.get(0)).toBeNull();
-    expect([...server.entities.values()].length).toBe(1);
+    // the dropped stack (other drops from random ticks in the test world may exist too)
+    const stone = ITEMS_BY_NAME.get('stone')!.id;
+    expect([...server.entities.values()].filter((e) => e instanceof ItemEntity && e.stack.id === stone && e.stack.count === 5).length).toBe(1);
     // moves are ignored while dead
     a.send({ t: 'move', x: 33.5, y: 101, z: 7.5, yaw: 0, pitch: 0, onGround: true });
     expect(p.x).toBe(31.5);

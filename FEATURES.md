@@ -364,26 +364,26 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Overworld structures
 
-- [ ] Plains village <!--p3:plains_village-->
-- [ ] Desert village <!--p3:desert_village-->
-- [ ] Savanna village <!--p3:savanna_village-->
-- [ ] Taiga village <!--p3:taiga_village-->
-- [ ] Snowy village <!--p3:snowy_village-->
-- [ ] Zombie village variants <!--p3:zombie_village_variants-->
-- [ ] Desert pyramid <!--p3:desert_pyramid-->
-- [ ] Jungle pyramid <!--p3:jungle_pyramid-->
-- [ ] Swamp hut <!--p3:swamp_hut-->
-- [ ] Igloo (with basement) <!--p3:igloo_with_basement-->
-- [ ] Shipwrecks <!--p3:shipwrecks-->
-- [ ] Ocean ruins (cold/warm) <!--p3:ocean_ruins_cold_warm-->
+- [x] Plains village <!--p3:plains_village-->
+- [x] Desert village <!--p3:desert_village-->
+- [x] Savanna village <!--p3:savanna_village-->
+- [x] Taiga village <!--p3:taiga_village-->
+- [x] Snowy village <!--p3:snowy_village-->
+- [x] Zombie village variants <!--p3:zombie_village_variants-->
+- [x] Desert pyramid <!--p3:desert_pyramid-->
+- [x] Jungle pyramid <!--p3:jungle_pyramid-->
+- [x] Swamp hut <!--p3:swamp_hut-->
+- [x] Igloo (with basement) <!--p3:igloo_with_basement-->
+- [x] Shipwrecks <!--p3:shipwrecks-->
+- [x] Ocean ruins (cold/warm) <!--p3:ocean_ruins_cold_warm-->
 - [ ] Ocean monument <!--p3:ocean_monument-->
-- [ ] Mineshafts (normal and badlands) <!--p3:mineshafts_normal_and_badlands-->
-- [ ] Strongholds (ring placement, End portal room) <!--p3:strongholds_ring_placement_end_portal_room-->
+- [x] Mineshafts (normal and badlands) <!--p3:mineshafts_normal_and_badlands-->
+- [x] Strongholds (ring placement, End portal room) <!--p3:strongholds_ring_placement_end_portal_room-->
 - [ ] Woodland mansion <!--p3:woodland_mansion-->
-- [ ] Pillager outpost <!--p3:pillager_outpost-->
-- [ ] Ruined portals (all variants) <!--p3:ruined_portals_all_variants-->
-- [ ] Buried treasure <!--p3:buried_treasure-->
-- [ ] Structure loot tables <!--p3:structure_loot_tables-->
+- [x] Pillager outpost <!--p3:pillager_outpost-->
+- [x] Ruined portals (all variants) <!--p3:ruined_portals_all_variants-->
+- [x] Buried treasure <!--p3:buried_treasure-->
+- [x] Structure loot tables <!--p3:structure_loot_tables-->
 
 ### Nether
 
@@ -2451,7 +2451,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 ### Systems
 
 - [ ] Entity system (server-side ticking, interpolation client-side) <!--p6:entity_system_server_side_ticking_interpolation_client_side-->
-- [ ] Mob model/animation system matching vanilla body-part layout <!--p6:mob_model_animation_system_matching_vanilla_body_part_layout-->
+- [x] Mob model/animation system matching vanilla body-part layout <!--p6:mob_model_animation_system_matching_vanilla_body_part_layout-->
 - [ ] Pathfinding: walking <!--p6:pathfinding_walking-->
 - [ ] Pathfinding: swimming <!--p6:pathfinding_swimming-->
 - [ ] Pathfinding: flying <!--p6:pathfinding_flying-->
@@ -2499,8 +2499,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Ender Dragon (fight, crystals, perching, breath, egg, exit portal, gateways, respawning) <!--p6:ender_dragon_fight_crystals_perching_breath_egg_exit_portal_gateways_respawning-->
 - [ ] Name tags <!--p6:name_tags-->
 - [ ] Mob sounds (ambient/hurt/death/step) <!--p6:mob_sounds_ambient_hurt_death_step-->
-- [ ] Mob death animation and particles <!--p6:mob_death_animation_and_particles-->
-- [ ] Mob hurt red tint <!--p6:mob_hurt_red_tint-->
+- [x] Mob death animation and particles <!--p6:mob_death_animation_and_particles-->
+- [x] Mob hurt red tint <!--p6:mob_hurt_red_tint-->
 
 ### Mobs (every 1.17.1 mob; ⊘ = does not spawn naturally)
 
@@ -2893,7 +2893,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] /setblock <!--cmd:setblock-->
 - [x] /fill <!--cmd:fill-->
 - [x] /clone <!--cmd:clone-->
-- [ ] /locate <!--cmd:locate-->
+- [x] /locate <!--cmd:locate-->
 - [x] /spawnpoint <!--cmd:spawnpoint-->
 - [x] /setworldspawn <!--cmd:setworldspawn-->
 - [x] /xp <!--cmd:xp-->

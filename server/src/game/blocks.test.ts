@@ -476,7 +476,9 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     let n = 0;
     for (let x = 2; x <= 10; x++) for (let z = 2; z <= 10; z++) if (get(x, 151, z) === 'red_mushroom') n++;
     expect(n).toBeGreaterThan(1);
-    expect(n).toBeLessThanOrEqual(5);
+    // vanilla stops a mushroom spreading once 5 are within ±4 of *it*; mushrooms near the edge of this
+    // window have their own boxes, so the window can end up with a few more than 5 — but never many
+    expect(n).toBeLessThanOrEqual(12);
   });
 
   it('doors are placed as two halves and breaking the top half drops one door', () => {

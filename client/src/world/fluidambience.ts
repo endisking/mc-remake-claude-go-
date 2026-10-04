@@ -8,6 +8,7 @@ import type { BlockWorld } from '@shared/world/world';
 import type { JavaRandom } from '@shared/util/random';
 import { FLUID_OF, fluidKind, fluidIsSource, fluidIsFalling, KIND_WATER, KIND_LAVA } from '@shared/game/fluids';
 import { IS_AIR } from '@shared/world/blockinfo';
+import { animateBlockSound, hasBlockAmbience } from './blockambience';
 
 export type PlayBlockSound = (event: string, x: number, y: number, z: number, volume: number, pitch: number) => void;
 
@@ -23,7 +24,10 @@ function cell(world: BlockWorld, bx: number, by: number, bz: number, range: numb
   const x = bx + r.nextInt(range) - r.nextInt(range);
   const y = by + r.nextInt(range) - r.nextInt(range);
   const z = bz + r.nextInt(range) - r.nextInt(range);
-  const f = FLUID_OF[world.getState(x, y, z)]!;
+  const st = world.getState(x, y, z);
+  // Block.animateTick runs before the fluid's (ClientLevel.doAnimateTick)
+  if (hasBlockAmbience(st)) animateBlockSound(st, x, y, z, r, play);
+  const f = FLUID_OF[st]!;
   if (f === 0) return;
   const kind = fluidKind(f);
   if (kind === KIND_WATER) {

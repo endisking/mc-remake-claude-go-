@@ -69,7 +69,10 @@ export class ItemUse {
       arrowTargets: () => this.arrowTargets(),
       ownerBox: (oid) => {
         const o = srv.players.find((p) => p.id === oid);
-        return o ? AABB.ofSize(o.x, o.y, o.z, 0.6, 1.8) : null;
+        if (o) return AABB.ofSize(o.x, o.y, o.z, 0.6, 1.8);
+        // mob shooters (skeletons)
+        const e = srv.entities.get(oid);
+        return e && !e.removed ? e.bb() : null;
       },
       playSound: (ev, x, y, z, v, pi) => srv.playSound(null, ev, 'neutral', x, y, z, v, pi),
       dropItem: (x, y, z, st) => {
@@ -789,8 +792,19 @@ export class ItemUse {
         bb: () => AABB.ofSize(p.x, p.y, p.z, 0.6, p.pose === 'crouching' ? 1.5 : p.pose === 'swimming' || p.pose === 'sleeping' ? 0.6 : 1.8),
         hurtByArrow: (arrow, dmg) => {
           const owner = self.s.players.find((o) => o.id === arrow.ownerId) ?? null;
-          const src: DamageSource = { id: 'arrow', pos: { x: arrow.x, y: arrow.y, z: arrow.z }, projectile: true, ...(owner ? {} : { entity: { name: 'Arrow', player: false } }) };
+          // a mob shooter (skeleton): scales with difficulty, knocks away from it, named in the death message
+          const mobOwner = owner ? null : self.s.mobs.mobById(arrow.ownerId);
+          const src: DamageSource = mobOwner
+            ? { id: 'arrow', pos: { x: arrow.x, y: arrow.y, z: arrow.z }, projectile: true, scalesWithDifficulty: true, knockbackFrom: mobOwner, entity: { name: self.s.mobs.displayName(mobOwner), player: false } }
+            : { id: 'arrow', pos: { x: arrow.x, y: arrow.y, z: arrow.z }, projectile: true, ...(owner ? {} : { entity: { name: 'Arrow', player: false } }) };
           if (arrow.onFire) self.s.survival.setOnFire(p, 5);
+          if (mobOwner) {
+            const ok = self.s.survival.hurt(p, src, dmg);
+            if (ok) self.s.mobs.noteOwnerHurtBy(p, mobOwner);
+            // stray arrows are tipped with Slowness (30 s; Arrow.doPostHurtEffects)
+            if (ok && mobOwner.type === 'stray') self.s.mobs.addPlayerEffect(p, 'slowness', 600, 0);
+            return ok;
+          }
           const ok = self.s.survival.hurt(p, src, dmg, owner && owner !== p ? owner : null);
           // Punch: extra horizontal push along the arrow's motion
           if (ok && arrow.knockback > 0) {

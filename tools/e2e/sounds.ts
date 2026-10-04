@@ -8,7 +8,14 @@ import { chromium } from '@playwright/test';
 const base = process.argv[2] ?? 'http://localhost:4173/';
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage({ viewport: { width: 640, height: 360 } });
-page.on('pageerror', (e) => console.log('pageerror', e.message));
+const errors: string[] = [];
+page.on('pageerror', (e) => errors.push(`pageerror ${e.message}`));
+page.on('response', (r) => {
+  if (r.status() >= 400) errors.push(`HTTP ${r.status()} ${r.url()}`);
+});
+page.on('console', (m) => {
+  if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) errors.push(`console ${m.text()}`);
+});
 await page.goto(`${base}?nolock=1&rd=2&gamemode=survival&scene=models&x=20.5&y=101&z=-3.5&pitch=60`);
 // wait for the URL teleport to land us on the ground
 await page.waitForFunction(() => {
@@ -64,4 +71,23 @@ const played = await page.evaluate(async () => {
   return { ctx: g.sound.ctx?.state, events: [...new Set(log)], count: log.length };
 });
 console.log('played', played);
+// music (forced to start now), a streamed underwater loop, and a few mob / item / ambient events
+const extra = await page.evaluate(async () => {
+  const g = (window as any).game;
+  g.music.nextSongDelay = 0;
+  await new Promise((r) => setTimeout(r, 1500));
+  const musicEvent = g.music.playingEvent;
+  const loop = g.sound.playStream('ambient.underwater.loop', 'ambient', 0.5, true);
+  for (const e of ['entity.zombie.ambient', 'entity.cow.hurt', 'entity.creeper.primed', 'entity.generic.explode', 'entity.generic.eat',
+    'entity.player.burp', 'item.bucket.fill', 'block.lava.extinguish', 'ambient.cave', 'block.note_block.harp', 'block.fire.ambient']) {
+    g.sound.play(e, 'neutral', 1, 1, g.player.x + 3, g.player.y, g.player.z);
+  }
+  await new Promise((r) => setTimeout(r, 1500));
+  const loopActive = loop.active;
+  loop.stop();
+  return { ctx: g.sound.ctx?.state, musicEvent, loopActive, playing: g.sound.playing.length };
+});
+console.log('extra', extra);
+console.log('errors', errors.length ? errors : 'none');
 await browser.close();
+if (errors.length || decoded.bad.length || !extra.musicEvent) process.exitCode = 1;

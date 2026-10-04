@@ -198,11 +198,18 @@ export class Interaction {
   }
 
   /** Use key: pressed (fresh) or held (repeats every 4 ticks). Tries the main hand, then the off hand. */
-  use(pressed: boolean, held: boolean, target: BlockHit | null): void {
+  use(pressed: boolean, held: boolean, target: BlockHit | null, entity: number | null = null): void {
     if (this.rightClickDelay > 0) this.rightClickDelay--;
     if (!(pressed || (held && this.rightClickDelay === 0))) return;
     this.rightClickDelay = 4;
     if (this.host.gameMode === 3) return;
+    if (entity !== null) {
+      // Minecraft.startUseItem on an entity: MultiPlayerGameMode.interact (the server tries the main
+      // hand, then the off hand: breeding food, shears, buckets, saddles, bones, flint and steel)
+      this.host.send({ t: 'interactEntity', id: entity, hand: 0 });
+      if (this.inventory.selectedStack || this.inventory.get(40)) this.host.swing(this.inventory.selectedStack ? 0 : 1);
+      return;
+    }
     if (!target) {
       // Minecraft.startUseItem with no block: Item.use for each hand until one acts
       for (const hand of [0, 1] as const) {

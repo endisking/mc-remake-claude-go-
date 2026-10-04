@@ -3,7 +3,6 @@
  * frame loop and renderers.
  */
 import { animateFluids } from './world/fluidambience';
-import { animateCookingBlocks } from './world/blockambience';
 import { decodeS2C, encodeC2S, PROTOCOL_VERSION, type C2S, type S2C } from '@shared/protocol/packets';
 import { BIOMES } from '@shared/data';
 import { chunkKey } from '@shared/world/chunk';
@@ -26,7 +25,7 @@ import { raycastBlocks, type BlockHit } from '@shared/world/raycast';
 import { outlineBoxes, type Box } from '@shared/world/shapes';
 import { blockNameOf, propsOf, getProp, stateToString, STATE_TO_BLOCK } from '@shared/world/blockstate';
 import { PlayerPhysics, POSE_EYE, type MoveInput, type Pose } from '@shared/entity/playerphysics';
-import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes, type Mat4 } from './render/math';
+import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes, aabbInFrustum, type Mat4 } from './render/math';
 import type { TextureManifest } from './render/blockmodels';
 import { Gui } from './gui/gui';
 import { RemotePlayer, wrapDegrees } from './world/entities';
@@ -64,8 +63,11 @@ import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
 import { isViewBlocking, hasMenuProvider } from '@shared/world/blockprops';
 import { JavaRandom } from '@shared/util/random';
-import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
+import { EntityRenderer, recycleHeld, heldItemTransform } from './render/entities/entityrenderer';
+import { MobRenderer } from './render/entities/mobrenderer';
+import { ClientMobs, isMobType, type ClientMob } from './world/mobs';
 import type { Screen } from './gui/screen';
+import { LoadingTerrainScreen, type LoadingHost } from './gui/loadingscreen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { AbstractContainerScreen, InventoryScreen, screenForMenu, type ContainerHost } from './gui/containerscreen';
 import { CreativeScreen } from './gui/creative';
@@ -74,6 +76,8 @@ import { InventoryMenu, createClientMenu, type Menu, type MenuType } from '@shar
 import { InventoryContainer } from '@shared/menu/container';
 import { decodeStacks } from '@shared/protocol/packets';
 import { saveSettings } from './settings';
+import { MusicManager, situationalMusic, MUSICS } from './audio/music';
+import { AmbientSounds } from './audio/ambient';
 import { ClientItemUse } from './itemuse';
 import { renderEffects } from './gui/effects';
 import { useDuration } from '@shared/game/items';
@@ -98,6 +102,21 @@ export class Game implements ScreenHost, ContainerHost {
   private weather!: WeatherRenderer;
   private lines!: LineRenderer;
   private entityRenderer!: EntityRenderer;
+  private mobRenderer!: MobRenderer;
+  private readonly visibleMobs: ClientMob[] = [];
+  /** Client-side mobs (addEntity with a mob type), by entity id. */
+  readonly mobs = new ClientMobs({
+    sound: (ev, cat, x, y, z, vol, pitch) => this.playAt(ev, cat, x, y, z, vol, pitch),
+    hasSound: (ev) => this.sound.has(ev),
+    blockStep: (x, y, z, category) => {
+      const st = this.world.getState(Math.floor(x), Math.floor(y - 0.2), Math.floor(z));
+      if (st === 0) return;
+      const t = soundTypeOf(st);
+      this.playAt(t.step, category, x, y, z, t.volume * 0.15, t.pitch);
+    },
+    poof: (m) => this.mobRenderer?.poof(m),
+    forget: (id) => this.mobRenderer?.forget(id),
+  });
   /** Other players (and later all entities), by entity id. */
   readonly players = new Map<number, RemotePlayer>();
   private sentState = { sneaking: false, sprinting: false, flying: false };
@@ -133,7 +152,7 @@ export class Game implements ScreenHost, ContainerHost {
       const file = this.entityRenderer.skinFor(name, skin);
       if (!this.skinImages.has(file)) {
         this.skinImages.set(file, null);
-        void fetch(`./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
+        void fetch(file.startsWith('data:') ? file : `./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
       }
       return this.skinImages.get(file) ?? null;
     },
@@ -169,6 +188,14 @@ export class Game implements ScreenHost, ContainerHost {
   private lightning!: LightningRenderer;
   private orbRenderer!: OrbRenderer;
   readonly sound = new SoundEngine();
+  /** vanilla MusicManager (one streamed track at a time, 10-20 min apart in game) */
+  readonly music = new MusicManager((event) => this.sound.playStream(event, 'music', 1));
+  /** cave mood sounds and underwater ambience */
+  private readonly ambient = new AmbientSounds({
+    playAt: (event, x, y, z, volume, pitch) => this.playAt(event, 'ambient', x, y, z, volume, pitch),
+    playRelative: (event, volume, pitch) => this.sound.play(event, 'ambient', volume, pitch),
+    playLoop: (event) => this.sound.playStream(event, 'ambient', 0, true),
+  });
   private readonly steps = new StepTracker();
   private readonly sfxRand = new JavaRandom(BigInt(Date.now()) ^ 0x5deece66dn);
   private rainSoundTime = 0;
@@ -403,6 +430,15 @@ export class Game implements ScreenHost, ContainerHost {
 
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
+    this.hud.chatOptions = this.settings;
+    // single-player: start the integrated server and join right away, so it generates the spawn
+    // chunks while textures and models load (packets are held until the client is ready)
+    const integratedP = q.has('server') || q.has('join') ? null : startIntegratedServer(BigInt(q.get('seed') ?? '12345'), q.get('scene') ?? '',
+      { survival: 0, creative: 1, adventure: 2, spectator: 3 }[q.get('gamemode') ?? 'survival'] ?? 0, q.get('world')).then((r) => {
+      this.preconnect(r.transport);
+      return r;
+    });
+    integratedP?.catch(() => {}); // reported where it is awaited
     await Promise.all([this.gui.load(), this.hud.load(), this.sound.load(), this.spectatorGui.load(), this.effectsClient.load()]);
     void fetch('./textures/environment/powder_snow_outline.png').then((r) => r.blob()).then((b) => createImageBitmap(b)).then((bmp) => (this.frostOverlay = bmp));
     for (const [c, v] of Object.entries(this.settings.volumes)) this.sound.volumes[c as SoundCategory] = v;
@@ -430,6 +466,17 @@ export class Game implements ScreenHost, ContainerHost {
     this.entityRenderer = new EntityRenderer(this.gl);
     await this.entityRenderer.loadSkins();
     await this.entityRenderer.loadArmor();
+    this.mobRenderer = new MobRenderer(this.gl);
+    await this.mobRenderer.load();
+    // items in mobs' hands join the players' held-item queue (drawn after the entities)
+    this.mobRenderer.onHeld = (arm, light, item, left) => {
+      const info = this.entityRenderer.itemModel(item);
+      if (!info) return;
+      const out = mat4();
+      multiply(out, arm, heldItemTransform(left, info.flat));
+      this.entityRenderer.held.push({ matrix: out, light, item, left });
+    };
+    this.entityRenderer.localSkin = this.settings.skin;
     const mainBake = bakeBlockModels(this.manifest, this.settings.graphics === 'fancy');
     this.bake = mainBake.bake;
     this.texLayers = mainBake.textures;
@@ -558,10 +605,10 @@ export class Game implements ScreenHost, ContainerHost {
         const { LanGuestTransport, signalingUrl } = await import('./net/lan');
         this.connect(new LanGuestTransport(q.get('join')!, signalingUrl(q.get('signal'))));
       } else {
-        const seed = BigInt(q.get('seed') ?? '12345');
-        const gm = { survival: 0, creative: 1, adventure: 2, spectator: 3 }[q.get('gamemode') ?? 'survival'] ?? 0;
         // ?world=<id>: a saved world from the launcher (IndexedDB); otherwise a transient one
-        const { server, transport } = await startIntegratedServer(seed, q.get('scene') ?? '', gm, q.get('world'));
+        const { server, transport } = await integratedP!;
+        // held packets (login → screens) are handled before the first frame: size the GUI now
+        this.gui.begin(this.settings.guiScale);
         this.integrated = server;
         if (server.worldId) {
           // best effort: save when the tab is hidden or closed (the worker may not finish on close)
@@ -580,14 +627,37 @@ export class Game implements ScreenHost, ContainerHost {
     requestAnimationFrame((t) => this.frame(t));
   }
 
+  /** Packets that arrived before the client finished loading (see preconnect). */
+  private earlyPackets: ArrayBuffer[] | null = null;
+
+  /** Join early and hold the server's packets until connect() is called with the same transport. */
+  private preconnect(t: ClientTransport): void {
+    const early: ArrayBuffer[] = [];
+    this.earlyPackets = early;
+    this.transport = t;
+    t.onMessage = (d) => early.push(d);
+    t.onClose = (r) => {
+      console.warn('disconnected', r);
+      this.showDisconnected(r);
+    };
+    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: this.settings.skin });
+  }
+
   connect(t: ClientTransport): void {
+    if (this.earlyPackets && this.transport === t) {
+      const early = this.earlyPackets;
+      this.earlyPackets = null;
+      t.onMessage = (d) => this.handle(decodeS2C(d));
+      for (const d of early) this.handle(decodeS2C(d));
+      return;
+    }
     this.transport = t;
     t.onMessage = (d) => this.handle(decodeS2C(d));
     t.onClose = (r) => {
       console.warn('disconnected', r);
       this.showDisconnected(r);
     };
-    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: '' });
+    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: this.settings.skin });
   }
 
   send(p: C2S): void {
@@ -687,8 +757,9 @@ export class Game implements ScreenHost, ContainerHost {
     switch (p.t) {
       case 'login':
         this.entityId = p.entityId;
+        this.mobs.mobs.clear();
         this.world.biomeZoomSeed = p.seed;
-        this.selfModel = new RemotePlayer(p.entityId, new URLSearchParams(location.search).get('name') ?? 'Player', '');
+        this.selfModel = new RemotePlayer(p.entityId, new URLSearchParams(location.search).get('name') ?? 'Player', this.settings.skin);
         this.selfModel.setPos(p.x, p.y, p.z, p.yaw, p.pitch, p.yaw);
         this.setGameMode(p.gameMode);
         this.placePlayer(p.x, p.y, p.z);
@@ -697,12 +768,22 @@ export class Game implements ScreenHost, ContainerHost {
         this.loggedIn = true;
         this.send({ t: 'settings', viewDistance: this.settings.renderDistance, simulationDistance: this.settings.simulationDistance });
         this.applyTestParams();
+        // "Loading terrain…" until the chunks around the player are in and meshed (test scenes and screen shots skip it)
+        if (!new URLSearchParams(location.search).has('screen') && !new URLSearchParams(location.search).has('scene')) {
+          this.setScreen(new LoadingTerrainScreen(this.loadingHost(), () => {
+            this.setScreen(null);
+            if (!this.input.locked && new URLSearchParams(location.search).get('nolock') !== '1') this.setScreen(new PauseScreen(this));
+          }));
+          break;
+        }
         if (!this.input.locked && new URLSearchParams(location.search).get('nolock') !== '1') this.setScreen(new PauseScreen(this));
         {
           const sc = new URLSearchParams(location.search).get('screen');
           if (sc === 'video') import('./gui/screens').then((m) => this.setScreen(new m.VideoSettingsScreen(this, new m.PauseScreen(this))));
           else if (sc === 'pause') this.setScreen(new PauseScreen(this));
           else if (sc === 'options') import('./gui/screens').then((m) => this.setScreen(new m.OptionsScreen(this, null)));
+          else if (sc === 'chatsettings') import('./gui/screens').then((m) => this.setScreen(new m.ChatOptionsScreen(this, null)));
+          else if (sc === 'skin') import('./gui/screens').then((m) => this.setScreen(new m.SkinCustomizationScreen(this, null)));
           else if (sc === 'controls' || sc === 'mouse' || sc === 'sound' || sc === 'access') {
             void import('./gui/controls').then((m) => {
               const scr = sc === 'controls' ? new m.ControlsScreen(this, null) : sc === 'mouse' ? new m.MouseSettingsScreen(this, null)
@@ -753,6 +834,7 @@ export class Game implements ScreenHost, ContainerHost {
       case 'removeEntities':
         for (const id of p.ids) {
           this.players.delete(id);
+          this.mobs.remove(id);
           this.items.delete(id);
           this.bolts.delete(id);
           this.fallingBlocks.remove(id);
@@ -761,6 +843,7 @@ export class Game implements ScreenHost, ContainerHost {
       case 'entityMove': {
         this.players.get(p.id)?.lerpTo(p.x, p.y, p.z, p.yaw, p.pitch, p.headYaw);
         this.fallingBlocks.move(p.id, p.x, p.y, p.z);
+        this.mobs.move(p.id, p.x, p.y, p.z, p.yaw, p.pitch, p.headYaw, p.onGround);
         const it = this.items.get(p.id);
         if (it) {
           it.lx = p.x;
@@ -790,9 +873,12 @@ export class Game implements ScreenHost, ContainerHost {
           rp.pose = p.pose;
           rp.ticksFrozen = p.frozen;
         }
+        const mob = this.mobs.get(p.id);
+        if (mob) mob.flags = p.flags;
         break;
       }
       case 'animate':
+        if (p.action === 0) this.mobs.get(p.id)?.swing();
         if (p.action === 0 || p.action === 3) this.players.get(p.id)?.swing(p.action === 3 ? 'left' : 'right');
         else if (p.action === 1) {
           const rp = this.players.get(p.id);
@@ -866,6 +952,11 @@ export class Game implements ScreenHost, ContainerHost {
         }
         break;
       case 'equipment': {
+        const mob = this.mobs.get(p.id);
+        if (mob) {
+          mob.mainHand = p.mainHand;
+          mob.offHand = p.offHand;
+        }
         const rp = this.players.get(p.id);
         if (rp) {
           rp.mainHand = p.mainHand;
@@ -962,7 +1053,9 @@ export class Game implements ScreenHost, ContainerHost {
         }
         else if (p.type === 'falling_block') this.fallingBlocks.add(p.id, p.data, p.x, p.y, p.z);
         else if (p.type === 'tnt') this.fallingBlocks.add(p.id, BLOCKS_BY_NAME.get('tnt')!.defaultState, p.x, p.y, p.z);
-        else if (p.type === 'item' || p.type === 'experience_orb') {
+        else if (isMobType(p.type)) {
+          this.mobs.add(p.id, p.type, p.x, p.y, p.z);
+        } else if (p.type === 'item' || p.type === 'experience_orb') {
           this.items.set(p.id, { x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z, steps: 0, item: 0, count: 1, age: 0, bobOffs: Math.random() * Math.PI * 2, ...(p.type === 'experience_orb' ? { orb: p.data } : {}) });
         }
         break;
@@ -1025,8 +1118,17 @@ export class Game implements ScreenHost, ContainerHost {
         break;
       }
       case 'entityEvent':
-        this.entityEvent(p.id, p.event);
+        if (this.mobs.get(p.id)) this.mobs.event(p.id, p.event);
+        else this.entityEvent(p.id, p.event);
         break;
+      case 'mobData':
+        this.mobs.get(p.id)?.setData(p.key, p.value);
+        break;
+      case 'mobName': {
+        const mob = this.mobs.get(p.id);
+        if (mob) mob.customName = p.name;
+        break;
+      }
       case 'blockBreakProgress':
         if (p.stage < 0) this.otherCracks.delete(p.id);
         else this.otherCracks.set(p.id, { x: p.x, y: p.y, z: p.z, stage: p.stage });
@@ -1095,6 +1197,24 @@ export class Game implements ScreenHost, ContainerHost {
   }
 
   /** URL test hooks: ?x=&y=&z=&yaw=&pitch=&time= (used by screenshot checks and the benchmark). */
+  /** Bundled skins for Skin Customization. */
+  defaultSkins(): string[] {
+    return this.entityRenderer?.skinNames() ?? [];
+  }
+
+  private loadingHost(): LoadingHost {
+    const game = this;
+    return {
+      gui: this.gui,
+      center: () => [Math.floor(this.player.x) >> 4, Math.floor(this.player.z) >> 4],
+      received: (cx, cz) => !!this.world.getChunk(cx, cz),
+      meshed: (cx, cz) => this.chunks.columnMeshed(cx, cz),
+      get renderDistance() {
+        return game.settings.renderDistance;
+      },
+    };
+  }
+
   private applyTestParams(): void {
     const q = new URLSearchParams(location.search);
     const n = (k: string) => (q.has(k) ? Number(q.get(k)) : undefined);
@@ -1131,7 +1251,7 @@ export class Game implements ScreenHost, ContainerHost {
     if (this.world.doDaylightCycle) this.world.dayTime++;
     this.world.gameTime++;
     animateFluids(this.world, this.player.x, this.player.y, this.player.z, this.sfxRand, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
-    animateCookingBlocks(this.world, this.player.x, this.player.y, this.player.z, this.sfxRand, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
+    // cooking blocks, fire, candles, portals and bubble columns: blockambience via animateFluids' cells
     this.prevX = this.x;
     this.prevY = this.y;
     this.prevZ = this.z;
@@ -1179,6 +1299,7 @@ export class Game implements ScreenHost, ContainerHost {
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
     }
     this.tickRainSound();
+    this.tickAudio();
     // camera eye height eases toward the pose's eye height (vanilla Camera.tick)
     this.eyeHeightOld = this.eyeHeight;
     this.eyeHeight += (pl.eyeHeight - this.eyeHeight) * 0.5;
@@ -1205,6 +1326,8 @@ export class Game implements ScreenHost, ContainerHost {
       rp.usingItem = ru?.item ?? 0;
       rp.useTicks = ru?.ticks ?? 0;
     }
+    this.mobs.tick();
+    this.mobRenderer?.tick();
     for (const [id, it] of this.items) {
       if (it.pickup && ++it.pickup.life > 3) {
         this.items.delete(id);
@@ -1258,7 +1381,7 @@ export class Game implements ScreenHost, ContainerHost {
         // Minecraft.handleKeybinds while using an item: clicks are swallowed
         b.consume('use');
         b.consume('attack');
-      } else ia.use(b.consume('use'), b.down('use'), this.target);
+      } else ia.use(b.consume('use'), b.down('use'), this.target, this.targetEntity !== null && this.mobs.get(this.targetEntity) ? this.targetEntity : null);
       if (this.gameMode === 3) {
         // MouseHandler: the middle button opens/uses the spectator menu; hotbar keys pick its slots
         const middle = i.consumePress('Mouse1');
@@ -1619,6 +1742,28 @@ export class Game implements ScreenHost, ContainerHost {
     this.wasOnGround = p.onGround;
   }
 
+  /** Music manager and ambient handlers (Minecraft.tick → musicManager.tick, LocalPlayer ambient handlers). */
+  private tickAudio(): void {
+    const pl = this.player;
+    const bx = Math.floor(pl.x), by = Math.floor(pl.y), bz = Math.floor(pl.z);
+    const loaded = this.loggedIn && this.world.isLoaded(bx, bz);
+    const biome = loaded ? BIOMES[this.world.getBiome(bx, by, bz)] : undefined;
+    const underWater = loaded && pl.isUnderWater;
+    this.music.tick(situationalMusic({
+      inMenu: !loaded,
+      dimension: biome?.dimension ?? 'overworld',
+      biome: biome?.name ?? 'plains',
+      biomeCategory: biome?.category ?? 'plains',
+      underWater,
+      creativeFlying: this.gameMode === 1 && pl.abilities.mayFly,
+    }, this.music.isPlaying(MUSICS.underWater)));
+    if (!loaded) return;
+    this.ambient.tick(this.world, {
+      x: pl.x, y: pl.y, z: pl.z, eyeY: pl.y + pl.eyeHeight, underWater: underWater && this.gameMode !== 3,
+      biome: biome?.name ?? null,
+    });
+  }
+
   /** LevelRenderer.tickRain sound part: rain sounds from random exposed blocks near the camera. */
   private tickRainSound(): void {
     const f = this.world.rain / (this.settings.graphics === 'fancy' ? 1 : 2);
@@ -1879,6 +2024,19 @@ export class Game implements ScreenHost, ContainerHost {
         hit = p.id;
       }
     }
+    for (const m of this.mobs.mobs.values()) {
+      // dying mobs can't be targeted (LivingEntity.isPickable: alive only)
+      if (m.deathTime > 0) continue;
+      const x = m.xo + (m.x - m.xo) * partial, y = m.yo + (m.y - m.yo) * partial, z = m.zo + (m.z - m.zo) * partial;
+      const [w, h] = m.dims();
+      // Entity.getPickRadius is 0 for mobs; the hit box is the bounding box
+      const t = rayAabb(ex, ey, ez, dx, dy, dz, x - w / 2, y, z - w / 2, x + w / 2, y + h, z + w / 2);
+      if (t === null || t > range) continue;
+      if (t * t < hitDist2) {
+        hitDist2 = t * t;
+        hit = m.id;
+      }
+    }
     if (hit === null) return;
     if (!far && hitDist2 > 9) {
       // survival reach for entities is 3: a farther entity in the way means nothing is targeted
@@ -1988,7 +2146,11 @@ export class Game implements ScreenHost, ContainerHost {
     // block entity and entity NBT come from the server when asked (none exist yet, so the
     // server's answer is the same as the client's)
     const side = queryServer ? 'server' : 'client';
-    if (this.targetEntity !== null) {
+    const mob = this.targetEntity !== null ? this.mobs.get(this.targetEntity) : undefined;
+    if (mob) {
+      this.setClipboard(`/summon minecraft:${mob.type} ${mob.x.toFixed(2)} ${mob.y.toFixed(2)} ${mob.z.toFixed(2)}`);
+      this.debugFeedback(`Copied ${side}-side entity data to clipboard`);
+    } else if (this.targetEntity !== null) {
       const e = this.players.get(this.targetEntity);
       if (!e) return;
       this.setClipboard(`/summon minecraft:player ${e.x.toFixed(2)} ${e.y.toFixed(2)} ${e.z.toFixed(2)}`);
@@ -2038,6 +2200,11 @@ export class Game implements ScreenHost, ContainerHost {
       const x = p.xo + (p.x - p.xo) * partial, y = p.yo + (p.y - p.yo) * partial, z = p.zo + (p.z - p.zo) * partial;
       const crouch = p.crouching;
       living(x, y, z, 0.6, crouch ? 1.5 : 1.8, crouch ? 1.27 : 1.62, p.headYaw, p.pitch);
+    }
+    for (const m of this.mobs.mobs.values()) {
+      const x = m.xo + (m.x - m.xo) * partial, y = m.yo + (m.y - m.yo) * partial, z = m.zo + (m.z - m.zo) * partial;
+      const [w, h] = m.dims();
+      living(x, y, z, w, h, h * 0.85, m.headYaw, m.pitch);
     }
     if (this.cameraType !== 0 && this.selfModel) {
       const s = this.selfModel, pl = this.player;
@@ -2116,6 +2283,7 @@ export class Game implements ScreenHost, ContainerHost {
       off: side(1, off, offName, this.offHandHeight, this.oOffHandHeight, this.handOff),
       renderMain: which.main,
       renderOff: which.off,
+      leftHanded: this.settings.mainHand === 'left',
       partial,
       autoSpin: this.autoSpinAttack,
       scoping: this.scoping,
@@ -2330,7 +2498,8 @@ export class Game implements ScreenHost, ContainerHost {
   }
 
   private resize(): void {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Render Resolution (Video Settings) scales the 3D view; the canvas is stretched pixelated
+    const dpr = Math.min(window.devicePixelRatio || 1, 2) * Math.max(0.25, Math.min(1, this.settings.renderScale || 1));
     const w = Math.floor(this.canvas.clientWidth * dpr), h = Math.floor(this.canvas.clientHeight * dpr);
     if (this.canvas.width !== w || this.canvas.height !== h) {
       this.canvas.width = w;
@@ -2342,6 +2511,18 @@ export class Game implements ScreenHost, ContainerHost {
     const gl = this.gl;
     this.resize();
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    if (this.screen instanceof LoadingTerrainScreen) {
+      // the loading screen covers the world: don't draw it, and upload meshes as fast as they come
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      const budget = this.chunks.uploadBudgetMs;
+      this.chunks.uploadBudgetMs = 25;
+      this.chunks.update(this.x, this.y + 1.62, this.z);
+      this.chunks.uploadBudgetMs = budget;
+      this.gui.begin(this.settings.guiScale);
+      this.screen.render();
+      return;
+    }
     const s = this.settings;
     // eye position (raycasts) and camera position/rotation (detached in third person, vanilla Camera.setup)
     let ex = this.prevX + (this.x - this.prevX) * partial;
@@ -2490,6 +2671,34 @@ export class Game implements ScreenHost, ContainerHost {
       const visible = [...this.players.values()].filter((p) => (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2 < ed * ed && (p !== camEnt || this.cameraType !== 0));
       this.entityRenderer.renderPlayers(visible, this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
     }
+    {
+      // player shadows (radius 0.5; spectators are invisible and cast none)
+      const ed = 64 * this.settings.entityDistance;
+      for (const p of this.players.values()) {
+        if ((p.flags & 32) !== 0 || p === camEnt || (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2 >= ed * ed) continue;
+        this.mobRenderer.addShadow(p.xo + (p.x - p.xo) * partial, p.yo + (p.y - p.yo) * partial, p.zo + (p.z - p.zo) * partial, 0.5);
+      }
+      const sm = this.selfModel;
+      if (this.cameraType !== 0 && sm && !camEnt && this.gameMode !== 3) this.mobRenderer.addShadow(sm.xo + (sm.x - sm.xo) * partial, sm.yo + (sm.y - sm.yo) * partial, sm.zo + (sm.z - sm.zo) * partial, 0.5);
+    }
+    {
+      // LivingEntity.shouldRenderAtSqrDistance: bounding-box size × 64 blocks × entity distance
+      const visible = this.visibleMobs;
+      visible.length = 0;
+      for (const m of this.mobs.mobs.values()) {
+        const [w, h] = m.dims();
+        const d = ((w + w + h) / 3) * 64 * this.settings.entityDistance;
+        if ((m.x - cx) ** 2 + (m.y - cy) ** 2 + (m.z - cz) ** 2 >= d * d || m.id === this.cameraEntity) continue;
+        // EntityRenderer.shouldRender: frustum test on the culling box (bounding box grown by 0.5)
+        const hw = w / 2 + 0.5;
+        if (!aabbInFrustum(this.planes, m.x - hw - cx, m.y - 0.5 - cy, m.z - hw - cz, m.x + hw - cx, m.y + h + 0.5 - cy, m.z + hw - cz)) continue;
+        visible.push(m);
+      }
+      this.mobRenderer.shadows = (this.settings as { entityShadows?: boolean }).entityShadows ?? true;
+      this.mobRenderer.target = this.targetEntity;
+      this.mobRenderer.names = !this.hideHud;
+      this.mobRenderer.render(visible, this.world, this.viewProj, cx, cy, cz, camYaw, camPitch, partial, this.lightmap.tex, fog, fogStart, fogEnd, this.skyDarkenLevel());
+    }
     // our own body in third person (a spectator's is a faint floating head)
     if (this.cameraType !== 0 && this.selfModel && !camEnt) {
       this.entityRenderer.renderPlayers([this.selfModel], this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
@@ -2618,7 +2827,7 @@ export class Game implements ScreenHost, ContainerHost {
     const file = this.entityRenderer.skinFor(pi.name, pi.skin);
     if (!this.skinImages.has(file)) {
       this.skinImages.set(file, null);
-      void fetch(`./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
+      void fetch(file.startsWith('data:') ? file : `./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
     }
     return this.skinImages.get(file) ?? null;
   }
@@ -2738,7 +2947,7 @@ export class Game implements ScreenHost, ContainerHost {
     const biome = BIOMES[this.world.getBiome(bx, by, bz)];
     const chunk = this.world.getChunk(bx >> 4, bz >> 4);
     const s = this.settings;
-    const fpsCap = s.maxFps === -1 ? 'vsync' : s.maxFps === 0 ? 'inf' : String(s.maxFps);
+    const fpsCap = (s.maxFps <= 0 ? 'inf' : String(s.maxFps)) + (s.vsync ? ' vsync' : '');
     const left = [
       'Blockcraft 1.17.1 (1.17.1/blockcraft)',
       `${this.fps} fps T: ${fpsCap} ${s.graphics} ${s.clouds === 'off' ? '' : s.clouds + '-clouds'} B: ${s.biomeBlend}  1%: ${low1.toFixed(0)}`,

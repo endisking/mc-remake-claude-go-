@@ -21,9 +21,11 @@ self.onmessage = (e: MessageEvent<MesherRequest>) => {
     const t0 = performance.now();
     const out = mesher.mesh(msg.input);
     const ms = performance.now() - t0;
+    // the snapshot buffers go back to the main thread's pool (no per-section allocation there)
+    const { states, light, tints } = msg.input;
     (self as unknown as Worker).postMessage(
-      { type: 'mesh', id: msg.id, out, ms },
-      [out.passes[0].buffer, out.passes[1].buffer, out.passes[2].buffer, out.centers.buffer, out.visibility.buffer],
+      { type: 'mesh', id: msg.id, out, ms, recycle: { states, light, tints } },
+      [out.passes[0].buffer, out.passes[1].buffer, out.passes[2].buffer, out.centers.buffer, out.visibility.buffer, states.buffer, light.buffer, tints.buffer],
     );
   }
 };

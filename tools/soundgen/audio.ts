@@ -99,3 +99,62 @@ export function durationOf(s: Float32Array): number {
 }
 
 void db;
+
+/**
+ * Fundamental frequency of a single note (YIN difference function, cumulative-mean normalized,
+ * first dip below the threshold, parabolic refinement), measured just after the loudest point.
+ */
+export function detectPitch(s: Float32Array, minHz = 40, maxHz = 3000): number | null {
+  let peakAt = 0;
+  for (let i = 0; i < s.length; i++) if (Math.abs(s[i]!) > Math.abs(s[peakAt]!)) peakAt = i;
+  const start = Math.min(peakAt + Math.round(0.02 * RATE), Math.max(0, s.length - 8192));
+  const W = 4096;
+  const maxLag = Math.min(Math.floor(RATE / minHz), 2048), minLag = Math.max(2, Math.floor(RATE / maxHz));
+  if (start + W + maxLag > s.length) return null;
+  const d = new Float64Array(maxLag + 1);
+  for (let lag = 1; lag <= maxLag; lag++) {
+    let sum = 0;
+    for (let i = 0; i < W; i++) {
+      const x = s[start + i]! - s[start + i + lag]!;
+      sum += x * x;
+    }
+    d[lag] = sum;
+  }
+  // cumulative mean normalized difference
+  const c = new Float64Array(maxLag + 1);
+  c[0] = 1;
+  let run = 0;
+  for (let lag = 1; lag <= maxLag; lag++) {
+    run += d[lag]!;
+    c[lag] = run > 0 ? (d[lag]! * lag) / run : 1;
+  }
+  let best = -1;
+  for (let lag = minLag; lag < maxLag; lag++) {
+    if (c[lag]! < 0.15) {
+      while (lag + 1 < maxLag && c[lag + 1]! < c[lag]!) lag++;
+      best = lag;
+      break;
+    }
+  }
+  if (best < 0) {
+    // no clear dip: take the global minimum
+    let m = minLag;
+    for (let lag = minLag; lag < maxLag; lag++) if (c[lag]! < c[m]!) m = lag;
+    if (c[m]! > 0.4) return null;
+    best = m;
+  }
+  const a = c[best - 1]!, b = c[best]!, e = c[best + 1] ?? b;
+  const shift = (a - e) / (2 * (a - 2 * b + e) || 1);
+  return RATE / (best + (Number.isFinite(shift) ? shift : 0));
+}
+
+/** Resample by `ratio` (2 = one octave up and half as long), linear interpolation. */
+export function repitch(s: Float32Array, ratio: number): Float32Array {
+  const n = Math.floor(s.length / ratio);
+  const o = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const p = i * ratio, k = Math.floor(p), f = p - k;
+    o[i] = (s[k] ?? 0) * (1 - f) + (s[k + 1] ?? 0) * f;
+  }
+  return o;
+}

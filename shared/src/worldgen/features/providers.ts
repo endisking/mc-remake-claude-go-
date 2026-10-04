@@ -4,7 +4,8 @@
  * worldgen data.
  */
 import { JavaRandom } from '../../util/random';
-import { stateOf, blockNameOf, getProp, withProp, type Props } from '../../world/blockstate';
+import { stateOf, blockNameOf, getProp, withProp, STATE_TO_BLOCK, type Props } from '../../world/blockstate';
+import { BLOCKS } from '../../data';
 import { BIOME_INFO_NOISE } from '../../world/climate';
 import { PerlinSimplexNoise } from '../../util/noise';
 import { WORLDGEN } from './data';
@@ -40,13 +41,23 @@ export function blockName(s: number): string {
   return blockNameOf(s);
 }
 
-/** Block tag membership (resolved tags from the generated data). */
-const tagSets = new Map<string, Set<string>>();
+/**
+ * Block tag membership (resolved tags from the generated data), as a per-block-id lookup table:
+ * ore placement asks this for every block of every vein, so no strings on the hot path.
+ */
+const tagTables = new Map<string, Uint8Array>();
+function tagTable(tag: string): Uint8Array {
+  const name = tag.startsWith('minecraft:') ? tag.slice(10) : tag;
+  const names = new Set(WORLDGEN.block_tags[name] ?? []);
+  let max = 0;
+  for (const b of BLOCKS) max = Math.max(max, b.id);
+  const t = new Uint8Array(max + 1);
+  for (const b of BLOCKS) if (names.has(b.name)) t[b.id] = 1;
+  tagTables.set(tag, t);
+  return t;
+}
 export function inTag(tag: string, state: number): boolean {
-  const name = tag.replace('minecraft:', '');
-  let set = tagSets.get(name);
-  if (!set) tagSets.set(name, (set = new Set(WORLDGEN.block_tags[name] ?? [])));
-  return set.has(blockNameOf(state));
+  return (tagTables.get(tag) ?? tagTable(tag))[STATE_TO_BLOCK[state]!] === 1;
 }
 
 // ------------------------------------------------------------------ int / float providers

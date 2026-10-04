@@ -43,7 +43,8 @@ export class CloudRenderer {
   private vbo: WebGLBuffer;
   private count = 0;
   private map: Uint8Array | null = null;
-  private builtFor = '';
+  /** cell x, cell z, radius, fancy (1/0) the mesh was built for */
+  private readonly built = new Float64Array([NaN, NaN, NaN, NaN]);
 
   constructor(private gl: WebGL2RenderingContext) {
     this.prog = createProgram(gl, VS, FS, 'clouds');
@@ -114,10 +115,14 @@ export class CloudRenderer {
     const wx = camX + drift, wz = camZ + 3.96; // vanilla offsets the field slightly in z
     const baseX = Math.floor(wx / CELL), baseZ = Math.floor(wz / CELL);
     const radius = Math.ceil((renderDistance * 16) / CELL) + 1;
-    const key = `${baseX},${baseZ},${radius},${mode}`;
-    if (key !== this.builtFor) {
+    // rebuild only when the cell, radius or mode changes (compared without building a key string per frame)
+    const b = this.built;
+    if (b[0] !== baseX || b[1] !== baseZ || b[2] !== radius || b[3] !== (mode === 'fancy' ? 1 : 0)) {
       this.build(baseX, baseZ, radius, mode === 'fancy');
-      this.builtFor = key;
+      b[0] = baseX;
+      b[1] = baseZ;
+      b[2] = radius;
+      b[3] = mode === 'fancy' ? 1 : 0;
     }
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(this.u.get('uViewProj'), false, viewProj);

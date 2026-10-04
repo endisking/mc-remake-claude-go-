@@ -36,15 +36,18 @@ export class JavaRandom {
     return [this.hi, this.lo];
   }
 
-  next(bits: number): number {
-    // seed = (seed * 0x5DEECE66D + 0xB) mod 2^48, computed in 24-bit limbs
+  /** seed = (seed * 0x5DEECE66D + 0xB) mod 2^48, computed in 24-bit limbs (both stay small ints). */
+  private advance(): void {
     // (Math.imul gives the low 32 bits of a product exactly, enough for the low 24-bit limb)
     const lo = this.lo, hi = this.hi;
     const carry = Math.floor((lo * MULT_LO + ADD) / TWO24); // product < 2^48: exact
-    const p0lo = (Math.imul(lo, MULT_LO) + ADD) & MASK24;
-    const p1 = (Math.imul(hi, MULT_LO) + Math.imul(lo, MULT_HI) + carry) & MASK24;
-    this.lo = p0lo;
-    this.hi = p1;
+    this.lo = (Math.imul(lo, MULT_LO) + ADD) & MASK24;
+    this.hi = (Math.imul(hi, MULT_LO) + Math.imul(lo, MULT_HI) + carry) & MASK24;
+  }
+
+  next(bits: number): number {
+    this.advance();
+    const p0lo = this.lo, p1 = this.hi;
     // result = seed >>> (48 - bits), as a signed 32-bit int
     if (bits <= 24) return p1 >>> (24 - bits);
     if (bits === 32) return ((p1 << 8) | (p0lo >>> 16)) | 0;
@@ -54,13 +57,17 @@ export class JavaRandom {
   nextInt(bound?: number): number {
     if (bound === undefined) return this.next(32);
     if (bound <= 0) throw new Error('bound must be positive');
+    // next(31) computed inline (p1 << 7 | lo >>> 17): a 31-bit result returned from next() would
+    // be boxed as a heap number on every call; locals here stay unboxed
     if ((bound & -bound) === bound) {
       // (bound * next(31)) >> 31 for a power-of-two bound
-      return Math.floor(this.next(31) / (2147483648 / bound));
+      this.advance();
+      return Math.floor(((this.hi << 7) | (this.lo >>> 17)) / (2147483648 / bound));
     }
     let bits: number, val: number;
     do {
-      bits = this.next(31);
+      this.advance();
+      bits = (this.hi << 7) | (this.lo >>> 17);
       val = bits % bound;
     } while (bits - val + (bound - 1) >= 2147483648);
     return val;
