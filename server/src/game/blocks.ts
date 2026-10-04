@@ -96,7 +96,12 @@ export class BlockBehaviors {
   /** Scheduled block ticks (type = block id). */
   readonly blockTicks = new TickScheduler<number>();
   /** gamerule randomTickSpeed */
-  randomTickSpeed = 3;
+  get randomTickSpeed(): number {
+    return this.s.gameRules.randomTickSpeed;
+  }
+  set randomTickSpeed(v: number) {
+    this.s.gameRules.randomTickSpeed = v;
+  }
   /** ServerLevel.randValue (block position LCG) */
   private randValue = (Math.random() * 0x100000000) | 0;
   private hookDepth = 0;
@@ -461,7 +466,7 @@ export class BlockBehaviors {
   /** Entity.spawnAtLocation(block item) */
   private spawnAtLocation(e: FallingBlockEntity): void {
     const id = itemForBlock(e.state);
-    if (!id) return;
+    if (!id || !this.s.gameRules.doEntityDrops) return;
     this.spawnItem(e.x, e.y, e.z, { id, count: 1, damage: 0 });
   }
 
@@ -782,7 +787,7 @@ export class BlockBehaviors {
     const x = Math.floor(ex), y = Math.floor(ey - 0.2), z = Math.floor(ez);
     const st = this.w.getState(x, y, z);
     if (blockNameOf(st) !== 'farmland') return;
-    if (this.s.rand.nextFloat() < fallDistance - 0.5 && (e.player || e.mobGriefing !== false) && e.width * e.width * e.height > 0.512) this.turnToDirt(x, y, z);
+    if (this.s.rand.nextFloat() < fallDistance - 0.5 && (e.player || (e.mobGriefing ?? this.s.gameRules.mobGriefing)) && e.width * e.width * e.height > 0.512) this.turnToDirt(x, y, z);
   }
 
   // ---------------------------------------------------------------- saplings and trees
@@ -1107,15 +1112,6 @@ export class BlockBehaviors {
       return true;
     }
     return true;
-  }
-
-  /** /gamerule randomTickSpeed <n>; true when handled. */
-  command(args: string[]): boolean {
-    if (args[0] === 'gamerule' && args[1] === 'randomTickSpeed' && args[2] !== undefined && Number.isFinite(Number(args[2]))) {
-      this.randomTickSpeed = Math.max(0, Math.floor(Number(args[2])));
-      return true;
-    }
-    return false;
   }
 }
 

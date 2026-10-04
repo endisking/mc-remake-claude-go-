@@ -4,9 +4,9 @@
  */
 import { BlockWorld } from '@shared/world/world';
 import { LightEngine } from '@shared/world/light';
-import { Chunk, chunkKey } from '@shared/world/chunk';
-import { writeChunk, readChunk } from '@shared/protocol/chunkcodec';
-import { ByteWriter, ByteReader } from '@shared/protocol/buffer';
+import { Chunk, chunkKey, chunkKeyX, chunkKeyZ } from '@shared/world/chunk';
+import { serializeChunk, deserializeChunk, packRecord, unpackRecord, capturePlayer, applyPlayer } from '../storage/codec';
+import { SAVE_FORMAT_VERSION, type WorldStorage, type LevelMeta, type PlayerData } from '../storage/types';
 import { DevGenerator } from '@shared/worldgen/devgen';
 import { OverworldGenerator } from '@shared/worldgen/overworld/generator';
 import { obfuscateSeed } from '@shared/worldgen/biome/zoom';
@@ -17,6 +17,8 @@ import { ServerPlayer } from './player';
 import { AABB, noCollision } from '@shared/entity/aabb';
 import { ItemEntity, LightningBolt, ExperienceOrb, experienceOrbValue, type ServerEntity } from './entity';
 import { Sleep } from './sleep';
+import { FluidTicks } from './fluidticks';
+import { legacyBlock, FLUID_OF } from '@shared/game/fluids';
 import { isRainingAt } from '@shared/world/weather';
 import { stateForPlacement, updateShape, isReplaceable, companionPlacement, DIRS, DX, DY, DZ } from '@shared/game/placement';
 import { canSurvive } from '@shared/game/support';
@@ -36,10 +38,14 @@ import { StepTracker } from '@shared/entity/steps';
 // --- block behaviours (Phase 4: ticks, gravity, farming, doors)
 import { BlockBehaviors } from './blocks';
 import { FallingBlockEntity } from './fallingblock';
+import { Commands, type AccessStore } from './commands';
+import { DEFAULT_ALL_GAME_RULES, type AllGameRules } from './commands/gamerules';
 
 export interface Connection {
   send(data: ArrayBuffer): void;
   close(reason: string): void;
+  /** remote IP address (dedicated server; used by /ban-ip) */
+  address?: string;
 }
 
 export interface ServerOptions {
@@ -54,7 +60,22 @@ export interface ServerOptions {
   defaultGameMode?: number;
   /** Seed for the level's random source (tests); defaults to the clock like vanilla. */
   randomSeed?: bigint;
+  /** Persistent world storage; without it the world lives only in memory. Call load() before start(). */
+  storage?: WorldStorage;
+  /** World name written to the level data. */
+  worldName?: string;
+  /** Dedicated server: enables /op, /ban, /whitelist, /stop… (vanilla registers them only there). */
+  dedicated?: boolean;
+  /** The world's "Allow Cheats" for the single-player/LAN host (default on). */
+  cheats?: boolean;
+  /** Persistence for ops/bans/whitelist (the dedicated server's JSON files). */
+  access?: AccessStore;
 }
+
+/** Vanilla MinecraftServer autosave interval: every 6000 ticks (5 minutes). */
+export const AUTOSAVE_INTERVAL = 6000;
+/** Player-data key of the world's host (single-player / LAN host), like level.dat's Player tag. */
+export const HOST_PLAYER_KEY = '~host';
 
 export class GameServer {
   readonly world = new BlockWorld();
@@ -75,7 +96,8 @@ export class GameServer {
   rainLevel = 0;
   thunderLevel = 0;
   readonly rand: JavaRandom;
-  readonly gameRules: GameRules = { ...DEFAULT_GAME_RULES };
+  readonly gameRules: AllGameRules = { ...DEFAULT_ALL_GAME_RULES };
+  readonly commands = new Commands(this);
   difficulty: Difficulty = Difficulty.Normal;
   readonly survival = new Survival(this);
   /** server.properties pvp */
@@ -83,15 +105,37 @@ export class GameServer {
   readonly sleep = new Sleep(this);
   /** Block behaviours: scheduled + random ticks, gravity blocks, farming, doors (blocks.ts). */
   readonly blocks = new BlockBehaviors(this);
+  // ---- fluids (FlowingFluid ticks; see fluidticks.ts) ----
+  readonly fluids: FluidTicks = new FluidTicks({
+    getState: (x, y, z) => this.world.getState(x, y, z),
+    setBlock: (x, y, z, s) => {
+      this.setBlock(x, y, z, s);
+      this.updateNeighbors(x, y, z);
+    },
+    dropResources: (x, y, z, s) => {
+      for (const it of blockDrops(s, { silkTouch: false, canHarvest: true, random: () => this.rand.nextFloat() })) this.popResource(x, y, z, it);
+    },
+    fizz: (x, y, z) => {
+      const key = chunkKey(x >> 4, z >> 4);
+      for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'levelEvent', event: 1501, x, y, z, data: 0 });
+    },
+    nextInt: (n) => this.rand.nextInt(n),
+    isTickingChunk: (cx, cz) => {
+      if (this.world.getChunk(cx, cz)?.stage !== 3 || !this.isTickingChunk(cx, cz)) return false;
+      return !!(this.world.getChunk(cx - 1, cz) && this.world.getChunk(cx + 1, cz) && this.world.getChunk(cx, cz - 1) && this.world.getChunk(cx, cz + 1));
+    },
+    now: () => this.gameTime,
+  });
+  // ---- end fluids ----
   /** gamerules playersSleepingPercentage and spawnRadius */
   playersSleepingPercentage = 100;
   spawnRadius = 10;
   /** world spawn (set on the first join at the origin) */
   worldSpawn: [number, number, number] = [8, 64, 8];
-  private worldSpawnSet = false;
+  worldSpawnSet = false;
   /** Server simulation distance (chunks); the single-player host's setting overrides it. */
   simulationDistance = 10;
-  private nextEntityId = 1;
+  nextEntityId = 1;
   private readonly chunkGenBudget: number;
   /** Sections whose light changed this tick: key -> [cx, sy, cz] */
   private lightDirty = new Map<number, [number, number, number]>();
@@ -108,8 +152,10 @@ export class GameServer {
     this.light = new LightEngine(this.world);
     this.light.onSectionChanged = (cx, sy, cz) => {
       this.lightDirty.set(chunkKey(cx, cz) * 16 + sy, [cx, sy, cz]);
+      this.saveDirty.add(chunkKey(cx, cz));
     };
     this.chunkGenBudget = opts.chunkGenBudget ?? 6;
+    this.commands.configure(opts);
   }
 
   // ---------------------------------------------------------------- connections
@@ -125,7 +171,14 @@ export class GameServer {
           conn.close('protocol');
           return;
         }
+        const refused = owner ? null : this.commands.loginCheck(p.name.slice(0, 16) || 'Player', conn.address);
+        if (refused) {
+          conn.send(encodeS2C({ t: 'disconnect', reason: refused }));
+          conn.close(refused);
+          return;
+        }
         player = this.join(conn, p, owner);
+        this.commands.joined(player);
         return;
       }
       this.handle(player, p);
@@ -136,6 +189,13 @@ export class GameServer {
     const i = this.players.findIndex((p) => p.conn === conn);
     if (i < 0) return;
     const [gone] = this.players.splice(i, 1);
+    if (this.opts.storage) {
+      const key = this.playerKey(gone!);
+      const data = capturePlayer(gone!);
+      this.playerData.set(key, data);
+      this.opts.storage.putPlayer(key, data).catch((e) => console.error('[server] saving player failed', e));
+    }
+    this.commands.left(gone!);
     for (const o of this.players) {
       if (o.tracking.delete(gone!.id)) this.send(o, { t: 'removeEntities', ids: [gone!.id] });
       this.send(o, { t: 'playerInfo', action: 4, id: gone!.id, name: gone!.name, skin: '', gameMode: 0 });
@@ -151,14 +211,31 @@ export class GameServer {
     p.viewDistance = clampViewDistance(hello.viewDistance);
     p.gameMode = this.opts.defaultGameMode ?? 0;
     p.flying = p.gameMode === 3;
-    [p.x, p.y, p.z] = this.spawnPosition();
+    const saved = this.opts.storage ? this.playerData.get(this.playerKey(p)) : undefined;
+    if (saved && saved.health > 0) applyPlayer(p, saved);
+    else {
+      [p.x, p.y, p.z] = this.spawnPosition();
+      // died and quit before respawning: back at the spawn point (death drops were already made)
+      if (saved) {
+        applyPlayer(p, saved);
+        p.living.health = p.living.maxHealth;
+        p.living.food.foodLevel = 20;
+        p.living.food.saturationLevel = 5;
+        p.living.remainingFireTicks = -20;
+        [p.x, p.y, p.z] = p.respawn ? [p.respawn.x + 0.5, p.respawn.y + 0.6, p.respawn.z + 0.5] : this.spawnPosition();
+      }
+    }
     p.prevTickX = p.x;
     p.prevTickZ = p.z;
     this.players.push(p);
     this.send(p, {
       t: 'login', entityId: p.id, gameMode: p.gameMode, dimension: 'overworld', seed: this.world.biomeZoomSeed!,
-      x: p.x, y: p.y, z: p.z, yaw: 0, pitch: 0, simulationDistance: 10,
+      x: p.x, y: p.y, z: p.z, yaw: p.yaw, pitch: p.pitch, simulationDistance: 10,
     });
+    if (saved) {
+      for (let i = 0; i < p.inventory.slots.length; i++) if (p.inventory.slots[i]) this.syncSlot(p, i);
+      this.send(p, { t: 'heldSlot', slot: p.inventory.selected });
+    }
     this.sendAbilities(p);
     this.survival.sync(p);
     this.send(p, { t: 'difficulty', difficulty: this.difficulty });
@@ -430,12 +507,11 @@ export class GameServer {
     const state = this.world.getState(x, y, z);
     if (state === 0) return;
     const name = blockNameOf(state);
-    const waterlogged = getProp(state, 'waterlogged') === true;
-    const water = BLOCKS_BY_NAME.get('water')!.defaultState;
     // doors and tall plants drop from their lower half (vanilla destroys it with drops via updateShape)
     const below = this.world.getState(x, y - 1, z);
     const lootState = getProp(state, 'half') === 'upper' && blockNameOf(below) === name ? below : state;
-    this.setBlock(x, y, z, waterlogged ? water : 0);
+    // Level.destroyBlock leaves the block's fluid behind (waterlogged blocks, kelp, seagrass)
+    this.setBlock(x, y, z, legacyBlock(FLUID_OF[state]!));
     // particles + sound for everyone else (the breaker plays them locally)
     for (const o of this.players) if (o !== breaker) this.send(o, { t: 'levelEvent', event: 2001, x, y, z, data: state });
     if (breaker && (breaker.gameMode === 0 || breaker.gameMode === 2)) breaker.living.food.addExhaustion(EXHAUSTION.breakBlock);
@@ -447,7 +523,8 @@ export class GameServer {
       for (const it of items) this.popResource(x, y, z, it);
       // Block.spawnAfterBreak → popExperience (OreBlock / RedStoneOreBlock / SpawnerBlock)
       const xp = harvest ? oreExperience(name, this.rand) : 0;
-      if (xp > 0) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
+      // Block.popExperience: only with doTileDrops
+      if (xp > 0 && this.gameRules.doTileDrops) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
     }
     // beds: the other half goes too (BedBlock.updateShape → destroyBlock), dropping its loot
     // (the bed item comes from the head) unless the breaker is in creative
@@ -558,6 +635,8 @@ export class GameServer {
 
   /** Vanilla Block.popResource: item at the block centre ± 0.25 with a small upward toss. */
   popResource(x: number, y: number, z: number, stack: ItemStack): void {
+    // gamerule doTileDrops (vanilla Block.popResource)
+    if (!this.gameRules.doTileDrops) return;
     const r = this.rand;
     const e = new ItemEntity(this.nextEntityId++, stack);
     e.x = x + 0.5 + (r.nextDouble() * 0.5 - 0.25);
@@ -940,7 +1019,8 @@ export class GameServer {
     if (p.living.dead) {
       // a dead player can only chat or respawn
       if (m.t === 'respawn') this.survival.respawn(p);
-      else if (m.t === 'chat' && m.message.startsWith('/')) this.runCommand(p, m.message.slice(1));
+      else if (m.t === 'chat') this.commands.handleChat(p, m.message);
+      else if (m.t === 'commandSuggest' || m.t === 'keepAlive') this.commands.handlePacket(p, m);
       return;
     }
     switch (m.t) {
@@ -1015,97 +1095,12 @@ export class GameServer {
         this.setBlock(m.x, m.y, m.z, m.state);
         break;
       case 'chat':
-        if (m.message.startsWith('/')) this.runCommand(p, m.message.slice(1));
+        this.commands.handleChat(p, m.message);
         break;
-    }
-  }
-
-  /** Minimal command handling (the full command system is Phase 9). */
-  private runCommand(p: ServerPlayer, cmd: string): void {
-    const a = cmd.trim().split(/\s+/);
-    if (this.blocks.command(a)) return;
-    if (a[0] === 'time' && (a[1] === 'set' || a[1] === 'add')) {
-      const names: Record<string, number> = { day: 1000, noon: 6000, night: 13000, midnight: 18000 };
-      const v = names[a[2] ?? ''] ?? Number(a[2]);
-      if (!Number.isFinite(v)) return;
-      this.dayTime = a[1] === 'set' ? v : this.dayTime + v;
-      for (const pl of this.players) this.send(pl, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
-    } else if (a[0] === 'gamerule' && a[1] === 'doDaylightCycle') {
-      this.doDaylightCycle = a[2] === 'true';
-    } else if (a[0] === 'weather' && (a[1] === 'clear' || a[1] === 'rain' || a[1] === 'thunder')) {
-      const d = a[2] ? Number(a[2]) * 20 : 6000;
-      this.setWeather(a[1], Number.isFinite(d) ? d : 6000);
-    } else if (a[0] === 'gamemode' && a[1]) {
-      const modes: Record<string, number> = { survival: 0, creative: 1, adventure: 2, spectator: 3, '0': 0, '1': 1, '2': 2, '3': 3 };
-      const mode = modes[a[1]];
-      if (mode !== undefined) this.setGameMode(p, mode);
-    } else if (a[0] === 'give' && a.length >= 3) {
-      const target = a[1] === '@s' || a[1] === '@p' ? p : this.players.find((o) => o.name === a[1]);
-      const item = ITEMS_BY_NAME.get(a[2]!.replace(/^minecraft:/, ''));
-      const count = a[3] ? Math.floor(Number(a[3])) : 1;
-      if (!target || !item || !(count >= 1 && count <= 6400)) return;
-      // vanilla GiveCommand: fill the inventory, drop what doesn't fit at the player's feet
-      let left = count;
-      while (left > 0) {
-        const n = Math.min(left, maxStackSize(item.id));
-        left -= n;
-        const rest = target.inventory.add({ id: item.id, count: n, damage: 0 });
-        if (rest > 0) this.tossItem(target, { id: item.id, count: rest, damage: 0 });
-      }
-      for (let i = 0; i < 36; i++) this.syncSlot(target, i);
-      this.send(p, { t: 'chat', json: JSON.stringify({ text: `Gave ${count} [${item.displayName}] to ${target.name}` }) });
-    } else if (a[0] === 'setblock' && a.length >= 5) {
-      const rel = (v: string, base: number) => (v.startsWith('~') ? Math.floor(base) + (Number(v.slice(1)) || 0) : Math.floor(Number(v)));
-      const x = rel(a[1]!, p.x), y = rel(a[2]!, p.y), z = rel(a[3]!, p.z);
-      const b = BLOCKS_BY_NAME.get(a[4]!.replace(/^minecraft:/, ''));
-      if (!b || ![x, y, z].every(Number.isFinite)) return;
-      this.setBlock(x, y, z, b.defaultState);
-      this.updateNeighbors(x, y, z);
-    } else if (a[0] === 'summon' && a[1]?.replace(/^minecraft:/, '') === 'lightning_bolt') {
-      const rel = (v: string | undefined, base: number) => (v === undefined ? base : v.startsWith('~') ? base + (Number(v.slice(1)) || 0) : Number(v));
-      const x = rel(a[2], p.x), y = rel(a[3], p.y), z = rel(a[4], p.z);
-      if ([x, y, z].every(Number.isFinite)) this.strikeLightning(x, y, z);
-    } else if (a[0] === 'spawnpoint') {
-      const t = a[1] && !a[1].startsWith('~') && isNaN(Number(a[1])) ? this.players.find((o) => o.name === a[1] || a[1] === '@s' || a[1] === '@p') : p;
-      const c = a.slice(a[1] && isNaN(Number(a[1])) && !a[1].startsWith('~') ? 2 : 1);
-      const rel = (v: string | undefined, base: number) => (v === undefined ? Math.floor(base) : v.startsWith('~') ? Math.floor(base) + (Number(v.slice(1)) || 0) : Math.floor(Number(v)));
-      if (!t) return;
-      const x = rel(c[0], t.x), y = rel(c[1], t.y), z = rel(c[2], t.z);
-      t.respawn = { x, y, z, angle: t.yaw };
-      this.send(p, { t: 'chat', json: JSON.stringify({ text: `Set spawn point to ${x}, ${y}, ${z} in minecraft:overworld for ${t.name}` }) });
-    } else if (a[0] === 'setworldspawn') {
-      const rel = (v: string | undefined, base: number) => (v === undefined ? Math.floor(base) : v.startsWith('~') ? Math.floor(base) + (Number(v.slice(1)) || 0) : Math.floor(Number(v)));
-      this.worldSpawn = [rel(a[1], p.x), rel(a[2], p.y), rel(a[3], p.z)];
-      this.worldSpawnSet = true;
-      this.send(p, { t: 'chat', json: JSON.stringify({ text: `Set the world spawn point to ${this.worldSpawn.join(', ')} [0.0]` }) });
-    } else if (a[0] === 'gamerule' && (a[1] === 'playersSleepingPercentage' || a[1] === 'spawnRadius') && a[2] !== undefined && Number.isFinite(Number(a[2]))) {
-      if (a[1] === 'playersSleepingPercentage') this.playersSleepingPercentage = Math.max(0, Math.floor(Number(a[2])));
-      else this.spawnRadius = Math.max(0, Math.floor(Number(a[2])));
-    } else if (a[0] === 'kill') {
-      this.survival.hurt(p, DAMAGE.outOfWorld, 3.4028235e38);
-    } else if (a[0] === 'difficulty' && a[1]) {
-      const d = ({ peaceful: 0, easy: 1, normal: 2, hard: 3 } as Record<string, Difficulty>)[a[1]];
-      if (d !== undefined) {
-        this.difficulty = d;
-        for (const o of this.players) this.send(o, { t: 'difficulty', difficulty: d });
-      }
-    } else if (a[0] === 'gamerule' && a[1] && a[1] in this.gameRules && (a[2] === 'true' || a[2] === 'false')) {
-      (this.gameRules as unknown as Record<string, boolean>)[a[1]] = a[2] === 'true';
-    } else if ((a[0] === 'xp' || a[0] === 'experience') && a[1] === 'add' && a[3]) {
-      const n = Math.floor(Number(a[3]));
-      if (Number.isFinite(n)) this.survival.giveExperience(p, n, a[4] === 'levels');
-    } else if (a[0] === 'effect' && a[1] === 'clear') {
-      // effects arrive in Phase 5
-    } else if (a[0] === 'clear') {
-      for (let i = 0; i < 41; i++) p.inventory.set(i, null);
-      for (let i = 0; i < 41; i++) this.syncSlot(p, i);
-    } else if (a[0] === 'tp' && a.length >= 4) {
-      const n = a.slice(1, 4).map(Number);
-      if (n.some((v) => !Number.isFinite(v))) return;
-      p.x = n[0]!;
-      p.y = n[1]!;
-      p.z = n[2]!;
-      this.send(p, { t: 'teleport', x: p.x, y: p.y, z: p.z, yaw: p.yaw, pitch: p.pitch });
+      case 'commandSuggest':
+      case 'keepAlive':
+        this.commands.handlePacket(p, m);
+        break;
     }
   }
 
@@ -1114,8 +1109,31 @@ export class GameServer {
   }
 
   // ---------------------------------------------------------------- world access
-  /** Chunks unloaded this session (serialized with their generation stage), restored instead of regenerated. */
-  private readonly stored = new Map<number, { data: ArrayBuffer; stage: number; lit: boolean }>();
+  /**
+   * Chunks not in the world but held in memory, serialized (serializeChunk): unloaded this session
+   * and not yet written to storage (`unsaved`), or read back from storage ahead of use.
+   */
+  private readonly stored = new Map<number, { raw: Uint8Array; unsaved: boolean; writing?: boolean }>();
+  /** Chunk writes, chained so they land in the order they were snapshotted. */
+  private writeChain: Promise<void> = Promise.resolve();
+  /** Chunks present in the save (storage). */
+  private readonly savedKeys = new Set<number>();
+  /** Chunks being read from storage. */
+  private readonly loading = new Set<number>();
+  /** Chunk state signature (version, stage, lit) when last saved or loaded. */
+  private readonly savedSig = new Map<number, number>();
+  /** Chunks whose light changed (or otherwise need saving) since last saved. */
+  private readonly saveDirty = new Set<number>();
+  /**
+   * Saved chunks that had to be generated anyway because something needed them synchronously
+   * before they were read back; never written, so the save keeps the real chunk.
+   */
+  private readonly shadowed = new Set<number>();
+  /** Saved player data by key (HOST_PLAYER_KEY or name), loaded with the world. */
+  private readonly playerData = new Map<string, PlayerData>();
+  private saving: Promise<void> | null = null;
+  /** World creation time (ms), kept in the level data. */
+  private createdAt = Date.now();
 
   /**
    * Bring a chunk up to a generation stage, like vanilla's ChunkStatus pyramid: features (stage 2)
@@ -1125,21 +1143,29 @@ export class GameServer {
   ensureStage(cx: number, cz: number, stage: number): Chunk {
     let c = this.world.getChunk(cx, cz);
     if (!c) {
-      const saved = this.stored.get(chunkKey(cx, cz));
+      const key = chunkKey(cx, cz);
+      const saved = this.stored.get(key);
       if (saved) {
-        c = readChunk(new ByteReader(saved.data), true);
-        c.stage = saved.stage;
-        c.lit = saved.lit;
-        this.stored.delete(chunkKey(cx, cz));
+        c = deserializeChunk(saved.raw);
+        this.stored.delete(key);
       } else {
         c = this.generator.generate(cx, cz);
         if (this.generator instanceof OverworldGenerator) c.stage = 1;
+        if (this.savedKeys.has(key)) {
+          console.warn(`[server] chunk ${cx},${cz} needed before it was loaded; using a temporary copy`);
+          this.shadowed.add(key);
+        }
       }
       this.world.addChunk(c);
+      if (saved && !saved.unsaved) this.savedSig.set(key, chunkSig(c));
+      else this.savedSig.delete(key);
     }
     if (stage >= 2 && c.stage < 2) {
       for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (dx || dz) this.ensureStage(cx + dx, cz + dz, 1);
-      if (this.generator instanceof OverworldGenerator) this.generator.decorate(this.world, cx, cz);
+      if (this.generator instanceof OverworldGenerator) {
+        // springs schedule their fluid tick (delay 0); it runs once the chunk is full and ticking
+        for (const [x, y, z] of this.generator.decorate(this.world, cx, cz)) this.fluids.scheduleFluidAt(x, y, z, 0);
+      }
       c.stage = 2;
     }
     if (stage >= 3 && c.stage < 3) {
@@ -1161,11 +1187,282 @@ export class GameServer {
     return c;
   }
 
+  /**
+   * Whether prepareChunk(cx, cz) can run without generating a chunk that exists in the save:
+   * everything it touches (radius 2) is loaded, held in memory, or not saved. Starts reading
+   * missing saved chunks.
+   */
+  private chunksReady(cx: number, cz: number): boolean {
+    if (this.savedKeys.size === 0) return true;
+    let ready = true;
+    for (let dx = -2; dx <= 2; dx++)
+      for (let dz = -2; dz <= 2; dz++) {
+        const x = cx + dx, z = cz + dz;
+        if (this.world.getChunk(x, z)) continue;
+        const key = chunkKey(x, z);
+        if (!this.savedKeys.has(key) || this.stored.has(key)) continue;
+        ready = false;
+        this.requestLoad(x, z);
+      }
+    return ready;
+  }
+
+  private requestLoad(cx: number, cz: number): void {
+    const key = chunkKey(cx, cz);
+    const storage = this.opts.storage;
+    if (!storage || this.loading.has(key)) return;
+    this.loading.add(key);
+    storage
+      .getChunk(cx, cz)
+      .then(async (rec) => {
+        if (!rec) {
+          this.savedKeys.delete(key);
+          return;
+        }
+        const raw = await unpackRecord(rec);
+        if (!this.world.getChunk(cx, cz) && !this.stored.has(key)) this.stored.set(key, { raw, unsaved: false });
+      })
+      .catch((e) => {
+        console.error(`[server] failed to read chunk ${cx},${cz}; it will be regenerated`, e);
+        this.savedKeys.delete(key);
+      })
+      .finally(() => this.loading.delete(key));
+  }
+
+  /** Read every saved chunk needed to prepare the chunks within `r` of a chunk (before players join). */
+  async preloadChunks(cx: number, cz: number, r: number): Promise<void> {
+    for (let i = 0; i < 2000; i++) {
+      let ready = true;
+      for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) if (!this.chunksReady(cx + dx, cz + dz)) ready = false;
+      if (ready) return;
+      await new Promise((res) => setTimeout(res, 5));
+    }
+  }
+
+  /** Mark a loaded chunk as needing a save (e.g. a block entity's contents changed). */
+  markChunkDirty(cx: number, cz: number): void {
+    this.saveDirty.add(chunkKey(cx, cz));
+  }
+
+  private needsSave(c: Chunk, key: number, blockEntities = true): boolean {
+    if (this.shadowed.has(key)) return false;
+    if (this.saveDirty.has(key) || this.savedSig.get(key) !== chunkSig(c)) return true;
+    if (!blockEntities) return false;
+    // block entities (containers) can change without a block change
+    const be = (c as unknown as { blockEntities?: { size?: number; length?: number } }).blockEntities;
+    return !!be && (be.size ?? be.length ?? 0) > 0;
+  }
+
+  private markSaved(c: Chunk, key: number): void {
+    this.savedSig.set(key, chunkSig(c));
+    this.saveDirty.delete(key);
+    this.savedKeys.add(key);
+  }
+
   /** Keep an unloaded chunk (blocks, light, stage) so coming back finds it as it was. */
   private storeChunk(c: Chunk): void {
-    const w = new ByteWriter(65536);
-    writeChunk(w, c, true);
-    this.stored.set(chunkKey(c.x, c.z), { data: w.finish(), stage: c.stage, lit: c.lit });
+    const key = chunkKey(c.x, c.z);
+    if (this.shadowed.delete(key)) {
+      // the save has the real chunk; forget the temporary copy
+      this.savedSig.delete(key);
+      this.saveDirty.delete(key);
+      return;
+    }
+    const dirty = this.needsSave(c, key);
+    this.savedSig.delete(key);
+    this.saveDirty.delete(key);
+    if (this.opts.storage && !dirty && this.savedKeys.has(key)) return; // unchanged since saved
+    this.stored.set(key, { raw: serializeChunk(c), unsaved: true });
+  }
+
+  /** Write chunks unloaded since the last flush to storage. */
+  private async flushStored(): Promise<void> {
+    if (!this.opts.storage) return;
+    const entries = [...this.stored].filter(([, e]) => e.unsaved);
+    if (!entries.length) return;
+    for (const [, e] of entries) {
+      e.unsaved = false;
+      e.writing = true;
+    }
+    try {
+      await this.writeChunks(entries.map(([key, e]) => ({ key, raw: e.raw })));
+    } catch (err) {
+      for (const [, e] of entries) e.unsaved = true;
+      throw err;
+    } finally {
+      for (const [key, e] of entries) {
+        e.writing = false;
+        // written: drop it from memory unless it was reloaded or replaced meanwhile
+        if (!e.unsaved && this.stored.get(key) === e) this.stored.delete(key);
+      }
+    }
+  }
+
+  /** Compress and write serialized chunks, after every write queued before. */
+  private writeChunks(raws: { key: number; raw: Uint8Array }[]): Promise<void> {
+    const storage = this.opts.storage!;
+    const packed = Promise.all(raws.map(async ({ key, raw }) => ({ cx: chunkKeyX(key), cz: chunkKeyZ(key), data: await packRecord(raw) })));
+    const w = this.writeChain.then(async () => {
+      const records = await packed;
+      for (let i = 0; i < records.length; i += 256) await storage.putChunks(records.slice(i, i + 256));
+      for (const { key } of raws) this.savedKeys.add(key);
+    });
+    this.writeChain = w.catch(() => {});
+    return w;
+  }
+
+  private trickling = false;
+  /**
+   * Save changed chunks in the background (about 2 ms of each tick), so autosaves and
+   * "Save and Quit" have little left to write. Finished chunks first; the not-yet-full ring
+   * at the edge only when nothing else is waiting.
+   */
+  private trickleSave(): void {
+    if (this.trickling || this.saving) return;
+    const raws: { key: number; raw: Uint8Array }[] = [];
+    const deadline = performance.now() + 2;
+    for (const pass of [0, 1]) {
+      for (const [key, c] of this.world.chunks) {
+        if ((pass === 0 && (c.stage < 3 || !c.lit)) || !this.needsSave(c, key, false)) continue;
+        raws.push({ key, raw: serializeChunk(c) });
+        this.markSaved(c, key);
+        if (raws.length >= 16 || performance.now() > deadline) break;
+      }
+      if (raws.length) break;
+    }
+    if (!raws.length) return;
+    this.trickling = true;
+    this.writeChunks(raws)
+      .catch((e) => {
+        for (const { key } of raws) this.saveDirty.add(key);
+        console.error('[server] background chunk save failed', e);
+      })
+      .finally(() => (this.trickling = false));
+  }
+
+  // ---------------------------------------------------------------- persistence
+  /** Level data snapshot. */
+  captureMeta(): LevelMeta {
+    return {
+      version: SAVE_FORMAT_VERSION,
+      name: this.opts.worldName ?? 'World',
+      seed: this.opts.seed.toString(),
+      defaultGameMode: this.opts.defaultGameMode ?? 0,
+      gameTime: this.gameTime,
+      dayTime: this.dayTime,
+      doDaylightCycle: this.doDaylightCycle,
+      doWeatherCycle: this.doWeatherCycle,
+      raining: this.raining,
+      thundering: this.thundering,
+      rainTime: this.rainTime,
+      thunderTime: this.thunderTime,
+      clearWeatherTime: this.clearWeatherTime,
+      rainLevel: this.rainLevel,
+      thunderLevel: this.thunderLevel,
+      worldSpawn: this.worldSpawnSet ? [...this.worldSpawn] : null,
+      gameRules: { ...this.gameRules },
+      difficulty: this.difficulty,
+      playersSleepingPercentage: this.playersSleepingPercentage,
+      spawnRadius: this.spawnRadius,
+      pvp: this.pvp,
+      lastPlayed: Date.now(),
+      createdAt: this.createdAt,
+    };
+  }
+
+  applyMeta(m: LevelMeta): void {
+    const num = (v: unknown, def: number) => (typeof v === 'number' && Number.isFinite(v) ? v : def);
+    if (typeof m.name === 'string' && !this.opts.worldName) this.opts.worldName = m.name;
+    if (typeof m.defaultGameMode === 'number') this.opts.defaultGameMode = m.defaultGameMode;
+    this.gameTime = num(m.gameTime, 0);
+    this.dayTime = num(m.dayTime, 1000);
+    this.doDaylightCycle = m.doDaylightCycle ?? true;
+    this.doWeatherCycle = m.doWeatherCycle ?? true;
+    this.raining = !!m.raining;
+    this.thundering = !!m.thundering;
+    this.rainTime = num(m.rainTime, 0);
+    this.thunderTime = num(m.thunderTime, 0);
+    this.clearWeatherTime = num(m.clearWeatherTime, 0);
+    this.rainLevel = num(m.rainLevel, 0);
+    this.thunderLevel = num(m.thunderLevel, 0);
+    if (Array.isArray(m.worldSpawn) && m.worldSpawn.length === 3) {
+      this.worldSpawn = [m.worldSpawn[0], m.worldSpawn[1], m.worldSpawn[2]];
+      this.worldSpawnSet = true;
+    }
+    if (m.gameRules) Object.assign(this.gameRules, m.gameRules);
+    this.difficulty = num(m.difficulty, this.difficulty) as Difficulty;
+    this.playersSleepingPercentage = num(m.playersSleepingPercentage, 100);
+    this.spawnRadius = num(m.spawnRadius, 10);
+    if (typeof m.pvp === 'boolean') this.pvp = m.pvp;
+    this.createdAt = num(m.createdAt, this.createdAt);
+  }
+
+  /**
+   * Open the world from storage: level data, the saved chunk index, player data, and the chunks
+   * around spawn. A world without level data is new; its level data is written right away.
+   */
+  async load(): Promise<void> {
+    const storage = this.opts.storage;
+    if (!storage) return;
+    const meta = await storage.getMeta();
+    if (meta) this.applyMeta(meta);
+    for (const [cx, cz] of await storage.listChunks()) this.savedKeys.add(chunkKey(cx, cz));
+    for (const id of await storage.listPlayers()) {
+      const d = await storage.getPlayer(id);
+      if (d) this.playerData.set(id, d);
+    }
+    if (this.worldSpawnSet) await this.preloadChunks(Math.floor(this.worldSpawn[0]) >> 4, Math.floor(this.worldSpawn[2]) >> 4, 1);
+    const host = this.playerData.get(HOST_PLAYER_KEY);
+    if (host) await this.preloadChunks(Math.floor(host.x) >> 4, Math.floor(host.z) >> 4, 1);
+    if (!meta) await storage.putMeta(this.captureMeta());
+  }
+
+  playerKey(p: ServerPlayer): string {
+    return p.isOwner ? HOST_PLAYER_KEY : p.name;
+  }
+
+  /** Save everything (changed chunks, players, level data). Concurrent calls queue behind the running save. */
+  save(): Promise<void> {
+    if (!this.opts.storage) return Promise.resolve();
+    if (this.saving) return this.saving.catch(() => {}).then(() => this.save());
+    const s = this.doSave().finally(() => {
+      if (this.saving === s) this.saving = null;
+    });
+    this.saving = s;
+    return s;
+  }
+
+  private async doSave(): Promise<void> {
+    const storage = this.opts.storage!;
+    const t0 = performance.now();
+    // snapshot synchronously so the saved state is consistent
+    const raws: { key: number; raw: Uint8Array }[] = [];
+    for (const [key, c] of this.world.chunks) {
+      if (!this.needsSave(c, key)) continue;
+      raws.push({ key, raw: serializeChunk(c) });
+      this.markSaved(c, key);
+    }
+    for (const p of this.players) this.playerData.set(this.playerKey(p), capturePlayer(p));
+    const players = [...this.playerData];
+    const meta = this.captureMeta();
+    try {
+      await Promise.all([this.writeChunks(raws), this.flushStored()]);
+      for (const [id, d] of players) await storage.putPlayer(id, d);
+      await storage.putMeta(meta);
+    } catch (e) {
+      // retry these chunks next time
+      for (const { key } of raws) this.saveDirty.add(key);
+      console.error('[server] saving the world failed', e);
+      throw e;
+    }
+    console.info(`[server] saved ${raws.length} chunks, ${players.length} players in ${Math.round(performance.now() - t0)} ms`);
+  }
+
+  /** Stop ticking and save; resolves once everything is written. */
+  async shutdown(): Promise<void> {
+    this.stop();
+    await this.save();
+    await this.opts.storage?.close();
   }
 
   setBlock(x: number, y: number, z: number, state: number): void {
@@ -1176,6 +1473,8 @@ export class GameServer {
     const key = chunkKey(x >> 4, z >> 4);
     for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
     this.blocks.afterSetBlock(x, y, z, old, state);
+    // after the packet: fluid updates may replace this block again (lava hardening) and must arrive later
+    this.fluids.blockChanged(x, y, z, old, state);
   }
 
   // ---------------------------------------------------------------- ticking
@@ -1183,12 +1482,17 @@ export class GameServer {
     const t0 = performance.now();
     this.gameTime++;
     if (this.doDaylightCycle) this.dayTime++;
+    // MinecraftServer.tickServer: autosave every 6000 ticks
+    if (this.opts.storage && this.gameTime % AUTOSAVE_INTERVAL === 0) this.save().catch(() => {});
+    else if (this.opts.storage) this.trickleSave();
     if (this.gameTime % 20 === 0) {
       for (const p of this.players) this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     }
     this.advanceWeather();
     this.tickLightning();
+    this.fluids.tick();
     this.sleep.tick();
+    this.commands.tick();
     for (const p of this.players) {
       // ServerPlayer.tick: a spectator rides along with its camera entity until it sneaks
       const cam = p.camera;
@@ -1270,9 +1574,10 @@ export class GameServer {
       this.raining = false;
       this.thundering = false;
     } else {
+      // ServerLevel.setWeatherParameters(0, duration, true, thunder): both timers get the duration
       this.clearWeatherTime = 0;
       this.rainTime = duration;
-      this.thunderTime = kind === 'thunder' ? duration : 0;
+      this.thunderTime = duration;
       this.raining = true;
       this.thundering = kind === 'thunder';
     }
@@ -1299,6 +1604,8 @@ export class GameServer {
         const cx = pcx + dx, cz = pcz + dz;
         const key = chunkKey(cx, cz);
         if (p.sent.has(key)) continue;
+        // saved chunks are read asynchronously; send this one once they are in memory
+        if (!this.chunksReady(cx, cz)) continue;
         const c = this.prepareChunk(cx, cz);
         p.sent.add(key);
         this.send(p, { t: 'chunk', chunk: c });
@@ -1317,6 +1624,19 @@ export class GameServer {
         if (!needed) {
           this.storeChunk(c);
           this.world.removeChunk(c.x, c.z);
+        }
+      }
+      if (this.opts.storage) {
+        // chunks read ahead but no longer needed: storage still has them
+        for (const [key, e] of this.stored) {
+          if (e.unsaved || e.writing) continue;
+          const cx = chunkKeyX(key), cz = chunkKeyZ(key);
+          const needed = this.players.some((p) => Math.abs(cx - (Math.floor(p.x) >> 4)) <= p.viewDistance + 3 && Math.abs(cz - (Math.floor(p.z) >> 4)) <= p.viewDistance + 3);
+          if (!needed) this.stored.delete(key);
+        }
+        // write unloaded chunks out in the background (not while a full save is running)
+        if (!this.saving && [...this.stored.values()].some((e) => e.unsaved)) {
+          this.flushStored().catch((e) => console.error('[server] writing unloaded chunks failed', e));
         }
       }
     }
@@ -1433,6 +1753,11 @@ function oreExperience(name: string, r: JavaRandom): number {
   if (n === 'nether_gold_ore') return range(0, 1);
   if (n === 'spawner') return 15 + r.nextInt(15) + r.nextInt(15);
   return 0;
+}
+
+/** Changes to a chunk that need saving: block version, generation stage, lit flag. */
+function chunkSig(c: Chunk): number {
+  return c.version * 8 + c.stage * 2 + (c.lit ? 1 : 0);
 }
 
 function clampViewDistance(v: number): number {

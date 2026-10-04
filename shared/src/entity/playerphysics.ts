@@ -9,7 +9,8 @@ import { AABB, collideBox, noCollision, blockBoxesIn, type CollisionContext } fr
 import { collisionBoxesFor } from '../world/shapes';
 import { FRICTION, SPEED_FACTOR, JUMP_FACTOR, CLIMBABLE, STUCK } from './blockphysics';
 import { STATE_TO_BLOCK, getProp } from '../world/blockstate';
-import { FLUID, FLUID_LEVEL, COLLISION_SHAPE_ID, FULL_COLLISION } from '../world/blockinfo';
+import { FLUID, FLUID_LEVEL, FULL_COLLISION } from '../world/blockinfo';
+import { getFlow } from '../game/fluids';
 import { BLOCKS_BY_NAME } from '../data';
 import type { StateGetter } from '../world/raycast';
 
@@ -164,36 +165,9 @@ export class PlayerPhysics {
     return (lvl >= 8 ? 8 : 8 - lvl) / 9;
   }
 
-  private ownHeight(kind: number, x: number, y: number, z: number): number {
-    const s = this.world.getState(x, y, z);
-    if (FLUID[s] !== kind) return 0;
-    const lvl = FLUID_LEVEL[s]!;
-    return (lvl >= 8 ? 8 : 8 - lvl) / 9;
-  }
-
-  /** Vanilla FlowingFluid.getFlow (horizontal part). */
-  private flow(kind: number, x: number, y: number, z: number): [number, number, number] {
-    let fx = 0, fz = 0;
-    const own = this.ownHeight(kind, x, y, z);
-    const dirs: [number, number][] = [[0, -1], [0, 1], [-1, 0], [1, 0]];
-    for (const [dx, dz] of dirs) {
-      const ns = this.world.getState(x + dx, y, z + dz);
-      if (FLUID[ns] !== 0 && FLUID[ns] !== kind) continue;
-      let f = FLUID[ns] === kind ? this.ownHeight(kind, x + dx, y, z + dz) : 0;
-      let f1 = 0;
-      if (f === 0) {
-        if (COLLISION_SHAPE_ID[ns] === 0) {
-          const below = this.ownHeight(kind, x + dx, y - 1, z + dz);
-          if (below > 0) f1 = own - (below - 0.8888889);
-        }
-      } else if (f > 0) f1 = own - f;
-      if (f1 !== 0) {
-        fx += dx * f1;
-        fz += dz * f1;
-      }
-    }
-    const len = Math.hypot(fx, fz);
-    return len < 1e-5 ? [0, 0, 0] : [fx / len, 0, fz / len];
+  /** Vanilla FlowingFluid.getFlow (shared with the server's fluid simulation and the mesher). */
+  private flow(_kind: number, x: number, y: number, z: number): [number, number, number] {
+    return getFlow(this.world, x, y, z);
   }
 
   /** updateFluidHeightAndDoFluidPushing for one fluid kind; returns whether touching it. */

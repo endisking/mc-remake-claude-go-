@@ -189,10 +189,13 @@ const ITEM_TO_BLOCK_ALIAS: Record<string, string> = {
   melon_seeds: 'melon_stem', pumpkin_seeds: 'pumpkin_stem', sweet_berries: 'sweet_berry_bush', glow_berries: 'cave_vines', cocoa_beans: 'cocoa',
 };
 
+/** Items that share a name with a block they don't place (the wheat item vs the wheat crop). */
+const NOT_PLACEABLE = new Set(['wheat']);
+
 /** Block placed by an item, if it is a block item. */
 export function blockForItem(itemId: number): string | null {
   const n = ITEMS_BY_ID[itemId]?.name;
-  if (!n) return null;
+  if (!n || NOT_PLACEABLE.has(n)) return null;
   if (BLOCKS_BY_NAME.has(n)) return n;
   return ITEM_TO_BLOCK_ALIAS[n] ?? null;
 }

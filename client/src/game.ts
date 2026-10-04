@@ -2,6 +2,7 @@
  * The client game: networking to a (local or remote) server, world mirror, camera,
  * frame loop and renderers.
  */
+import { animateFluids } from './world/fluidambience';
 import { decodeS2C, encodeC2S, PROTOCOL_VERSION, type C2S, type S2C } from '@shared/protocol/packets';
 import { BIOMES } from '@shared/data';
 import { chunkKey } from '@shared/world/chunk';
@@ -61,6 +62,9 @@ import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
+import { ItemTextures } from './render/itemtextures';
+import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './gui/itemicons';
+import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
 export class Game implements ScreenHost {
   readonly gl: WebGL2RenderingContext;
@@ -83,6 +87,12 @@ export class Game implements ScreenHost {
   private readonly hud = new Hud();
   /** online players (vanilla PlayerInfo list) */
   readonly playerInfo = new Map<number, PlayerInfoEntry>();
+  /** operator permission level from the server (vanilla LocalPlayer.permissionLevel); integrated servers start at 4 */
+  permissionLevel = 4;
+  /** ping per player id (vanilla PlayerInfo latency) */
+  readonly playerLatency = new Map<number, number>();
+  /** camera position of the last frame (nameplates project from it) */
+  private readonly camPos = [0, 0, 0];
   /** entity the camera looks through while spectating (null = ourselves) */
   cameraEntity: number | null = null;
   /** game mode before the last change (F3+N returns to it) */
@@ -149,6 +159,9 @@ export class Game implements ScreenHost {
   attackStrengthTicker = 0;
   particles!: ParticleEngine;
   blockItems!: BlockItemRenderer;
+  itemTextures!: ItemTextures;
+  /** where the compass points (vanilla: world spawn; approximated by where we first joined) */
+  compassTarget: [number, number] | null = null;
   private bake!: BakeResult;
   /** Dropped item entities: id → state for rendering. */
   readonly items = new Map<number, { x: number; y: number; z: number; xo: number; yo: number; zo: number; lx: number; ly: number; lz: number; steps: number; item: number; count: number; age: number; bobOffs: number; pickup?: { collector: number; life: number }; orb?: number }>();
@@ -334,9 +347,25 @@ export class Game implements ScreenHost {
     return c;
   }
 
-  /** "Save and Quit to Title": back to the launcher. */
+  private quitting = false;
+
+  /** "Save and Quit to Title": save the world (showing "Saving world"), then back to the launcher. */
   quitToTitle(): void {
-    location.href = location.pathname;
+    if (this.quitting) return;
+    this.quitting = true;
+    const leave = () => {
+      location.href = location.pathname;
+    };
+    if (!this.integrated?.worldId) {
+      leave();
+      return;
+    }
+    void import('./gui/savingscreen').then(({ MessageScreen }) => this.setScreen(new MessageScreen(this.gui, 'Saving world')));
+    this.integrated.saveAndStop().then(leave, (e: unknown) => {
+      console.error('saving failed', e);
+      alert(`Saving the world failed: ${(e as Error).message}`);
+      leave();
+    });
   }
 
   async start(): Promise<void> {
@@ -374,6 +403,28 @@ export class Game implements ScreenHost {
       const t = flatItemTexture(blockNameOf(st));
       return t === null ? null : (mainBake.textures.get(t)?.layer ?? mainBake.textures.get('missing')!.layer);
     }, (layer) => this.textures.alpha[layer]);
+    // item sprites: extruded 3D models (BlockItemRenderer) and GUI icons (gui/itemicons)
+    this.itemTextures = await ItemTextures.load();
+    const sprites = this.itemTextures;
+    this.blockItems.sprites = {
+      texture: () => sprites.texture(this.gl),
+      alpha: (l) => sprites.alpha[l],
+      layerFor: (id) => spriteLayerFor(sprites, id),
+      layerByName: (name) => sprites.layer(name),
+      handheld: (l) => sprites.handheld(l),
+    };
+    this.blockItems.blockOf = (id) => {
+      const b = blockForItem(id);
+      return b ? BLOCKS_BY_NAME.get(b)!.defaultState : null;
+    };
+    setItemIconBackend({
+      sprites,
+      blockIcon: (id) => {
+        const st = this.blockItems.blockOf(id);
+        const ic = st === null ? null : this.blockItems.icon(st);
+        return ic ? [this.blockItems.iconCanvas, ic[0], ic[1], ic[2]] : null;
+      },
+    });
     this.lightning = new LightningRenderer(this.gl);
     this.orbRenderer = new OrbRenderer(this.gl);
     this.entityRenderer.bedFacing = (rp) => {
@@ -382,9 +433,10 @@ export class Game implements ScreenHost {
       return ({ south: 0, west: 90, north: 180, east: 270 } as Record<string, number>)[getProp(st, 'facing') as string] ?? null;
     };
     this.entityRenderer.itemModel = (item) => {
-      const block = blockForItem(item);
-      if (!block) return null;
-      return { flat: this.blockItems.isFlat(BLOCKS_BY_NAME.get(block)!.defaultState) };
+      const key = this.blockItems.modelKey(item);
+      if (key === null) return null;
+      const d = this.blockItems.display(key);
+      return { flat: d !== 'block', handheld: d === 'handheld' || d === 'handheld_rod' };
     };
     this.hand = new HandRenderer(this.gl, this.entityRenderer, this.blockItems, () => this.textures.tex, mainBake.textures.get('fire_1')!.layer);
     this.growthParticleLayer = mainBake.textures.get('snow')?.layer ?? 0;
@@ -443,8 +495,19 @@ export class Game implements ScreenHost {
       } else {
         const seed = BigInt(q.get('seed') ?? '12345');
         const gm = { survival: 0, creative: 1, adventure: 2, spectator: 3 }[q.get('gamemode') ?? 'survival'] ?? 0;
-        const { server, transport } = await startIntegratedServer(seed, q.get('scene') ?? '', gm);
+        // ?world=<id>: a saved world from the launcher (IndexedDB); otherwise a transient one
+        const { server, transport } = await startIntegratedServer(seed, q.get('scene') ?? '', gm, q.get('world'));
         this.integrated = server;
+        if (server.worldId) {
+          // best effort: save when the tab is hidden or closed (the worker may not finish on close)
+          const flush = () => {
+            if (!this.quitting) server.save().catch(() => {});
+          };
+          window.addEventListener('pagehide', flush);
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') flush();
+          });
+        }
         this.connect(transport);
         if (q.has('host')) this.openToLan(q.get('host') || undefined);
       }
@@ -455,7 +518,10 @@ export class Game implements ScreenHost {
   connect(t: ClientTransport): void {
     this.transport = t;
     t.onMessage = (d) => this.handle(decodeS2C(d));
-    t.onClose = (r) => console.warn('disconnected', r);
+    t.onClose = (r) => {
+      console.warn('disconnected', r);
+      this.showDisconnected(r);
+    };
     this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: '' });
   }
 
@@ -559,8 +625,8 @@ export class Game implements ScreenHost {
             this.sleeping = sleeping;
             if (sleeping) {
               this.interaction.stopDestroy();
-              this.setScreen(new InBedScreen(this));
-            } else if (this.screen instanceof InBedScreen) this.setScreen(null);
+              this.setScreen(new InBedChatScreen(this.chatHost(), () => this.send({ t: 'stopSleeping' })));
+            } else if (this.screen instanceof InBedScreen || this.screen instanceof InBedChatScreen) this.setScreen(null);
           }
           break;
         }
@@ -701,6 +767,11 @@ export class Game implements ScreenHost {
       case 'levelEvent':
         if (p.event === 2001) this.blockBroken(p.x, p.y, p.z, p.data);
         else if (p.event === 1505) this.growthParticles(p.x, p.y, p.z, p.data);
+        else if (p.event === 1501) {
+          // LevelRenderer.levelEvent LAVA_FIZZ: extinguish hiss (large smoke particles: no smoke particle type yet)
+          const r = this.sfxRand;
+          this.playAt('block.lava.extinguish', 'block', p.x + 0.5, p.y + 0.5, p.z + 0.5, 0.5, 2.6 + (r.nextFloat() - r.nextFloat()) * 0.8);
+        }
         break;
       case 'sound': {
         const name = soundName(p.event);
@@ -714,21 +785,31 @@ export class Game implements ScreenHost {
         if (p.stage < 0) this.otherCracks.delete(p.id);
         else this.otherCracks.set(p.id, { x: p.x, y: p.y, z: p.z, stage: p.stage });
         break;
-      case 'chat': {
-        let text = p.json;
-        try {
-          const j = JSON.parse(p.json) as { text?: string };
-          if (typeof j.text === 'string') text = j.text;
-        } catch {
-          /* plain text */
-        }
-        this.hud.addChat(text);
+      case 'chat':
+        this.hud.addChat(componentToLegacy(p.json), componentClick(p.json));
         break;
-      }
-      case 'digAck':
+      case 'commandSuggestions':
+        if (this.screen instanceof ChatScreen) this.screen.receiveSuggestions(p.id, JSON.parse(p.json) as SuggestionReply);
+        break;
+      case 'keepAlive':
+        this.send({ t: 'keepAlive', id: p.id });
+        break;
+      case 'playerLatency':
+        this.playerLatency.set(p.id, p.latency);
+        break;
       case 'disconnect':
+        this.showDisconnected(p.reason);
+        break;
+      case 'digAck':
         break;
     }
+  }
+
+  /** Kicked, banned or the connection dropped: vanilla DisconnectedScreen. */
+  private showDisconnected(reason: string): void {
+    if (this.screen instanceof DisconnectedScreen) return;
+    this.loggedIn = false;
+    this.setScreen(new DisconnectedScreen(this, reason));
   }
 
   /** Move the camera directly (benchmark / tests); position is the eye. */
@@ -803,6 +884,7 @@ export class Game implements ScreenHost {
     this.lightmap.tick();
     if (this.world.doDaylightCycle) this.world.dayTime++;
     this.world.gameTime++;
+    animateFluids(this.world, this.player.x, this.player.y, this.player.z, this.sfxRand, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
     this.prevX = this.x;
     this.prevY = this.y;
     this.prevZ = this.z;
@@ -902,6 +984,9 @@ export class Game implements ScreenHost {
       }
       // vanilla: Ctrl (Screen.hasControlDown) + drop throws the whole stack
       if (b.consume('swapOffhand')) ia.swapOffhand();
+      // vanilla handleKeybinds: T opens chat, / opens it with the slash typed
+      if (b.consume('chat')) this.openChat('');
+      else if (b.consume('command')) this.openChat('/');
       if (b.consume('drop')) ia.drop(i.isDown('ControlLeft') || i.isDown('ControlRight') || i.isDown('MetaLeft'));
     }
     if (this.loggedIn) {
@@ -1088,6 +1173,11 @@ export class Game implements ScreenHost {
 
   /** LivingEntity.handleEntityEvent: hurt animation and the hurt/death sound for the local player. */
   private entityEvent(id: number, event: number): void {
+    // 24–28: our operator permission level (vanilla ClientboundEntityEventPacket)
+    if (id === this.entityId && event >= 24 && event <= 28) {
+      this.permissionLevel = event - 24;
+      return;
+    }
     const hurt = event === 2 || event === 33 || event === 36 || event === 37 || event === 44 || event === 57;
     if (id !== this.entityId) {
       const rp = this.players.get(id);
@@ -1453,7 +1543,8 @@ export class Game implements ScreenHost {
         return true;
       case 'KeyN':
         // operators toggle between spectator and the previous game mode (creative if none)
-        if (this.gameMode !== 3) this.send({ t: 'chat', message: '/gamemode spectator' });
+        if (this.permissionLevel < 2) this.debugFeedback('Unable to switch gamemode; no permission');
+        else if (this.gameMode !== 3) this.send({ t: 'chat', message: '/gamemode spectator' });
         else this.send({ t: 'chat', message: `/gamemode ${GAME_MODE_NAMES[this.previousGameMode >= 0 && this.previousGameMode !== 3 ? this.previousGameMode : 1]}` });
         return true;
       case 'KeyP':
@@ -1587,20 +1678,20 @@ export class Game implements ScreenHost {
     this.applyHurtBob(hb, partial);
     if (this.settings.viewBobbing && !this.player.abilities.flying) multiply(hb, hb, this.bobMat);
     const st = this.handItem;
-    const block = st ? blockForItem(st.id) : null;
+    const key = st ? this.blockItems.modelKey(st.id) : null;
     const sw = this.attackAnim - this.attackAnimO;
     const swingNow = this.attackAnimO + (sw < 0 ? sw + 1 : sw) * partial;
     const offSt = this.offHandItem;
-    const offBlock = offSt ? blockForItem(offSt.id) : null;
+    const offKey = offSt ? this.blockItems.modelKey(offSt.id) : null;
     const eyeX = Math.floor(this.x), eyeY = Math.floor(this.y), eyeZ = Math.floor(this.z);
     this.hand.render({
       stack: st,
-      blockState: block ? BLOCKS_BY_NAME.get(block)!.defaultState : null,
+      blockState: key,
       swing: this.swingingHand === 0 ? swingNow : 0,
       off: offSt
         ? {
             stack: offSt,
-            blockState: offBlock ? BLOCKS_BY_NAME.get(offBlock)!.defaultState : null,
+            blockState: offKey,
             swing: this.swingingHand === 1 ? swingNow : 0,
             equip: 1 - (this.oOffHandHeight + (this.offHandHeight - this.oOffHandHeight) * partial),
           }
@@ -1654,9 +1745,8 @@ export class Game implements ScreenHost {
       // Entity.shouldRenderAtSqrDistance: bounding-box size (0.25) × 64 × entity distance
       const ed = 0.25 * 64 * this.settings.entityDistance;
       if ((it.x - cx) ** 2 + (it.y - cy) ** 2 + (it.z - cz) ** 2 >= ed * ed) continue;
-      const block = blockForItem(it.item);
-      if (!block) continue;
-      const state = BLOCKS_BY_NAME.get(block)!.defaultState;
+      const state = this.blockItems.modelKey(it.item);
+      if (state === null) continue;
       let x = it.xo + (it.x - it.xo) * partial, y = it.yo + (it.y - it.yo) * partial, z = it.zo + (it.z - it.zo) * partial;
       if (it.pickup) {
         const tgt = this.collectorPos(it.pickup.collector, partial);
@@ -1845,6 +1935,9 @@ export class Game implements ScreenHost {
     this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
 
     multiply(this.viewProj, this.proj, this.view);
+    this.camPos[0] = cx;
+    this.camPos[1] = cy;
+    this.camPos[2] = cz;
     frustumPlanes(this.planes, this.viewProj);
     this.chunks.renderDistance = s.renderDistance;
     this.chunks.update(cx, cy, cz);
@@ -1865,8 +1958,8 @@ export class Game implements ScreenHost {
     }
     // items in players' hands (ItemInHandLayer), queued by the entity renderer
     for (const h of this.entityRenderer.held) {
-      const block = blockForItem(h.item);
-      if (block) this.blockItems.draw(BLOCKS_BY_NAME.get(block)!.defaultState, this.viewProj, h.matrix, h.light, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
+      const key = this.blockItems.modelKey(h.item);
+      if (key !== null) this.blockItems.draw(key, this.viewProj, h.matrix, h.light, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
     }
     recycleHeld(this.entityRenderer);
     this.renderItems(cx, cy, cz, partial, fog, fogStart, fogEnd);
@@ -1909,12 +2002,16 @@ export class Game implements ScreenHost {
     if (this.showHitboxes) this.renderHitboxes(cx, cy, cz, partial);
     if (this.showChunkBorders) this.renderChunkBorders(cx, cy, cz, camEnt ? camEnt.x : this.player.x, camEnt ? camEnt.z : this.player.z);
     this.renderHand(partial, medium);
+    this.updateItemAnim(partial);
+    this.guiPartial = partial;
     this.renderGui(cx, cy, cz);
   }
 
   private renderGui(x: number, y: number, z: number): void {
     const g = this.gui;
     g.begin(this.settings.guiScale);
+    this.hud.chatOpen = this.screen instanceof ChatScreen;
+    if (!this.hideHud) this.renderNameplates();
     if (!this.hideHud) {
       if (this.showDebug) this.renderDebug(x, y, z);
       else if (this.cameraType === 0 && (this.gameMode !== 3 || this.spectatorCrosshair())) {
@@ -1937,7 +2034,11 @@ export class Game implements ScreenHost {
         g.ctx.drawImage(this.frostOverlay, 0, 0, g.width, g.height);
         g.ctx.restore();
       }
-      this.hud.render(g, this.hudState(), (id, c, x, y) => this.renderGuiItem(id, c, x, y));
+      this.hud.render(g, this.hudState(), (id, c, x, y, dmg, pop) => this.renderGuiItem(id, c, x, y, dmg, pop), this.guiPartial);
+      // PlayerTabOverlay: while the key is held, in multiplayer or with company
+      if (!this.screen && this.binds.down('playerlist') && (this.playerInfo.size > 1 || this.players.size > 0)) {
+        renderPlayerList(g, [...this.playerInfo.values()], (id) => this.playerLatency.get(id) ?? 0, (pi) => this.skinFace(pi));
+      }
       if (this.gameMode === 3) {
         this.spectatorGui.renderHotbar(g);
         this.spectatorGui.renderTooltip(g);
@@ -1952,23 +2053,91 @@ export class Game implements ScreenHost {
     if (this.screen) this.screen.render(this.mouseGX, this.mouseGY);
   }
 
+  // ------------------------------------------------------------------ chat (Phase 9)
+  private skinFace(pi: PlayerInfoEntry): ImageBitmap | null {
+    const file = this.entityRenderer.skinFor(pi.name, pi.skin);
+    if (!this.skinImages.has(file)) {
+      this.skinImages.set(file, null);
+      void fetch(`./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
+    }
+    return this.skinImages.get(file) ?? null;
+  }
+
+  openChat(initial: string): void {
+    this.setScreen(new ChatScreen(this.chatHost(), initial));
+  }
+
+  private chatHost(): ChatHost {
+    return {
+      gui: this.gui,
+      setScreen: (sc) => {
+        this.setScreen(sc);
+        this.input.clearPresses();
+      },
+      sendChat: (m) => this.send({ t: 'chat', message: m }),
+      requestSuggestions: (id, text) => this.send({ t: 'commandSuggest', id, text }),
+      history: this.hud.sentHistory,
+      renderChatFocused: (g) => this.hud.renderChat(g, true),
+      scrollChat: (n) => this.hud.scrollChat(n),
+      chatClickAt: (mx, my) => this.hud.chatClickAt(mx, my),
+      copyToClipboard: (t) => this.setClipboard(t),
+    };
+  }
+
+  /**
+   * Name tags above other players (vanilla EntityRenderer.renderNameTag, drawn on the GUI layer):
+   * 0.025 blocks per pixel, 0.5 above the hitbox, within 64 blocks, faint when sneaking or
+   * behind blocks, hidden for invisible players.
+   */
+  private renderNameplates(): void {
+    const g = this.gui, m = this.viewProj;
+    const [cx, cy, cz] = this.camPos as [number, number, number];
+    const camEnt = this.cameraEntity;
+    for (const p of this.players.values()) {
+      if (p.id === camEnt || (p.flags & 32) !== 0) continue;
+      const h = p.pose === 'crouching' ? 1.5 : p.pose === 'swimming' || p.pose === 'fall_flying' ? 0.6 : p.pose === 'sleeping' ? 0.2 : 1.8;
+      const x = p.x - cx, y = p.y + h + 0.5 - cy, z = p.z - cz;
+      if (x * x + y * y + z * z > 4096) continue;
+      const w = m[3]! * x + m[7]! * y + m[11]! * z + m[15]!;
+      if (w <= 0.05) continue;
+      const sx = (m[0]! * x + m[4]! * y + m[8]! * z + m[12]!) / w;
+      const sy = (m[1]! * x + m[5]! * y + m[9]! * z + m[13]!) / w;
+      if (sx < -1.2 || sx > 1.2 || sy < -1.2 || sy > 1.2) continue;
+      const scale = (0.025 * m[5]! * this.canvas.height) / 2 / w / g.scale;
+      if (scale < 0.05) continue;
+      const gx = ((sx + 1) / 2) * g.width, gy = ((1 - sy) / 2) * g.height;
+      const blocked = !!raycastBlocks(this.world, cx, cy, cz, x, y, z, Math.hypot(x, y, z) - 0.3);
+      const sneaking = p.pose === 'crouching';
+      const tw = g.font.width(p.name);
+      const ctx = g.ctx;
+      ctx.save();
+      ctx.translate(gx, gy);
+      ctx.scale(scale, scale);
+      g.fill(-tw / 2 - 1, -1, tw + 2, 9, 0x40000000);
+      ctx.globalAlpha = sneaking || blocked ? 0.125 : 1;
+      g.text(p.name, -tw / 2, 0, 0xffffff, false);
+      ctx.restore();
+    }
+  }
+
   /** A 16×16 item in the GUI with its stack count (vanilla ItemRenderer.renderGuiItem + decorations). */
-  renderGuiItem(id: number, count: number, x: number, y: number): void {
-    const g = this.gui;
-    const block = blockForItem(id);
-    const icon = block ? this.blockItems.icon(BLOCKS_BY_NAME.get(block)!.defaultState) : null;
-    if (icon) g.blit(this.blockItems.iconCanvas, icon[0], icon[1], icon[2], icon[2], x, y, 16, 16);
-    else {
-      // no item texture yet: magenta/black "missing" square like vanilla's missing texture
-      g.fill(x, y, 8, 8, 0xfff800f8);
-      g.fill(x + 8, y + 8, 8, 8, 0xfff800f8);
-      g.fill(x + 8, y, 8, 8, 0xff000000);
-      g.fill(x, y + 8, 8, 8, 0xff000000);
-    }
-    if (count !== 1) {
-      const s = String(count);
-      g.text(s, x + 19 - 2 - g.font.width(s), y + 6 + 3, 0xffffff, true);
-    }
+  renderGuiItem(id: number, count: number, x: number, y: number, damage = 0, pop = 0): void {
+    drawItemStack(this.gui, { id, count, damage }, x, y, undefined, pop);
+  }
+
+  /** partial tick of the frame being drawn (GUI animations) */
+  private guiPartial = 0;
+
+  /** Compass needle and clock dial frames for item icons/models (vanilla item property functions). */
+  private updateItemAnim(partial: number): void {
+    const dayTime = this.world.dayTime + (this.world.doDaylightCycle ? partial : 0);
+    itemAnim.clock = Math.floor(timeOfDay(dayTime) * 64) & 63;
+    if (!this.compassTarget) this.compassTarget = [Math.floor(this.x) + 0.5, Math.floor(this.z) + 0.5];
+    const dx = this.compassTarget[0] - this.x, dz = this.compassTarget[1] - this.z;
+    // bearing in Minecraft yaw degrees (0 = +Z/south, 90 = −X/west), relative to where we look
+    const bearing = (Math.atan2(-dx, dz) * 180) / Math.PI;
+    const rel = dx * dx + dz * dz < 1e-4 ? (Date.now() / 20) % 360 : bearing - this.yaw;
+    itemAnim.compass = Math.round((((rel % 360) + 360) % 360) / 360 * 32) & 31;
   }
 
   private debugLines(x: number, y: number, z: number): { left: string[]; right: string[] } {

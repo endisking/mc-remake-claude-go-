@@ -74,7 +74,8 @@ export function floatProvider(j: J): FloatProvider {
   switch (j.type) {
     case 'minecraft:constant': return () => f(v as number);
     case 'minecraft:uniform': return (r) => f(f(r.nextFloat() * f(v.max_exclusive - v.min_inclusive)) + f(v.min_inclusive));
-    case 'minecraft:clamped_normal': return (r) => f(Math.min(v.max, Math.max(v.min, f(v.mean + f(r.nextGaussian() * v.deviation)))));
+    // ClampedNormalFloat.sample: Mth.clamp(mean + (float)nextGaussian() * deviation, min, max) in float
+    case 'minecraft:clamped_normal': return (r) => f(Math.min(f(v.max), Math.max(f(v.min), f(f(v.mean) + f(f(r.nextGaussian()) * f(v.deviation))))));
     case 'minecraft:trapezoid': {
       const range = v.max - v.min, plateau = v.plateau, sides = (range - plateau) / 2, slope = range - sides;
       return (r) => f(v.min + f(r.nextFloat() * slope) + f(r.nextFloat() * sides));

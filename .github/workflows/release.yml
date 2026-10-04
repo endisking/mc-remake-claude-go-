@@ -1,0 +1,33 @@
+# Builds the web app and the Windows desktop app and publishes them as a GitHub Release.
+# Runs when a version tag (v*) is pushed, or by hand from the Actions tab.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - name: Build web + Windows app
+        run: pnpm package
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('build-{0}', github.run_number) }}
+          name: Blockcraft ${{ github.ref_type == 'tag' && github.ref_name || format('build {0}', github.run_number) }}
+          prerelease: true
+          body_path: RELEASE_NOTES.md
+          files: build/release/*.zip

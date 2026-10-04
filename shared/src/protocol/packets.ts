@@ -83,6 +83,13 @@ const S2C_SCHEMA = {
   playerInfo: [['action', 'u8'], ['id', 'i32'], ['name', 'str'], ['skin', 'str'], ['gameMode', 'u8']],
   /** Spectate through another entity's eyes, or back to your own (vanilla SetCamera). */
   setCamera: [['id', 'i32']],
+  // ---- commands & player list (Phase 9) ----
+  /** Answer to a commandSuggest request: JSON {start, list:[{text,tooltip?}], usage:[], error, parsedTo}. */
+  commandSuggestions: [['id', 'varint'], ['json', 'str']],
+  /** Vanilla KeepAlive: echo the id back (latency measurement). */
+  keepAlive: [['id', 'f64']],
+  /** Vanilla PlayerInfo UPDATE_LATENCY: a player's ping in milliseconds. */
+  playerLatency: [['id', 'i32'], ['latency', 'varint']],
 } as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server
@@ -116,6 +123,11 @@ const C2S_SCHEMA = {
   respawn: [],
   /** Spectator menu "Teleport to Player" (vanilla TeleportToEntity). */
   spectate: [['target', 'i32']],
+  // ---- commands & player list (Phase 9) ----
+  /** Chat box tab completion (vanilla ServerboundCommandSuggestion); text includes the leading '/'. */
+  commandSuggest: [['id', 'varint'], ['text', 'str']],
+  /** Reply to the server's keepAlive. */
+  keepAlive: [['id', 'f64']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;
