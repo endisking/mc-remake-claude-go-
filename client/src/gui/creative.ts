@@ -140,7 +140,7 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
     return {
       inventory: this.host.playerInventory,
       creative: true,
-      drop: (st) => this.host.send({ t: 'creativeSlot', slot: -1, item: st.id, count: st.count }),
+      drop: (st) => this.host.send({ t: 'creativeSlot', slot: -1, item: st.id, count: st.count, damage: st.damage }),
     };
   }
 
@@ -226,7 +226,7 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
     }
     if (this.tab === 'inventory') {
       inset(g, l + 73, t + 5, 34, 46, 0xff000000);
-      this.host.renderPlayerPreview?.(l + 88, t + 45, 20, l + 88 - mx, t + 45 - 30 - my);
+      this.host.renderPlayerPreview?.(l + 88, t + 45, 20, l + 88 - mx, t + 45 - 30 - my, [l + 74, t + 6, 32, 44]);
     } else {
       // scrollbar track and thumb
       inset(g, l + 174, t + 17, 14, 112, 0xff8b8b8b);
@@ -375,7 +375,7 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
     for (let i = 0; i < 41; i++) {
       const s = inv.slots[i];
       const k = isEmpty(s) ? '' : `${s.id}:${s.count}:${s.damage}`;
-      if (k !== before[i]) this.host.send({ t: 'creativeSlot', slot: i, item: isEmpty(s) ? 0 : s.id, count: isEmpty(s) ? 0 : s.count });
+      if (k !== before[i]) this.host.send({ t: 'creativeSlot', slot: i, item: isEmpty(s) ? 0 : s.id, count: isEmpty(s) ? 0 : s.count, damage: isEmpty(s) ? 0 : s.damage });
     }
   }
 
@@ -411,7 +411,7 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
       inv.add(c);
       for (let i = 0; i < 41; i++) {
         const s = inv.slots[i];
-        if ((isEmpty(s) ? '' : `${s.id}:${s.count}`) !== before[i]) this.host.send({ t: 'creativeSlot', slot: i, item: s?.id ?? 0, count: s?.count ?? 0 });
+        if ((isEmpty(s) ? '' : `${s.id}:${s.count}`) !== before[i]) this.host.send({ t: 'creativeSlot', slot: i, item: s?.id ?? 0, count: s?.count ?? 0, damage: s?.damage ?? 0 });
       }
     }
   }

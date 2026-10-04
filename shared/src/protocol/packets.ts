@@ -111,7 +111,7 @@ const C2S_SCHEMA = {
   swing: [['hand', 'u8']],
   heldSlot: [['slot', 'u8']],
   /** Creative inventory: put an item stack into a slot (vanilla SetCreativeModeSlot). */
-  creativeSlot: [['slot', 'i16'], ['item', 'i16'], ['count', 'u8']],
+  creativeSlot: [['slot', 'i16'], ['item', 'i16'], ['count', 'u8'], ['damage', 'i16']],
   /** Q / Ctrl+Q: drop one or the whole stack from the selected slot. */
   dropItem: [['all', 'bool']],
   /** Middle click in creative: put the block's item in the hotbar (vanilla pick block). */

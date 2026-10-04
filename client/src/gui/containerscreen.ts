@@ -26,7 +26,7 @@ export interface ContainerHost extends ScreenHost {
   isKeyDown(code: string): boolean;
   readonly playerInventory: Inventory;
   /** Render the local player model in the GUI, feet at (x, y), looking toward (lookX, lookY) offsets. */
-  renderPlayerPreview?(x: number, y: number, scale: number, lookX: number, lookY: number): void;
+  renderPlayerPreview?(x: number, y: number, scale: number, lookX: number, lookY: number, box?: [number, number, number, number]): void;
 }
 
 /**
@@ -435,7 +435,7 @@ export class InventoryScreen extends AbstractContainerScreen<InventoryMenu> {
     // the black box the player stands in
     inset(g, l + 25, t + 7, 52, 72, 0xff000000);
     arrow(g, l + 135, t + 29, 16, 13);
-    this.host.renderPlayerPreview?.(l + 51, t + 75, 30, l + 51 - mx, t + 75 - 50 - my);
+    this.host.renderPlayerPreview?.(l + 51, t + 75, 30, l + 51 - mx, t + 75 - 50 - my, [l + 26, t + 8, 50, 70]);
   }
   protected override emptySlotIcon(s: Slot): 'head' | 'chest' | 'legs' | 'feet' | 'offhand' | null {
     return s.index === 5 ? 'head' : s.index === 6 ? 'chest' : s.index === 7 ? 'legs' : s.index === 8 ? 'feet' : s.index === 45 ? 'offhand' : null;

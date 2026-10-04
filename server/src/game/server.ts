@@ -994,9 +994,9 @@ export class GameServer {
         break;
       case 'creativeSlot':
         // slot −1: the creative inventory throws the stack out of the window
-        if (p.gameMode === 1 && m.slot === -1 && m.item > 0 && m.count > 0) this.tossItem(p, { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: 0 });
+        if (p.gameMode === 1 && m.slot === -1 && m.item > 0 && m.count > 0) this.tossItem(p, { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) });
         if (p.gameMode === 1 && m.slot >= 0 && m.slot < 41) {
-          p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: 0 } : null);
+          p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) } : null);
         }
         break;
       case 'pickBlock':

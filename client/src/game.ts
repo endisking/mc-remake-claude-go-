@@ -486,6 +486,54 @@ export class Game implements ScreenHost, ContainerHost {
     if (this.gameMode === 1) this.setScreen(new CreativeScreen(this));
     else this.setScreen(new InventoryScreen(this, this.inventoryMenu));
   }
+  private previewModel: RemotePlayer | null = null;
+  private readonly previewProj = new Float32Array(16);
+  /**
+   * InventoryScreen.renderEntityInInventory: the local player drawn into the GUI box, body and
+   * head turned toward the mouse. Rendered with WebGL into the box's pixels, then copied onto
+   * the GUI canvas (which is drawn over the 3D view).
+   */
+  renderPlayerPreview(x: number, y: number, scale: number, lookX: number, lookY: number, box: [number, number, number, number] = [x - 25, y - 67, 50, 70]): void {
+    const sm = this.selfModel;
+    if (!sm || !this.entityRenderer) return;
+    const gl = this.gl, g = this.gui, k = g.scale;
+    const pm = (this.previewModel ??= new RemotePlayer(-1000, sm.name, sm.skin));
+    // vanilla: f = atan(lookX / 40) (radians) used directly as degrees ×20 / ×40
+    const ya = Math.atan(lookX / 40), pa = Math.atan(lookY / 40);
+    const pl = this.player;
+    pm.x = pm.xo = pl.x;
+    pm.y = pm.yo = pl.y;
+    pm.z = pm.zo = pl.z;
+    pm.bodyYaw = pm.bodyYawO = ya * 20;
+    pm.headYaw = pm.headYawO = ya * 40;
+    pm.pitch = pm.pitchO = -pa * 20;
+    pm.pose = sm.pose === 'crouching' ? 'crouching' : 'standing';
+    pm.tickCount = sm.tickCount;
+    pm.flags = 0;
+    pm.hurtTime = 0;
+    const cw = this.canvas.width, ch = this.canvas.height;
+    const GW = cw / k, GH = ch / k;
+    const m = this.previewProj;
+    m.fill(0);
+    m[0] = (2 * scale) / GW;
+    m[5] = (2 * scale) / GH;
+    m[10] = -0.1;
+    m[12] = (2 * x) / GW - 1;
+    m[13] = 1 - (2 * y) / GH;
+    m[15] = 1;
+    const [bx, by, bw, bh] = box;
+    const px = Math.round(bx * k), py = Math.round(by * k), pw = Math.round(bw * k), ph = Math.round(bh * k);
+    gl.viewport(0, 0, cw, ch);
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(px, ch - py - ph, pw, ph);
+    gl.clearColor(0, 0, 0, 1);
+    gl.depthMask(true);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    this.entityRenderer.renderPlayers([pm], this.world, m, pl.x, pl.y, pl.z, 1, this.lightmap.tex, [0, 0, 0], 1e6, 1e6);
+    gl.disable(gl.SCISSOR_TEST);
+    g.ctx.drawImage(this.canvas, px, py, pw, ph, bx, by, bw, bh);
+  }
+
   /** The menu a window id refers to (0 = inventory). */
   private windowMenu(id: number): Menu | null {
     if (id === 0) return this.inventoryMenu;

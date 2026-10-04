@@ -99,7 +99,10 @@ describe('containers', () => {
     a.send({ t: 'clickWindow', windowId: open.windowId, slot: 4, button: 0, clickType: 1 });
     server.tick();
     expect(getProp(server.world.getState(fpos[0], fpos[1], fpos[2]), 'lit')).toBe(true);
-    for (let i = 0; i < 600; i++) server.tick();
+    for (let i = 0; i < 99; i++) server.tick();
+    const data = (prop: number) => (a.received.filter((m) => m.t === 'windowData' && m.property === prop).at(-1) as Extract<S2C, { t: 'windowData' }>).value;
+    expect([data(0), data(1), data(2), data(3)]).toEqual([1600 - 99, 1600, 100, 200]);
+    for (let i = 0; i < 501; i++) server.tick();
     const slots = a.received.filter((m) => m.t === 'windowSlot' && m.slot === 2) as Extract<S2C, { t: 'windowSlot' }>[];
     expect(slots.at(-1)?.count).toBe(3);
     expect(a.received.some((m) => m.t === 'windowData' && m.property === 2 && m.value > 0)).toBe(true);

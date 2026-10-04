@@ -36,7 +36,7 @@ const click = async (i: number, button: 'left' | 'right' = 'left') => {
 };
 const screenTitle = () => page.evaluate(() => (window as any).game.screen?.title ?? null);
 
-await page.goto(`${base}?nolock=1&rd=2&gamemode=survival&x=40.5&y=70&z=40.5&pitch=10&yaw=0&time=6000`);
+await page.goto(`${base}?nolock=1&scene=flat&rd=2&gamemode=survival&x=40.5&y=70&z=40.5&pitch=10&yaw=0&time=6000`);
 await page.waitForFunction(() => {
   const g = (window as any).game;
   if (!g?.chunks) return false;
@@ -60,6 +60,7 @@ await click(36);
 console.log('carried after pickup', await page.evaluate(() => (window as any).game.screen.menu.carried));
 await click(1, 'right');
 await click(36);
+await page.mouse.move(700, 120);
 await page.waitForTimeout(300);
 await shot('inventory');
 // shift-click the result → planks into the inventory
@@ -89,7 +90,7 @@ const use = (x: number, y: number, z: number) => page.evaluate(([x, y, z]) => (w
 await use(px + 2, py, pz);
 await page.waitForFunction(() => (window as any).game.screen?.title === 'Crafting', undefined, { timeout: 5000 });
 // planks are in some inventory slot: find and lay out a crafting table recipe by drag
-const planksSlot = await page.evaluate(() => (window as any).game.screen.menu.slots.findIndex((s: any, i: number) => i >= 10 && s.getItem()?.id && s.getItem().count === 4));
+const planksSlot = await page.evaluate(() => (window as any).game.screen.menu.slots.findIndex((s: any, i: number) => i >= 10 && s.getItem()?.id === 22));
 console.log('planks slot', planksSlot);
 await click(planksSlot);
 {
