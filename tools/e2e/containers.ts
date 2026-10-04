@@ -149,6 +149,33 @@ await shot('furnace');
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);
 
+// ---- stonecutter
+await cmd(page, '/give @s stone 16');
+await cmd(page, `/setblock ${px - 2} ${py} ${pz + 2} stonecutter`);
+await page.waitForFunction(([x, y, z]) => (window as any).game.world.getState(x, y, z) !== 0, [px - 2, py, pz + 2], { timeout: 30000 });
+await page.waitForTimeout(300);
+await use(px - 2, py, pz + 2);
+await page.waitForFunction(() => (window as any).game.screen?.title === 'Stonecutter', undefined, { timeout: 5000 });
+{
+  const stoneSlot = await page.evaluate(() => (window as any).game.screen.menu.slots.findIndex((s: any, i: number) => i >= 2 && s.getItem()?.id === 1));
+  await page.keyboard.down('Shift');
+  await click(stoneSlot);
+  await page.keyboard.up('Shift');
+  await page.waitForTimeout(300);
+  const [bx, by] = await page.evaluate(() => {
+    const g = (window as any).game, s = g.screen;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    return [((s.leftPos + 52 + 16 * 1 + 8) * g.gui.scale) / dpr, ((s.topPos + 14 + 9) * g.gui.scale) / dpr];
+  });
+  await page.mouse.move(bx, by);
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  await shot('stonecutter');
+}
+await page.keyboard.press('Escape');
+await page.waitForTimeout(200);
+
 // ---- creative inventory
 await cmd(page, '/gamemode creative');
 await page.waitForTimeout(300);

@@ -525,6 +525,10 @@ export class StonecutterScreen extends AbstractContainerScreen<StonecutterMenu> 
   private scrolling = false;
   private lastRecipes: unknown = null;
 
+  constructor(host: ContainerHost, menu: StonecutterMenu, title: string) {
+    super(host, menu, title);
+    this.titleLabelY = 5; // StonecutterScreen: --titleLabelY
+  }
   private get rowsTotal(): number {
     return Math.ceil(this.menu.recipes.length / 4);
   }
