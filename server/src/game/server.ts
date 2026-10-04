@@ -1742,6 +1742,7 @@ export class GameServer {
 
   stop(): void {
     this.running = false;
+    this.items.dispose();
     if (this.timer) clearTimeout(this.timer);
   }
 }

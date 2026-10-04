@@ -54,25 +54,13 @@ export class ItemUse {
   private readonly sentUse = new Map<number, string>();
   readonly arrowHost: ArrowHost;
 
+  get server(): GameServer {
+    return this.s;
+  }
+
   constructor(private readonly s: GameServer) {
     const srv = s;
-    // /effect give|clear (the command system calls into the effect map here)
-    const asPlayer = (t: unknown) => srv.players.find((p) => p === t) ?? null;
-    commandHooks.applyEffect = (t, effect, ticks, amp, particles) => {
-      const p = asPlayer(t);
-      if (!p || p.living.dead) return false;
-      const ok = p.living.effects.add(effect, ticks, amp, this.effectTarget(p), false, particles);
-      srv.survival.sync(p);
-      return ok;
-    };
-    commandHooks.removeEffect = (t, effect) => {
-      const p = asPlayer(t);
-      if (!p) return false;
-      const target = this.effectTarget(p);
-      const ok = effect ? p.living.effects.remove(effect, target) : p.living.effects.clear(target);
-      srv.survival.sync(p);
-      return ok;
-    };
+    LIVE.add(this);
     this.arrowHost = {
       arrowTargets: () => this.arrowTargets(),
       ownerBox: (oid) => {
@@ -683,6 +671,11 @@ export class ItemUse {
     }
   }
 
+  /** The server stopped: unhook from the global command hooks. */
+  dispose(): void {
+    LIVE.delete(this);
+  }
+
   forget(p: ServerPlayer): void {
     this.using.delete(p.id);
     this.pending.delete(p.id);
@@ -738,6 +731,32 @@ export class ItemUse {
     if (cactus) hurt(1, false);
   }
 }
+
+/** every running server's ItemUse (the command hooks are global; tests run several servers) */
+const LIVE = new Set<ItemUse>();
+function ownerOf(t: unknown): { iu: ItemUse; p: ServerPlayer } | null {
+  for (const iu of LIVE) {
+    const p = iu.server.players.find((o) => o === t);
+    if (p) return { iu, p };
+  }
+  return null;
+}
+// /effect give|clear: the command system calls into the effect map here
+commandHooks.applyEffect = (t, effect, ticks, amp, particles) => {
+  const o = ownerOf(t);
+  if (!o || o.p.living.dead) return false;
+  const ok = o.p.living.effects.add(effect, ticks, amp, o.iu.effectTarget(o.p), false, particles);
+  o.iu.server.survival.sync(o.p);
+  return ok;
+};
+commandHooks.removeEffect = (t, effect) => {
+  const o = ownerOf(t);
+  if (!o) return false;
+  const target = o.iu.effectTarget(o.p);
+  const ok = effect ? o.p.living.effects.remove(effect, target) : o.p.living.effects.clear(target);
+  o.iu.server.survival.sync(o.p);
+  return ok;
+};
 
 function honeyOr(n: string, ev: string): string {
   return n === 'honey_bottle' ? 'item.honey_bottle.drink' : ev;
