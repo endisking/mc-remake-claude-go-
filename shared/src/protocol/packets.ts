@@ -129,7 +129,7 @@ const S2C_SCHEMA = {
 } as const satisfies Schema;
 
 /** Keys of the mobData packet (client: client/src/world/mobs.ts). */
-export const MOB_DATA_KEYS = ['color', 'sheared', 'baby', 'swell_dir', 'charged', 'aggressive', 'saddle', 'size', 'carried', 'hanging', 'bow', 'name_visible', 'sitting', 'tame', 'health'] as const;
+export const MOB_DATA_KEYS = ['color', 'sheared', 'baby', 'swell_dir', 'charged', 'aggressive', 'saddle', 'size', 'carried', 'hanging', 'bow', 'name_visible', 'sitting', 'tame', 'health', 'profession', 'level', 'unhappy', 'pumpkin', 'sleeping', 'temper', 'chest', 'variant'] as const;
 
 // ------------------------------------------------------------------ client → server
 const C2S_SCHEMA = {

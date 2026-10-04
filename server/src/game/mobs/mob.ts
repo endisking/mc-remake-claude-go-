@@ -456,6 +456,7 @@ export abstract class Mob extends ServerEntity {
     } else if (this.airSupply < 300) this.airSupply = Math.min(300, this.airSupply + 4);
     if (this.hurtTime > 0) this.hurtTime--;
     if (this.invulnerableTime > 0) this.invulnerableTime--;
+    if (this.mobEffects.size) this.tickMobEffects();
     if (this.dead) this.tickDeath();
     if (this.lastHurtByPlayerTime > 0) this.lastHurtByPlayerTime--;
     else this.lastHurtByPlayer = null;
@@ -912,6 +913,47 @@ export abstract class Mob extends ServerEntity {
   interact(_p: ServerPlayer, _hand: number): boolean {
     return false;
   }
+
+  /**
+   * Status effects on mobs (LivingEntity.activeEffects): durations and amplifiers only — used by
+   * zombie villager curing (weakness) and /effect; effect behaviour on mobs is not simulated yet.
+   */
+  readonly mobEffects = new Map<string, { duration: number; amplifier: number }>();
+  addMobEffect(effect: string, duration: number, amplifier: number): boolean {
+    const o = this.mobEffects.get(effect);
+    if (o && o.amplifier > amplifier) return false;
+    if (o && o.amplifier === amplifier && o.duration >= duration) return false;
+    this.mobEffects.set(effect, { duration, amplifier });
+    return true;
+  }
+  removeMobEffect(effect: string | null): boolean {
+    if (effect === null) {
+      const had = this.mobEffects.size > 0;
+      this.mobEffects.clear();
+      return had;
+    }
+    return this.mobEffects.delete(effect);
+  }
+  hasMobEffect(effect: string): boolean {
+    return this.mobEffects.has(effect);
+  }
+  protected tickMobEffects(): void {
+    for (const [k, e] of this.mobEffects) if (--e.duration <= 0) this.mobEffects.delete(k);
+  }
+
+  /** type-specific saved state (MobSave.extra) */
+  saveExtra(): Record<string, unknown> | null {
+    return null;
+  }
+  loadExtra(_o: Record<string, unknown>): void {}
+
+  /** melee damage of one hit (Mob.doHurtTarget; iron golems roll their own) */
+  meleeDamage(): number {
+    return this.attackDamage;
+  }
+
+  /** after a successful melee hit (iron golem toss) */
+  afterMeleeHit(_t: Target): void {}
 }
 
 export function wrapDegrees(a: number): number {

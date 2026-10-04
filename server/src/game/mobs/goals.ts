@@ -484,3 +484,30 @@ export class RestrictSunGoal extends Goal {
     this.m.navigation.avoidSun = false;
   }
 }
+
+/** NearestAttackableTargetGoal<LivingEntity> for mob targets (zombies → villagers, golems → monsters). */
+export class NearestMobTargetGoal extends TargetGoal {
+  constructor(m: Mob, mustSee: boolean, private readonly pred: (t: Mob) => boolean, private readonly randomInterval = 10) {
+    super(m, mustSee);
+  }
+  canUse(): boolean {
+    const m = this.m;
+    if (this.randomInterval > 0 && m.rng.nextInt(this.randomInterval) !== 0) return false;
+    const r = m.followRange;
+    let best: Mob | null = null, bd = r * r;
+    for (const o of m.s.mobs.nearbyMobs(m.x, m.z, r)) {
+      if (o === m || o.dead || !this.pred(o)) continue;
+      const d = m.distanceToTargetSqr(o);
+      if (d < bd && Math.abs(o.y - m.y) <= 4 && (!this.mustSee || m.hasLineOfSight(o))) {
+        bd = d;
+        best = o;
+      }
+    }
+    this.targetMob = best;
+    return best !== null;
+  }
+  override start(): void {
+    this.m.target = this.targetMob;
+    super.start();
+  }
+}

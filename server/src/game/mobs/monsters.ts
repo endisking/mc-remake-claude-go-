@@ -9,8 +9,10 @@ import { Goal, Flag } from './goal';
 import { Mob, GroundNavigation, canTarget, type MobCategory, type Target } from './mob';
 import {
   FloatGoal, RandomStrollGoal, LookAtPlayerGoal, RandomLookAroundGoal, MeleeAttackGoal, HurtByTargetGoal,
-  NearestAttackableTargetGoal, LeapAtTargetGoal, FleeSunGoal, RestrictSunGoal,
+  NearestAttackableTargetGoal, LeapAtTargetGoal, FleeSunGoal, RestrictSunGoal, NearestMobTargetGoal,
 } from './goals';
+import { PROFESSIONS } from '@shared/game/trades';
+import type { VillagerData } from './villager';
 import { brightnessOf } from './mob';
 import { MOB_FLAG } from '@shared/entity/mobdata';
 
@@ -150,6 +152,9 @@ export class Zombie extends Monster {
     this.goalSelector.add(7, new RandomStrollGoal(this, 1));
     this.targetSelector.add(1, new HurtByTargetGoal(this));
     this.targetSelector.add(2, new NearestAttackableTargetGoal(this, true));
+    // Zombie.addBehaviourGoals: AbstractVillager (no sight needed) and IronGolem
+    this.targetSelector.add(3, new NearestMobTargetGoal(this, false, (m) => m.type === 'villager' || m.type === 'wandering_trader'));
+    this.targetSelector.add(3, new NearestMobTargetGoal(this, true, (m) => m.type === 'iron_golem'));
   }
   isSunSensitive(): boolean {
     return true;
@@ -670,9 +675,100 @@ export class Spider extends Monster {
   }
 }
 
-/** Zombie villagers: zombie attributes and AI with their own voice (curing needs effects, Phase 7). */
+/**
+ * Zombie villagers: zombie attributes and AI with their own voice. Curing: a golden apple while
+ * under Weakness starts a 3600–6000 tick conversion (sped up by iron bars and beds within 4
+ * blocks) back into a villager that keeps its profession, level and trades.
+ */
 export class ZombieVillager extends Zombie {
   override readonly type = 'zombie_villager';
+  /** VillagerData carried over from the villager (profession, level, xp, offers) */
+  villagerData: VillagerData | null = null;
+  villagerConversionTime = -1;
+  conversionStarter: ServerPlayer | null = null;
+  override finalizeSpawn(): void {
+    super.finalizeSpawn();
+    // ZombieVillager.finalizeSpawn: a random profession (no trades)
+    if (!this.villagerData) {
+      const profs = PROFESSIONS.filter((p) => p !== 'none');
+      this.villagerData = { profession: profs[this.rng.nextInt(profs.length)]!, level: 1, xp: 0, type: 'plains', offers: [] };
+    }
+  }
+  isConverting(): boolean {
+    return this.villagerConversionTime > 0;
+  }
+  override saveExtra(): Record<string, unknown> {
+    return { villagerData: this.villagerData, villagerConversionTime: this.villagerConversionTime };
+  }
+  override loadExtra(o: Record<string, unknown>): void {
+    this.villagerData = (o.villagerData as VillagerData | null) ?? null;
+    this.villagerConversionTime = (o.villagerConversionTime as number) ?? -1;
+  }
+  override mobFlags(): number {
+    return super.mobFlags() | (this.isConverting() ? MOB_FLAG.CONVERTING : 0);
+  }
+  override removeWhenFarAway(d2: number): boolean {
+    return !this.isConverting() && super.removeWhenFarAway(d2);
+  }
+  /** ZombieVillager.mobInteract: golden apple + weakness */
+  override interact(p: ServerPlayer, hand: number): boolean {
+    const slot = hand === 1 ? 40 : p.inventory.selected;
+    const held = p.inventory.get(slot);
+    if (!held || itemName(held.id) !== 'golden_apple') return false;
+    if (!this.hasMobEffect('weakness') || this.isConverting()) return true;
+    this.s.mobs.usePlayerItem(p, slot);
+    this.startConverting(p, 3600 + this.rng.nextInt(2401));
+    return true;
+  }
+  startConverting(p: ServerPlayer | null, ticks: number): void {
+    this.conversionStarter = p;
+    this.villagerConversionTime = ticks;
+    this.removeMobEffect('weakness');
+    this.addMobEffect('strength', ticks, Math.min(this.s.difficulty - 1, 0));
+    this.flagsDirty = true;
+    this.entityEvent(16);
+    this.playSound('entity.zombie_villager.cure', 1 + this.rng.nextFloat(), this.rng.nextFloat() * 0.7 + 0.3);
+  }
+  /** getConversionProgress: 1, plus a 1 % chance per tick of counting iron bars/beds (30 % each, max 14) */
+  private conversionProgress(): number {
+    let n = 1;
+    if (this.rng.nextFloat() < 0.01) {
+      let k = 0;
+      const bx = Math.floor(this.x), by = Math.floor(this.y), bz = Math.floor(this.z);
+      for (let x = bx - 4; x < bx + 4 && k < 14; x++)
+        for (let y = by - 4; y < by + 4 && k < 14; y++)
+          for (let z = bz - 4; z < bz + 4 && k < 14; z++) {
+            const nm = blockNameOf(this.world.getState(x, y, z));
+            if (nm === 'iron_bars' || nm.endsWith('_bed')) {
+              if (this.rng.nextFloat() < 0.3) n++;
+              k++;
+            }
+          }
+    }
+    return n;
+  }
+  protected override customServerAiStep(): void {
+    if (this.isConverting()) {
+      this.villagerConversionTime -= this.conversionProgress();
+      if (this.villagerConversionTime <= 0) {
+        this.finishConversion();
+        return;
+      }
+    }
+    super.customServerAiStep();
+  }
+  private finishConversion(): void {
+    const v = this.s.mobs.spawn('villager', this.x, this.y, this.z, 'conversion') as (Mob & { applyData(d: VillagerData): void; setAge(a: number): void }) | null;
+    if (!v) return;
+    if (this.villagerData) v.applyData(this.villagerData);
+    if (this.baby) v.setAge(-24000);
+    v.yaw = this.yaw;
+    v.persistenceRequired = true;
+    v.addMobEffect('nausea', 200, 0);
+    this.removed = true;
+    this.playSound('entity.zombie_villager.converted', 1, 1);
+    if (this.conversionStarter && !this.conversionStarter.living.dead) this.s.mobs.addPlayerEffect(this.conversionStarter, 'nausea', 200, 0);
+  }
   override ambientSound(): string {
     return 'entity.zombie_villager.ambient';
   }

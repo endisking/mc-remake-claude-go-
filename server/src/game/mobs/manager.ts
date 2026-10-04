@@ -39,11 +39,15 @@ import { MobSpawners } from './spawners';
 import { Wolf } from './wolf';
 import { Phantom, PhantomSpawner } from './phantom';
 import { itemForBlock } from '@shared/game/loot';
+import { PROFESSIONS as PROFESSION_IDS } from '@shared/game/trades';
+import { Villager, WanderingTrader, AbstractVillager } from './villager';
+import { IronGolem, SnowGolem } from './golems';
 
 type MobCtor = new (id: number, s: GameServer) => Mob;
 export const MOB_TYPES: Record<string, MobCtor> = {
   zombie: Zombie, husk: Husk, drowned: Drowned, zombie_villager: ZombieVillager, cave_spider: CaveSpider, skeleton: Skeleton, stray: Stray, creeper: Creeper, spider: Spider,
   pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, mooshroom: Mooshroom, phantom: Phantom, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid, cod: Cod, salmon: Salmon,
+  villager: Villager, wandering_trader: WanderingTrader, iron_golem: IronGolem, snow_golem: SnowGolem,
 };
 
 /** MobCategory caps (1.17.1) and the categories we spawn. */
@@ -57,6 +61,8 @@ export type SpawnReason = 'natural' | 'chunk_generation' | 'breeding' | 'command
 export class MobManager {
   /** natural and chunk-generation spawning enabled for this server (null = from the server options) */
   spawningOverride: boolean | null = null;
+  /** opens the trading screen for a player (set by the merchant container glue) */
+  openMerchant: ((p: ServerPlayer, v: AbstractVillager) => void) | null = null;
 
   /** monster spawner blocks */
   readonly spawners: MobSpawners;
@@ -525,11 +531,12 @@ export class MobManager {
   // ------------------------------------------------------------------ combat
   /** Mob.doHurtTarget */
   doHurtTarget(m: Mob, t: Target): boolean {
-    const dmg = m instanceof Zombie ? m.attackDamageValue() : m.attackDamage;
+    const dmg = m instanceof Zombie ? m.attackDamageValue() : m.meleeDamage();
     const src: DamageSource = { id: 'mob', scalesWithDifficulty: true, knockbackFrom: m, entity: { name: this.displayName(m), player: false } };
     const ok = isMob(t) ? t.hurt(src, dmg, m) : this.s.survival.hurt(t, src, dmg);
     if (ok && !isMob(t)) this.noteOwnerHurtBy(t, m);
     if (ok && m instanceof Zombie) m.afterHurtTarget(t);
+    if (ok) m.afterMeleeHit(t);
     if (ok && !isMob(t)) {
       const eff = this.s.difficulty; // getEffectiveDifficulty ≈ difficulty id (regional difficulty not modelled)
       // Husk.doHurtTarget: Hunger for 7 s × difficulty
@@ -883,6 +890,13 @@ export function mobDataOf(m: Mob): Record<string, number> {
   if (m instanceof Enderman) d.carried = m.carried;
   if (m instanceof Bat) d.hanging = m.resting ? 1 : 0;
   if (m instanceof Skeleton) d.bow = m.holdingBow() ? 1 : 0;
+  if (m instanceof Villager) {
+    d.profession = PROFESSION_IDS.indexOf(m.profession);
+    d.level = m.level;
+    d.sleeping = m.sleeping ? 1 : 0;
+  }
+  if (m instanceof AbstractVillager) d.unhappy = m.unhappyCounter > 0 ? 1 : 0;
+  if (m instanceof SnowGolem) d.pumpkin = m.pumpkin ? 1 : 0;
   if (m instanceof Wolf) {
     d.tame = m.tame ? 1 : 0;
     d.sitting = m.sitting ? 1 : 0;

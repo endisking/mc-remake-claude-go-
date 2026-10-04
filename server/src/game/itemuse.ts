@@ -25,6 +25,7 @@ import {
 import { EFFECT_NAME, type EffectInstance, type EffectTarget } from '@shared/game/effects';
 import { DAMAGE, type DamageSource } from './survival';
 import { commandHooks } from './commands/hooks';
+import { Mob } from './mobs/mob';
 import { Thrown, type ThrownKind, type ThrowHit } from './throwable';
 
 interface UseState {
@@ -914,6 +915,7 @@ function ownerOf(t: unknown): { iu: ItemUse; p: ServerPlayer } | null {
 }
 // /effect give|clear: the command system calls into the effect map here
 commandHooks.applyEffect = (t, effect, ticks, amp, particles) => {
+  if (t instanceof Mob) return !t.dead && t.addMobEffect(effect, ticks, amp);
   const o = ownerOf(t);
   if (!o || o.p.living.dead) return false;
   const ok = o.p.living.effects.add(effect, ticks, amp, o.iu.effectTarget(o.p), false, particles);
@@ -921,6 +923,7 @@ commandHooks.applyEffect = (t, effect, ticks, amp, particles) => {
   return ok;
 };
 commandHooks.removeEffect = (t, effect) => {
+  if (t instanceof Mob) return t.removeMobEffect(effect);
   const o = ownerOf(t);
   if (!o) return false;
   const target = o.iu.effectTarget(o.p);

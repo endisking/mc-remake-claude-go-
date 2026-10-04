@@ -37,6 +37,8 @@ export interface MobSave {
   owner?: string | null;
   sitting?: boolean;
   anger?: number;
+  /** type-specific state (Mob.saveExtra: villager data, golems, horses) */
+  extra?: Record<string, unknown>;
 }
 
 export function saveMob(m: Mob): MobSave {
@@ -45,6 +47,8 @@ export function saveMob(m: Mob): MobSave {
     fire: m.remainingFireTicks, air: m.airSupply, persistent: m.persistenceRequired,
   };
   if (m.mainHand) o.hand = { ...m.mainHand };
+  const extra = m.saveExtra();
+  if (extra) o.extra = extra;
   if (m instanceof Animal) {
     o.age = m.ageTicks;
     o.inLove = m.inLove;
@@ -83,6 +87,7 @@ export function applyMobSave(m: Mob, o: MobSave): void {
   m.airSupply = o.air;
   m.persistenceRequired = o.persistent;
   m.mainHand = o.hand ?? null;
+  if (o.extra) m.loadExtra(o.extra);
   if (m instanceof Animal) {
     m.ageTicks = o.age ?? 0;
     m.inLove = o.inLove ?? 0;

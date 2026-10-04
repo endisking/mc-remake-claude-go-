@@ -16209,5 +16209,287 @@
     "pitch": 1.1
    }
   ]
+ },
+ "entity.iron_golem.damage": {
+  "sounds": [
+   {
+    "name": "metal_heavy/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "metal_heavy/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "metal_heavy/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "metal_heavy/3",
+    "pitch": 0.9
+   },
+   {
+    "name": "metal_heavy/4",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.zombie_villager.cure": {
+  "sounds": [
+   {
+    "name": "zombie_say/0",
+    "pitch": 1.15
+   },
+   {
+    "name": "zombie_say/1",
+    "pitch": 1.15
+   },
+   {
+    "name": "zombie_say/2",
+    "pitch": 1.15
+   }
+  ]
+ },
+ "entity.zombie_villager.converted": {
+  "sounds": [
+   {
+    "name": "zombie_say/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "zombie_say/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "zombie_say/2",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.villager.work_armorer": {
+  "sounds": [
+   {
+    "name": "furnace/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "furnace/1",
+    "pitch": 1.1
+   },
+   {
+    "name": "furnace/2",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "entity.villager.work_butcher": {
+  "sounds": [
+   {
+    "name": "furnace/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "furnace/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "furnace/2",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.villager.work_cartographer": {
+  "sounds": [
+   {
+    "name": "dig_cloth/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "dig_cloth/1",
+    "pitch": 1.4
+   },
+   {
+    "name": "dig_cloth/2",
+    "pitch": 1.4
+   },
+   {
+    "name": "dig_cloth/3",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.villager.work_cleric": {
+  "sounds": [
+   {
+    "name": "bubble_pop/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "bubble_pop/1",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.villager.work_farmer": {
+  "sounds": [
+   {
+    "name": "dig_grass/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "dig_grass/1",
+    "pitch": 1.1
+   },
+   {
+    "name": "dig_grass/2",
+    "pitch": 1.1
+   },
+   {
+    "name": "dig_grass/3",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "entity.villager.work_fisherman": {
+  "sounds": [
+   {
+    "name": "chest_creak/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "chest_creak/1",
+    "pitch": 1.1
+   },
+   {
+    "name": "chest_creak/2",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "entity.villager.work_fletcher": {
+  "sounds": [
+   {
+    "name": "dig_wood/0"
+   },
+   {
+    "name": "dig_wood/1"
+   },
+   {
+    "name": "dig_wood/2"
+   },
+   {
+    "name": "dig_wood/3"
+   },
+   {
+    "name": "dig_wood/4"
+   }
+  ]
+ },
+ "entity.villager.work_leatherworker": {
+  "sounds": [
+   {
+    "name": "dig_wood/0"
+   },
+   {
+    "name": "dig_wood/1"
+   },
+   {
+    "name": "dig_wood/2"
+   },
+   {
+    "name": "dig_wood/3"
+   },
+   {
+    "name": "dig_wood/4"
+   }
+  ]
+ },
+ "entity.villager.work_librarian": {
+  "sounds": [
+   {
+    "name": "book_flip/0"
+   },
+   {
+    "name": "book_flip/1"
+   },
+   {
+    "name": "book_flip/2"
+   }
+  ]
+ },
+ "entity.villager.work_mason": {
+  "sounds": [
+   {
+    "name": "dig_stone/0"
+   },
+   {
+    "name": "dig_stone/1"
+   },
+   {
+    "name": "dig_stone/2"
+   },
+   {
+    "name": "dig_stone/3"
+   },
+   {
+    "name": "dig_stone/4"
+   }
+  ]
+ },
+ "entity.villager.work_shepherd": {
+  "sounds": [
+   {
+    "name": "dig_cloth/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_cloth/1",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_cloth/2",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_cloth/3",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.villager.work_toolsmith": {
+  "sounds": [
+   {
+    "name": "anvil_land/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "anvil_land/1",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.villager.work_weaponsmith": {
+  "sounds": [
+   {
+    "name": "dig_stone/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "dig_stone/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "dig_stone/2",
+    "pitch": 0.8
+   },
+   {
+    "name": "dig_stone/3",
+    "pitch": 0.8
+   },
+   {
+    "name": "dig_stone/4",
+    "pitch": 0.8
+   }
+  ]
  }
 }

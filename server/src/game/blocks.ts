@@ -7,6 +7,7 @@
  * The GameServer calls in through a handful of hooks: tick(), afterSetBlock(), use(),
  * useItemOn() and fallOn().
  */
+import { trySpawnGolemAt } from './mobs/golems';
 import type { GameServer } from './server';
 import type { ServerPlayer } from './player';
 import { ItemEntity } from './entity';
@@ -373,6 +374,8 @@ export class BlockBehaviors {
         if ((n === 'cactus' || n === 'sugar_cane') && !canSurvive(w, x, y, z, st)) this.scheduleTick(x, y, z, st, 1);
         if (isLiveCoral(n)) this.coralCheck(x, y, z, st);
         if (n === 'sponge') this.tryAbsorbWater(x, y, z);
+        // CarvedPumpkinBlock.onPlace: snow / iron golem patterns
+        if (n === 'carved_pumpkin' || n === 'jack_o_lantern') trySpawnGolemAt(this.s, x, y, z);
         // BaseFireBlock.onPlace
         if (n === 'fire' || n === 'soul_fire') this.scheduleTick(x, y, z, st, fireTickDelay(this.s.rand));
       }
