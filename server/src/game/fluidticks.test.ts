@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { GameServer, type Connection } from './server';
 import { encodeC2S, decodeS2C, PROTOCOL_VERSION, type S2C } from '@shared/protocol/packets';
 import { stateOf, blockNameOf, getProp } from '@shared/world/blockstate';
+import { BlockWorld } from '@shared/world/world';
+import { Chunk } from '@shared/world/chunk';
+import { ItemEntity } from './entity';
 
 function client(server: GameServer, name: string) {
   const received: S2C[] = [];
@@ -84,4 +87,21 @@ describe('server fluid ticks', () => {
     }
     expect(flowing).toBeGreaterThan(0);
   }, 120000);
+
+  it('flowing water carries dropped items downstream', () => {
+    const world = new BlockWorld();
+    world.addChunk(new Chunk(0, 0));
+    const stone = stateOf('stone');
+    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) world.setStateRaw(x, 63, z, stone);
+    // a source at x=2 flowing east: levels 1..7 along x=3..9
+    world.setStateRaw(2, 64, 8, stateOf('water'));
+    for (let d = 1; d <= 7; d++) world.setStateRaw(2 + d, 64, 8, stateOf('water', { level: d }));
+    const e = new ItemEntity(1, { id: 1, count: 1, damage: 0 });
+    e.x = 4.5;
+    e.y = 64;
+    e.z = 8.5;
+    for (let i = 0; i < 40; i++) e.tick(world);
+    expect(e.x).toBeGreaterThan(5);
+    expect(Math.abs(e.z - 8.5)).toBeLessThan(0.05);
+  });
 });
