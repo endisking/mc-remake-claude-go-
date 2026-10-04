@@ -497,4 +497,25 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     const doors = [...server.entities.values()].filter((e) => e instanceof ItemEntity && e.stack.id === ITEMS_BY_NAME.get('oak_door')!.id);
     expect(doors.length).toBe(1);
   });
+
+  it('a second player sees falling blocks, opened doors and grown crops', () => {
+    const { server, set, send } = setup();
+    const seen: S2C[] = [];
+    const recvB = server.connect({ send: (d) => seen.push(decodeS2C(d)), close: () => {} });
+    recvB(encodeC2S({ t: 'hello', protocol: PROTOCOL_VERSION, name: 'B', viewDistance: 2, skin: '' }));
+    for (let i = 0; i < 3; i++) server.tick();
+    server.players[1]!.y = 151; // within hearing range
+    set(11, 150, 4, 'stone');
+    set(11, 155, 4, 'sand');
+    set(12, 150, 4, 'stone');
+    set(12, 151, 4, 'oak_door', { half: 'lower', facing: 'north' });
+    set(12, 152, 4, 'oak_door', { half: 'upper', facing: 'north' });
+    send({ t: 'useOn', x: 12, y: 151, z: 4, face: 2, cx: 0.5, cy: 0.5, cz: 0, hand: 0 });
+    for (let i = 0; i < 40; i++) server.tick();
+    expect(seen.some((p) => p.t === 'addEntity' && p.type === 'falling_block')).toBe(true);
+    expect(seen.some((p) => p.t === 'entityMove')).toBe(true);
+    expect(seen.some((p) => p.t === 'blockChange' && p.x === 11 && p.y === 151 && p.z === 4 && p.state === stateOf('sand'))).toBe(true);
+    expect(seen.some((p) => p.t === 'blockChange' && p.x === 12 && p.y === 152 && getProp(p.state, 'open') === true)).toBe(true);
+    expect(seen.some((p) => p.t === 'sound')).toBe(true);
+  });
 });
