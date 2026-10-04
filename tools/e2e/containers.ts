@@ -176,6 +176,24 @@ await page.waitForFunction(() => (window as any).game.screen?.title === 'Stonecu
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);
 
+// ---- smithing table
+await cmd(page, '/give @s diamond_sword 1');
+await cmd(page, `/setblock ${px - 3} ${py} ${pz} smithing_table`);
+await page.waitForFunction(([x, y, z]) => (window as any).game.world.getState(x, y, z) !== 0, [px - 3, py, pz], { timeout: 30000 });
+await page.waitForTimeout(300);
+await use(px - 3, py, pz);
+await page.waitForFunction(() => (window as any).game.screen?.title === 'Upgrade Gear', undefined, { timeout: 5000 });
+{
+  const sw = await page.evaluate(() => (window as any).game.screen.menu.slots.findIndex((s: any, i: number) => i >= 3 && s.getItem()?.id && (window as any).game.screen.menu.slots[i].getItem().count === 1 && s.getItem().id > 600));
+  await page.keyboard.down('Shift');
+  await click(sw);
+  await page.keyboard.up('Shift');
+  await page.waitForTimeout(300);
+  await shot('smithing');
+}
+await page.keyboard.press('Escape');
+await page.waitForTimeout(200);
+
 // ---- creative inventory
 await cmd(page, '/gamemode creative');
 await page.waitForTimeout(300);
