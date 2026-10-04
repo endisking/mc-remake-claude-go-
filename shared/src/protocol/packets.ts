@@ -90,6 +90,8 @@ const S2C_SCHEMA = {
   keepAlive: [['id', 'f64']],
   /** Vanilla PlayerInfo UPDATE_LATENCY: a player's ping in milliseconds. */
   playerLatency: [['id', 'i32'], ['latency', 'varint']],
+  /** Moved to another dimension (vanilla ClientboundRespawnPacket with a new dimension): drop chunks/entities, switch sky. */
+  dimension: [['dimension', 'str'], ['gameMode', 'u8'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['yaw', 'f32'], ['pitch', 'f32']],
 } as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server

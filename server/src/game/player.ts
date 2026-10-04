@@ -33,6 +33,8 @@ export class ServerPlayer {
   /** position at the previous survival tick (sweet berry bush movement check) */
   prevTickX = 0;
   prevTickZ = 0;
+  /** Dimension the player is in (GameServer.levels key: overworld, the_nether, the_end). */
+  dimension = 'overworld';
   /** The world's host in single-player/LAN: exempt from "moved too quickly". */
   isOwner = false;
   /** Chunks this client currently has. */

@@ -20,6 +20,11 @@ export class DiskStorage implements WorldStorage {
 
   constructor(readonly dir: string) {}
 
+  /** Another dimension's chunks: <world>/DIM-1/region like vanilla. */
+  dimension(folder: string): DiskStorage {
+    return new DiskStorage(join(this.dir, folder));
+  }
+
   private async writeAtomic(path: string, data: Uint8Array | string): Promise<void> {
     const tmp = `${path}.tmp`;
     await fs.writeFile(tmp, data);

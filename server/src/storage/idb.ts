@@ -56,20 +56,33 @@ function worldRange(id: string): IDBKeyRange {
 }
 
 export class IdbStorage implements WorldStorage {
-  constructor(readonly worldId: string) {}
+  constructor(
+    readonly worldId: string,
+    /** dimension folder for chunk keys ('' = overworld) */
+    readonly dim = '',
+  ) {}
 
   async listChunks(): Promise<[number, number][]> {
     const db = await openDb();
-    const keys = await request(db.transaction('chunks').objectStore('chunks').getAllKeys(worldRange(this.worldId)));
-    return keys.map((k) => {
-      const a = k as [string, number, number];
-      return [a[1], a[2]];
-    });
+    const range = this.dim ? IDBKeyRange.bound([this.worldId, this.dim], [this.worldId, this.dim, []]) : worldRange(this.worldId);
+    const keys = await request(db.transaction('chunks').objectStore('chunks').getAllKeys(range));
+    const out: [number, number][] = [];
+    for (const k of keys) {
+      const a = k as (string | number)[];
+      // overworld keys are [worldId, cx, cz]; other dimensions [worldId, folder, cx, cz]
+      if (this.dim) out.push([a[2] as number, a[3] as number]);
+      else if (typeof a[1] === 'number') out.push([a[1], a[2] as number]);
+    }
+    return out;
+  }
+
+  private chunkKey(cx: number, cz: number): IDBValidKey {
+    return this.dim ? [this.worldId, this.dim, cx, cz] : [this.worldId, cx, cz];
   }
 
   async getChunk(cx: number, cz: number): Promise<Uint8Array | null> {
     const db = await openDb();
-    const v = await request(db.transaction('chunks').objectStore('chunks').get([this.worldId, cx, cz]));
+    const v = await request(db.transaction('chunks').objectStore('chunks').get(this.chunkKey(cx, cz)));
     return v instanceof Uint8Array ? v : v instanceof ArrayBuffer ? new Uint8Array(v) : null;
   }
 
@@ -78,8 +91,13 @@ export class IdbStorage implements WorldStorage {
     const db = await openDb();
     const tx = db.transaction('chunks', 'readwrite');
     const st = tx.objectStore('chunks');
-    for (const c of chunks) st.put(c.data, [this.worldId, c.cx, c.cz]);
+    for (const c of chunks) st.put(c.data, this.chunkKey(c.cx, c.cz));
     await done(tx);
+  }
+
+  /** The chunks of another dimension (DIM-1, DIM1) under the same world id. */
+  dimension(folder: string): IdbStorage {
+    return new IdbStorage(this.worldId, folder);
   }
 
   async getMeta(): Promise<LevelMeta | null> {
