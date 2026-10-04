@@ -42,6 +42,8 @@ export class Portals {
   /** nether portal POIs per dimension ("x,y,z"), kept in the level data */
   private readonly pois = new Map<string, Set<string>>();
   private busy = false;
+  /** where each player was just sent by a dimension change, until its client confirms (game time limit) */
+  private readonly arrivals = new WeakMap<ServerPlayer, { x: number; y: number; z: number; until: number }>();
 
   constructor(private readonly s: GameServer) {}
 
@@ -134,6 +136,21 @@ export class Portals {
   }
 
   // ------------------------------------------------------------------ travel
+  arrived(p: ServerPlayer, x: number, y: number, z: number): void {
+    this.arrivals.set(p, { x, y, z, until: this.s.gameTime + 100 });
+  }
+
+  /** Drop stale moves from before the client switched dimension (vanilla awaitingPositionFromClient). */
+  ignoreMove(p: ServerPlayer, x: number, y: number, z: number): boolean {
+    const a = this.arrivals.get(p);
+    if (!a) return false;
+    if (this.s.gameTime > a.until || (x - a.x) ** 2 + (y - a.y) ** 2 + (z - a.z) ** 2 < 4) {
+      this.arrivals.delete(p);
+      return false;
+    }
+    return true;
+  }
+
   /** Entity.checkInsideBlocks (portal part) + Entity.handleNetherPortal + processPortalCooldown, once per tick. */
   tickPlayer(p: ServerPlayer): void {
     const st = this.state(p);

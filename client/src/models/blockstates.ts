@@ -4,6 +4,7 @@
  */
 import type { BlockStateDef, ModelRef } from './format';
 import { MODELS } from './library';
+import { netherBlockDef } from './nether';
 
 /** Register a model that inherits `parent` with the given texture variables. */
 function model(name: string, parent: string, textures: Record<string, string>): string {
@@ -364,6 +365,8 @@ export function blockStateDef(name: string, hasTexture: (t: string) => boolean):
     const tex = hasTexture(`${base}_planks`) ? `${base}_planks` : base;
     if (hasTexture(tex)) return stairs(name, { top: tex, bottom: tex, side: tex });
   }
+  const nether = netherBlockDef(name, hasTexture);
+  if (nether) return nether;
   if (hasTexture(name)) return single({ model: model(name, 'cube_all', { all: name }) });
   return single({ model: 'missing' });
 }

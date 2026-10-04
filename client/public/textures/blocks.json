@@ -895,6 +895,119 @@
    "cutout": true
   },
   {
+   "name": "netherrack",
+   "frames": 1
+  },
+  {
+   "name": "crimson_nylium",
+   "frames": 1
+  },
+  {
+   "name": "crimson_nylium_side",
+   "frames": 1
+  },
+  {
+   "name": "warped_nylium",
+   "frames": 1
+  },
+  {
+   "name": "warped_nylium_side",
+   "frames": 1
+  },
+  {
+   "name": "soul_sand",
+   "frames": 1
+  },
+  {
+   "name": "soul_soil",
+   "frames": 1
+  },
+  {
+   "name": "basalt_side",
+   "frames": 1
+  },
+  {
+   "name": "basalt_top",
+   "frames": 1
+  },
+  {
+   "name": "blackstone",
+   "frames": 1
+  },
+  {
+   "name": "glowstone",
+   "frames": 1
+  },
+  {
+   "name": "nether_wart_block",
+   "frames": 1
+  },
+  {
+   "name": "warped_wart_block",
+   "frames": 1
+  },
+  {
+   "name": "shroomlight",
+   "frames": 1
+  },
+  {
+   "name": "nether_quartz_ore",
+   "frames": 1
+  },
+  {
+   "name": "nether_gold_ore",
+   "frames": 1
+  },
+  {
+   "name": "ancient_debris",
+   "frames": 1
+  },
+  {
+   "name": "crimson_roots",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "warped_roots",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "nether_sprouts",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "crimson_fungus",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "warped_fungus",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "weeping_vines_plant",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "weeping_vines",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "twisting_vines_plant",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "twisting_vines",
+   "frames": 1,
+   "cutout": true
+  },
+  {
    "name": "destroy_stage_0",
    "frames": 1,
    "cutout": true

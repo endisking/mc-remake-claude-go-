@@ -130,6 +130,8 @@ export class GameServer {
     const from = this.levelOf(p), to = this.levels.get(dim);
     if (!to) return;
     for (const o of this.players) if (o !== p && o.tracking.delete(p.id)) this.send(o, { t: 'removeEntities', ids: [p.id] });
+    if (p.tracking.size) this.send(p, { t: 'removeEntities', ids: [...p.tracking] });
+    this.portals.arrived(p, x, y, z);
     const i = from.players.indexOf(p);
     if (i >= 0) from.players.splice(i, 1);
     if (!to.players.includes(p)) to.players.push(p);
@@ -948,6 +950,8 @@ export class GameServer {
    * and spectator exempt), and refuse moving into solid blocks.
    */
   private handleMove(p: ServerPlayer, m: Extract<C2S, { t: 'move' }>): void {
+    // moves sent from the old dimension before the client saw the dimension change
+    if (this.portals.ignoreMove(p, m.x, m.y, m.z)) return;
     // sleeping players stay in bed (rotation still updates)
     if (p.sleepingPos) {
       p.yaw = m.yaw;

@@ -62,6 +62,8 @@ import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
 import { ItemTextures } from './render/itemtextures';
 import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './gui/itemicons';
+import { netherFogColor, netherFogRange, PortalEffect, applyPortalWobble, insidePortal, ambientLight, hasSky } from './world/dimension';
+import { isPortal } from '@shared/game/portalshape';
 import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
 export class Game implements ScreenHost {
@@ -130,6 +132,11 @@ export class Game implements ScreenHost {
   /** Entity.ticksFrozen from the server (140 = fully frozen) */
   ticksFrozen = 0;
   private frostOverlay: ImageBitmap | null = null;
+  // ---- dimensions / nether portals ----
+  /** Current dimension (login / dimension packets): overworld, the_nether, the_end. */
+  dimension = 'overworld';
+  readonly portalFx = new PortalEffect();
+  private portalOverlay: ImageBitmap | null = null;
   private skyFlashTime = 0;
   readonly bolts = new Map<number, ClientBolt>();
   private readonly boltRand = new JavaRandom(BigInt(Date.now()));
@@ -367,6 +374,7 @@ export class Game implements ScreenHost {
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
     await Promise.all([this.gui.load(), this.hud.load(), this.sound.load(), this.spectatorGui.load()]);
+    void fetch('./textures/block/nether_portal.png').then((r) => r.blob()).then((b) => createImageBitmap(b)).then((bmp) => (this.portalOverlay = bmp)).catch(() => {});
     void fetch('./textures/environment/powder_snow_outline.png').then((r) => r.blob()).then((b) => createImageBitmap(b)).then((bmp) => (this.frostOverlay = bmp));
     for (const [c, v] of Object.entries(this.settings.volumes)) this.sound.volumes[c as SoundCategory] = v;
     // audio may only start after a user gesture
@@ -527,6 +535,7 @@ export class Game implements ScreenHost {
   private handle(p: S2C): void {
     switch (p.t) {
       case 'login':
+        this.dimension = p.dimension;
         this.entityId = p.entityId;
         this.world.biomeZoomSeed = p.seed;
         this.selfModel = new RemotePlayer(p.entityId, new URLSearchParams(location.search).get('name') ?? 'Player', '');
@@ -756,7 +765,11 @@ export class Game implements ScreenHost {
         }
         break;
       }
+      case 'dimension':
+        this.changeDimension(p);
+        break;
       case 'levelEvent':
+        if (p.event === 1032) this.playUi('block.portal.travel', this.sfxRand.nextFloat() * 0.4 + 0.8);
         if (p.event === 2001) this.blockBroken(p.x, p.y, p.z, p.data);
         else if (p.event === 1501) {
           // LevelRenderer.levelEvent LAVA_FIZZ: extinguish hiss (large smoke particles: no smoke particle type yet)
@@ -903,6 +916,10 @@ export class Game implements ScreenHost {
     } else if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
       pl.tick(move);
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
+    }
+    // LocalPlayer.handleNetherPortalClient: overlay fades in while standing in a portal
+    if (this.portalFx.tick(this.loggedIn && this.gameMode !== 3 && insidePortal(this.world, pl.x, pl.y, pl.z, pl.pose === 'crouching' ? 1.5 : 1.8, isPortal))) {
+      this.playUi('block.portal.trigger', this.sfxRand.nextFloat() * 0.4 + 0.8);
     }
     this.tickRainSound();
     // camera eye height eases toward the pose's eye height (vanilla Camera.tick)
@@ -1319,6 +1336,24 @@ export class Game implements ScreenHost {
     const m = this.hurtMat;
     m.set([c, sn, 0, 0, -sn, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
     multiply(target, target, m);
+  }
+
+  /** Moved to another dimension: forget the old one's chunks and entities (vanilla handleRespawn). */
+  private changeDimension(p: { dimension: string; gameMode: number; x: number; y: number; z: number; yaw: number; pitch: number }): void {
+    this.dimension = p.dimension;
+    for (const c of [...this.world.chunks.values()]) this.world.unloadChunk(c.x, c.z);
+    this.players.clear();
+    this.items.clear();
+    this.bolts.clear();
+    this.world.rain = 0;
+    this.world.thunder = 0;
+    this.setGameMode(p.gameMode);
+    this.placePlayer(p.x, p.y, p.z);
+    this.player.vx = this.player.vy = this.player.vz = 0;
+    this.yaw = p.yaw;
+    this.pitch = p.pitch;
+    this.interaction.stopDestroy();
+    this.portalFx.time = this.portalFx.old = 0;
   }
 
   /** Yaw of the bed we sleep in (Direction.toYRot of its facing), or null. */
@@ -1858,7 +1893,11 @@ export class Game implements ScreenHost {
     const fog = fogColor(skyState, sky, this.fogRgb);
     const renderDist = s.renderDistance * 16;
     let fogStart = renderDist * 0.75, fogEnd = renderDist;
-    if (medium === 'water') {
+    const nether = this.dimension === 'the_nether';
+    if (nether && medium === 'air') {
+      netherFogColor(this.world, cx, cy, cz, s.renderDistance, fog);
+      [fogStart, fogEnd] = netherFogRange(renderDist);
+    } else if (medium === 'water') {
       // FogRenderer: 192 × max(0.25, water vision) × (0.85 in swamps), halved
       const wv = this.waterVision();
       let f = 192 * Math.max(0.25, wv);
@@ -1876,8 +1915,8 @@ export class Game implements ScreenHost {
     }
 
     this.lightmap.update({
-      skyDarken: skyDarken(tod, this.world.rain, this.world.thunder),
-      ambient: 0,
+      skyDarken: hasSky(this.dimension) ? skyDarken(tod, this.world.rain, this.world.thunder) : 0,
+      ambient: ambientLight(this.dimension),
       gamma: s.gamma,
       nightVision: 0,
       flash: this.skyFlashTime > 0,
@@ -1892,9 +1931,10 @@ export class Game implements ScreenHost {
     if (medium === 'water') fov *= 0.85714287;
     perspective(this.proj, (fov * Math.PI) / 180, aspect, 0.05, Math.max(renderDist * 4, 512));
     this.applyHurtBob(this.proj, partial);
+    applyPortalWobble(this.proj, this.portalFx.value(partial), this.clientTicks + partial, 1);
     if (s.viewBobbing && !this.player.abilities.flying) this.applyViewBob(partial);
     viewRotation(this.view, camYaw, camPitch);
-    this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
+    if (hasSky(this.dimension)) this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
 
     multiply(this.viewProj, this.proj, this.view);
     this.camPos[0] = cx;
@@ -1956,8 +1996,8 @@ export class Game implements ScreenHost {
       const ia = this.interaction;
       if (stage >= 0 && (this.breakStage >= 0 || (ia.destroyX === t.x && ia.destroyY === t.y && ia.destroyZ === t.z))) this.crack.render(this.viewProj, this.textures.tex, t.x, t.y, t.z, t.state, stage, cx, cy, cz);
     }
-    this.weather.render(this.viewProj, this.world, cx, cy, cz, this.clientTicks, partial, this.world.rain, s.graphics === 'fancy', this.lightmap.tex);
-    if (medium === 'air') {
+    if (hasSky(this.dimension)) this.weather.render(this.viewProj, this.world, cx, cy, cz, this.clientTicks, partial, this.world.rain, s.graphics === 'fancy', this.lightmap.tex);
+    if (medium === 'air' && hasSky(this.dimension)) {
       this.clouds.render(this.viewProj, cx, cy, cz, this.clientTicks + partial, s.clouds, s.renderDistance, cloudColor(tod, this.world.rain, this.world.thunder), fog);
     }
     if (this.showHitboxes) this.renderHitboxes(cx, cy, cz, partial);
@@ -1986,6 +2026,17 @@ export class Game implements ScreenHost {
         ctx.fillRect(cx, cy - 7, 1, 7);
         ctx.fillRect(cx, cy + 1, 1, 7);
         ctx.restore();
+      }
+      // Gui.renderPortalOverlay: the portal texture over the whole screen while teleporting
+      const pa = this.portalFx.overlayAlpha(this.guiPartial);
+      if (pa > 0 && this.portalOverlay) {
+        const bmp = this.portalOverlay, frames = Math.max(1, Math.floor(bmp.height / bmp.width));
+        const fr = Math.floor(this.clientTicks / 2) % frames;
+        g.ctx.save();
+        g.ctx.globalAlpha = pa;
+        g.ctx.imageSmoothingEnabled = false;
+        g.ctx.drawImage(bmp, 0, fr * bmp.width, bmp.width, bmp.width, 0, 0, g.width, g.height);
+        g.ctx.restore();
       }
       // Gui.renderTextureOverlay: frost creeps in while freezing
       if (this.ticksFrozen > 0 && this.frostOverlay && this.gameMode !== 3) {
