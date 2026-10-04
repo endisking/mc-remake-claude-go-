@@ -16,6 +16,8 @@ import { Arrow } from './arrow';
 import { copyStack, sameItem, type ItemStack } from '@shared/item/stack';
 import { dispenseSpecial, dispenseSound } from './dispense';
 import { disarmTripwire, tripwireChanged, tripwireTick, wireEntityInside, type TripwireHost } from '@shared/game/tripwire';
+import { FULL_COLLISION } from '@shared/world/blockinfo';
+import { railPlacementState } from '@shared/game/rails';
 import { detectorRailCheck, isRailState, railNeighborChanged, railPlaced, type RailHost } from '@shared/game/rails';
 
 const DIRS = ['down', 'up', 'north', 'south', 'west', 'east'];
@@ -51,6 +53,15 @@ export class ServerRedstone {
       setBlock: (x, y, z, st, flags) => s.setBlock(x, y, z, st, flags),
       hasNeighborSignal: (x, y, z) => this.rs.hasNeighborSignal(x, y, z),
       updateNeighborsAt: (x, y, z, from) => this.rs.updateNeighborsAt(x, y, z, from),
+      sturdyTop: (x, y, z) => {
+        if (y < 0 || y > 255) return false;
+        const b = s.world.getState(x, y, z), bn = blockNameOf(b);
+        if (bn === 'hopper') return true; // the hopper's rim is a rigid top face
+        if (bn.endsWith('_slab')) return getProp(b, 'type') !== 'bottom';
+        if (bn.endsWith('_stairs')) return getProp(b, 'half') === 'top';
+        return FULL_COLLISION[b] === 1;
+      },
+      dropAndRemove: (x, y, z) => s.blocks.breakNaturally(x, y, z, false),
     };
     this.wireHost = {
       getState: (x, y, z) => (y < 0 || y > 255 ? 0 : s.world.getState(x, y, z)),
@@ -188,7 +199,8 @@ export class ServerRedstone {
   }
 
   /** getStateForPlacement adjustments, then setPlacedBy after the block is in the world. */
-  placementState(x: number, y: number, z: number, st: number): number {
+  placementState(x: number, y: number, z: number, st: number, yaw = 0): number {
+    if (isRailState(st)) return railPlacementState(st, yaw);
     return isRedstoneComponent(st) ? this.rs.placementState(x, y, z, st) : st;
   }
   placed(x: number, y: number, z: number): void {

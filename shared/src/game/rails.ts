@@ -11,6 +11,29 @@ export interface RailHost {
   setBlock(x: number, y: number, z: number, state: number, flags?: number): void;
   hasNeighborSignal(x: number, y: number, z: number): boolean;
   updateNeighborsAt(x: number, y: number, z: number, fromBlock: number): void;
+  /** Block.canSupportRigidBlock (isFaceSturdy UP, RIGID); rails pop off without it */
+  sturdyTop?(x: number, y: number, z: number): boolean;
+  /** Block.dropResources + removeBlock */
+  dropAndRemove?(x: number, y: number, z: number): void;
+}
+
+/** BaseRailBlock.getStateForPlacement: east_west when the player faces east or west. */
+export function railPlacementState(state: number, yaw: number): number {
+  const h = Math.floor(yaw / 90 + 0.5) & 3; // Direction.fromYRot: 0 south, 1 west, 2 north, 3 east
+  return withProp(state, 'shape', h === 1 || h === 3 ? 'east_west' : 'north_south');
+}
+
+/** BaseRailBlock.shouldBeRemoved: no rigid support below, or a slope without its uphill block. */
+function shouldBeRemoved(h: RailHost, x: number, y: number, z: number, shape: string): boolean {
+  if (!h.sturdyTop) return false;
+  if (!h.sturdyTop(x, y - 1, z)) return true;
+  switch (shape) {
+    case 'ascending_east': return !h.sturdyTop(x + 1, y, z);
+    case 'ascending_west': return !h.sturdyTop(x - 1, y, z);
+    case 'ascending_north': return !h.sturdyTop(x, y, z - 1);
+    case 'ascending_south': return !h.sturdyTop(x, y, z + 1);
+    default: return false;
+  }
 }
 
 const RAIL_IDS = new Set(['rail', 'powered_rail', 'detector_rail', 'activator_rail'].map((n) => BLOCKS_BY_NAME.get(n)?.id ?? -1));
@@ -191,6 +214,10 @@ export function railPlaced(h: RailHost, x: number, y: number, z: number): void {
 /** BaseRailBlock.neighborChanged → updateState (survival is handled by the host). */
 export function railNeighborChanged(h: RailHost, x: number, y: number, z: number, s: number, fromBlock: number): void {
   const n = blockNameOf(s);
+  if (fromBlock >= 0 && h.dropAndRemove && shouldBeRemoved(h, x, y, z, getProp(s, 'shape') as string)) {
+    h.dropAndRemove(x, y, z);
+    return;
+  }
   if (n === 'rail') {
     // RailBlock.updateState: re-shape on a signal-source change at a 3-way junction
     if (fromBlock >= 0 && isSignalSourceBlock(fromBlock) && new RailState(h, x, y, z, s).countPotentialConnections() === 3) {

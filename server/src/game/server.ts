@@ -810,7 +810,7 @@ export class GameServer {
     const canReplaceExisting = isReplaceable(existing, block) || (block.endsWith('_slab') && blockNameOf(existing) === block);
     if (!canReplaceExisting) return this.resendBlock(p, px, py, pz);
     let state = stateForPlacement(block, { world: this.world, x: px, y: py, z: pz, face, hx: m.cx, hy: m.cy, hz: m.cz, yaw: p.yaw, pitch: p.pitch, sneaking: p.sneaking }, existing);
-    if (state !== null) state = this.redstone.placementState(px, py, pz, state);
+    if (state !== null) state = this.redstone.placementState(px, py, pz, state, p.yaw);
     if (state === null || !canSurvive(this.world, px, py, pz, state)) return this.resendBlock(p, px, py, pz);
     const extra = companionPlacement(block, state);
     for (const e of extra) {
