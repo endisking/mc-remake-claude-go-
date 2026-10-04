@@ -166,4 +166,18 @@ describe('containers', () => {
     server.tick();
     expect(cooked()).toBe(2);
   });
+
+  it('shulker boxes open as 27 slots and refuse other shulker boxes', () => {
+    const { server, a, p, gx, gy, gz } = setup();
+    server.setBlock(gx + 2, gy + 1, gz, stateOf('red_shulker_box'));
+    a.send({ t: 'useOn', x: gx + 2, y: gy + 1, z: gz, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    const open = a.received.filter((m) => m.t === 'openWindow').at(-1) as Extract<S2C, { t: 'openWindow' }>;
+    expect(open).toMatchObject({ type: 'generic_9x3', title: 'Shulker Box' });
+    p.inventory.set(9, stack('blue_shulker_box'));
+    p.inventory.set(10, stack('dirt', 5));
+    a.send({ t: 'clickWindow', windowId: open.windowId, slot: 27, button: 0, clickType: 1 });
+    a.send({ t: 'clickWindow', windowId: open.windowId, slot: 28, button: 0, clickType: 1 });
+    expect(p.inventory.get(9)?.id).toBe(stack('blue_shulker_box').id);
+    expect(p.inventory.get(10)).toBeNull();
+  });
 });

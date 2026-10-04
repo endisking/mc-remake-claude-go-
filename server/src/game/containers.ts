@@ -12,7 +12,7 @@ import { blockNameOf, getProp, withProp } from '@shared/world/blockstate';
 import { BLOCKS_BY_NAME } from '@shared/data';
 import { FULL_COLLISION } from '@shared/world/blockinfo';
 import { isEmpty, type ItemStack } from '@shared/item/stack';
-import { ChestMenu, CraftingMenu, DispenserMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
+import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
 import { CompoundContainer, InventoryContainer, SimpleContainer, type Container } from '@shared/menu/container';
 import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, newCampfire, placeCampfireFood, tickCampfire, type CampfireData, type FurnaceData, type FurnaceKind } from '@shared/menu/furnace';
 import { cookingRecipe } from '@shared/menu/smelting';
@@ -239,6 +239,17 @@ export class Containers {
       this.startViewing([x, y, z], p, 'block.barrel');
       return true;
     }
+    if (name === 'shulker_box' || name.endsWith('_shulker_box')) {
+      // ShulkerBoxBlock.canOpen: the lid needs room in the facing direction
+      const f = getProp(state, 'facing') as string;
+      const d = { down: [0, -1, 0], up: [0, 1, 0], north: [0, 0, -1], south: [0, 0, 1], west: [-1, 0, 0], east: [1, 0, 0] }[f] ?? [0, 1, 0];
+      if (FULL_COLLISION[this.server.world.getState(x + d[0]!, y + d[1]!, z + d[2]!)] === 1) return true;
+      const valid = this.validFor(p, x, y, z, (n) => n === name);
+      const c = this.itemsContainer(x, y, z, 'shulker_box', 27, valid);
+      this.open(p, (id) => new ShulkerBoxMenu(id, inv, c), 'Shulker Box', [x, y, z]);
+      this.startViewing([x, y, z], p, 'block.shulker_box');
+      return true;
+    }
     if (name === 'dispenser' || name === 'dropper') {
       const valid = this.validFor(p, x, y, z, (n) => n === name);
       const c = this.itemsContainer(x, y, z, name, 9, valid);
@@ -325,7 +336,7 @@ export class Containers {
     const name = blockNameOf(this.server.world.getState(pos[0], pos[1], pos[2]));
     if (n <= 1) {
       this.viewers.delete(k);
-      const sound = name === 'barrel' ? 'block.barrel' : name === 'ender_chest' ? 'block.ender_chest' : isChest(name) ? 'block.chest' : null;
+      const sound = name === 'barrel' ? 'block.barrel' : name === 'ender_chest' ? 'block.ender_chest' : isChest(name) ? 'block.chest' : name.endsWith('shulker_box') ? 'block.shulker_box' : null;
       if (sound) this.containerSound(pos, sound + '.close');
       this.setOpenState(pos, false);
     } else this.viewers.set(k, n - 1);

@@ -21,7 +21,7 @@ export const isViewBlocking = isSuffocating;
  */
 export function isInteractive(state: number): boolean {
   const n = blockNameOf(state);
-  return n.endsWith('_bed') || OPENABLE_CONTAINERS.has(n);
+  return n.endsWith('_bed') || OPENABLE_CONTAINERS.has(n) || n.endsWith('shulker_box');
 }
 
 /** Container blocks whose menus are implemented (server Containers.useBlock). */

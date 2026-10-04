@@ -4,6 +4,7 @@
  * QUICK_CRAFT, PICKUP_ALL), shared by the server (authoritative) and the client (prediction).
  */
 import { isEmpty, maxStackSize, type Inventory, type ItemStack } from '../item/stack';
+import { ITEMS_BY_ID } from '../data';
 import {
   CompoundContainer, InventoryContainer, ResultContainer, SimpleContainer, copyStack, equipmentSlotFor, isSame, isStackable,
   itemId, sameItemSameTags, splitStack, type Container,
@@ -679,6 +680,26 @@ export class ChestMenu extends Menu {
   override removed(p: MenuPlayer): void {
     super.removed(p);
     this.container.stopOpen?.();
+  }
+}
+
+/** ShulkerBoxSlot: shulker boxes don't go inside shulker boxes. */
+class ShulkerBoxSlot extends Slot {
+  override mayPlace(s: ItemStack): boolean {
+    return !(ITEMS_BY_ID[s.id]?.name ?? '').endsWith('shulker_box');
+  }
+}
+
+/** ShulkerBoxMenu: the chest layout with ShulkerBoxSlots. */
+export class ShulkerBoxMenu extends ChestMenu {
+  constructor(id: number, inv: Container, container: Container) {
+    super(id, inv, container, 3);
+    for (let i = 0; i < 27; i++) {
+      const old = this.slots[i]!;
+      const s = new ShulkerBoxSlot(container, i, old.x, old.y);
+      s.index = i;
+      this.slots[i] = s;
+    }
   }
 }
 
