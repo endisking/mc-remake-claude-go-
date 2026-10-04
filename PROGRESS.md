@@ -287,3 +287,25 @@ Later in the same round:
   - Favicon.
   - Verified end to end: survival loop, saving, creative, dedicated-server multiplayer, LAN over WebRTC.
 
+
+Final sprint before the release:
+- **Mobs and riding:** villagers (13 professions, 1.17.1 trade tables, levels, restocking, schedules, beds,
+  breeding, zombie conversion and curing), wandering trader, iron and snow golems, horses/donkeys/mules, witches,
+  pillagers, vindicators, rabbits, cats, ocelots, polar bears, turtles. A riding system covers horses with the
+  jump bar and pigs with a carrot on a stick; boats have vanilla physics.
+- **Redstone:** hoppers (8-tick transfer, locking, furnace faces), dispenser behaviours (projectiles, potions,
+  buckets, bone meal, flint and steel, shears, TNT, armour), rail shapes, powered/activator/detector rails,
+  tripwire.
+- **The End:** end crystals and the ender dragon (phases, breath, block breaking, death with egg, exit portal,
+  gateway and XP), and a boss bar. The exit fountain now lights only after the kill.
+- **Appearance and LAN:** villager biome/profession/level looks and horse coats; the desktop app relays LAN
+  signaling and shows the host's IP.
+
+Release 0.4.0: web zip + Windows x64 app built by the Release workflow from tag v0.4.0. FEATURES.md: 2224 of
+4140 items checked (up from 141 at the start of the day). Full suite: 1029 Vitest tests pass.
+
+Still not vanilla:
+- Minecarts, striders, end cities and gateway teleports are missing.
+- Pistons move instantly. The dragon uses a simplified flight path.
+- Values recalled from memory (wiki blocked here) need checking: smelting recipes, structure loot weights, End
+  platform coordinates.

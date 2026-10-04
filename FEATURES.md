@@ -491,16 +491,16 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Slime and honey block movement <!--p4r:slime_and_honey_block_movement-->
 - [x] Immovable and breakable blocks for pistons <!--p4r:immovable_and_breakable_blocks_for_pistons-->
 - [x] Observers <!--p4r:observers-->
-- [ ] Hoppers <!--p4r:hoppers-->
-- [ ] Droppers <!--p4r:droppers-->
+- [x] Hoppers <!--p4r:hoppers-->
+- [x] Droppers <!--p4r:droppers-->
 - [ ] Dispensers (every behavior) <!--p4r:dispensers_every_behavior-->
-- [ ] Rails <!--p4r:rails-->
-- [ ] Powered rails <!--p4r:powered_rails-->
-- [ ] Detector rails <!--p4r:detector_rails-->
-- [ ] Activator rails <!--p4r:activator_rails-->
+- [x] Rails <!--p4r:rails-->
+- [x] Powered rails <!--p4r:powered_rails-->
+- [x] Detector rails <!--p4r:detector_rails-->
+- [x] Activator rails <!--p4r:activator_rails-->
 - [x] Daylight sensors <!--p4r:daylight_sensors-->
 - [x] Target blocks <!--p4r:target_blocks-->
-- [ ] Tripwire and hooks <!--p4r:tripwire_and_hooks-->
+- [x] Tripwire and hooks <!--p4r:tripwire_and_hooks-->
 - [x] Pressure plates (all types, weighted) <!--p4r:pressure_plates_all_types_weighted-->
 - [x] Buttons (stone/wood/polished blackstone) <!--p4r:buttons_stone_wood_polished_blackstone-->
 - [x] Levers <!--p4r:levers-->
@@ -1474,21 +1474,21 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 ### Items (every 1.17.1 non-block item)
 
 - [ ] Redstone Dust (`redstone`) <!--item:redstone-->
-- [ ] Saddle (`saddle`) <!--item:saddle-->
+- [x] Saddle (`saddle`) <!--item:saddle-->
 - [ ] Minecart (`minecart`) <!--item:minecart-->
 - [ ] Minecart with Chest (`chest_minecart`) <!--item:chest_minecart-->
 - [ ] Minecart with Furnace (`furnace_minecart`) <!--item:furnace_minecart-->
 - [ ] Minecart with TNT (`tnt_minecart`) <!--item:tnt_minecart-->
 - [ ] Minecart with Hopper (`hopper_minecart`) <!--item:hopper_minecart-->
-- [ ] Carrot on a Stick (`carrot_on_a_stick`) <!--item:carrot_on_a_stick-->
+- [x] Carrot on a Stick (`carrot_on_a_stick`) <!--item:carrot_on_a_stick-->
 - [ ] Warped Fungus on a Stick (`warped_fungus_on_a_stick`) <!--item:warped_fungus_on_a_stick-->
 - [ ] Elytra (`elytra`) <!--item:elytra-->
-- [ ] Oak Boat (`oak_boat`) <!--item:oak_boat-->
-- [ ] Spruce Boat (`spruce_boat`) <!--item:spruce_boat-->
-- [ ] Birch Boat (`birch_boat`) <!--item:birch_boat-->
-- [ ] Jungle Boat (`jungle_boat`) <!--item:jungle_boat-->
-- [ ] Acacia Boat (`acacia_boat`) <!--item:acacia_boat-->
-- [ ] Dark Oak Boat (`dark_oak_boat`) <!--item:dark_oak_boat-->
+- [x] Oak Boat (`oak_boat`) <!--item:oak_boat-->
+- [x] Spruce Boat (`spruce_boat`) <!--item:spruce_boat-->
+- [x] Birch Boat (`birch_boat`) <!--item:birch_boat-->
+- [x] Jungle Boat (`jungle_boat`) <!--item:jungle_boat-->
+- [x] Acacia Boat (`acacia_boat`) <!--item:acacia_boat-->
+- [x] Dark Oak Boat (`dark_oak_boat`) <!--item:dark_oak_boat-->
 - [x] Turtle Shell (`turtle_helmet`) <!--item:turtle_helmet-->
 - [ ] Scute (`scute`) <!--item:scute-->
 - [ ] Flint and Steel (`flint_and_steel`) <!--item:flint_and_steel-->
@@ -2479,10 +2479,10 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Picking up items <!--p6:picking_up_items-->
 - [ ] Wearing armor and equipment chances <!--p6:wearing_armor_and_equipment_chances-->
 - [ ] Mob drops with Looting <!--p6:mob_drops_with_looting-->
-- [ ] Riding: horses/donkeys/mules (taming, saddles, chests, jump strength) <!--p6:riding_horses_donkeys_mules_taming_saddles_chests_jump_strength-->
-- [ ] Riding: pigs + carrot on a stick <!--p6:riding_pigs_carrot_on_a_stick-->
+- [x] Riding: horses/donkeys/mules (taming, saddles, chests, jump strength) <!--p6:riding_horses_donkeys_mules_taming_saddles_chests_jump_strength-->
+- [x] Riding: pigs + carrot on a stick <!--p6:riding_pigs_carrot_on_a_stick-->
 - [ ] Riding: striders + warped fungus on a stick <!--p6:riding_striders_warped_fungus_on_a_stick-->
-- [ ] Boats <!--p6:boats-->
+- [x] Boats <!--p6:boats-->
 - [ ] Minecarts (all types) <!--p6:minecarts_all_types-->
 - [ ] Leads <!--p6:leads-->
 - [x] Villager professions by workstation <!--p6:villager_professions_by_workstation-->
@@ -2518,7 +2518,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Donkey (`donkey`, 1.3964844×1.5) <!--mob:donkey-->
 - [x] Drowned (`drowned`, 0.6×1.95) <!--mob:drowned-->
 - [ ] Elder Guardian (`elder_guardian`, 1.9975×1.9975) <!--mob:elder_guardian-->
-- [ ] Ender Dragon (`ender_dragon`, 16×8) <!--mob:ender_dragon-->
+- [x] Ender Dragon (`ender_dragon`, 16×8) <!--mob:ender_dragon-->
 - [x] Enderman (`enderman`, 0.6×2.9) <!--mob:enderman-->
 - [ ] Endermite (`endermite`, 0.4×0.3) <!--mob:endermite-->
 - [ ] Evoker (`evoker`, 0.6×1.95) <!--mob:evoker-->
@@ -2583,9 +2583,9 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Area Effect Cloud (`area_effect_cloud`) <!--entity:area_effect_cloud-->
 - [ ] Armor Stand (`armor_stand`) <!--entity:armor_stand-->
 - [x] Arrow (`arrow`) <!--entity:arrow-->
-- [ ] Boat (`boat`) <!--entity:boat-->
+- [x] Boat (`boat`) <!--entity:boat-->
 - [ ] Dragon Fireball (`dragon_fireball`) <!--entity:dragon_fireball-->
-- [ ] End Crystal (`end_crystal`) <!--entity:end_crystal-->
+- [x] End Crystal (`end_crystal`) <!--entity:end_crystal-->
 - [ ] Evoker Fangs (`evoker_fangs`) <!--entity:evoker_fangs-->
 - [ ] Experience Orb (`experience_orb`) <!--entity:experience_orb-->
 - [x] Eye of Ender (`eye_of_ender`) <!--entity:eye_of_ender-->

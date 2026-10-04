@@ -18,11 +18,13 @@ This is an early development snapshot. Expect bugs and missing features.
 - **Survival:** health, hunger, XP, inventory, crafting (every 1.17.1 recipe), furnaces, chests,
   tools/armour/durability, food and status effects, enchanting, anvils, brewing.
 - **Blocks:** water and lava flow, farming, saplings and bone meal, doors, fire and TNT, and redstone (dust,
-  torches, repeaters, comparators, lamps, observers, pistons).
-- **Mobs:** zombies, skeletons, creepers, spiders, farm animals, wolves, slimes, endermen, phantoms and more,
-  with vanilla spawning rules.
+  torches, repeaters, comparators, lamps, observers, pistons, hoppers, dispensers, rails, tripwires).
+- **Mobs:** zombies, skeletons, creepers, spiders, farm animals, wolves, slimes, endermen, phantoms, witches,
+  pillagers, cats, rabbits and more, with vanilla spawning rules. Villagers have professions, trading, schedules
+  and curing; iron and snow golems can be built.
+- **Riding:** horses (taming, saddles, jump bar), pigs with a carrot on a stick, and boats.
 - **Dimensions:** the Nether (portals of any size, all five biomes) and the End (eyes of ender, end portals,
-  pillars, chorus, credits).
+  pillars, end crystals, the ender dragon fight, the egg and the exit portal, credits).
 - **Multiplayer:** a dedicated server (`pnpm server` from the source; rooms, ops, whitelist, bans) and
   browser-hosted "Open to LAN" games.
 - **Sound and settings:** sounds for every block and mob, music and ambience, and the full options screens.
@@ -34,9 +36,9 @@ The start page lets you pick a name, then:
 - **Join LAN Game:** a room code from a friend who opened their world to LAN (Esc → Open to LAN).
 
 ## Known issues
-- There is no ender dragon yet, so the End's exit portal is open from the start.
-- No villager trading, horses or minecarts yet. Some mobs without a model are drawn as plain boxes.
-- Pistons move instantly (no animation). Hoppers, rails and most dispenser actions are not done yet.
+- No minecarts or striders yet; end gateways and end cities are not done. Some mobs without a model are drawn
+  as plain boxes.
+- Pistons move instantly (no animation). The dragon flies a simplified path compared with vanilla's.
 - "Open to LAN" works from the desktop app (it runs the relay; friends enter the host's IP shown on the Open to
   LAN screen and Windows may ask to allow the app through the firewall) and from the dedicated server. On plain
   static web hosting, fill in the launcher's "Signaling server" field.
