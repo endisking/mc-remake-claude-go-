@@ -65,7 +65,7 @@ export class ServerPlayer {
   takeXpDelay = 0;
   lastLevelUpTick = -1000;
   /** respawn point (bed head) and the yaw it was set with */
-  respawn: { x: number; y: number; z: number; angle: number } | null = null;
+  respawn: { x: number; y: number; z: number; angle: number; dimension?: string } | null = null;
   walkDistO = 0;
   sentOffHand = -1;
   readonly inventory = new Inventory();

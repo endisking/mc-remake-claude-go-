@@ -12,6 +12,7 @@ import { OverworldGenerator } from '@shared/worldgen/overworld/generator';
 import { NetherGenerator } from '@shared/worldgen/nether/generator';
 import { ServerLevel, DIMENSION_TYPES, type DimensionType, type LevelGenerator } from './level';
 import { Portals } from './portals';
+import { useAnchor } from './anchor';
 import { obfuscateSeed } from '@shared/worldgen/biome/zoom';
 import { encodeS2C, decodeC2S, type C2S, type S2C, PROTOCOL_VERSION } from '@shared/protocol/packets';
 import { TICKS_PER_SECOND, DAY_LENGTH } from '@shared/constants';
@@ -1064,6 +1065,7 @@ export class GameServer {
   private useBlock(p: ServerPlayer, x: number, y: number, z: number): boolean {
     const st = this.world.getState(x, y, z);
     if (blockNameOf(st).endsWith('_bed')) return this.sleep.useBed(p, x, y, z);
+    if (useAnchor(this, p, x, y, z)) return true;
     if (this.blocks.use(p, x, y, z)) return true;
     if (this.containers.useBlock(p, x, y, z)) return true;
     return false;

@@ -72,7 +72,7 @@ export interface PlayerData {
   /** ender chest contents (27), absent in older saves */
   enderItems?: (ItemStack | null)[];
   selected: number;
-  respawn: { x: number; y: number; z: number; angle: number } | null;
+  respawn: { x: number; y: number; z: number; angle: number; dimension?: string } | null;
   /** active status effects (vanilla ActiveEffects) */
   effects?: { id: number; amplifier: number; duration: number; ambient: boolean; visible: boolean; showIcon: boolean }[];
 }

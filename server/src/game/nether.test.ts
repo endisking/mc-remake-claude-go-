@@ -158,4 +158,42 @@ describe('nether portals on the server', () => {
     for (let i = 0; i < 10; i++) again.tick();
     expect(blockNameOf(again.levels.get('the_nether')!.world.getState(41, 100, 41))).toBe('glowstone');
   });
+
+  it('respawn anchors: glowstone charges them, they set the spawn in the nether and explode in the overworld', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true });
+    const a = client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    server.changeDimension(p, 'the_nether', 0.5, 100, 0.5, 0, 0);
+    for (let i = 0; i < 5; i++) server.tick();
+    const nether = server.levels.get('the_nether')!;
+    const y = nether.world.getChunk(0, 0)!.motionBlocking[(3 << 4) | 3]!;
+    const anchor = stateOf('respawn_anchor');
+    server.inLevel(nether, () => server.setBlock(3, y, 3, anchor));
+    p.x = 2.5;
+    p.y = y;
+    p.z = 1.5;
+    a.send({ t: 'chat', message: '/give @s glowstone 2' });
+    a.send({ t: 'useOn', x: 3, y, z: 3, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    a.send({ t: 'useOn', x: 3, y, z: 3, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(nether.world.getState(3, y, 3)).toBe(stateOf('respawn_anchor', { charges: 2 }));
+    a.send({ t: 'useOn', x: 3, y, z: 3, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(p.respawn).toMatchObject({ x: 3, y, z: 3, dimension: 'the_nether' });
+    a.send({ t: 'chat', message: '/kill @s' });
+    a.send({ t: 'respawn' });
+    expect(p.dimension).toBe('the_nether');
+    expect(Math.abs(p.x - 3.5) + Math.abs(p.z - 3.5)).toBeLessThan(3);
+    expect(nether.world.getState(3, y, 3)).toBe(stateOf('respawn_anchor', { charges: 1 }));
+    // a charged anchor in the overworld explodes
+    server.changeDimension(p, 'overworld', 0.5, 100, 0.5, 0, 0);
+    for (let i = 0; i < 3; i++) server.tick();
+    const ow = server.levels.get('overworld')!;
+    const oy = ow.world.getChunk(0, 0)!.motionBlocking[(8 << 4) | 8]!;
+    server.setBlock(8, oy, 8, stateOf('respawn_anchor', { charges: 1 }));
+    p.x = 6.5;
+    p.y = oy;
+    p.z = 8.5;
+    a.send({ t: 'useOn', x: 8, y: oy, z: 8, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(blockNameOf(ow.world.getState(8, oy, 8))).not.toBe('respawn_anchor');
+  });
 });
