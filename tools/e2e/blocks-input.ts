@@ -92,6 +92,16 @@ await aim(X + 2.5, 117, 3.5, X + 2.5, 116.5, 0.5);
 await click(0);
 await page.waitForTimeout(1500);
 console.log('sand fell to', await name(X + 2, 116, 0), await name(X + 2, 117, 0));
+// flint and steel on the grass
+await hold('flint_and_steel');
+await aim(X + 0.5, 116.5, 1.5, X - 0.5, 115, -1.5);
+await click(2);
+console.log('fire', await name(X - 1, 115, -2));
+await cmd(page, `/setblock ${X - 2} 115 1 oak_planks`);
+await cmd(page, `/setblock ${X - 2} 116 1 fire`);
+await aim(X - 0.5, 116.2, 2.5, X - 1.5, 115.5, -1.5);
+await page.waitForTimeout(800);
+await shot('fire');
 await aim(X + 0.5, 118, 6.5, X + 0.5, 115, 0);
 await page.waitForTimeout(800);
 console.log('door at end', await name(X - 3, 115, 0), await name(X - 3, 116, 0));

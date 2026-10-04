@@ -630,4 +630,21 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     expect(get(8, 150, 6)).toBe('copper_block');
     expect(p.inventory.get(0)!.damage).toBe(2);
   });
+
+  it('flint and steel lights a fire that burns out on stone and spreads through planks', () => {
+    const { server, set, get, give, use } = setup();
+    set(6, 150, 6, 'stone');
+    give('flint_and_steel');
+    use(6, 150, 6);
+    expect(get(6, 151, 6)).toBe('fire');
+    for (let i = 0; i < 2000 && get(6, 151, 6) === 'fire'; i++) server.tick();
+    expect(get(6, 151, 6)).toBe('air');
+    // a wooden platform catches fire and burns away
+    for (let x = 10; x <= 14; x++) for (let z = 10; z <= 14; z++) set(x, 150, z, 'oak_planks');
+    set(12, 151, 12, 'fire');
+    for (let i = 0; i < 3000; i++) server.tick();
+    let planks = 0;
+    for (let x = 10; x <= 14; x++) for (let z = 10; z <= 14; z++) if (get(x, 150, z) === 'oak_planks') planks++;
+    expect(planks).toBeLessThan(25);
+  });
 });

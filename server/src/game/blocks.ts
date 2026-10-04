@@ -12,6 +12,7 @@ import type { ServerPlayer } from './player';
 import { ItemEntity } from './entity';
 import { FallingBlockEntity } from './fallingblock';
 import { TickScheduler } from './ticks';
+import { tickFire, fireStateAt, fireCanSurvive, fireTickDelay, type FireLevel } from './fire';
 import { BLOCK_STATE_COUNT, BIOMES, ITEMS_BY_ID } from '@shared/data';
 import { blockIdOf, blockNameOf, getProp, withProp, defaultState, stateOf, propsOf } from '@shared/world/blockstate';
 import { FLUID, FLUID_LEVEL, FULL_COLLISION, IS_AIR, LIGHT_FILTER } from '@shared/world/blockinfo';
@@ -327,6 +328,7 @@ export class BlockBehaviors {
       if (!canSurvive(this.w, x, y, z, st)) this.breakNaturally(x, y, z, true);
       return;
     }
+    if (n === 'fire' || n === 'soul_fire') return tickFire(this.fireLevel, x, y, z, st);
     if (isLiveCoral(n) && !this.coralHasWater(x, y, z, st)) {
       // CoralBlock / CoralPlantBlock.tick: dries out
       let dead = defaultState(`dead_${n}`);
@@ -359,6 +361,8 @@ export class BlockBehaviors {
         if ((n === 'cactus' || n === 'sugar_cane') && !canSurvive(w, x, y, z, st)) this.scheduleTick(x, y, z, st, 1);
         if (isLiveCoral(n)) this.coralCheck(x, y, z, st);
         if (n === 'sponge') this.tryAbsorbWater(x, y, z);
+        // BaseFireBlock.onPlace
+        if (n === 'fire' || n === 'soul_fire') this.scheduleTick(x, y, z, st, fireTickDelay(this.s.rand));
       }
       for (let d = 0; d < 6; d++) {
         const nx = x + DX[d]!, ny = y + DY[d]!, nz = z + DZ[d]!;
@@ -381,6 +385,13 @@ export class BlockBehaviors {
           // DoorBlock / DoublePlantBlock.updateShape: a half whose partner is gone disappears
           const partnerHere = (d === 0) === (getProp(ns, 'half') === 'lower');
           if (partnerHere && n !== nn) this.s.setBlock(nx, ny, nz, getProp(ns, 'waterlogged') === true ? defaultState('water') : 0);
+        } else if (nn === 'fire' || nn === 'soul_fire') {
+          // FireBlock.updateShape: re-attach to burnable sides, or go out
+          if (!fireCanSurvive(w, nx, ny, nz, ns)) this.s.setBlock(nx, ny, nz, 0);
+          else if (nn === 'fire') {
+            const fs = withProp(fireStateAt(w, nx, ny, nz), 'age', getProp(ns, 'age') as number);
+            if (blockNameOf(fs) === 'fire' && fs !== ns) this.s.setBlock(nx, ny, nz, fs);
+          }
         } else if (nn === 'sponge') {
           this.tryAbsorbWater(nx, ny, nz);
         } else if (isLiveCoral(nn)) {
@@ -396,6 +407,40 @@ export class BlockBehaviors {
     } finally {
       this.hookDepth--;
     }
+  }
+
+  /** The level view fire ticks run against. */
+  private readonly fireLevel: FireLevel = (() => {
+    const self = this;
+    return {
+      get world() { return self.s.world; },
+      get rand() { return self.s.rand; },
+      setBlock: (x, y, z, s) => self.s.setBlock(x, y, z, s),
+      removeBlock: (x, y, z) => self.s.setBlock(x, y, z, 0),
+      scheduleTick: (x, y, z, s, d) => self.scheduleTick(x, y, z, s, d),
+      isRaining: () => self.s.isRaining(),
+      isRainingAt: (x, y, z) => {
+        // Level.isRainingAt: open sky, a rainy biome, warm enough not to snow
+        if (!self.s.isRaining() || !self.isRainingAt(x, y, z)) return false;
+        const b = self.w.getBiome(x, y, z);
+        return BIOMES.find((d) => d.id === b)?.precipitation === 'rain' && getTemperature(b, x, y, z) >= 0.15;
+      },
+      get difficulty() { return self.s.difficulty as number; },
+      get doFireTick() { return self.s.gameRules.doFireTick; },
+    };
+  })();
+
+  /** LightningBolt.spawnFire: fire where it struck (and `extra` random spots around it). */
+  lightningFire(bx: number, by: number, bz: number, extra: number): void {
+    if (!this.s.gameRules.doFireTick) return;
+    const r = this.s.rand, w = this.w;
+    const x = Math.floor(bx), y = Math.floor(by), z = Math.floor(bz);
+    const tryAt = (px: number, py: number, pz: number) => {
+      const fire = fireStateAt(w, px, py, pz);
+      if (IS_AIR[w.getState(px, py, pz)] && fireCanSurvive(w, px, py, pz, fire)) this.s.setBlock(px, py, pz, fire);
+    };
+    tryAt(x, y, z);
+    for (let i = 0; i < extra; i++) tryAt(x + r.nextInt(3) - 1, y + r.nextInt(3) - 1, z + r.nextInt(3) - 1);
   }
 
   private absorbing = false;
@@ -1162,6 +1207,25 @@ export class BlockBehaviors {
         this.s.setBlock(x, y, z, copyProps(st, unwaxedOf(n)!));
       } else return false;
       this.hurtTool(p, slot, held);
+      return true;
+    }
+    if (item === 'flint_and_steel' || item === 'fire_charge') {
+      // FlintAndSteelItem / FireChargeItem.useOn: light candles and campfires, else fire on the clicked face
+      if ((n.endsWith('candle') || n.endsWith('candle_cake') || n === 'campfire' || n === 'soul_campfire') && getProp(st, 'lit') === false && getProp(st, 'waterlogged') !== true) {
+        this.s.setBlock(x, y, z, withProp(st, 'lit', true));
+      } else {
+        const fx = x + DX[face]!, fy = y + DY[face]!, fz = z + DZ[face]!;
+        const fire = fireStateAt(w, fx, fy, fz);
+        if (!IS_AIR[w.getState(fx, fy, fz)] || !fireCanSurvive(w, fx, fy, fz, fire)) return false;
+        this.s.setBlock(fx, fy, fz, fire);
+      }
+      if (item === 'flint_and_steel') {
+        this.s.playSound(null, 'item.flintandsteel.use', 'block', x + 0.5, y + 0.5, z + 0.5, 1, r.nextFloat() * 0.4 + 0.8);
+        this.hurtTool(p, slot, held);
+      } else {
+        this.s.playSound(null, 'item.firecharge.use', 'block', x + 0.5, y + 0.5, z + 0.5, 1, (r.nextFloat() - r.nextFloat()) * 0.2 + 1);
+        if (p.gameMode !== 1) this.shrink(p, slot, held);
+      }
       return true;
     }
     if (item === 'honeycomb') {

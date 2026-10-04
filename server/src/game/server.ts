@@ -320,6 +320,9 @@ export class GameServer {
 
   /** LightningBolt.tick server side: strike entities, light fires (needs fire spread, Phase 4). */
   private tickBolt(b: LightningBolt): void {
+    // LightningBolt.spawnFire: 4 extra on the first tick (normal/hard), none on re-flashes
+    if (!b.visualOnly && b.fire === 4 && (this.difficulty === Difficulty.Normal || this.difficulty === Difficulty.Hard)) this.blocks.lightningFire(b.x, b.y, b.z, 4);
+    else if (!b.visualOnly && b.fire === 0) this.blocks.lightningFire(b.x, b.y, b.z, 0);
     if (!b.striking) return;
     for (const p of this.players) {
       if (Math.abs(p.x - b.x) > 3 + 0.3 || Math.abs(p.z - b.z) > 3 + 0.3 || p.y + 1.8 < b.y - 3 || p.y > b.y + 9) continue;
