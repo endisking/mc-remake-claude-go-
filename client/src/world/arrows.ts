@@ -60,6 +60,33 @@ export class ClientArrows {
     }
   }
 
+  /**
+   * Model matrices (camera-relative, column-major) that lay the diagonal arrow item sprite
+   * along each arrow's flight direction. `out` receives [matrix, blockX, blockY, blockZ].
+   */
+  matrices(cx: number, cy: number, cz: number, partial: number, scale: number, fn: (m: Float32Array, x: number, y: number, z: number) => void): void {
+    const D = Math.PI / 180, m = this.mat;
+    for (const a of this.arrows.values()) {
+      const x = a.xo + (a.x - a.xo) * partial, y = a.yo + (a.y - a.yo) * partial, z = a.zo + (a.z - a.zo) * partial;
+      const fx = Math.sin(a.yaw * D) * Math.cos(a.pitch * D), fy = Math.sin(a.pitch * D), fz = Math.cos(a.yaw * D) * Math.cos(a.pitch * D);
+      // u: world up made perpendicular to the flight direction
+      let ux = -fy * fx, uy = 1 - fy * fy, uz = -fy * fz;
+      let ul = Math.hypot(ux, uy, uz);
+      if (ul < 1e-4) {
+        ux = 1; uy = 0; uz = 0; ul = 1;
+      }
+      ux /= ul; uy /= ul; uz /= ul;
+      // sprite diagonal (1,1) → forward, (−1,1) → u
+      const k = scale / Math.SQRT2;
+      const Xx = (fx - ux) * k, Xy = (fy - uy) * k, Xz = (fz - uz) * k;
+      const Yx = (fx + ux) * k, Yy = (fy + uy) * k, Yz = (fz + uz) * k;
+      const Zx = (fy * uz - fz * uy) * scale, Zy = (fz * ux - fx * uz) * scale, Zz = (fx * uy - fy * ux) * scale;
+      m.set([Xx, Xy, Xz, 0, Yx, Yy, Yz, 0, Zx, Zy, Zz, 0, x - cx, y + 0.1 - cy, z - cz, 1]);
+      fn(m, Math.floor(x), Math.floor(y), Math.floor(z));
+    }
+  }
+  private readonly mat = new Float32Array(16);
+
   /** Draw every arrow as a 0.5-block shaft with a pale tail (camera-relative). */
   render(L: LineRenderer, cx: number, cy: number, cz: number, partial: number): boolean {
     if (!this.arrows.size) return false;

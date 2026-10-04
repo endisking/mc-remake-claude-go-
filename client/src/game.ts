@@ -2068,7 +2068,13 @@ export class Game implements ScreenHost {
     }
     recycleHeld(this.entityRenderer);
     this.renderItems(cx, cy, cz, partial, fog, fogStart, fogEnd);
-    if (this.arrows.render(this.lines, cx, cy, cz, partial)) this.lines.flush(this.viewProj, this.canvas.width, this.canvas.height);
+    // arrows: the arrow sprite laid along the flight path (line fallback without sprites)
+    const arrowKey = this.arrows.arrows.size ? this.blockItems.modelKey(ITEMS_BY_NAME.get('arrow')!.id) : null;
+    if (arrowKey !== null) {
+      this.arrows.matrices(cx, cy, cz, partial, 0.7, (m, bx, by, bz) => {
+        this.blockItems.draw(arrowKey, this.viewProj, m, this.world.getLight(bx, by, bz), this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
+      });
+    } else if (this.arrows.render(this.lines, cx, cy, cz, partial)) this.lines.flush(this.viewProj, this.canvas.width, this.canvas.height);
     if (this.bolts.size) {
       const ed = 64 * this.settings.entityDistance;
       this.lightning.render([...this.bolts.values()].filter((b) => (b.x - cx) ** 2 + (b.y - cy) ** 2 + (b.z - cz) ** 2 < ed * ed), this.viewProj, cx, cy, cz);
