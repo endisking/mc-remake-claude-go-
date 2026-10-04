@@ -78,6 +78,20 @@ try {
   await page.waitForTimeout(500);
   await shot('02-spawn');
   if (step === 'spawn') throw 'done';
+  if (step === 'exitsave') {
+    // the desktop app's window close: game.saveForExit(), then the page goes away
+    await cmd('/give @s diamond 7');
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => (window as any).game.saveForExit());
+    await page.goto(BASE);
+    await page.waitForSelector('#l-open:not([disabled])');
+    await page.click('#l-open');
+    await page.waitForURL(/world=/);
+    await waitLoaded();
+    await page.waitForTimeout(1500);
+    console.log('inventory after exit-save', await G<string>('g.interaction.inventory.slots.filter(Boolean).map(s => s.id + "x" + s.count).join(",")'));
+    throw 'done';
+  }
 
   // ---- punch a tree
   const tree = await G<any>(`(() => { const p = g.player; const logs = new Set(["oak_log","birch_log","spruce_log","jungle_log","acacia_log","dark_oak_log"].map(n => g.stateOfName(n)));

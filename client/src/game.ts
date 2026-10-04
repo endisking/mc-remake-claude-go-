@@ -432,6 +432,17 @@ export class Game implements ScreenHost, ContainerHost {
     });
   }
 
+  /**
+   * Save the single-player world before the window closes (the desktop app calls this from its
+   * close handler, like vanilla saving on exit). Resolves once the world is written.
+   */
+  async saveForExit(): Promise<void> {
+    if (this.quitting || !this.integrated?.worldId) return;
+    this.quitting = true;
+    void import('./gui/savingscreen').then(({ MessageScreen }) => this.setScreen(new MessageScreen(this.gui, 'Saving world')));
+    await this.integrated.saveAndStop();
+  }
+
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
     this.hud.chatOptions = this.settings;
