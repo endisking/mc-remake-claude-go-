@@ -65,6 +65,21 @@ describe('eating', { timeout: 60000 }, () => {
     expect(c.received.some((x) => x.t === 'absorption' && x.amount === 4)).toBe(true);
   });
 
+  it('a click that arrives just before the previous bite finishes keeps eating', () => {
+    const { server, p, c } = setup();
+    p.living.food.foodLevel = 2;
+    p.inventory.set(0, { id: id('bread'), count: 2, damage: 0 });
+    c.send({ t: 'useItem', hand: 0 });
+    for (let i = 0; i < 31; i++) server.tick();
+    c.send({ t: 'useItem', hand: 0 });
+    server.tick();
+    expect(p.inventory.get(0)?.count).toBe(1);
+    expect(server.items.isUsing(p)).toBe(true);
+    for (let i = 0; i < 32; i++) server.tick();
+    expect(p.inventory.get(0)).toBeNull();
+    expect(p.living.food.foodLevel).toBe(12);
+  });
+
   it('switching slots interrupts eating; milk clears effects', () => {
     const { server, p, c } = setup();
     p.living.food.foodLevel = 5;

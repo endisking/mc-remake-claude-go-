@@ -224,8 +224,8 @@ export class ClientItemUse {
         else this.remote.delete(p.id);
         return true;
       case 'entityEvent':
-        // 9: finished using (eating/drinking done)
-        if (p.event === 9 && p.id === this.host.selfId) this.stop();
+        // 9 (finished using) needs nothing: the client completes on its own countdown, and a
+        // use it already restarted must not be cut short by the previous one's event
         return false;
       case 'respawn':
         this.effects.clear();

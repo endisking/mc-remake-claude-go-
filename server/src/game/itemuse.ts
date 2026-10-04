@@ -43,6 +43,8 @@ export function isFireResistant(itemId: number): boolean {
 
 export class ItemUse {
   private readonly using = new Map<number, UseState>();
+  /** a use click that arrived while the previous use was finishing (client ran slightly ahead) */
+  private readonly pending = new Map<number, 0 | 1>();
   /** ItemCooldowns (chorus fruit): player id → item id → tick it ends */
   private readonly cooldowns = new Map<number, Map<number, number>>();
   /** armour last broadcast per player (feet, legs, chest, head) */
@@ -104,7 +106,12 @@ export class ItemUse {
 
   /** ServerboundUseItem: right click with an item (in the air, or after a block passed). */
   useItem(p: ServerPlayer, hand: 0 | 1): void {
-    if (p.gameMode === 3 || p.living.dead || this.using.has(p.id)) return;
+    if (p.gameMode === 3 || p.living.dead) return;
+    if (this.using.has(p.id)) {
+      // the client finished its prediction a tick early: start again once this use completes
+      this.pending.set(p.id, hand);
+      return;
+    }
     const slot = this.handSlot(p, hand);
     const stack = p.inventory.get(slot);
     if (isEmpty(stack)) return;
@@ -133,11 +140,15 @@ export class ItemUse {
     }
     if (canStartUsing(stack.id, { foodLevel: p.living.food.foodLevel, creative, hasArrows: this.findArrows(p) >= 0 })) {
       this.using.set(p.id, { hand, item: stack.id, remaining: useDuration(stack.id) });
+    } else if (useDuration(stack.id) > 0) {
+      // refused (full, no arrows): stop the client's prediction
+      this.s.send(p, { t: 'livingUse', id: p.id, using: false, hand, item: stack.id });
     }
   }
 
   /** ServerboundPlayerAction RELEASE_USE_ITEM (Player.releaseUsingItem). */
   release(p: ServerPlayer): void {
+    this.pending.delete(p.id);
     const st = this.using.get(p.id);
     if (!st) return;
     this.stop(p);
@@ -166,7 +177,10 @@ export class ItemUse {
     if (st) {
       const slot = this.handSlot(p, st.hand);
       const stack = p.inventory.get(slot);
-      if (p.living.dead || isEmpty(stack) || stack.id !== st.item) this.stop(p);
+      if (p.living.dead || isEmpty(stack) || stack.id !== st.item) {
+        this.stop(p);
+        this.pending.delete(p.id);
+      }
       else {
         if (shouldTriggerUseEffects(stack.id, st.remaining)) this.useEffects(p, stack, false);
         if (--st.remaining === 0 && nameOf(stack.id) !== 'bow') this.complete(p, st, slot, stack);
@@ -219,6 +233,11 @@ export class ItemUse {
     }
     this.s.syncSlot(p, slot);
     this.s.survival.sync(p);
+    const next = this.pending.get(p.id);
+    if (next !== undefined) {
+      this.pending.delete(p.id);
+      this.useItem(p, next);
+    }
     void st;
   }
 
@@ -648,6 +667,7 @@ export class ItemUse {
 
   forget(p: ServerPlayer): void {
     this.using.delete(p.id);
+    this.pending.delete(p.id);
     this.cooldowns.delete(p.id);
     this.sentArmor.delete(p.id);
     this.sentUse.delete(p.id);
