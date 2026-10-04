@@ -6,6 +6,11 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag to create (e.g. v0.4.0); blank = build-<run number>
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -26,8 +31,9 @@ jobs:
         run: pnpm package
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('build-{0}', github.run_number) }}
-          name: Blockcraft ${{ github.ref_type == 'tag' && github.ref_name || format('build {0}', github.run_number) }}
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version || format('build-{0}', github.run_number) }}
+          name: Blockcraft ${{ github.ref_type == 'tag' && github.ref_name || inputs.version || format('build {0}', github.run_number) }}
+          target_commitish: ${{ github.sha }}
           prerelease: true
           body_path: RELEASE_NOTES.md
           files: build/release/*.zip
