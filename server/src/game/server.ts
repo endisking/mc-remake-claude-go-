@@ -1475,6 +1475,7 @@ export class GameServer {
   /** Stop ticking and save; resolves once everything is written. */
   async shutdown(): Promise<void> {
     this.stop();
+    this.items.dispose();
     await this.save();
     await this.opts.storage?.close();
   }
@@ -1742,7 +1743,6 @@ export class GameServer {
 
   stop(): void {
     this.running = false;
-    this.items.dispose();
     if (this.timer) clearTimeout(this.timer);
   }
 }
