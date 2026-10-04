@@ -10,6 +10,7 @@ import { SAVE_FORMAT_VERSION, type LevelMeta } from '@server/storage/types';
 import { SoundEngine, type SoundCategory } from './audio/engine';
 import { MusicManager, MUSICS } from './audio/music';
 import { loadSettings } from './settings';
+import { fetchLanWorlds, type LanWorld } from './net/lan';
 
 /** Menu music (vanilla Musics.MENU) and button clicks on the start page; starts after the first gesture. */
 function startMenuAudio(root: HTMLElement): void {
@@ -122,6 +123,7 @@ export function showLauncher(): void {
   #launcher .modal .box { margin: auto; text-align: center; width: min(420px, calc(100vw - 32px)); background: rgba(0,0,0,0.92); }
   #launcher #l-open { flex: 2; }
   #launcher .modal .box p { margin: 8px 0; } #launcher .modal .box .warn { color: #a0a0a0; }
+  #launcher .worlds.lan { height: auto; min-height: 44px; max-height: 132px; }
   #launcher details summary { cursor: pointer; color: #ddd; margin-top: 10px; }
 </style>
 <div class="panel">
@@ -153,6 +155,10 @@ export function showLauncher(): void {
     </details>
   </fieldset>
   <fieldset><legend>Multiplayer</legend>
+    <div id="l-lansec" hidden>
+      <label>LAN Worlds (click to fill in, double-click to join)</label>
+      <div class="worlds lan" id="l-lanworlds"><div class="empty">Scanning for games on your local network</div></div>
+    </div>
     <div class="row">
       <div><label for="l-server">Server address</label><input id="l-server" placeholder="wss://example.com"></div>
       <div><label for="l-room">Room</label><input id="l-room"></div>
@@ -371,4 +377,51 @@ export function showLauncher(): void {
     if (join) go({ join });
   };
   void refresh();
+  void scanLan();
+}
+
+/**
+ * Vanilla-style LAN world list: the desktop app hears worlds announced on the network and lists
+ * them at /lan-servers (polled every 1.5 s, vanilla's announce interval). Web hosting has no such
+ * endpoint (browsers can't receive UDP), so the section stays hidden there.
+ */
+async function scanLan(): Promise<void> {
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+  if ((await fetchLanWorlds()) === null) return;
+  $('l-lansec').hidden = false;
+  let shown = '';
+  let picked = '';
+  const signalOf = (w: LanWorld) => `${w.address}:${w.port}`;
+  const fill = (w: LanWorld) => {
+    $<HTMLInputElement>('l-join').value = w.room;
+    $<HTMLInputElement>('l-signal').value = signalOf(w);
+  };
+  const tick = async () => {
+    const list = $('l-lanworlds');
+    if (!list?.isConnected) return;
+    const worlds = (await fetchLanWorlds()) ?? [];
+    const key = JSON.stringify(worlds.map((w) => [w.motd, w.address, w.port, w.room]));
+    if (key !== shown) {
+      shown = key;
+      list.innerHTML = worlds.length
+        ? worlds
+            .map((w, i) => `<div class="world${`${signalOf(w)}/${w.room}` === picked ? ' sel' : ''}" data-i="${i}"><div class="wn">${escapeHtml(w.motd)}</div><div class="wd">${escapeHtml(`${w.address} · code ${w.room}`)}</div></div>`)
+            .join('')
+        : '<div class="empty">Scanning for games on your local network</div>';
+      for (const el of list.querySelectorAll<HTMLElement>('.world')) {
+        const w = worlds[Number(el.dataset.i)]!;
+        el.onclick = () => {
+          picked = `${signalOf(w)}/${w.room}`;
+          for (const o of list.querySelectorAll('.world')) o.classList.toggle('sel', o === el);
+          fill(w);
+        };
+        el.ondblclick = () => {
+          fill(w);
+          $('l-lan').click();
+        };
+      }
+    }
+    setTimeout(() => void tick(), 1500);
+  };
+  await tick();
 }

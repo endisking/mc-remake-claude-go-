@@ -1,7 +1,7 @@
 {
   "name": "blockcraft",
   "productName": "Blockcraft",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Blockcraft — a browser voxel sandbox",
   "main": "main.cjs",
   "license": "UNLICENSED"

@@ -1,6 +1,6 @@
 /**
  * WebRTC signaling relay for browser-hosted LAN worlds. JSON messages:
- *   host:   {type:'host', code}                     → {type:'hosting', code}
+ *   host:   {type:'host', code, name?}              → {type:'hosting', code}
  *   guest:  {type:'join', code}                     → {type:'joined', id} / {type:'error'}
  *   relay:  {type:'signal', to, data}               → delivered as {type:'signal', from, data}
  * The host learns of guests via {type:'guest', id}. Only SDP/ICE passes through here;
@@ -13,6 +13,8 @@ interface Peer {
   ws: WebSocket;
   hostOf?: string;
   guestOf?: string;
+  /** the hosted world's LAN list name ("Player - World"), shown by discovery */
+  motd?: string;
 }
 
 export class SignalingHub {
@@ -20,11 +22,16 @@ export class SignalingHub {
   private peers = new Map<number, Peer>();
   private hosts = new Map<string, Peer>();
 
+  /** worlds hosted on this relay, for LAN discovery */
+  rooms(): { room: string; motd: string }[] {
+    return [...this.hosts.entries()].map(([room, p]) => ({ room, motd: p.motd ?? 'LAN World' }));
+  }
+
   accept(ws: WebSocket): void {
     const peer: Peer = { id: this.nextId++, ws };
     this.peers.set(peer.id, peer);
     ws.on('message', (raw) => {
-      let m: { type: string; code?: string; to?: number; data?: unknown };
+      let m: { type: string; code?: string; to?: number; data?: unknown; name?: unknown };
       try {
         m = JSON.parse(String(raw));
       } catch {
@@ -49,12 +56,13 @@ export class SignalingHub {
     if (p.ws.readyState === p.ws.OPEN) p.ws.send(JSON.stringify(m));
   }
 
-  private handle(peer: Peer, m: { type: string; code?: string; to?: number; data?: unknown }): void {
+  private handle(peer: Peer, m: { type: string; code?: string; to?: number; data?: unknown; name?: unknown }): void {
     const code = typeof m.code === 'string' && /^[A-Za-z0-9_-]{1,32}$/.test(m.code) ? m.code.toUpperCase() : null;
     switch (m.type) {
       case 'host':
         if (!code || this.hosts.has(code)) return this.send(peer, { type: 'error', reason: 'Room code in use' });
         peer.hostOf = code;
+        if (typeof m.name === 'string') peer.motd = m.name.replace(/[\x00-\x1f]/g, '').slice(0, 64);
         this.hosts.set(code, peer);
         this.send(peer, { type: 'hosting', code });
         break;

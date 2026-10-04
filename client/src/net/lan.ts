@@ -44,6 +44,29 @@ export async function fetchLanInfo(): Promise<{ addresses: string[]; port: numbe
   }
 }
 
+/** A world another machine announces on the network (the desktop app's /lan-servers). */
+export interface LanWorld {
+  motd: string;
+  address: string;
+  port: number;
+  room: string;
+}
+
+/** Worlds found on the local network, or null where discovery isn't available (web hosting). */
+export async function fetchLanWorlds(base = ''): Promise<LanWorld[] | null> {
+  try {
+    const r = await fetch(`${base}/lan-servers`, { cache: 'no-store' });
+    if (!r.ok || !(r.headers.get('content-type') ?? '').includes('json')) return null;
+    const j = (await r.json()) as unknown;
+    if (!Array.isArray(j)) return null;
+    return j.filter(
+      (w): w is LanWorld => !!w && typeof w.motd === 'string' && typeof w.address === 'string' && typeof w.port === 'number' && typeof w.room === 'string',
+    );
+  } catch {
+    return null;
+  }
+}
+
 export function randomRoomCode(): string {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let s = '';
@@ -93,9 +116,11 @@ export class LanHost {
     private server: IntegratedServer,
     readonly code: string,
     readonly signal: string,
+    /** name in other players' LAN world lists, vanilla style "Player - World" */
+    name = 'LAN World',
   ) {
     this.ws = new WebSocket(signal);
-    this.ws.onopen = () => this.ws.send(JSON.stringify({ type: 'host', code }));
+    this.ws.onopen = () => this.ws.send(JSON.stringify({ type: 'host', code, name }));
     this.ws.onmessage = (e) => this.onSignal(JSON.parse(String(e.data)));
     this.ws.onclose = () => this.onStatus?.('Signaling disconnected (existing players stay connected)');
     this.ws.onerror = () => this.onStatus?.('Could not reach the signaling server');

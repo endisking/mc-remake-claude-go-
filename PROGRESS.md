@@ -310,3 +310,28 @@ Still not vanilla:
 - Pistons move instantly. The dragon uses a simplified flight path.
 - Values recalled from memory (wiki blocked here) need checking: smelting recipes, structure loot weights, End
   platform coordinates.
+
+## 2026-10-04 — LAN without a relay or internet, offline web app, LAN discovery (0.4.2)
+
+- **Offline LAN pairing (browsers):** "Open to LAN" → "Play Offline" shows an invite QR code. The friend picks
+  "Join Offline" in the launcher, scans it (or pastes the text) and shows a reply QR code back to the host. The two
+  codes are the WebRTC offer and answer (no ICE servers, so same-network routes only), compressed with deflate-raw
+  into about 500 characters (QR version ≤ 16). No signaling server and no internet. `tools/pair-e2e.ts` runs the
+  whole flow in two browser profiles with the web server shut down.
+  - Limit: Chrome hides local IPs behind mDNS names until camera access is granted. When both players paste
+    codes instead of scanning, the network must resolve mDNS (most home Wi-Fi does).
+- **Offline web app:** the build writes `sw.js`, a service worker that caches all ~1900 files on the first visit
+  (cache-first, versioned by a hash of the file list), plus `manifest.webmanifest` and icons
+  (`tools/pwa-icons.ts`). The game then loads and installs (Chromebooks: "Install Blockcraft") with no internet.
+  It is registered on https:// and localhost only.
+- **LAN world discovery (desktop app):** like vanilla's LAN pinger, each world opened to LAN on the app's relay
+  is announced every 1.5 s. The format is vanilla's `[MOTD]…[/MOTD][AD]port[/AD]` plus `[ROOM]code[/ROOM]`,
+  sent by UDP multicast to 224.0.2.60 and by subnet broadcast, on port 47616 (not 4445, so real Minecraft clients
+  don't list these worlds). The app lists what it hears at `/lan-servers`. The launcher shows "LAN Worlds" (click
+  to fill in, double-click to join) whenever that endpoint exists, which includes browser guests on the host's
+  `http://ip:47615` page. The list entry is "<player> - <world name>", as in vanilla. The app also turns off
+  Chromium's mDNS IP hiding so LAN WebRTC works on networks without mDNS.
+  - Deviation: worlds that go silent for 5 s drop off the list (vanilla keeps them until the screen is
+    reopened).
+  - Limit: browser tabs can't send or receive UDP. Browser-hosted worlds aren't discoverable; browsers pair by
+    QR code instead.

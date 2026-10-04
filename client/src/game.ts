@@ -446,7 +446,14 @@ export class Game implements ScreenHost, ContainerHost {
     if (this.lanHost) return this.lanHost.code;
     const { LanHost, randomRoomCode, signalingUrl } = await import('./net/lan');
     const c = code ?? randomRoomCode();
-    this.lanHost = new LanHost(this.integrated, c, signalingUrl(new URLSearchParams(location.search).get('signal')));
+    const q = new URLSearchParams(location.search);
+    // vanilla's LAN list entry is "<player> - <level name>"
+    let world = 'LAN World';
+    if (this.integrated.worldId) {
+      const { IdbStorage } = await import('@server/storage/idb');
+      world = (await new IdbStorage(this.integrated.worldId).getMeta().catch(() => null))?.name ?? world;
+    }
+    this.lanHost = new LanHost(this.integrated, c, signalingUrl(q.get('signal')), `${q.get('name') || 'Player'} - ${world}`);
     this.lanHost.onStatus = (msg) => {
       this.lanStatus = msg;
       console.info('[LAN]', msg);
