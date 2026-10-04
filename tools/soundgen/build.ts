@@ -1105,6 +1105,8 @@ Object.assign(EVENTS, {
   'block.dispenser.dispense': [{ set: 'button' }],
   'block.dispenser.fail': [{ set: 'button', pitch: 1.2 }],
   'block.redstone_torch.burnout': [{ set: 'extinguish' }],
+  'block.piston.extend': [{ set: 'pressure_plate', pitch: 0.6 }],
+  'block.piston.contract': [{ set: 'pressure_plate', pitch: 0.5 }],
   'block.wooden_button.click_on': [{ set: 'button', pitch: 0.8 }],
   'block.wooden_button.click_off': [{ set: 'button', pitch: 0.7 }],
   'block.stone_button.click_on': [{ set: 'button' }],

@@ -16304,5 +16304,29 @@
     "name": "extinguish/1"
    }
   ]
+ },
+ "block.piston.extend": {
+  "sounds": [
+   {
+    "name": "pressure_plate/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "pressure_plate/1",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "block.piston.contract": {
+  "sounds": [
+   {
+    "name": "pressure_plate/0",
+    "pitch": 0.5
+   },
+   {
+    "name": "pressure_plate/1",
+    "pitch": 0.5
+   }
+  ]
  }
 }
