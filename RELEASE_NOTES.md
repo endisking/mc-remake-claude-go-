@@ -1,13 +1,21 @@
-# Blockcraft 0.4.0 (pre-release)
+# Blockcraft 0.4.1 (pre-release)
 
 A browser voxel sandbox that plays like Minecraft Java Edition 1.17.1, with 100% original art, sounds and code.
 This is an early development snapshot. Expect bugs and missing features.
 
 ## Downloads
-- **Blockcraft-0.4.0-win32-x64.zip**: the Windows desktop app. Unzip it anywhere and run `Blockcraft.exe`.
+- **Blockcraft-0.4.1-win32-x64.zip**: the Windows desktop app. Unzip it anywhere and run `Blockcraft.exe`.
   Worlds are saved inside the app.
-- **Blockcraft-0.4.0-web.zip**: the web app. Serve the folder with any static web server (it must be http://,
+- **Blockcraft-0.4.1-macos-arm64.zip**: macOS for Apple Silicon (M1/M2/M3/M4 Macs).
+- **Blockcraft-0.4.1-macos-x64.zip**: macOS for Intel Macs.
+  Unzip, drag `Blockcraft.app` to Applications. The app isn't notarized by Apple, so the first launch is blocked:
+  open it once, then go to System Settings → Privacy & Security and click **Open Anyway** (or run
+  `xattr -cr /Applications/Blockcraft.app` in Terminal).
+- **Blockcraft-0.4.1-web.zip**: the web app. Serve the folder with any static web server (it must be http://,
   not file://), for example `npx serve .`, then open it in Chrome, Edge or Firefox.
+
+## New in 0.4.1
+- macOS apps (Apple Silicon and Intel).
 
 ## What's in this build
 - **World generation:**

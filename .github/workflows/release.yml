@@ -67,3 +67,22 @@ jobs:
           path: client/dist
       - id: deploy
         uses: actions/deploy-pages@v4
+
+  # macOS apps (Apple Silicon + Intel), built on a Mac so they can be ad-hoc signed.
+  macos:
+    needs: release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build macOS apps
+        run: pnpm package --targets darwin-arm64,darwin-x64 --no-web
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.version || format('build-{0}', github.run_number) }}
+          files: build/release/*macos*.zip

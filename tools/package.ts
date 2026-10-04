@@ -1,7 +1,11 @@
 /**
- * Release builds: the web app (static files, zipped) and the Windows desktop app (Electron,
- * zipped folder with Blockcraft.exe). Output in build/release/.
- * Usage: pnpm package [--platform win32|linux|darwin] (default win32)
+ * Release builds: the web app (static files, zipped) and the desktop app (Electron) for each
+ * target — Windows (folder with Blockcraft.exe), macOS (Blockcraft.app; Apple Silicon and Intel)
+ * or Linux. Output in build/release/.
+ * Usage: pnpm package [--targets win32-x64,darwin-arm64,darwin-x64,linux-x64] [--no-web]
+ *   (default win32-x64; the old --platform <p> still works and means <p>-x64)
+ * On macOS the .app is ad-hoc signed (Apple Silicon refuses unsigned code) and zipped with ditto
+ * so the framework symlinks and signature survive.
  */
 import { execSync } from 'node:child_process';
 import { cpSync, mkdirSync, rmSync, existsSync, readFileSync, realpathSync } from 'node:fs';
@@ -10,7 +14,15 @@ import { createRequire } from 'node:module';
 import { packager } from '@electron/packager';
 
 const root = new URL('../', import.meta.url).pathname;
-const platform = (process.argv.includes('--platform') ? process.argv[process.argv.indexOf('--platform') + 1] : 'win32') as 'win32' | 'linux' | 'darwin';
+type Platform = 'win32' | 'linux' | 'darwin';
+type Arch = 'x64' | 'arm64';
+const arg = (name: string) => (process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : undefined);
+const targets: [Platform, Arch][] = (arg('--targets') ?? `${arg('--platform') ?? 'win32'}-x64`).split(',').map((t) => {
+  const [p, a = 'x64'] = t.trim().split('-') as [Platform, Arch];
+  if (!['win32', 'linux', 'darwin'].includes(p) || !['x64', 'arm64'].includes(a)) throw new Error(`unknown target ${t}`);
+  return [p, a];
+});
+const buildWeb = !process.argv.includes('--no-web');
 const version = JSON.parse(readFileSync(join(root, 'desktop/package.json'), 'utf8')).version as string;
 const out = join(root, 'build/release');
 const stage = join(root, 'build/desktop-app');
@@ -21,10 +33,12 @@ const dist = join(root, 'client/dist');
 mkdirSync(out, { recursive: true });
 
 // web: the static build without source maps
-const webZip = join(out, `Blockcraft-${version}-web.zip`);
-if (existsSync(webZip)) rmSync(webZip);
-execSync(`zip -qr ${webZip} . -x "*.map"`, { cwd: dist });
-console.log(`web → ${webZip}`);
+if (buildWeb) {
+  const webZip = join(out, `Blockcraft-${version}-web.zip`);
+  if (existsSync(webZip)) rmSync(webZip);
+  execSync(`zip -qr ${webZip} . -x "*.map"`, { cwd: dist });
+  console.log(`web → ${webZip}`);
+}
 
 // desktop: stage main.cjs + package.json + web/, then package Electron
 rmSync(stage, { recursive: true, force: true });
@@ -39,12 +53,24 @@ await esbuild.build({
   bundle: true, platform: 'node', format: 'cjs', target: 'node20', external: ['bufferutil', 'utf-8-validate'], logLevel: 'warning',
 });
 cpSync(dist, join(stage, 'web'), { recursive: true, filter: (src) => !src.endsWith('.map') });
-const [appDir] = await packager({
-  dir: stage, out: join(root, 'build/desktop'), name: 'Blockcraft', executableName: 'Blockcraft', platform, arch: 'x64',
-  electronVersion: '33.4.11', overwrite: true, asar: true, appVersion: version, appCopyright: 'Blockcraft contributors',
-  win32metadata: { CompanyName: 'Blockcraft', ProductName: 'Blockcraft', FileDescription: 'Blockcraft' },
-});
-const desktopZip = join(out, `Blockcraft-${version}-${platform}-x64.zip`);
-if (existsSync(desktopZip)) rmSync(desktopZip);
-execSync(`zip -qry ${desktopZip} ${appDir!.split('/').pop()}`, { cwd: join(root, 'build/desktop') });
-console.log(`desktop → ${desktopZip}`);
+for (const [platform, arch] of targets) {
+  const [appDir] = await packager({
+    dir: stage, out: join(root, 'build/desktop'), name: 'Blockcraft', executableName: 'Blockcraft', platform, arch,
+    electronVersion: '33.4.11', overwrite: true, asar: true, appVersion: version, appCopyright: 'Blockcraft contributors',
+    win32metadata: { CompanyName: 'Blockcraft', ProductName: 'Blockcraft', FileDescription: 'Blockcraft' },
+    appBundleId: 'io.github.endisking.blockcraft', appCategoryType: 'public.app-category.games', darwinDarkModeSupport: true,
+  });
+  const folder = appDir!.split('/').pop()!;
+  const zipName = join(out, `Blockcraft-${version}-${platform === 'darwin' ? 'macos' : platform}-${arch}.zip`);
+  if (existsSync(zipName)) rmSync(zipName);
+  if (platform === 'darwin' && process.platform === 'darwin') {
+    // ad-hoc signature (no Apple developer ID): required for Apple Silicon to run the app at all
+    const app = join(appDir!, 'Blockcraft.app');
+    execSync(`codesign --force --deep --sign - "${app}"`, { stdio: 'inherit' });
+    execSync(`ditto -c -k --sequesterRsrc --keepParent "${app}" "${zipName}"`);
+  } else {
+    // -y keeps symlinks (the macOS frameworks are full of them)
+    execSync(`zip -qry ${zipName} ${folder}`, { cwd: join(root, 'build/desktop') });
+  }
+  console.log(`desktop (${platform}-${arch}) → ${zipName}`);
+}
