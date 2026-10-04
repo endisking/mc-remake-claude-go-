@@ -24,7 +24,7 @@ import type { GameServer } from '../server';
 import type { DamageSource } from '../survival';
 import { GoalSelector } from './goal';
 import { findPath, staticPathType, PathType, DEFAULT_MALUS, type Path, type PathMob } from './pathfinder';
-import { damageAfterArmor } from '@shared/game/armor';
+import { damageAfterArmor } from '@shared/game/items';
 import { MOB_FLAG, ENTITY_EVENT } from '@shared/entity/mobdata';
 
 export type Target = ServerPlayer | Mob;
@@ -696,7 +696,11 @@ export abstract class Mob extends ServerEntity {
     const wasOnGround = this.onGround;
     this.onGround = vertical && dy < 0;
     if (this.onGround) {
-      if (this.fallDistance > 0) this.causeFallDamage(this.fallDistance);
+      if (this.fallDistance > 0) {
+        // Block.fallOn: farmland trampling and friends (server/src/game/blocks.ts)
+        this.s.blocks.entityFallOn(this.x, this.y, this.z, this.fallDistance, { width: this.width, height: this.height, player: false });
+        this.causeFallDamage(this.fallDistance);
+      }
       this.fallDistance = 0;
     } else if (my < 0) this.fallDistance -= my;
     if (Math.abs(dx - mx) > 1e-5) this.vx = 0;

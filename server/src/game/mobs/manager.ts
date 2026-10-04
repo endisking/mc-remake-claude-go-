@@ -29,6 +29,7 @@ import { Zombie, Husk, Drowned, Skeleton, Stray, Creeper, Spider, Monster, Zombi
 import { Pig, Cow, Sheep, Chicken, Animal, Mooshroom } from './animals';
 import { Arrow, Pickup } from '../arrow';
 import { explode } from '../explosion';
+import { hurtEnemyCost } from '@shared/game/items';
 import { Slime, isSlimeChunk, moonBrightness } from './slime';
 import { Enderman } from './enderman';
 import { Bat, Squid, Cod, Salmon } from './ambient';
@@ -591,8 +592,7 @@ export class MobManager {
     const held = p.inventory.selectedStack;
     // Item.hurtEnemy: swords and tridents lose 1, digging tools 2, anything else nothing
     if (held) {
-      const n = itemName(held.id);
-      const cost = /_sword$|^trident$/.test(n) ? 1 : /_(axe|pickaxe|shovel|hoe)$/.test(n) ? 2 : 0;
+      const cost = hurtEnemyCost(held.id);
       if (cost) this.damageHeldItem(p, p.inventory.selected, cost);
     }
     void hpBefore;
@@ -642,18 +642,10 @@ export class MobManager {
 
   /** ItemStack.hurtAndBreak (no Unbreaking yet). */
   damageHeldItem(p: ServerPlayer, slot: number, amount: number): void {
-    if (p.gameMode === 1) return;
-    const st = p.inventory.get(slot);
-    if (!st) return;
-    const max = ITEMS_BY_ID[st.id]?.maxDurability ?? 0;
-    if (max <= 0) return;
-    st.damage += amount;
-    if (st.damage >= max) {
-      p.inventory.set(slot, null);
-      this.s.playSound(null, 'entity.item.break', 'player', p.x, p.y, p.z, 0.8, 0.8 + this.s.rand.nextFloat() * 0.4);
-    }
-    this.s.syncSlot(p, slot);
+    // ItemStack.hurtAndBreak via the shared item code (break event, creative exemption)
+    this.s.items.damageHeld(p, slot === 40 ? 1 : 0, amount);
   }
+
 
   /** Entity.spawnAtLocation: drop an item at the mob (offset y), with the ItemEntity default toss. */
   spawnAtLocation(m: Mob, st: ItemStack, yOff = 0): ItemEntity | null {

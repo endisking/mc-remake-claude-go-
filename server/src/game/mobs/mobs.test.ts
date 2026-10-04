@@ -5,7 +5,7 @@ import { Chunk } from '@shared/world/chunk';
 import { BlockWorld } from '@shared/world/world';
 import { stateOf, blockNameOf as blockNameOfState } from '@shared/world/blockstate';
 import { BIOMES_BY_NAME, ITEMS_BY_NAME } from '@shared/data';
-import { damageAfterArmor, totalArmor } from '@shared/game/armor';
+import { damageAfterArmor, armorTotals } from '@shared/game/items';
 import { mobLoot } from '@shared/game/mobloot';
 import { itemName } from '@shared/item/stack';
 import { JavaRandom } from '@shared/util/random';
@@ -137,8 +137,9 @@ describe('mob rules', () => {
     expect(damageAfterArmor(10, 20, 8)).toBeCloseTo(3, 6);
     expect(damageAfterArmor(3, 2, 0)).toBeCloseTo(3 * (1 - 0.5 / 25), 6); // zombie armour 2 vs a 3-damage hit
     const id = (n: string) => ITEMS_BY_NAME.get(n)!.id;
-    expect(totalArmor([id('diamond_boots'), id('diamond_leggings'), id('diamond_chestplate'), id('diamond_helmet')])).toEqual({ armor: 20, toughness: 8, knockbackResistance: 0 });
-    expect(totalArmor([0, 0, id('iron_chestplate'), 0]).armor).toBe(6);
+    const st = (n: string) => ({ id: id(n), count: 1, damage: 0 });
+    expect(armorTotals([st('diamond_boots'), st('diamond_leggings'), st('diamond_chestplate'), st('diamond_helmet')])).toMatchObject({ armor: 20, toughness: 8 });
+    expect(armorTotals([null, null, st('iron_chestplate'), null]).armor).toBe(6);
   });
 
   it('loot tables: ranges, looting, killed-by-player and cooking', () => {
