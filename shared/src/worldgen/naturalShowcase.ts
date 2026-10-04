@@ -122,6 +122,35 @@ function placements(): Placement[] {
   p.push([x + 12, Y, 35, 'small_dripleaf', { facing: 'south', half: 'lower' }], [x + 12, Y + 1, 35, 'small_dripleaf', { facing: 'south', half: 'upper' }]);
   p.push([x + 14, 105, 35, 'weeping_vines_plant'], [x + 14, 104, 35, 'weeping_vines'], [x + 16, Y, 35, 'twisting_vines_plant'], [x + 16, Y + 1, 35, 'twisting_vines']);
   p.push([x + 18, Y, 35, 'brown_mushroom'], [x + 19, Y, 35, 'red_mushroom'], [x + 20, Y, 35, 'chest', { facing: 'south' }], [x + 21, Y, 35, 'spawner']);
+  // row 5 (z 42, 45): crafted cubes and shaped blocks
+  const crafted: [string, Props?][] = [
+    ['crafting_table'], ['furnace', { facing: 'south' }], ['furnace', { facing: 'south', lit: true }], ['dispenser', { facing: 'south' }], ['dropper', { facing: 'south' }],
+    ['observer', { facing: 'south' }], ['bookshelf'], ['jukebox'], ['note_block'], ['redstone_lamp'], ['redstone_lamp', { lit: true }], ['beehive', { facing: 'south' }],
+    ['lapis_block'], ['diamond_block'], ['emerald_block'], ['gold_block'], ['iron_block'], ['coal_block'], ['redstone_block'], ['netherite_block'], ['raw_iron_block'],
+    ['copper_block'], ['exposed_cut_copper'], ['weathered_copper'], ['oxidized_cut_copper'], ['quartz_block'], ['quartz_pillar'], ['chiseled_quartz_block'], ['quartz_bricks'],
+    ['cobbled_deepslate'], ['polished_deepslate'], ['deepslate_tiles'], ['deepslate_bricks'], ['chiseled_deepslate'], ['polished_blackstone_bricks'], ['gilded_blackstone'],
+    ['nether_bricks'], ['red_nether_bricks'], ['end_stone_bricks'], ['purpur_block'], ['purpur_pillar'], ['red_wool'], ['light_blue_concrete'], ['lime_concrete_powder'],
+    ['orange_glazed_terracotta', { facing: 'south' }], ['purple_shulker_box'], ['slime_block'], ['honey_block'], ['tinted_glass'], ['bone_block'], ['dried_kelp_block'],
+    ['target'], ['crying_obsidian'], ['lodestone'], ['tnt'], ['hay_block'], ['bricks'], ['sponge'], ['prismarine_bricks'], ['white_stained_glass'], ['cyan_stained_glass'],
+  ];
+  crafted.forEach(([n, props], i) => p.push([i, Y, 42, n, props]));
+  x = 0;
+  const shaped: [number, string, Props?][] = [
+    [0, 'oak_door', { half: 'lower', facing: 'south' }], [0, 'spruce_door', { half: 'lower', facing: 'south' }], [0, 'iron_door', { half: 'lower', facing: 'south' }],
+    [0, 'birch_trapdoor', { half: 'bottom' }], [0, 'iron_trapdoor', { open: true, facing: 'south' }], [0, 'oak_fence_gate', { facing: 'south' }], [0, 'crimson_fence_gate', { facing: 'south', open: true }],
+    [0, 'oak_pressure_plate'], [0, 'light_weighted_pressure_plate'], [0, 'soul_torch'], [0, 'redstone_torch'], [0, 'redstone_torch', { lit: false }], [0, 'lantern'],
+    [0, 'soul_lantern'], [0, 'chain'], [0, 'end_rod', { facing: 'up' }], [0, 'flower_pot'], [0, 'potted_poppy'], [0, 'potted_fern'], [0, 'potted_cactus'], [0, 'red_carpet'],
+    [0, 'candle', { candles: 3 }], [0, 'cobweb'], [0, 'iron_bars', { east: true, west: true }], [0, 'white_stained_glass_pane', { east: true, west: true }], [0, 'dirt_path'],
+    [0, 'cobblestone_stairs', { facing: 'south' }], [0, 'stone_brick_slab'], [0, 'sandstone_wall', { up: true }], [0, 'nether_brick_fence', { east: true }],
+  ];
+  for (const [, n, props] of shaped) {
+    if (n.endsWith('_door')) p.push([x, Y + 1, 45, n, { ...props, half: 'upper' }]);
+    p.push([x++, Y, 45, n, props]);
+  }
+  for (const [crop, ages] of [['wheat', [7]], ['carrots', [1, 3, 7]], ['potatoes', [7]], ['beetroots', [1, 3]]] as [string, number[]][])
+    for (const a of ages) p.push([x, Y - 1, 45, 'farmland', { moisture: 7 }], [x++, Y, 45, crop, { age: a }]);
+  p.push([x, Y - 1, 45, 'soul_sand'], [x++, Y, 45, 'nether_wart', { age: 3 }]);
+  p.push([x++, Y, 45, 'pumpkin_stem', { age: 7 }], [x, Y, 45, 'attached_melon_stem', { facing: 'east' }], [x + 1, Y, 45, 'melon']);
   return p;
 }
 
