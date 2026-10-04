@@ -532,6 +532,50 @@ export function salmonMesh(): VPart[] {
   ];
 }
 
+/** HorseModel.createBodyMesh (64×64): long body, neck with head, mane and muzzle, tall legs. */
+export function horseMesh(longEars = false): VPart[] {
+  const ears: VPart[] = longEars
+    ? [
+        { name: 'left_ear', pivot: [0, 0, 0], boxes: [b(0, 12, 0, -18, 4, 2, 7, 1)] },
+        { name: 'right_ear', pivot: [0, 0, 0], boxes: [b(0, 12, -2, -18, 4, 2, 7, 1)] },
+      ]
+    : [
+        { name: 'left_ear', pivot: [0, 0, 0], boxes: [b(19, 16, 0.55, -13, 4, 2, 3, 1, -0.001)] },
+        { name: 'right_ear', pivot: [0, 0, 0], boxes: [b(19, 16, -2.55, -13, 4, 2, 3, 1, -0.001)] },
+      ];
+  const leg = (mirror: boolean, x0: number, z0: number) => [b(48, 21, x0, -1.01, z0, 4, 11, 4, 0, mirror)];
+  return [
+    { name: 'body', pivot: [0, 11, 5], boxes: [b(0, 32, -5, -8, -17, 10, 10, 22, 0.05)] },
+    {
+      name: 'head_parts', pivot: [0, 4, -12], rot: [PI / 6, 0, 0], boxes: [b(0, 35, -2, -11, -2, 4, 12, 7)], children: [
+        { name: 'head', pivot: [0, 0, 0], boxes: [b(0, 13, -3, -11, -2, 6, 5, 7)] },
+        { name: 'mane', pivot: [0, 0, 0], boxes: [b(56, 36, -1, -11, 5.01, 2, 16, 2)] },
+        { name: 'upper_mouth', pivot: [0, 0, 0], boxes: [b(0, 25, -2, -11, -7, 4, 5, 5)] },
+        ...ears,
+      ],
+    },
+    { name: 'left_hind_leg', pivot: [4, 14, 7], boxes: leg(true, -3, -1) },
+    { name: 'right_hind_leg', pivot: [-4, 14, 7], boxes: leg(false, -1, -1) },
+    { name: 'left_front_leg', pivot: [4, 14, -12], boxes: leg(true, -3, -1.9) },
+    { name: 'right_front_leg', pivot: [-4, 14, -12], boxes: leg(false, -1, -1.9) },
+    { name: 'tail', pivot: [0, 4, 11], rot: [PI / 6, 0, 0], boxes: [b(42, 36, -1.5, 0, 0, 3, 14, 4)] },
+  ];
+}
+
+/** OcelotModel.createBodyMesh (64×32): cats and ocelots. */
+export function felineMesh(): VPart[] {
+  return [
+    { name: 'head', pivot: [0, 15, -9], boxes: [b(0, 0, -2.5, -2, -3, 5, 4, 5), b(0, 24, -1.5, 0, -4, 3, 2, 2), b(0, 10, -2, -3, 0, 1, 1, 2), b(6, 10, 1, -3, 0, 1, 1, 2)] },
+    { name: 'body', pivot: [0, 12, -10], rot: [PI / 2, 0, 0], boxes: [b(20, 0, -2, 3, -8, 4, 16, 6)] },
+    { name: 'tail1', pivot: [0, 15, 8], rot: [0.9, 0, 0], boxes: [b(0, 15, -0.5, 0, 0, 1, 8, 1)] },
+    { name: 'tail2', pivot: [0, 20, 14], boxes: [b(4, 15, -0.5, 0, 0, 1, 8, 1)] },
+    { name: 'left_hind_leg', pivot: [1.1, 18, 5], boxes: [b(8, 13, -1, 0, 1, 2, 6, 2)] },
+    { name: 'right_hind_leg', pivot: [-1.1, 18, 5], boxes: [b(8, 13, -1, 0, 1, 2, 6, 2)] },
+    { name: 'left_front_leg', pivot: [1.2, 14.1, -5], boxes: [b(40, 0, -1, 0, 0, 2, 10, 2)] },
+    { name: 'right_front_leg', pivot: [-1.2, 14.1, -5], boxes: [b(40, 0, -1, 0, 0, 2, 10, 2)] },
+  ];
+}
+
 // ------------------------------------------------------------------ animation helpers
 
 const RAD = PI / 180;
@@ -900,6 +944,61 @@ const salmonAnim = (p: Poses, a: MobAnim) => {
   p.body_back!.yRot = -(w ? 1 : 1.3) * 0.25 * Math.sin((w ? 1 : 1.7) * 0.6 * a.ageInTicks);
 };
 
+/** HorseModel.prepareMobModel (walking subset): head look, diagonal-pair stride, swishing tail. */
+const horseAnim = (p: Poses, a: MobAnim) => {
+  const ls = a.limbSwing, amt = a.limbSwingAmount;
+  const yaw = Math.max(-20, Math.min(20, a.netHeadYaw));
+  p.head_parts!.yRot = yaw * RAD;
+  p.head_parts!.xRot = PI / 6 + a.headPitch * RAD;
+  const f = Math.cos(ls * 0.6662 + PI) * 0.8 * amt;
+  p.left_hind_leg!.xRot = -f;
+  p.right_hind_leg!.xRot = f;
+  p.left_front_leg!.xRot = f;
+  p.right_front_leg!.xRot = -f;
+  p.tail!.xRot = PI / 6 + amt * 0.75;
+  p.tail!.y = 4 - amt;
+  p.tail!.z = 11 + amt * 2;
+};
+
+/** OcelotModel.setupAnim (walking): offset leg phases and a curling tail. */
+const felineAnim = (p: Poses, a: MobAnim) => {
+  const ls = a.limbSwing, amt = a.limbSwingAmount;
+  p.head!.xRot = a.headPitch * RAD;
+  p.head!.yRot = a.netHeadYaw * RAD;
+  if ((a.mob.data.get('sitting') ?? 0) !== 0) {
+    // OcelotModel sitting pose (CatModel.prepareMobModel)
+    p.body!.xRot = PI / 4;
+    p.body!.y += -4;
+    p.body!.z += 5;
+    p.head!.y += -3.3;
+    p.head!.z += 1;
+    p.tail1!.y += 8;
+    p.tail1!.z += -2;
+    p.tail2!.y += 2;
+    p.tail2!.z += -0.8;
+    p.tail1!.xRot = 1.7278761;
+    p.tail2!.xRot = 2.670354;
+    p.left_front_leg!.xRot = -0.15707964;
+    p.left_front_leg!.y = 16.1;
+    p.left_front_leg!.z = -7;
+    p.right_front_leg!.xRot = -0.15707964;
+    p.right_front_leg!.y = 16.1;
+    p.right_front_leg!.z = -7;
+    p.left_hind_leg!.xRot = -PI / 2;
+    p.left_hind_leg!.y = 21;
+    p.left_hind_leg!.z = 1;
+    p.right_hind_leg!.xRot = -PI / 2;
+    p.right_hind_leg!.y = 21;
+    p.right_hind_leg!.z = 1;
+    return;
+  }
+  p.left_hind_leg!.xRot = Math.cos(ls * 0.6662) * amt;
+  p.right_hind_leg!.xRot = Math.cos(ls * 0.6662 + 0.3) * amt;
+  p.left_front_leg!.xRot = Math.cos(ls * 0.6662 + PI + 0.3) * amt;
+  p.right_front_leg!.xRot = Math.cos(ls * 0.6662 + PI) * amt;
+  p.tail2!.xRot = 1.7278761 + (PI / 4) * Math.cos(ls) * amt;
+};
+
 const none = () => {};
 
 export const MOB_MODELS: Record<string, MobModelDef> = {
@@ -931,6 +1030,9 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   illager: { tex: [64, 64], parts: illagerMesh(), anim: illagerAnim },
   cod: { tex: [32, 32], parts: codMesh(), anim: codAnim },
   salmon: { tex: [32, 32], parts: salmonMesh(), anim: salmonAnim },
+  horse: { tex: [64, 64], parts: horseMesh(), anim: horseAnim },
+  donkey: { tex: [64, 64], parts: horseMesh(true), anim: horseAnim },
+  feline: { tex: [64, 32], parts: felineMesh(), headParts: ['head'], baby: { scaleHead: true, yHead: 10, zHead: 4, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: felineAnim },
   unknown: { tex: [64, 32], parts: [{ name: 'box', pivot: [0, 0, 0], boxes: [b(0, 0, -8, 8, -8, 16, 16, 16)] }], anim: none },
 };
 
@@ -1000,6 +1102,13 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   evoker: { layers: [{ model: 'illager', texture: 'evoker' }], scale: 0.9375 },
   cod: { layers: [{ model: 'cod', texture: 'cod' }] },
   salmon: { layers: [{ model: 'salmon', texture: 'salmon' }] },
+  horse: { layers: [{ model: 'horse', texture: 'horse' }], scale: 1.1, babyScale: 0.5 },
+  skeleton_horse: { layers: [{ model: 'horse', texture: 'skeleton_horse' }], scale: 1.1, babyScale: 0.5 },
+  zombie_horse: { layers: [{ model: 'horse', texture: 'zombie_horse' }], scale: 1.1, babyScale: 0.5 },
+  donkey: { layers: [{ model: 'donkey', texture: 'donkey' }], scale: 0.87, babyScale: 0.5 },
+  mule: { layers: [{ model: 'donkey', texture: 'mule' }], scale: 0.92, babyScale: 0.5 },
+  cat: { layers: [{ model: 'feline', texture: 'cat' }], scale: 0.8 },
+  ocelot: { layers: [{ model: 'feline', texture: 'ocelot' }] },
   /** fallback for mobs without a model: a hit-box-sized box */
   unknown: { layers: [{ model: 'unknown', texture: 'unknown' }] },
 };

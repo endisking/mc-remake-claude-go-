@@ -903,6 +903,77 @@ export function salmon(): Tex {
   return t;
 }
 
+interface HorseLook { coat: string; coatDark: string; mane: string; muzzle: string; hoof: string; seed: number; bones?: boolean; stripes?: boolean }
+
+/** Horse family (64×64 horse layout): coat, mane, muzzle, socks; skeleton horses show ribs. */
+function horseTex(look: HorseLook): Tex {
+  const t = new Tex(64, 64);
+  const C = hex(look.coat), CD = hex(look.coatDark), M = hex(look.mane), MU = hex(look.muzzle), HO = hex(look.hoof);
+  const coat = blotches(C, CD, look.seed, 2.2, 0.7, 0.05);
+  const body = box(t, 0, 32, 10, 10, 22, coat);
+  if (look.bones) {
+    for (const k of ['right', 'left'] as const) {
+      const [x, y, w, h] = body[k];
+      for (let i = 3; i < w - 3; i += 3) vline(t, x + i, y + 2, h - 4, shade(CD, 0.7));
+    }
+  }
+  if (look.stripes) {
+    for (const k of ['right', 'left', 'top'] as const) {
+      const [x, y, w, h] = body[k];
+      for (let i = 1; i < w; i += 4) rect(t, x + i, y, 1, h, () => shade(CD, 0.85));
+    }
+  }
+  box(t, 0, 35, 4, 12, 7, coat);
+  const head = box(t, 0, 13, 6, 5, 7, coat);
+  for (const k of ['right', 'left'] as const) px(t, head[k][0] + 2, head[k][1] + 2, hex('#141010'));
+  const mouth = box(t, 0, 25, 4, 5, 5, () => MU);
+  px(t, mouth.front[0] + 1, mouth.front[1] + 1, shade(MU, 0.6));
+  px(t, mouth.front[0] + 2, mouth.front[1] + 1, shade(MU, 0.6));
+  box(t, 56, 36, 2, 16, 2, blotches(M, shade(M, 0.8), look.seed + 1, 1.5, 0.5));
+  box(t, 19, 16, 2, 3, 1, coat);
+  box(t, 0, 12, 2, 7, 1, coat);
+  const leg = box(t, 48, 21, 4, 11, 4, coat);
+  for (const k of ['right', 'front', 'left', 'back'] as const) {
+    rect(t, leg[k][0], leg[k][1] + 7, 4, 2, () => (look.bones ? shade(C, 0.9) : MU));
+    rect(t, leg[k][0], leg[k][1] + 9, 4, 2, () => HO);
+  }
+  box(t, 42, 36, 3, 14, 4, blotches(M, shade(M, 0.8), look.seed + 2, 1.5, 0.5));
+  return t;
+}
+
+export const horse = () => horseTex({ coat: '#8a5a34', coatDark: '#74482a', mane: '#2a1e18', muzzle: '#c8a888', hoof: '#3a2e26', seed: 271 });
+export const donkey = () => horseTex({ coat: '#7a746c', coatDark: '#66605a', mane: '#3a3632', muzzle: '#c8c0b4', hoof: '#2a2622', seed: 273 });
+export const mule = () => horseTex({ coat: '#5a3c26', coatDark: '#4a301e', mane: '#1e1612', muzzle: '#a88c70', hoof: '#2a2018', seed: 275, stripes: true });
+export const skeletonHorse = () => horseTex({ coat: '#d8d4c4', coatDark: '#a8a290', mane: '#8a8678', muzzle: '#e8e4d8', hoof: '#6a665c', seed: 277, bones: true });
+export const zombieHorse = () => horseTex({ coat: '#4f7a44', coatDark: '#3a5c34', mane: '#2a3a24', muzzle: '#6a8a5a', hoof: '#2a2a22', seed: 279 });
+
+/** Cat / ocelot (64×32 feline layout). */
+function felineTex(base: string, dark: string, spots: string, seed: number): Tex {
+  const t = new Tex(64, 32);
+  const B = hex(base), D = hex(dark), S = hex(spots);
+  const fur = blotches(B, D, seed, 1.6, 0.62, 0.06);
+  const head = box(t, 0, 0, 5, 4, 5, fur);
+  const [fx, fy] = head.front;
+  px(t, fx + 1, fy + 1, hex('#5ab040'));
+  px(t, fx + 3, fy + 1, hex('#5ab040'));
+  box(t, 0, 24, 3, 2, 2, () => shade(B, 1.1));
+  box(t, 0, 10, 1, 1, 2, () => D);
+  box(t, 6, 10, 1, 1, 2, () => D);
+  const body = box(t, 20, 0, 4, 16, 6, fur);
+  for (const k of ['right', 'left', 'back'] as const) {
+    const [x, y, w, h] = body[k];
+    for (let j = 1; j < h; j += 3) for (let i = (j % 2); i < w; i += 3) px(t, x + i, y + j, S);
+  }
+  box(t, 0, 15, 1, 8, 1, (_x, y) => (y % 3 === 0 ? S : B));
+  box(t, 4, 15, 1, 8, 1, (_x, y) => (y % 3 === 0 ? S : B));
+  box(t, 8, 13, 2, 6, 2, fur);
+  box(t, 40, 0, 2, 10, 2, fur);
+  return t;
+}
+
+export const cat = () => felineTex('#8a8278', '#6e6860', '#4a4642', 281);
+export const ocelot = () => felineTex('#d8b060', '#c09848', '#5a3a1a', 283);
+
 // ------------------------------------------------------------------ misc layers
 
 /** Charged creeper energy swirl (tileable, scrolled and drawn additively). */
@@ -987,5 +1058,5 @@ export const ENTITY_TEXTURES: Record<string, () => Tex> = {
   chicken, enderman, enderman_eyes: endermanEyes, slime, bat, squid,
   glow_squid: glowSquid, creeper_armor: creeperArmor, villager, wandering_trader: wanderingTrader, witch, zombie_villager: zombieVillager,
   unknown: unknownMob,
-  cod, salmon, pillager, vindicator, evoker, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
+  horse, donkey, mule, skeleton_horse: skeletonHorse, zombie_horse: zombieHorse, cat, ocelot, cod, salmon, pillager, vindicator, evoker, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
 };

@@ -62,6 +62,8 @@ const SHOTS: Record<string, Shot> = {
   heldclose: { cam: 'x=24.2&y=200&z=1.8&lookat=24.2,200.8,4.5&fov=65', mobs: [{ type: 'zombie', x: 24.2, z: 4.5, yaw: 180, hold: ITEMS_BY_NAME.get('oak_planks')!.id }] },
   heldtop: { cam: 'x=26.2&y=201.5&z=4.5&lookat=24.2,201,4.5&fov=65', mobs: [{ type: 'zombie', x: 24.2, z: 4.5, yaw: 180, hold: ITEMS_BY_NAME.get('oak_planks')!.id }] },
   fish: { cam: 'x=24.2&y=200&z=2.5&lookat=24.2,200.2,4.5&fov=60', mobs: row(['cod', 'salmon', 'cod', 'salmon'], { yaw: 120 }) },
+  h_front: { cam: FAR, mobs: row(['horse', 'donkey', 'mule', 'skeleton_horse', 'zombie_horse', 'cat', 'ocelot', 'cat'], { yaw: 120 }).map((m, i) => (i === 7 ? { ...m, data: { sitting: 1 } } : m)) },
+  h_walk: { cam: FAR, mobs: row(['horse', 'donkey', 'mule', 'skeleton_horse', 'zombie_horse', 'cat', 'ocelot', 'horse'], { yaw: 120, walk: true }).map((m, i) => (i === 7 ? { ...m, data: { baby: 1 } } : m)), wait: 1100 },
   night: { cam: NEAR + '&time=18000', mobs: row(['spider', 'enderman', 'zombie', 'cave_spider']) },
 };
 
