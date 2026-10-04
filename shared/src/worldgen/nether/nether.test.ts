@@ -4,6 +4,7 @@ import { pickNetherBiome, climateFitness, NETHER_BIOME_POINTS } from './biomesou
 import { B } from '../biome/biomeids';
 import { blockNameOf } from '../../world/blockstate';
 import { BlockWorld } from '../../world/world';
+import { LightEngine } from '../../world/light';
 
 describe('nether biome source', () => {
   it('picks the 1.17.1 preset parameter points', () => {
@@ -124,5 +125,23 @@ describe('nether features', () => {
   it('soul sand valleys have soul sand, soul soil and basalt pillars', () => {
     const c = decorated(12345n, B.soul_sand_valley);
     expect((c.get('soul_sand') ?? 0) + (c.get('soul_soil') ?? 0)).toBeGreaterThan(100);
+  });
+});
+
+describe('nether light', () => {
+  it('has no sky light anywhere, only block light (lava, glowstone)', () => {
+    const g = new NetherGenerator(5n);
+    const w = new BlockWorld();
+    const light = new LightEngine(w);
+    light.hasSkyLight = false;
+    for (let cx = -1; cx <= 1; cx++) for (let cz = -1; cz <= 1; cz++) w.addChunk(g.generate(cx, cz));
+    for (let cx = -1; cx <= 1; cx++) for (let cz = -1; cz <= 1; cz++) light.lightChunk(w.getChunk(cx, cz)!);
+    let maxSky = 0, maxBlock = 0;
+    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) for (let y = 0; y < 256; y++) {
+      maxSky = Math.max(maxSky, w.getSkyLight(x, y, z));
+      maxBlock = Math.max(maxBlock, w.getBlockLight(x, y, z));
+    }
+    expect(maxSky).toBe(0);
+    expect(maxBlock).toBe(15);
   });
 });

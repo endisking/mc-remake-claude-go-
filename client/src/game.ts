@@ -1520,7 +1520,7 @@ export class Game implements ScreenHost {
       case 'KeyC': {
         const p = this.player;
         this.debugFeedback('Copied location to clipboard');
-        this.setClipboard(`/execute in minecraft:overworld run tp @s ${p.x.toFixed(2)} ${p.y.toFixed(2)} ${p.z.toFixed(2)} ${this.yaw.toFixed(2)} ${this.pitch.toFixed(2)}`);
+        this.setClipboard(`/execute in minecraft:${this.dimension} run tp @s ${p.x.toFixed(2)} ${p.y.toFixed(2)} ${p.z.toFixed(2)} ${this.yaw.toFixed(2)} ${this.pitch.toFixed(2)}`);
         return true;
       }
       case 'KeyD':
@@ -2178,7 +2178,7 @@ export class Game implements ScreenHost {
       `C: ${st.visible}/${st.sections} (s) D: ${s.renderDistance}, pC: ${String(st.building).padStart(3, '0')}, pU: ${String(st.pending).padStart(2, '0')}, ${st.avgBuildMs.toFixed(1)} ms/build`,
       `Q: ${st.quads}`,
       `Client Chunk Cache: ${this.world.chunks.size}`,
-      'minecraft:overworld',
+      `minecraft:${this.dimension}`,
       '',
       `XYZ: ${x.toFixed(3)} / ${feetY.toFixed(5)} / ${z.toFixed(3)}`,
       `Block: ${bx} ${by} ${bz}`,

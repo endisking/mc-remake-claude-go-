@@ -306,6 +306,7 @@ export class GameServer {
         p.living.food.foodLevel = 20;
         p.living.food.saturationLevel = 5;
         p.living.remainingFireTicks = -20;
+        p.dimension = 'overworld';
         [p.x, p.y, p.z] = p.respawn ? [p.respawn.x + 0.5, p.respawn.y + 0.6, p.respawn.z + 0.5] : this.spawnPosition();
       }
     }
@@ -425,7 +426,7 @@ export class GameServer {
   /** World spawn: on top of the terrain at the world origin (fixed once found). */
   spawnPosition(): [number, number, number] {
     if (!this.worldSpawnSet) {
-      const spawn = this.prepareChunk(0, 0);
+      const spawn = this.inLevel(this.levels.get('overworld')!, () => this.prepareChunk(0, 0));
       this.worldSpawn = [8, spawn.topY(8, 8) + 1, 8];
       this.worldSpawnSet = true;
     }

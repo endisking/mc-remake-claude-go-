@@ -247,7 +247,32 @@ const VINES_TIP = [
 ];
 const flipY = (rows: string[]) => [...rows].reverse();
 
+/** Obsidian: glassy near-black purple with lighter conchoidal flakes. */
+export function obsidian(crying = false): Tex {
+  const p = pal('#06040c', '#0f0a1a', '#1a1229', '#261a3a', '#3b2a55', '#5a4480');
+  const t = noiseTex(p.slice(0, 4), { seed: 1401, octaves: [4, 8], weights: [0.6, 0.4], emboss: 1.6, dither: 0.6, contrast: 1.3 });
+  const r = rng(1402);
+  for (let i = 0; i < 9; i++) {
+    const x = Math.floor(r() * 15), y = Math.floor(r() * 15);
+    t.set(x, y, p[5]!);
+    t.set(x + 1, y, p[4]!);
+    t.set(x, y + 1, p[4]!);
+  }
+  if (crying) {
+    const tears = pal('#5a17c9', '#8a35ff', '#b779ff');
+    for (let i = 0; i < 7; i++) {
+      const x = Math.floor(r() * 16), y = Math.floor(r() * 14);
+      t.set(x, y, tears[2]!);
+      t.set(x, y + 1, tears[1]!);
+      t.set(x, y + 2, tears[0]!);
+    }
+  }
+  return t;
+}
+
 export const netherTextures: TexDef[] = [
+  { name: 'obsidian', make: () => obsidian() },
+  { name: 'crying_obsidian', make: () => obsidian(true) },
   { name: 'netherrack', make: netherrack },
   { name: 'crimson_nylium', make: () => nyliumTop(CRIMSON_N, 1303) },
   { name: 'crimson_nylium_side', make: () => nyliumSide(CRIMSON_N, 1304) },

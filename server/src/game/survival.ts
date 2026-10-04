@@ -498,7 +498,10 @@ export class Survival {
       p.living.totalExperience = old.totalExperience;
     }
     p.fallDistance = 0;
-    const { pos: [x, y, z], yaw } = this.s.sleep.respawnPosition(p);
+    // respawn points are in the overworld (beds; respawn anchors are not implemented yet)
+    const overworld = this.s.levels.get('overworld')!;
+    const { pos: [x, y, z], yaw } = this.s.inLevel(overworld, () => this.s.sleep.respawnPosition(p));
+    if (p.dimension !== 'overworld') this.s.changeDimension(p, 'overworld', x, y, z, yaw, 0);
     p.x = x;
     p.y = y;
     p.z = z;
