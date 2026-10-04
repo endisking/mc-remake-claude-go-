@@ -1,6 +1,6 @@
 /** Ingots, nuggets, gems, raw ores, coal and crafting ingredients. */
 import { Tex, hex, rng, type Palette } from '../lib';
-import { mat, maskOf, paintGrid, px, shadeMask, rampOf, type Mask } from './lib';
+import { mat, maskFn, maskOf, paintGrid, px, shadeMask, rampOf, type Mask } from './lib';
 import type { ItemTexDef } from './registry';
 import { TIERS } from './tools';
 
@@ -273,22 +273,21 @@ function stringItem(): Tex {
 
 function feather(): Tex {
   const t = new Tex();
-  shadeMask(t, maskOf([
-    '................',
-    '...........###..',
-    '.........#####..',
-    '........######..',
-    '.......######...',
-    '......######....',
-    '.....######.....',
-    '....######......',
-    '...######.......',
-    '...#####........',
-    '..####..........',
-    '..##............',
-  ]), mat('#8a8a8a', '#c4c4c4', '#e4e4e4', '#f4f4f4', '#ffffff'), { seed: 281, dither: 0 });
-  for (let k = 0; k < 12; k++) t.set(2 + k, 13 - k, hex('#9a9a9a'));
-  px(t, '1,14 0,15', '#7a7a7a');
+  // quill from the bottom-left to the tip at the top-right; a broad vane on its upper-left side
+  // and a narrow one below, with two notches
+  const upper = [1, 2, 3, 3, 4, 4, 4, 3, 3, 2, 0, 0, 0];
+  const lower = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0];
+  for (let k = 0; k <= 12; k++) {
+    const x = 13 - k, y = 2 + k;
+    for (let w = 1; w <= upper[k]!; w++) {
+      if ((k === 4 || k === 8) && w === upper[k]) continue;
+      t.set(x - w, y, hex(w === upper[k] ? '#d4d4d4' : w === 1 ? '#f2f2f2' : '#ffffff'));
+    }
+    for (let w = 1; w <= lower[k]!; w++) t.set(x + w, y, hex('#c4c4c4'));
+    t.set(x, y, hex(k > 9 ? '#8a8a8a' : '#a8a8a8'));
+  }
+  px(t, '13,1 14,1', '#e0e0e0');
+  px(t, '0,15', '#7a7a7a');
   return t;
 }
 

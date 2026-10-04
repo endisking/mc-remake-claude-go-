@@ -108,15 +108,15 @@ function fish(body: Palette, belly: string, seed: number, cooked = false): Tex {
     '................',
     '................',
     '................',
-    '..............##',
-    '.....######..###',
-    '...##########.##',
+    '.............##.',
+    '.....######.###.',
+    '...###########..',
     '..############..',
     '.#############..',
     '..############..',
-    '...##########.##',
-    '.....######..###',
-    '..............##',
+    '...###########..',
+    '.....######.###.',
+    '.............##.',
   ]), body, { seed, dither: 0.1 });
   for (let x = 3; x < 12; x++) t.set(x, 10, hex(belly));
   if (!cooked) {
@@ -347,16 +347,24 @@ function seeds(p: Palette, seed: number, flat = false): Tex {
 
 function wheat(): Tex {
   const t = new Tex();
-  for (let k = 0; k < 3; k++) {
-    const ox = 3 + k * 3;
-    for (let y = 6; y < 15; y++) t.set(ox + Math.floor((y - 6) / 6), y, hex('#b89a40'));
-    for (let y = 1; y < 7; y++) {
-      t.set(ox - 1, y, hex(y % 2 ? '#e8cc60' : '#c8a838'));
-      t.set(ox, y, hex('#f4dc78'));
-      t.set(ox + 1, y, hex(y % 2 ? '#c8a838' : '#a8882a'));
-    }
-  }
-  px(t, '5,14 6,14 7,14 8,14 9,14', '#c09040');
+  // a tied sheaf: grain heads fanning out on top, stalks spreading below the band
+  paintGrid(t, [
+    '......gG........',
+    '...gG.gG..gG....',
+    '...gG.gG..gG....',
+    '.gG.gG.s.gG.gG..',
+    '.gG..s.s.s..gG..',
+    '..s..s.s.s..s...',
+    '...s.s.s.s.s....',
+    '....s.sss.s.....',
+    '.....sssss......',
+    '.....ttttt......',
+    '.....sssss......',
+    '....s.sSs.s.....',
+    '...s..s.S..s....',
+    '..s...s..S..s...',
+    '..S...S..S..S...',
+  ], { g: '#f4d870', G: '#c8a03a', s: '#b8963a', S: '#8a6a22', t: '#7a4a1a' });
   return t;
 }
 
