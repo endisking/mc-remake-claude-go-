@@ -262,5 +262,28 @@ Deviations and gaps from this round:
   recipes, suspicious stew, tipped arrows, and shulker contents kept on break.
 - Not saved: scheduled block ticks, pending fluid ticks, dropped items and XP orbs.
 - Mobs without models are drawn as hitbox boxes.
-- Missing: horses/villagers (in progress), redstone (in progress), the End (in progress), editable signs,
-  recipe book, Nether fortresses and bastions.
+- Missing: editable signs, recipe book, Nether fortresses and bastions, minecarts and boats.
+
+Later in the same round:
+- **Phase 7:** item tags (enchantments, names, potions, repair cost), the 1.17.1 enchanting table algorithm, 25
+  enchantment effects, glint, brewing with every 1.17.1 potion recipe, splash and lingering potions, anvil and
+  grindstone.
+- **The End:**
+  - End biome source, terrain and pillars; chorus plants.
+  - Eyes of ender, portal activation and the arrival platform.
+  - The exit fountain and an original credits poem; the End sky.
+  - Gaps: no ender dragon (so the fountain starts lit), no crystals, end cities or gateway teleports.
+- **Redstone:**
+  - Signal model, dust (vanilla update order), torches with burnout, repeaters and comparators (container
+    levels).
+  - Observers, daylight detectors, target blocks, plates, buttons, levers, lamps, trapped chests.
+  - Powered doors, trapdoors and gates; note blocks, TNT, dispensers and droppers (drop only).
+  - Pistons follow the vanilla push rules, but move instantly with no 2-tick animation.
+  - Not done: hoppers, rails, tripwire.
+- **QA pass:**
+  - Vanilla setInitialSpawn: spawn biome search and a grass column spiral.
+  - The desktop app saves the world before the window closes.
+  - The server catches exceptions per tick and per packet, so one bug can't freeze or crash a world.
+  - Favicon.
+  - Verified end to end: survival loop, saving, creative, dedicated-server multiplayer, LAN over WebRTC.
+
