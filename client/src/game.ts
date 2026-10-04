@@ -24,7 +24,7 @@ import { raycastBlocks, type BlockHit } from '@shared/world/raycast';
 import { outlineBoxes, type Box } from '@shared/world/shapes';
 import { blockNameOf, propsOf, getProp, stateToString, STATE_TO_BLOCK } from '@shared/world/blockstate';
 import { PlayerPhysics, POSE_EYE, type MoveInput, type Pose } from '@shared/entity/playerphysics';
-import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes, type Mat4 } from './render/math';
+import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes, aabbInFrustum, type Mat4 } from './render/math';
 import type { TextureManifest } from './render/blockmodels';
 import { Gui } from './gui/gui';
 import { RemotePlayer, wrapDegrees } from './world/entities';
@@ -1910,7 +1910,11 @@ export class Game implements ScreenHost {
       for (const m of this.mobs.mobs.values()) {
         const [w, h] = m.dims();
         const d = ((w + w + h) / 3) * 64 * this.settings.entityDistance;
-        if ((m.x - cx) ** 2 + (m.y - cy) ** 2 + (m.z - cz) ** 2 < d * d && m.id !== this.cameraEntity) visible.push(m);
+        if ((m.x - cx) ** 2 + (m.y - cy) ** 2 + (m.z - cz) ** 2 >= d * d || m.id === this.cameraEntity) continue;
+        // EntityRenderer.shouldRender: frustum test on the culling box (bounding box grown by 0.5)
+        const hw = w / 2 + 0.5;
+        if (!aabbInFrustum(this.planes, m.x - hw - cx, m.y - 0.5 - cy, m.z - hw - cz, m.x + hw - cx, m.y + h + 0.5 - cy, m.z + hw - cz)) continue;
+        visible.push(m);
       }
       this.mobRenderer.shadows = (this.settings as { entityShadows?: boolean }).entityShadows ?? true;
       this.mobRenderer.target = this.targetEntity;
