@@ -26,7 +26,7 @@ import { destroyProgress, hardness, canHarvest } from '@shared/game/mining';
 import { blockDrops, blockForItem, itemForBlock } from '@shared/game/loot';
 import { isEmpty, maxStackSize, itemName, type ItemStack } from '@shared/item/stack';
 import { collisionBoxes } from '@shared/world/shapes';
-import { getProp, blockNameOf } from '@shared/world/blockstate';
+import { getProp, blockNameOf, parseState } from '@shared/world/blockstate';
 import { FLUID } from '@shared/world/blockinfo';
 import { BLOCKS_BY_NAME, ITEMS_BY_NAME } from '@shared/data';
 import { Survival, DEFAULT_GAME_RULES, DAMAGE, type GameRules } from './survival';
@@ -35,6 +35,14 @@ import { soundId, sourceId, type SoundSource } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
+// --- block behaviours (Phase 4: ticks, gravity, farming, doors)
+import { BlockBehaviors } from './blocks';
+import { FallingBlockEntity } from './fallingblock';
+import { ItemUse } from './itemuse';
+import { Arrow } from './arrow';
+import { Thrown } from './throwable';
+import { Containers } from './containers';
+import { takeGenBlockEntities } from '@shared/worldgen/features/underground';
 import { Commands, type AccessStore } from './commands';
 import { DEFAULT_ALL_GAME_RULES, type AllGameRules } from './commands/gamerules';
 
@@ -97,9 +105,15 @@ export class GameServer {
   readonly commands = new Commands(this);
   difficulty: Difficulty = Difficulty.Normal;
   readonly survival = new Survival(this);
+  /** item use, durability, armour, effects sync (itemuse.ts) */
+  readonly items = new ItemUse(this);
   /** server.properties pvp */
   pvp = true;
   readonly sleep = new Sleep(this);
+  /** Block behaviours: scheduled + random ticks, gravity blocks, farming, doors (blocks.ts). */
+  readonly blocks = new BlockBehaviors(this);
+  /** container menus, block entities and furnaces */
+  readonly containers = new Containers(this);
   // ---- fluids (FlowingFluid ticks; see fluidticks.ts) ----
   readonly fluids: FluidTicks = new FluidTicks({
     getState: (x, y, z) => this.world.getState(x, y, z),
@@ -184,6 +198,8 @@ export class GameServer {
     const i = this.players.findIndex((p) => p.conn === conn);
     if (i < 0) return;
     const [gone] = this.players.splice(i, 1);
+    this.items.forget(gone!);
+    this.containers.closeAll(gone!);
     if (this.opts.storage) {
       const key = this.playerKey(gone!);
       const data = capturePlayer(gone!);
@@ -222,6 +238,7 @@ export class GameServer {
     }
     p.prevTickX = p.x;
     p.prevTickZ = p.z;
+    p.living.effects.onChange = (e, removed) => this.items.sendEffect(p, e, removed);
     this.players.push(p);
     this.send(p, {
       t: 'login', entityId: p.id, gameMode: p.gameMode, dimension: 'overworld', seed: this.world.biomeZoomSeed!,
@@ -233,6 +250,8 @@ export class GameServer {
     }
     this.sendAbilities(p);
     this.survival.sync(p);
+    // effects restored from the save
+    for (const e of p.living.effects.active.values()) this.items.sendEffect(p, e, false);
     this.send(p, { t: 'difficulty', difficulty: this.difficulty });
     this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     this.send(p, { t: 'weather', rain: this.rainLevel, thunder: this.thunderLevel * this.rainLevel });
@@ -315,6 +334,9 @@ export class GameServer {
 
   /** LightningBolt.tick server side: strike entities, light fires (needs fire spread, Phase 4). */
   private tickBolt(b: LightningBolt): void {
+    // LightningBolt.spawnFire: 4 extra on the first tick (normal/hard), none on re-flashes
+    if (!b.visualOnly && b.fire === 4 && (this.difficulty === Difficulty.Normal || this.difficulty === Difficulty.Hard)) this.blocks.lightningFire(b.x, b.y, b.z, 4);
+    else if (!b.visualOnly && b.fire === 0) this.blocks.lightningFire(b.x, b.y, b.z, 0);
     if (!b.striking) return;
     for (const p of this.players) {
       if (Math.abs(p.x - b.x) > 3 + 0.3 || Math.abs(p.z - b.z) > 3 + 0.3 || p.y + 1.8 < b.y - 3 || p.y > b.y + 9) continue;
@@ -458,6 +480,7 @@ export class GameServer {
     }
     if (action === 0) {
       if (hardness(state) < 0) return this.resendBlock(p, x, y, z);
+      if (this.blocks.attack(x, y, z)) return this.resendBlock(p, x, y, z);
       p.digging = { x, y, z, start: this.gameTime };
       if (destroyProgress(this.minerState(p), state) >= 1) {
         this.destroyBlock(x, y, z, p, true);
@@ -485,7 +508,8 @@ export class GameServer {
   private minerState(p: ServerPlayer) {
     const held = p.inventory.selectedStack;
     const eyeState = this.world.getState(Math.floor(p.x), Math.floor(p.y + 1.62), Math.floor(p.z));
-    return { item: held?.id ?? 0, efficiency: 0, haste: 0, miningFatigue: 0, underwater: FLUID[eyeState] === 1, aquaAffinity: false, onGround: p.onGround || p.flying };
+    const fx = p.living.effects;
+    return { item: held?.id ?? 0, efficiency: 0, haste: Math.max(fx.amplifier('haste'), fx.amplifier('conduit_power')) + 1, miningFatigue: fx.amplifier('mining_fatigue') + 1, underwater: FLUID[eyeState] === 1, aquaAffinity: false, onGround: p.onGround || p.flying };
   }
 
   private broadcastBreakProgress(p: ServerPlayer, x: number, y: number, z: number, stage: number): void {
@@ -501,6 +525,9 @@ export class GameServer {
     const state = this.world.getState(x, y, z);
     if (state === 0) return;
     const name = blockNameOf(state);
+    // doors and tall plants drop from their lower half (vanilla destroys it with drops via updateShape)
+    const below = this.world.getState(x, y - 1, z);
+    const lootState = getProp(state, 'half') === 'upper' && blockNameOf(below) === name ? below : state;
     // Level.destroyBlock leaves the block's fluid behind (waterlogged blocks, kelp, seagrass)
     this.setBlock(x, y, z, legacyBlock(FLUID_OF[state]!));
     // particles + sound for everyone else (the breaker plays them locally)
@@ -509,13 +536,16 @@ export class GameServer {
     if (drops && breaker && breaker.gameMode !== 1) {
       const held = breaker.inventory.selectedStack;
       const harvest = canHarvest(held?.id ?? 0, state);
-      const items = blockDrops(state, { silkTouch: false, canHarvest: harvest, random: () => this.rand.nextFloat() });
+      const shears = held ? itemNameOf(held.id) === 'shears' : false;
+      const items = blockDrops(lootState, { silkTouch: false, shears, canHarvest: harvest, random: () => this.rand.nextFloat() });
       for (const it of items) this.popResource(x, y, z, it);
       // Block.spawnAfterBreak → popExperience (OreBlock / RedStoneOreBlock / SpawnerBlock)
       const xp = harvest ? oreExperience(name, this.rand) : 0;
       // Block.popExperience: only with doTileDrops
       if (xp > 0 && this.gameRules.doTileDrops) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
     }
+    // Item.mineBlock: tools lose durability (survival/adventure breakers)
+    if (drops && breaker && breaker.gameMode !== 1) this.items.onBlockMined(breaker, state);
     // beds: the other half goes too (BedBlock.updateShape → destroyBlock), dropping its loot
     // (the bed item comes from the head) unless the breaker is in creative
     if (name.endsWith('_bed')) {
@@ -571,6 +601,10 @@ export class GameServer {
     const slot = m.hand === 1 ? 40 : p.inventory.selected;
     const held = p.inventory.get(slot);
     const block = held ? blockForItem(held.id) : null;
+    // hoes, shovels, axes, bone meal, flint and steel on blocks/TNT (blocks.ts)
+    if (held && !block && p.gameMode !== 2 && this.blocks.useItemOn(p, slot, held, x, y, z, face)) return;
+    // other non-block items (buckets, flint and steel fire): Item.useOn (itemuse.ts)
+    if (held && !block && this.items.useOn(p, m.hand === 1 ? 1 : 0, x, y, z, face)) return;
     if (!held || !block || p.gameMode === 2) return;
     const clicked = this.world.getState(x, y, z);
     let px = x, py = y, pz = z;
@@ -613,6 +647,10 @@ export class GameServer {
   }
 
   // ------------------------------------------------------------------ item entities
+  newEntityId(): number {
+    return this.nextEntityId++;
+  }
+
   spawnEntity(e: ServerEntity): void {
     this.entities.set(e.id, e);
   }
@@ -629,6 +667,18 @@ export class GameServer {
     e.vx = r.nextDouble() * 0.2 - 0.1;
     e.vy = 0.2;
     e.vz = r.nextDouble() * 0.2 - 0.1;
+    this.spawnEntity(e);
+  }
+
+  /** Spawn an item entity with a given motion (Containers.dropItemStack and friends). */
+  spawnItem(x: number, y: number, z: number, stack: ItemStack, vx: number, vy: number, vz: number): void {
+    const e = new ItemEntity(this.nextEntityId++, stack);
+    e.x = x;
+    e.y = y;
+    e.z = z;
+    e.vx = vx;
+    e.vy = vy;
+    e.vz = vz;
     this.spawnEntity(e);
   }
 
@@ -669,7 +719,10 @@ export class GameServer {
       e.tick(this.world);
       if (e instanceof LightningBolt) this.tickBolt(e);
       if (e instanceof ItemEntity && !e.removed) {
-        if ((this.gameTime + e.id) % 2 === 0) this.tryMerge(e);
+        this.items.itemHazards(e);
+        // ItemEntity.tick: merge every 2 ticks while moving between blocks, else every 40
+        const moved = Math.floor(e.x) !== Math.floor(e.prevX) || Math.floor(e.y) !== Math.floor(e.prevY) || Math.floor(e.z) !== Math.floor(e.prevZ);
+        if (!e.removed && e.age % (moved ? 2 : 40) === 0) this.tryMerge(e);
       }
       if (e instanceof ExperienceOrb && !e.removed && e.age % 20 === 1) this.scanOrb(e);
     }
@@ -800,7 +853,7 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : 0 });
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId : e instanceof Thrown ? e.item : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
         } else if (!visible && p.tracking.has(e.id)) {
           p.tracking.delete(e.id);
@@ -828,6 +881,8 @@ export class GameServer {
     if (mode === 3) p.flying = true;
     // leaving spectator stops looking through another entity
     if (mode !== 3) this.setCamera(p, null);
+    // spectators can't keep a container open
+    else this.containers.closeContainer(p, true);
     p.stateDirty = true;
     this.send(p, { t: 'gameMode', mode });
     this.sendAbilities(p);
@@ -900,16 +955,20 @@ export class GameServer {
     p.onGround = m.onGround;
     this.movementSounds(p, dx, dy, dz);
     if (m.onGround) {
+      if (p.fallDistance > 0) this.blocks.fallOn(p, p.fallDistance);
       if (p.fallDistance > 0) this.survival.land(p, p.fallDistance);
       p.fallDistance = 0;
     } else if (dy < 0) p.fallDistance -= dy;
-    if (p.flying) p.fallDistance = 0;
+    // flying, Slow Falling and Levitation never build up a fall (LivingEntity.travel)
+    if (p.flying || p.living.effects.has('slow_falling') || p.living.effects.has('levitation')) p.fallDistance = 0;
   }
 
   /** BlockState.use for interactive blocks; returns true when the click was consumed. */
   private useBlock(p: ServerPlayer, x: number, y: number, z: number): boolean {
     const st = this.world.getState(x, y, z);
     if (blockNameOf(st).endsWith('_bed')) return this.sleep.useBed(p, x, y, z);
+    if (this.blocks.use(p, x, y, z)) return true;
+    if (this.containers.useBlock(p, x, y, z)) return true;
     return false;
   }
 
@@ -934,6 +993,8 @@ export class GameServer {
     const res = computeAttack({
       item, attackStrengthTicker: p.attackStrengthTicker, sprinting: p.sprinting, fallDistance: p.fallDistance, onGround: p.onGround,
       onClimbable: ph.onClimbable(), inWater: ph.isInWater, walked: p.walkDist - p.walkDistO, speed: 0.1,
+      damageBonus: 3 * (p.living.effects.amplifier('strength') + 1) - 4 * (p.living.effects.amplifier('weakness') + 1),
+      speedMul: (1 + 0.1 * (p.living.effects.amplifier('haste') + 1)) * (1 - 0.1 * (p.living.effects.amplifier('mining_fatigue') + 1)),
     });
     p.attackStrengthTicker = 0;
     if (!this.pvp) return;
@@ -952,6 +1013,8 @@ export class GameServer {
       if (res.sweep) this.playSound(null, 'entity.player.attack.sweep', 'player', sx, sy, sz, 1, 1);
       else if (!res.critical) this.playSound(null, res.charged ? 'entity.player.attack.strong' : 'entity.player.attack.weak', 'player', sx, sy, sz, 1, 1);
       if (res.critical) this.broadcastToTrackers(t, { t: 'animate', id: t.id, action: 4 }, true);
+      // ItemStack.hurtEnemy: swords lose 1 durability per hit, tools 2
+      this.items.onAttackHit(p);
       p.living.food.addExhaustion(EXHAUSTION.attack);
     } else {
       this.playSound(null, 'entity.player.attack.nodamage', 'player', sx, sy, sz, 1, 1);
@@ -961,6 +1024,8 @@ export class GameServer {
 
   /** LivingEntity.knockback, sent to the victim's client as a velocity (SetEntityMotion). */
   knockback(t: ServerPlayer, strength: number, x: number, z: number): void {
+    // KNOCKBACK_RESISTANCE (netherite armour)
+    strength *= 1 - this.items.armorOf(t).knockbackResistance;
     if (strength <= 0) return;
     const len = Math.hypot(x, z) || 1;
     const kx = (x / len) * strength, kz = (z / len) * strength;
@@ -1049,9 +1114,20 @@ export class GameServer {
         this.syncSlot(p, 40);
         break;
       }
+      case 'clickWindow':
+        this.containers.handleClick(p, m);
+        break;
+      case 'closeWindow':
+        this.containers.handleClose(p, m.windowId);
+        break;
+      case 'menuButton':
+        this.containers.handleButton(p, m.windowId, m.button);
+        break;
       case 'creativeSlot':
+        // slot −1: the creative inventory throws the stack out of the window
+        if (p.gameMode === 1 && m.slot === -1 && m.item > 0 && m.count > 0) this.tossItem(p, { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) });
         if (p.gameMode === 1 && m.slot >= 0 && m.slot < 41) {
-          p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: 0 } : null);
+          p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) } : null);
         }
         break;
       case 'pickBlock':
@@ -1065,6 +1141,12 @@ export class GameServer {
         break;
       case 'dropItem':
         this.dropFromHand(p, m.all);
+        break;
+      case 'useItem':
+        this.items.useItem(p, m.hand === 1 ? 1 : 0);
+        break;
+      case 'releaseUseItem':
+        this.items.release(p);
         break;
       case 'swing':
         for (const o of this.players) if (o.tracking.has(p.id)) this.send(o, { t: 'animate', id: p.id, action: m.hand === 1 ? 3 : 0 });
@@ -1147,6 +1229,8 @@ export class GameServer {
       if (this.generator instanceof OverworldGenerator) {
         // springs schedule their fluid tick (delay 0); it runs once the chunk is full and ticking
         for (const [x, y, z] of this.generator.decorate(this.world, cx, cz)) this.fluids.scheduleFluidAt(x, y, z, 0);
+        // chests placed by features (dungeons) get their loot table
+        this.containers.attachGenerated(takeGenBlockEntities(this.world));
       }
       c.stage = 2;
     }
@@ -1443,6 +1527,7 @@ export class GameServer {
   /** Stop ticking and save; resolves once everything is written. */
   async shutdown(): Promise<void> {
     this.stop();
+    this.items.dispose();
     await this.save();
     await this.opts.storage?.close();
   }
@@ -1451,9 +1536,11 @@ export class GameServer {
     if (y < 0 || y > 255) return;
     const old = this.world.setStateRaw(x, y, z, state);
     if (old === state) return;
+    this.containers.onBlockChanged(x, y, z, old, state);
     this.light.onBlockChanged(x, y, z, old, state);
     const key = chunkKey(x >> 4, z >> 4);
     for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
+    this.blocks.afterSetBlock(x, y, z, old, state);
     // after the packet: fluid updates may replace this block again (lava hardening) and must arrive later
     this.fluids.blockChanged(x, y, z, old, state);
   }
@@ -1490,6 +1577,8 @@ export class GameServer {
       }
       p.updatePose();
       this.survival.tick(p);
+      this.items.tick(p);
+      this.items.touchArrows(p);
       // Player.tick: attack strength recharges; switching to a different item restarts it
       p.attackStrengthTicker++;
       const main = p.inventory.selectedStack?.id ?? 0;
@@ -1505,7 +1594,9 @@ export class GameServer {
       }
       p.vx = p.vy = p.vz = 0;
     }
+    this.blocks.tick();
     this.tickEntities();
+    this.containers.tick();
     this.updateChunks();
     this.updateTracking();
     this.trackEntities();
@@ -1635,6 +1726,7 @@ export class GameServer {
           this.send(p, { t: 'addPlayer', id: o.id, name: o.name, skin: o.skin, x: o.x, y: o.y, z: o.z, yaw: o.yaw, pitch: o.pitch, headYaw: o.headYaw });
           this.send(p, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose, frozen: o.living.ticksFrozen });
           this.send(p, { t: 'equipment', id: o.id, mainHand: o.inventory.selectedStack?.id ?? 0, offHand: o.inventory.get(40)?.id ?? 0 });
+          this.items.sendStateTo(p, o);
         } else if (!visible && p.tracking.has(o.id)) {
           p.tracking.delete(o.id);
           this.send(p, { t: 'removeEntities', ids: [o.id] });

@@ -5,7 +5,8 @@
 import { createProgram, Uniforms } from '../gl';
 import { mat4, multiply, type Mat4 } from '../math';
 import { bakeEntityModel, FLOATS_PER_VERTEX, PartPose, type BakedEntityModel, type PartDef } from './model';
-import { playerParts, animateHumanoid } from './playermodel';
+import { playerParts, animateHumanoid, armorParts } from './playermodel';
+import { armorInfo, nameOf } from '@shared/game/items';
 import { PoseStack } from '../posestack';
 import { armPartTransform } from '../handpose';
 import type { RemotePlayer } from '../../world/entities';
@@ -85,7 +86,58 @@ export class EntityRenderer {
     this.u = new Uniforms(gl, this.prog);
     this.models.set('player', this.upload(playerParts(false), 64, 64));
     this.models.set('player_slim', this.upload(playerParts(true), 64, 64));
+    this.models.set('armor_outer', this.upload(armorParts(1), 64, 32));
+    this.models.set('armor_inner', this.upload(armorParts(0.5), 64, 32));
   }
+
+  private armorTex = new Map<string, WebGLTexture>();
+  /** Armour layer textures (textures/entity/armor/<material>_layer_<n>.png). */
+  async loadArmor(base = './textures/entity/armor/'): Promise<void> {
+    const names = ['leather', 'chainmail', 'iron', 'gold', 'diamond', 'netherite'].flatMap((m) => [`${m}_layer_1`, `${m}_layer_2`]).concat('turtle_layer_1');
+    await Promise.all(names.map(async (n) => {
+      try {
+        this.armorTex.set(n, await this.loadTexture(`${base}${n}.png`));
+      } catch {
+        /* missing texture: that armour just isn't drawn */
+      }
+    }));
+  }
+
+  /** HumanoidArmorLayer: each worn piece on the outer (or, for leggings, inner) armour model. */
+  private renderArmor(p: RemotePlayer, poses: Record<string, PartPose>, m: Mat4): boolean {
+    const gl = this.gl;
+    let drew = false;
+    const slots: [number, string, string[]][] = [
+      [p.armor[3], 'armor_outer', ['head']],
+      [p.armor[2], 'armor_outer', ['body', 'rightArm', 'leftArm']],
+      [p.armor[1], 'armor_inner', ['body', 'rightLeg', 'leftLeg']],
+      [p.armor[0], 'armor_outer', ['rightLeg', 'leftLeg']],
+    ];
+    for (const [item, modelName, parts] of slots) {
+      if (!item) continue;
+      const a = armorInfo(item);
+      if (!a) continue;
+      const mat = a.material === 'golden' ? 'gold' : a.material;
+      const tex = this.armorTex.get(`${mat}_layer_${modelName === 'armor_inner' ? 2 : 1}`);
+      if (!tex) continue;
+      const model = this.models.get(modelName)!;
+      gl.bindVertexArray(model.vao);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      drew = true;
+      model.baked.parts.forEach((part) => {
+        if (!parts.includes(part.def.name)) return;
+        const pose = poses[part.def.name];
+        if (!pose || !pose.visible) return;
+        const pm = this.tmp2;
+        partMatrix(pm, pose);
+        multiply(this.tmp, m, pm);
+        gl.uniformMatrix4fv(this.u.get('uModel'), false, this.tmp);
+        gl.drawArrays(gl.TRIANGLES, part.first, part.count);
+      });
+    }
+    return drew;
+  }
+  private readonly tmp2 = mat4();
 
   async loadSkins(base = './textures/skins/'): Promise<void> {
     this.defaultSkins = (await (await fetch(`${base}skins.json`)).json()) as string[];
@@ -145,7 +197,7 @@ export class EntityRenderer {
 
   private poses = new Map<number, Record<string, PartPose>>();
   /** Held-item draws queued by renderPlayers (camera-relative matrix, light, item, left hand). */
-  readonly held: { matrix: Mat4; light: number; item: number; left: boolean }[] = [];
+  readonly held: { matrix: Mat4; light: number; item: number; left: boolean; pull?: number }[] = [];
   private heldPool: Mat4[] = [];
   /** Bed yaw (Direction.toYRot of FACING) under a sleeping player — set by the game. */
   bedFacing: ((p: RemotePlayer) => number | null) | null = null;
@@ -206,6 +258,8 @@ export class EntityRenderer {
         attackTime: p.attackAnimO + (p.attackAnim - p.attackAnimO) * partial,
         attackArm: p.swingingArm,
         swimAmount: 0,
+        bowPose: p.usingItem !== 0 && nameOf(p.usingItem) === 'bow',
+        blockArm: p.usingItem !== 0 && nameOf(p.usingItem) === 'shield' && p.useTicks >= 5 ? (p.usingItem === p.offHand && p.usingItem !== p.mainHand ? 'left' : 'right') : undefined,
       });
       // entity base transform: translate, rotate by body yaw (yaw 0 faces +Z), scale px → blocks
       const m = this.m;
@@ -257,6 +311,7 @@ export class EntityRenderer {
         gl.enable(gl.CULL_FACE);
         continue;
       }
+      if (p.armor && this.renderArmor(p, poses, m)) gl.bindVertexArray(model.vao);
       // ItemInHandLayer: items held in each hand
       for (const [item, armName, left] of [[p.mainHand, 'rightArm', false], [p.offHand, 'leftArm', true]] as const) {
         if (!item) continue;
@@ -270,7 +325,9 @@ export class EntityRenderer {
         const out = this.heldPool.pop() ?? mat4();
         multiply(out, m, am);
         multiply(out, out, heldItemTransform(left, info.flat, info.handheld ?? false));
-        this.held.push({ matrix: out, light, item, left });
+        // a drawn bow shows its pulling frames (pull = ticks used / 20)
+        const pull = p.usingItem === item && nameOf(item) === 'bow' ? Math.min(1, p.useTicks / 20) : undefined;
+        this.held.push({ matrix: out, light, item, left, pull });
       }
     }
     gl.bindVertexArray(null);
@@ -341,7 +398,7 @@ export function recycleHeld(r: EntityRenderer): void {
  * transform (blocks: rot (75, 45, 0), 2.5 px up, scale 0.375; generated: 3 px up, 1 px forward,
  * scale 0.55), converted from vanilla's y-down model space by diag(1, −1, −1) and px scale.
  */
-function heldItemTransform(left: boolean, flat: boolean, handheld = false): Mat4 {
+export function heldItemTransform(left: boolean, flat: boolean, handheld = false): Mat4 {
   const out = mat4();
   const mul = (b: Mat4) => multiply(out, out, b);
   const S = mat4();

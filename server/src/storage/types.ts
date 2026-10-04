@@ -65,8 +65,12 @@ export interface PlayerData {
   score: number;
   /** 41 slots (vanilla Inventory numbering), null = empty */
   inventory: (ItemStack | null)[];
+  /** ender chest contents (27), absent in older saves */
+  enderItems?: (ItemStack | null)[];
   selected: number;
   respawn: { x: number; y: number; z: number; angle: number } | null;
+  /** active status effects (vanilla ActiveEffects) */
+  effects?: { id: number; amplifier: number; duration: number; ambient: boolean; visible: boolean; showIcon: boolean }[];
 }
 
 export interface ChunkRecord {

@@ -7,7 +7,7 @@ import { ByteReader, ByteWriter } from './buffer';
 import { readChunk, writeChunk, writeSection, readSection } from './chunkcodec';
 import { Chunk, ChunkSection } from '../world/chunk';
 
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 
 type FieldType =
   | 'u8' | 'bool' | 'i16' | 'u16' | 'i32' | 'u32' | 'f32' | 'f64' | 'i64' | 'str' | 'varint' | 'svarint'
@@ -83,6 +83,26 @@ const S2C_SCHEMA = {
   playerInfo: [['action', 'u8'], ['id', 'i32'], ['name', 'str'], ['skin', 'str'], ['gameMode', 'u8']],
   /** Spectate through another entity's eyes, or back to your own (vanilla SetCamera). */
   setCamera: [['id', 'i32']],
+  /** Status effect added/updated on an entity (vanilla UpdateMobEffect); flags 1 ambient, 2 visible, 4 icon. */
+  mobEffect: [['id', 'i32'], ['effect', 'u8'], ['amplifier', 'u8'], ['duration', 'i32'], ['flags', 'u8']],
+  /** Status effect removed (vanilla RemoveMobEffect). */
+  removeMobEffect: [['id', 'i32'], ['effect', 'u8']],
+  /** Absorption hearts of the receiving player (vanilla DATA_PLAYER_ABSORPTION_ID). */
+  absorption: [['amount', 'f32']],
+  /** Armour another player wears (vanilla SetEquipment armour slots; item ids, 0 = empty). */
+  armorEquipment: [['id', 'i32'], ['feet', 'i16'], ['legs', 'i16'], ['chest', 'i16'], ['head', 'i16']],
+  /** A living entity starts/stops using an item (vanilla DATA_LIVING_ENTITY_FLAGS: eating, drinking, drawing a bow). */
+  livingUse: [['id', 'i32'], ['using', 'bool'], ['hand', 'u8'], ['item', 'i16']],
+  /** A container window opened (vanilla OpenScreen): menu type ('crafting', 'generic_9x3', 'furnace'…) and title. */
+  openWindow: [['windowId', 'u8'], ['type', 'str'], ['title', 'str']],
+  /** Every slot of a window plus the carried stack last (vanilla ContainerSetContent); see encodeStacks. */
+  windowItems: [['windowId', 'u8'], ['items', 'bytes']],
+  /** One slot of a window (vanilla ContainerSetSlot); windowId −1 = the carried stack. */
+  windowSlot: [['windowId', 'i16'], ['slot', 'i16'], ['item', 'i16'], ['count', 'u8'], ['damage', 'i16']],
+  /** Container data (vanilla ContainerSetData): furnace lit time, lit duration, cook progress, total cook time. */
+  windowData: [['windowId', 'u8'], ['property', 'u8'], ['value', 'i16']],
+  /** The server closed a window (vanilla ContainerClose). */
+  closeWindow: [['windowId', 'u8']],
   // ---- commands & player list (Phase 9) ----
   /** Answer to a commandSuggest request: JSON {start, list:[{text,tooltip?}], usage:[], error, parsedTo}. */
   commandSuggestions: [['id', 'varint'], ['json', 'str']],
@@ -90,7 +110,21 @@ const S2C_SCHEMA = {
   keepAlive: [['id', 'f64']],
   /** Vanilla PlayerInfo UPDATE_LATENCY: a player's ping in milliseconds. */
   playerLatency: [['id', 'i32'], ['latency', 'varint']],
+  // ---- mobs (Phase 6) ----
+  /**
+   * Per-mob synced state (vanilla SynchedEntityData subset), one key at a time. Keys (see
+   * MOB_DATA_KEYS): color (sheep DyeColor id 0–15), sheared, baby, swell_dir (creeper −1/1),
+   * charged, aggressive (zombie arms up / skeleton aiming / enderman creepy), saddle, size
+   * (slime), carried (enderman block state), hanging (bat resting), bow (skeleton holds a bow),
+   * name_visible (custom name always shown), sitting / tame / health (wolf pose and tail).
+   */
+  mobData: [['id', 'i32'], ['key', 'str'], ['value', 'i32']],
+  /** A mob's custom name (name tag); empty clears it. Shown when looked at, or always with mobData name_visible = 1. */
+  mobName: [['id', 'i32'], ['name', 'str']],
 } as const satisfies Schema;
+
+/** Keys of the mobData packet (client: client/src/world/mobs.ts). */
+export const MOB_DATA_KEYS = ['color', 'sheared', 'baby', 'swell_dir', 'charged', 'aggressive', 'saddle', 'size', 'carried', 'hanging', 'bow', 'name_visible', 'sitting', 'tame', 'health'] as const;
 
 // ------------------------------------------------------------------ client → server
 const C2S_SCHEMA = {
@@ -108,7 +142,7 @@ const C2S_SCHEMA = {
   swing: [['hand', 'u8']],
   heldSlot: [['slot', 'u8']],
   /** Creative inventory: put an item stack into a slot (vanilla SetCreativeModeSlot). */
-  creativeSlot: [['slot', 'i16'], ['item', 'i16'], ['count', 'u8']],
+  creativeSlot: [['slot', 'i16'], ['item', 'i16'], ['count', 'u8'], ['damage', 'i16']],
   /** Q / Ctrl+Q: drop one or the whole stack from the selected slot. */
   dropItem: [['all', 'bool']],
   /** Middle click in creative: put the block's item in the hotbar (vanilla pick block). */
@@ -123,6 +157,16 @@ const C2S_SCHEMA = {
   respawn: [],
   /** Spectator menu "Teleport to Player" (vanilla TeleportToEntity). */
   spectate: [['target', 'i32']],
+  /** Right click with an item in the air, or after a block interaction passed (vanilla UseItem). */
+  useItem: [['hand', 'u8']],
+  /** Use key released while using an item: shoot the bow (vanilla PlayerAction RELEASE_USE_ITEM). */
+  releaseUseItem: [],
+  /** Click in a window (vanilla ContainerClick): slot −999 = outside; clickType 0 PICKUP, 1 QUICK_MOVE, 2 SWAP, 3 CLONE, 4 THROW, 5 QUICK_CRAFT, 6 PICKUP_ALL. */
+  clickWindow: [['windowId', 'u8'], ['slot', 'i16'], ['button', 'u8'], ['clickType', 'u8']],
+  /** The player closed a window (0 = the inventory). */
+  closeWindow: [['windowId', 'u8']],
+  /** A menu button (vanilla ContainerButtonClick): stonecutter recipe index… */
+  menuButton: [['windowId', 'u8'], ['button', 'u8']],
   // ---- commands & player list (Phase 9) ----
   /** Chat box tab completion (vanilla ServerboundCommandSuggestion); text includes the leading '/'. */
   commandSuggest: [['id', 'varint'], ['text', 'str']],
@@ -237,3 +281,27 @@ export function decodeC2S(buf: ArrayBuffer): C2S {
 }
 
 export { writeSection, readSection };
+
+/** Item stack list for windowItems: per stack i16 item id, u8 count, i16 damage. */
+export function encodeStacks(list: readonly ({ id: number; count: number; damage: number } | null)[]): Uint8Array {
+  const w = new ByteWriter(list.length * 5 + 8);
+  w.varint(list.length);
+  for (const s of list) {
+    const empty = !s || s.count <= 0 || s.id <= 0;
+    w.i16(empty ? 0 : s.id);
+    w.u8(empty ? 0 : Math.min(255, s.count));
+    w.i16(empty ? 0 : s.damage);
+  }
+  return new Uint8Array(w.finish());
+}
+
+export function decodeStacks(b: Uint8Array): ({ id: number; count: number; damage: number } | null)[] {
+  const r = new ByteReader(b);
+  const n = r.varint();
+  const out: ({ id: number; count: number; damage: number } | null)[] = [];
+  for (let i = 0; i < n; i++) {
+    const id = r.i16(), count = r.u8(), damage = r.i16();
+    out.push(id > 0 && count > 0 ? { id, count, damage } : null);
+  }
+  return out;
+}

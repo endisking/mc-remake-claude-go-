@@ -225,8 +225,8 @@ All recordings (sound effects and the `music_*` tracks) are CC0. They are trimme
 | Eerie Insectoid Sci-Fi Drone - Seamless Loop by kkenny101 | kkenny101 | https://freesound.org/people/kkenny101/sounds/866270/ | CC0 1.0 | nether_loop_warped |
 | Horses - Snort; Distant by TheKingOfGeeks360 | TheKingOfGeeks360 | https://freesound.org/people/TheKingOfGeeks360/sounds/868302/ | CC0 1.0 | horse_snort |
 | Digital Audio (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/digital-audio | CC0 1.0 | note_bit |
-| Impact Sounds (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/impact-sounds | CC0 1.0 | dig_wood, step_wood, step_grass, dig_stone, step_stone, step_cloth, dig_snow, step_snow, step_ladder, metal_heavy, metal_light, chain, plate, attack_strong, attack_weak, attack_knockback, attack_nodamage, bell, mob_step_soft, mob_step_hard, chop |
+| Impact Sounds (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/impact-sounds | CC0 1.0 | dig_wood, step_wood, step_grass, dig_stone, step_stone, step_cloth, dig_snow, step_snow, step_ladder, metal_heavy, metal_light, chain, plate, attack_strong, attack_weak, attack_knockback, attack_nodamage, bell, mob_step_hard, mob_step_soft, chop |
 | Interface Sounds (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/interface-sounds | CC0 1.0 | toast_in, toast_out |
-| RPG Audio (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/rpg-audio | CC0 1.0 | dig_cloth, door_open, door_close, metal_latch, chest_creak, book_flip, book_place, chop |
+| RPG Audio (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/rpg-audio | CC0 1.0 | dig_cloth, door_open, door_close, metal_latch, chest_creak, chop, book_flip, book_place |
 | UI Audio (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/ui-audio | CC0 1.0 | click |
 <!-- sounds:end -->

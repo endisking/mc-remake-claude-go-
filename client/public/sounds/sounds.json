@@ -1720,6 +1720,26 @@
    }
   ]
  },
+ "block.cake.add_candle": {
+  "sounds": [
+   {
+    "name": "dig_cloth/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_cloth/1",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_cloth/2",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_cloth/3",
+    "pitch": 1.2
+   }
+  ]
+ },
  "block.calcite.break": {
   "sounds": [
    {
@@ -2061,6 +2081,26 @@
    {
     "name": "step_grass/4",
     "pitch": 1.1
+   }
+  ]
+ },
+ "block.cave_vines.pick_berries": {
+  "sounds": [
+   {
+    "name": "dig_grass/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_grass/1",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_grass/2",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_grass/3",
+    "pitch": 1.2
    }
   ]
  },
@@ -3762,6 +3802,30 @@
    },
    {
     "name": "step_gravel/5"
+   }
+  ]
+ },
+ "block.grindstone.use": {
+  "sounds": [
+   {
+    "name": "dig_stone/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "dig_stone/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "dig_stone/2",
+    "pitch": 0.8
+   },
+   {
+    "name": "dig_stone/3",
+    "pitch": 0.8
+   },
+   {
+    "name": "dig_stone/4",
+    "pitch": 0.8
    }
   ]
  },
@@ -6209,6 +6273,30 @@
    }
   ]
  },
+ "block.pumpkin.carve": {
+  "sounds": [
+   {
+    "name": "dig_wood/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_wood/1",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_wood/2",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_wood/3",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_wood/4",
+    "pitch": 1.2
+   }
+  ]
+ },
  "block.respawn_anchor.ambient": {
   "sounds": [
    {
@@ -7177,6 +7265,18 @@
    }
   ]
  },
+ "block.smithing_table.use": {
+  "sounds": [
+   {
+    "name": "anvil_land/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "anvil_land/1",
+    "pitch": 1.2
+   }
+  ]
+ },
  "block.smoker.smoke": {
   "sounds": [
    {
@@ -7894,6 +7994,26 @@
    },
    {
     "name": "dig_grass/3"
+   }
+  ]
+ },
+ "block.sweet_berry_bush.pick_berries": {
+  "sounds": [
+   {
+    "name": "dig_grass/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_grass/1",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_grass/2",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_grass/3",
+    "pitch": 1.2
    }
   ]
  },
@@ -8870,6 +8990,106 @@
    }
   ]
  },
+ "entity.axolotl.attack": {
+  "sounds": [
+   {
+    "name": "attack_weak/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/1",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/2",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/3",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/4",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.axolotl.death": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "bat/1",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.axolotl.hurt": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "bat/1",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.axolotl.idle_air": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "bat/1",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "entity.axolotl.idle_water": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "bat/1",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.axolotl.splash": {
+  "sounds": [
+   {
+    "name": "splash/0",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.axolotl.swim": {
+  "sounds": [
+   {
+    "name": "swim/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "swim/1",
+    "pitch": 1.4
+   },
+   {
+    "name": "swim/2",
+    "pitch": 1.4
+   },
+   {
+    "name": "swim/3",
+    "pitch": 1.4
+   }
+  ]
+ },
  "entity.bat.ambient": {
   "sounds": [
    {
@@ -9202,6 +9422,30 @@
    }
   ]
  },
+ "entity.cod.ambient": {
+  "sounds": [
+   {
+    "name": "underwater_add/0",
+    "pitch": 1.5
+   },
+   {
+    "name": "underwater_add/1",
+    "pitch": 1.5
+   }
+  ]
+ },
+ "entity.cod.death": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1.4
+   }
+  ]
+ },
  "entity.cod.flop": {
   "sounds": [
    {
@@ -9212,6 +9456,18 @@
    {
     "name": "slime/1",
     "volume": 0.6,
+    "pitch": 1.6
+   }
+  ]
+ },
+ "entity.cod.hurt": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.6
+   },
+   {
+    "name": "slime/1",
     "pitch": 1.6
    }
   ]
@@ -9313,6 +9569,142 @@
    },
    {
     "name": "fuse/1"
+   }
+  ]
+ },
+ "entity.dolphin.ambient": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "bat/1",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.dolphin.ambient_water": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "bat/1",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.dolphin.attack": {
+  "sounds": [
+   {
+    "name": "attack_weak/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "attack_weak/1",
+    "pitch": 1.1
+   },
+   {
+    "name": "attack_weak/2",
+    "pitch": 1.1
+   },
+   {
+    "name": "attack_weak/3",
+    "pitch": 1.1
+   },
+   {
+    "name": "attack_weak/4",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "entity.dolphin.death": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "bat/1",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.dolphin.eat": {
+  "sounds": [
+   {
+    "name": "eat/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "eat/1",
+    "pitch": 1.2
+   },
+   {
+    "name": "eat/2",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.dolphin.hurt": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "bat/1",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.dolphin.jump": {
+  "sounds": [
+   {
+    "name": "splash/0",
+    "pitch": 1.3
+   }
+  ]
+ },
+ "entity.dolphin.play": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 1
+   },
+   {
+    "name": "bat/1",
+    "pitch": 1
+   }
+  ]
+ },
+ "entity.dolphin.splash": {
+  "sounds": [
+   {
+    "name": "splash/0",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.dolphin.swim": {
+  "sounds": [
+   {
+    "name": "swim/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "swim/1",
+    "pitch": 1.2
+   },
+   {
+    "name": "swim/2",
+    "pitch": 1.2
+   },
+   {
+    "name": "swim/3",
+    "pitch": 1.2
    }
   ]
  },
@@ -9495,11 +9887,158 @@
    }
   ]
  },
+ "entity.elder_guardian.ambient": {
+  "sounds": [
+   {
+    "name": "moan/0",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "entity.elder_guardian.ambient_land": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "slime/1",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.elder_guardian.curse": {
+  "sounds": [
+   {
+    "name": "voice_growl/0",
+    "pitch": 1.3
+   }
+  ]
+ },
+ "entity.elder_guardian.death": {
+  "sounds": [
+   {
+    "name": "moan/0",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.elder_guardian.death_land": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "slime/1",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.elder_guardian.flop": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.elder_guardian.hurt": {
+  "sounds": [
+   {
+    "name": "moan/0",
+    "pitch": 1.3
+   }
+  ]
+ },
+ "entity.elder_guardian.hurt_land": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1
+   }
+  ]
+ },
+ "entity.ender_dragon.ambient": {
+  "sounds": [
+   {
+    "name": "voice_growl/0",
+    "pitch": 0.5
+   }
+  ]
+ },
+ "entity.ender_dragon.death": {
+  "sounds": [
+   {
+    "name": "voice_growl/0",
+    "pitch": 0.4
+   }
+  ]
+ },
+ "entity.ender_dragon.flap": {
+  "sounds": [
+   {
+    "name": "wings/0",
+    "pitch": 0.4
+   },
+   {
+    "name": "wings/1",
+    "pitch": 0.4
+   }
+  ]
+ },
  "entity.ender_dragon.growl": {
   "sounds": [
    {
     "name": "voice_growl/0",
     "pitch": 0.6
+   }
+  ]
+ },
+ "entity.ender_dragon.hurt": {
+  "sounds": [
+   {
+    "name": "voice_growl/0",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.ender_dragon.shoot": {
+  "sounds": [
+   {
+    "name": "whoosh/0",
+    "pitch": 0.5
+   },
+   {
+    "name": "whoosh/1",
+    "pitch": 0.5
+   }
+  ]
+ },
+ "entity.ender_pearl.throw": {
+  "sounds": [
+   {
+    "name": "bow_shoot/0",
+    "volume": 0.5,
+    "pitch": 1.2
+   },
+   {
+    "name": "bow_shoot/1",
+    "volume": 0.5,
+    "pitch": 1.2
+   },
+   {
+    "name": "bow_shoot/2",
+    "volume": 0.5,
+    "pitch": 1.2
    }
   ]
  },
@@ -9550,6 +10089,210 @@
    },
    {
     "name": "teleport/1"
+   }
+  ]
+ },
+ "entity.endermite.ambient": {
+  "sounds": [
+   {
+    "name": "spider_say/0",
+    "pitch": 1.8
+   },
+   {
+    "name": "spider_say/1",
+    "pitch": 1.8
+   },
+   {
+    "name": "spider_say/2",
+    "pitch": 1.8
+   }
+  ]
+ },
+ "entity.endermite.death": {
+  "sounds": [
+   {
+    "name": "spider_say/0",
+    "pitch": 1.5
+   },
+   {
+    "name": "spider_say/1",
+    "pitch": 1.5
+   },
+   {
+    "name": "spider_say/2",
+    "pitch": 1.5
+   }
+  ]
+ },
+ "entity.endermite.hurt": {
+  "sounds": [
+   {
+    "name": "spider_hurt/0",
+    "pitch": 1.8
+   }
+  ]
+ },
+ "entity.endermite.step": {
+  "sounds": [
+   {
+    "name": "spider_step/0",
+    "pitch": 1.7
+   },
+   {
+    "name": "spider_step/1",
+    "pitch": 1.7
+   },
+   {
+    "name": "spider_step/2",
+    "pitch": 1.7
+   },
+   {
+    "name": "spider_step/3",
+    "pitch": 1.7
+   }
+  ]
+ },
+ "entity.evoker.ambient": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.7
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.7
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.evoker.cast_spell": {
+  "sounds": [
+   {
+    "name": "amethyst/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "amethyst/1",
+    "pitch": 0.6
+   },
+   {
+    "name": "amethyst/2",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.evoker.celebrate": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.evoker.death": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.5
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.5
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.5
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.5
+   }
+  ]
+ },
+ "entity.evoker.hurt": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.8
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.evoker.prepare_attack": {
+  "sounds": [
+   {
+    "name": "amethyst/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "amethyst/1",
+    "pitch": 0.7
+   },
+   {
+    "name": "amethyst/2",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.evoker.prepare_summon": {
+  "sounds": [
+   {
+    "name": "amethyst/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "amethyst/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "amethyst/2",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.evoker.prepare_wololo": {
+  "sounds": [
+   {
+    "name": "amethyst/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "amethyst/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "amethyst/2",
+    "pitch": 0.9
    }
   ]
  },
@@ -9629,6 +10372,94 @@
    {
     "name": "attack_sweep/1",
     "pitch": 0.7
+   }
+  ]
+ },
+ "entity.fox.ambient": {
+  "sounds": [
+   {
+    "name": "wolf_bark/0",
+    "pitch": 1.5
+   }
+  ]
+ },
+ "entity.fox.bite": {
+  "sounds": [
+   {
+    "name": "attack_weak/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/1",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/2",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/3",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/4",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.fox.death": {
+  "sounds": [
+   {
+    "name": "wolf_whine/0",
+    "pitch": 1.3
+   }
+  ]
+ },
+ "entity.fox.eat": {
+  "sounds": [
+   {
+    "name": "eat/0",
+    "pitch": 1.3
+   },
+   {
+    "name": "eat/1",
+    "pitch": 1.3
+   },
+   {
+    "name": "eat/2",
+    "pitch": 1.3
+   }
+  ]
+ },
+ "entity.fox.hurt": {
+  "sounds": [
+   {
+    "name": "wolf_bark/0",
+    "pitch": 1.7
+   }
+  ]
+ },
+ "entity.fox.screech": {
+  "sounds": [
+   {
+    "name": "wolf_bark/0",
+    "pitch": 1.9
+   }
+  ]
+ },
+ "entity.fox.sleep": {
+  "sounds": [
+   {
+    "name": "wolf_whine/0",
+    "pitch": 1.5
+   }
+  ]
+ },
+ "entity.fox.sniff": {
+  "sounds": [
+   {
+    "name": "wolf_whine/0",
+    "pitch": 1.6
    }
   ]
  },
@@ -9931,6 +10762,94 @@
    {
     "name": "mob_step_hard/4",
     "pitch": 1.1
+   }
+  ]
+ },
+ "entity.guardian.ambient": {
+  "sounds": [
+   {
+    "name": "moan/0",
+    "pitch": 1.5
+   }
+  ]
+ },
+ "entity.guardian.ambient_land": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.guardian.attack": {
+  "sounds": [
+   {
+    "name": "portal/0",
+    "pitch": 1.6
+   },
+   {
+    "name": "portal/1",
+    "pitch": 1.6
+   },
+   {
+    "name": "portal/2",
+    "pitch": 1.6
+   }
+  ]
+ },
+ "entity.guardian.death": {
+  "sounds": [
+   {
+    "name": "moan/0",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.guardian.death_land": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1
+   }
+  ]
+ },
+ "entity.guardian.flop": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.5
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1.5
+   }
+  ]
+ },
+ "entity.guardian.hurt": {
+  "sounds": [
+   {
+    "name": "moan/0",
+    "pitch": 1.7
+   }
+  ]
+ },
+ "entity.guardian.hurt_land": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1.4
    }
   ]
  },
@@ -10267,6 +11186,82 @@
    }
   ]
  },
+ "entity.illusioner.ambient": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.85
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.85
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.85
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.85
+   }
+  ]
+ },
+ "entity.illusioner.cast_spell": {
+  "sounds": [
+   {
+    "name": "amethyst/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "amethyst/1",
+    "pitch": 0.7
+   },
+   {
+    "name": "amethyst/2",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.illusioner.death": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.6
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.6
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.illusioner.hurt": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.95
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.95
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.95
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.95
+   }
+  ]
+ },
  "entity.iron_golem.attack": {
   "sounds": [
    {
@@ -10540,6 +11535,138 @@
    }
   ]
  },
+ "entity.llama.ambient": {
+  "sounds": [
+   {
+    "name": "sheep_say/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "sheep_say/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "sheep_say/2",
+    "pitch": 0.8
+   },
+   {
+    "name": "sheep_say/3",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.llama.angry": {
+  "sounds": [
+   {
+    "name": "sheep_say/0",
+    "pitch": 0.75
+   },
+   {
+    "name": "sheep_say/1",
+    "pitch": 0.75
+   },
+   {
+    "name": "sheep_say/2",
+    "pitch": 0.75
+   },
+   {
+    "name": "sheep_say/3",
+    "pitch": 0.75
+   }
+  ]
+ },
+ "entity.llama.death": {
+  "sounds": [
+   {
+    "name": "sheep_say/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "sheep_say/1",
+    "pitch": 0.7
+   },
+   {
+    "name": "sheep_say/2",
+    "pitch": 0.7
+   },
+   {
+    "name": "sheep_say/3",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.llama.eat": {
+  "sounds": [
+   {
+    "name": "eat/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "eat/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "eat/2",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.llama.hurt": {
+  "sounds": [
+   {
+    "name": "sheep_say/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "sheep_say/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "sheep_say/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "sheep_say/3",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.llama.spit": {
+  "sounds": [
+   {
+    "name": "bucket_empty/0",
+    "pitch": 1.6
+   },
+   {
+    "name": "bucket_empty/1",
+    "pitch": 1.6
+   }
+  ]
+ },
+ "entity.llama.step": {
+  "sounds": [
+   {
+    "name": "mob_step_soft/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "mob_step_soft/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "mob_step_soft/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "mob_step_soft/3",
+    "pitch": 0.9
+   },
+   {
+    "name": "mob_step_soft/4",
+    "pitch": 0.9
+   }
+  ]
+ },
  "entity.magma_cube.death": {
   "sounds": [
    {
@@ -10731,6 +11858,158 @@
    }
   ]
  },
+ "entity.panda.ambient": {
+  "sounds": [
+   {
+    "name": "growl/0",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.panda.bite": {
+  "sounds": [
+   {
+    "name": "attack_weak/0",
+    "pitch": 1
+   },
+   {
+    "name": "attack_weak/1",
+    "pitch": 1
+   },
+   {
+    "name": "attack_weak/2",
+    "pitch": 1
+   },
+   {
+    "name": "attack_weak/3",
+    "pitch": 1
+   },
+   {
+    "name": "attack_weak/4",
+    "pitch": 1
+   }
+  ]
+ },
+ "entity.panda.death": {
+  "sounds": [
+   {
+    "name": "growl/0",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.panda.eat": {
+  "sounds": [
+   {
+    "name": "eat/0",
+    "pitch": 1
+   },
+   {
+    "name": "eat/1",
+    "pitch": 1
+   },
+   {
+    "name": "eat/2",
+    "pitch": 1
+   }
+  ]
+ },
+ "entity.panda.hurt": {
+  "sounds": [
+   {
+    "name": "growl/0",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.panda.sneeze": {
+  "sounds": [
+   {
+    "name": "burp/0",
+    "pitch": 1.5
+   },
+   {
+    "name": "burp/1",
+    "pitch": 1.5
+   },
+   {
+    "name": "burp/2",
+    "pitch": 1.5
+   }
+  ]
+ },
+ "entity.panda.step": {
+  "sounds": [
+   {
+    "name": "mob_step_soft/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "mob_step_soft/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "mob_step_soft/2",
+    "pitch": 0.8
+   },
+   {
+    "name": "mob_step_soft/3",
+    "pitch": 0.8
+   },
+   {
+    "name": "mob_step_soft/4",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.parrot.ambient": {
+  "sounds": [
+   {
+    "name": "chicken_say/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "chicken_say/1",
+    "pitch": 1.4
+   },
+   {
+    "name": "chicken_say/2",
+    "pitch": 1.4
+   },
+   {
+    "name": "chicken_say/3",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.parrot.death": {
+  "sounds": [
+   {
+    "name": "chicken_hurt/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "chicken_hurt/1",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.parrot.eat": {
+  "sounds": [
+   {
+    "name": "eat/0",
+    "pitch": 1.5
+   },
+   {
+    "name": "eat/1",
+    "pitch": 1.5
+   },
+   {
+    "name": "eat/2",
+    "pitch": 1.5
+   }
+  ]
+ },
  "entity.parrot.fly": {
   "sounds": [
    {
@@ -10740,6 +12019,42 @@
    {
     "name": "wings/1",
     "pitch": 1.3
+   }
+  ]
+ },
+ "entity.parrot.hurt": {
+  "sounds": [
+   {
+    "name": "chicken_hurt/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "chicken_hurt/1",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.parrot.step": {
+  "sounds": [
+   {
+    "name": "mob_step_soft/0",
+    "pitch": 1.8
+   },
+   {
+    "name": "mob_step_soft/1",
+    "pitch": 1.8
+   },
+   {
+    "name": "mob_step_soft/2",
+    "pitch": 1.8
+   },
+   {
+    "name": "mob_step_soft/3",
+    "pitch": 1.8
+   },
+   {
+    "name": "mob_step_soft/4",
+    "pitch": 1.8
    }
   ]
  },
@@ -10883,6 +12198,78 @@
    }
   ]
  },
+ "entity.piglin_brute.ambient": {
+  "sounds": [
+   {
+    "name": "pig_say/0",
+    "pitch": 0.75
+   },
+   {
+    "name": "pig_say/1",
+    "pitch": 0.75
+   },
+   {
+    "name": "pig_say/2",
+    "pitch": 0.75
+   }
+  ]
+ },
+ "entity.piglin_brute.angry": {
+  "sounds": [
+   {
+    "name": "pig_say/0",
+    "pitch": 0.65
+   },
+   {
+    "name": "pig_say/1",
+    "pitch": 0.65
+   },
+   {
+    "name": "pig_say/2",
+    "pitch": 0.65
+   }
+  ]
+ },
+ "entity.piglin_brute.death": {
+  "sounds": [
+   {
+    "name": "pig_hurt/0",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.piglin_brute.hurt": {
+  "sounds": [
+   {
+    "name": "pig_hurt/0",
+    "pitch": 0.75
+   }
+  ]
+ },
+ "entity.piglin_brute.step": {
+  "sounds": [
+   {
+    "name": "mob_step_hard/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "mob_step_hard/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "mob_step_hard/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "mob_step_hard/3",
+    "pitch": 0.9
+   },
+   {
+    "name": "mob_step_hard/4",
+    "pitch": 0.9
+   }
+  ]
+ },
  "entity.piglin.admiring_item": {
   "sounds": [
    {
@@ -10968,6 +12355,86 @@
    {
     "name": "mob_step_hard/4",
     "pitch": 0.95
+   }
+  ]
+ },
+ "entity.pillager.ambient": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.8
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.pillager.celebrate": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 1
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 1
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 1
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 1
+   }
+  ]
+ },
+ "entity.pillager.death": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.6
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.6
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.pillager.hurt": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.9
    }
   ]
  },
@@ -11225,6 +12692,258 @@
    }
   ]
  },
+ "entity.polar_bear.ambient": {
+  "sounds": [
+   {
+    "name": "growl/0",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.polar_bear.ambient_baby": {
+  "sounds": [
+   {
+    "name": "growl/0",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.polar_bear.death": {
+  "sounds": [
+   {
+    "name": "growl/0",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.polar_bear.hurt": {
+  "sounds": [
+   {
+    "name": "growl/0",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.polar_bear.step": {
+  "sounds": [
+   {
+    "name": "mob_step_soft/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "mob_step_soft/1",
+    "pitch": 0.7
+   },
+   {
+    "name": "mob_step_soft/2",
+    "pitch": 0.7
+   },
+   {
+    "name": "mob_step_soft/3",
+    "pitch": 0.7
+   },
+   {
+    "name": "mob_step_soft/4",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.polar_bear.warning": {
+  "sounds": [
+   {
+    "name": "growl/0",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.rabbit.ambient": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "bat/1",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.rabbit.attack": {
+  "sounds": [
+   {
+    "name": "attack_weak/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/1",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/2",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/3",
+    "pitch": 1.4
+   },
+   {
+    "name": "attack_weak/4",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.rabbit.death": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 0.5
+   },
+   {
+    "name": "bat/1",
+    "pitch": 0.5
+   }
+  ]
+ },
+ "entity.rabbit.hurt": {
+  "sounds": [
+   {
+    "name": "bat/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "bat/1",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.rabbit.jump": {
+  "sounds": [
+   {
+    "name": "mob_step_soft/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "mob_step_soft/1",
+    "pitch": 1.4
+   },
+   {
+    "name": "mob_step_soft/2",
+    "pitch": 1.4
+   },
+   {
+    "name": "mob_step_soft/3",
+    "pitch": 1.4
+   },
+   {
+    "name": "mob_step_soft/4",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.ravager.ambient": {
+  "sounds": [
+   {
+    "name": "growl/0",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.ravager.attack": {
+  "sounds": [
+   {
+    "name": "attack_strong/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "attack_strong/1",
+    "pitch": 0.6
+   },
+   {
+    "name": "attack_strong/2",
+    "pitch": 0.6
+   },
+   {
+    "name": "attack_strong/3",
+    "pitch": 0.6
+   },
+   {
+    "name": "attack_strong/4",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.ravager.death": {
+  "sounds": [
+   {
+    "name": "growl/0",
+    "pitch": 0.5
+   }
+  ]
+ },
+ "entity.ravager.hurt": {
+  "sounds": [
+   {
+    "name": "growl/0",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.ravager.roar": {
+  "sounds": [
+   {
+    "name": "voice_growl/0",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.ravager.step": {
+  "sounds": [
+   {
+    "name": "mob_step_hard/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "mob_step_hard/1",
+    "pitch": 0.6
+   },
+   {
+    "name": "mob_step_hard/2",
+    "pitch": 0.6
+   },
+   {
+    "name": "mob_step_hard/3",
+    "pitch": 0.6
+   },
+   {
+    "name": "mob_step_hard/4",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.salmon.ambient": {
+  "sounds": [
+   {
+    "name": "underwater_add/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "underwater_add/1",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.salmon.death": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.3
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1.3
+   }
+  ]
+ },
  "entity.salmon.flop": {
   "sounds": [
    {
@@ -11235,6 +12954,18 @@
    {
     "name": "slime/1",
     "volume": 0.6,
+    "pitch": 1.5
+   }
+  ]
+ },
+ "entity.salmon.hurt": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.5
+   },
+   {
+    "name": "slime/1",
     "pitch": 1.5
    }
   ]
@@ -11336,6 +13067,238 @@
    {
     "name": "mob_step_soft/4",
     "pitch": 1.1
+   }
+  ]
+ },
+ "entity.shulker.ambient": {
+  "sounds": [
+   {
+    "name": "chest_creak/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "chest_creak/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "chest_creak/2",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.shulker.close": {
+  "sounds": [
+   {
+    "name": "door_close/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "door_close/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "door_close/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "door_close/3",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.shulker.death": {
+  "sounds": [
+   {
+    "name": "metal_light/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "metal_light/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "metal_light/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "metal_light/3",
+    "pitch": 0.9
+   },
+   {
+    "name": "metal_light/4",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.shulker.hurt": {
+  "sounds": [
+   {
+    "name": "metal_light/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "metal_light/1",
+    "pitch": 1.2
+   },
+   {
+    "name": "metal_light/2",
+    "pitch": 1.2
+   },
+   {
+    "name": "metal_light/3",
+    "pitch": 1.2
+   },
+   {
+    "name": "metal_light/4",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.shulker.open": {
+  "sounds": [
+   {
+    "name": "chest_creak/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "chest_creak/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "chest_creak/2",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.shulker.shoot": {
+  "sounds": [
+   {
+    "name": "whoosh/0",
+    "pitch": 1.3
+   },
+   {
+    "name": "whoosh/1",
+    "pitch": 1.3
+   }
+  ]
+ },
+ "entity.shulker.teleport": {
+  "sounds": [
+   {
+    "name": "teleport/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "teleport/1",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "entity.silverfish.ambient": {
+  "sounds": [
+   {
+    "name": "spider_say/0",
+    "pitch": 1.6
+   },
+   {
+    "name": "spider_say/1",
+    "pitch": 1.6
+   },
+   {
+    "name": "spider_say/2",
+    "pitch": 1.6
+   }
+  ]
+ },
+ "entity.silverfish.death": {
+  "sounds": [
+   {
+    "name": "spider_say/0",
+    "pitch": 1.3
+   },
+   {
+    "name": "spider_say/1",
+    "pitch": 1.3
+   },
+   {
+    "name": "spider_say/2",
+    "pitch": 1.3
+   }
+  ]
+ },
+ "entity.silverfish.hurt": {
+  "sounds": [
+   {
+    "name": "spider_hurt/0",
+    "pitch": 1.6
+   }
+  ]
+ },
+ "entity.silverfish.step": {
+  "sounds": [
+   {
+    "name": "spider_step/0",
+    "pitch": 1.5
+   },
+   {
+    "name": "spider_step/1",
+    "pitch": 1.5
+   },
+   {
+    "name": "spider_step/2",
+    "pitch": 1.5
+   },
+   {
+    "name": "spider_step/3",
+    "pitch": 1.5
+   }
+  ]
+ },
+ "entity.skeleton_horse.ambient": {
+  "sounds": [
+   {
+    "name": "skeleton_say/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "skeleton_say/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "skeleton_say/2",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.skeleton_horse.death": {
+  "sounds": [
+   {
+    "name": "skeleton_say/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "skeleton_say/1",
+    "pitch": 0.6
+   },
+   {
+    "name": "skeleton_say/2",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.skeleton_horse.hurt": {
+  "sounds": [
+   {
+    "name": "skeleton_hurt/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "skeleton_hurt/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "skeleton_hurt/2",
+    "pitch": 0.8
    }
   ]
  },
@@ -11503,6 +13466,102 @@
    },
    {
     "name": "slime/1",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.snow_golem.ambient": {
+  "sounds": [
+   {
+    "name": "dig_snow/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "dig_snow/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "dig_snow/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "dig_snow/3",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.snow_golem.death": {
+  "sounds": [
+   {
+    "name": "dig_snow/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "dig_snow/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "dig_snow/2",
+    "pitch": 0.8
+   },
+   {
+    "name": "dig_snow/3",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.snow_golem.hurt": {
+  "sounds": [
+   {
+    "name": "dig_snow/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_snow/1",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_snow/2",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_snow/3",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.snow_golem.shear": {
+  "sounds": [
+   {
+    "name": "dig_cloth/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_cloth/1",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_cloth/2",
+    "pitch": 1.2
+   },
+   {
+    "name": "dig_cloth/3",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.snow_golem.shoot": {
+  "sounds": [
+   {
+    "name": "bow_shoot/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "bow_shoot/1",
+    "pitch": 1.4
+   },
+   {
+    "name": "bow_shoot/2",
     "pitch": 1.4
    }
   ]
@@ -11693,6 +13752,126 @@
    }
   ]
  },
+ "entity.strider.ambient": {
+  "sounds": [
+   {
+    "name": "pig_say/0",
+    "pitch": 1.3
+   },
+   {
+    "name": "pig_say/1",
+    "pitch": 1.3
+   },
+   {
+    "name": "pig_say/2",
+    "pitch": 1.3
+   }
+  ]
+ },
+ "entity.strider.death": {
+  "sounds": [
+   {
+    "name": "pig_hurt/0",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "entity.strider.eat": {
+  "sounds": [
+   {
+    "name": "eat/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "eat/1",
+    "pitch": 1.1
+   },
+   {
+    "name": "eat/2",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "entity.strider.happy": {
+  "sounds": [
+   {
+    "name": "pig_say/0",
+    "pitch": 1.5
+   },
+   {
+    "name": "pig_say/1",
+    "pitch": 1.5
+   },
+   {
+    "name": "pig_say/2",
+    "pitch": 1.5
+   }
+  ]
+ },
+ "entity.strider.hurt": {
+  "sounds": [
+   {
+    "name": "pig_hurt/0",
+    "pitch": 1.3
+   }
+  ]
+ },
+ "entity.strider.retreat": {
+  "sounds": [
+   {
+    "name": "pig_hurt/0",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.strider.saddle": {
+  "sounds": [
+   {
+    "name": "dig_cloth/0",
+    "pitch": 1
+   },
+   {
+    "name": "dig_cloth/1",
+    "pitch": 1
+   },
+   {
+    "name": "dig_cloth/2",
+    "pitch": 1
+   },
+   {
+    "name": "dig_cloth/3",
+    "pitch": 1
+   }
+  ]
+ },
+ "entity.strider.step": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "slime/1",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.strider.step_lava": {
+  "sounds": [
+   {
+    "name": "lava_pop/0",
+    "pitch": 1
+   },
+   {
+    "name": "lava_pop/1",
+    "pitch": 1
+   },
+   {
+    "name": "lava_pop/2",
+    "pitch": 1
+   }
+  ]
+ },
  "entity.tnt.primed": {
   "sounds": [
    {
@@ -11700,6 +13879,30 @@
    },
    {
     "name": "fuse/1"
+   }
+  ]
+ },
+ "entity.tropical_fish.ambient": {
+  "sounds": [
+   {
+    "name": "underwater_add/0",
+    "pitch": 1.6
+   },
+   {
+    "name": "underwater_add/1",
+    "pitch": 1.6
+   }
+  ]
+ },
+ "entity.tropical_fish.death": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.5
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1.5
    }
   ]
  },
@@ -11713,6 +13916,182 @@
    {
     "name": "slime/1",
     "volume": 0.6,
+    "pitch": 1.7
+   }
+  ]
+ },
+ "entity.tropical_fish.hurt": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.7
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1.7
+   }
+  ]
+ },
+ "entity.turtle.ambient_land": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "slime/1",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.turtle.death": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "slime/1",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.turtle.egg_break": {
+  "sounds": [
+   {
+    "name": "pop/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "pop/1",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.turtle.egg_crack": {
+  "sounds": [
+   {
+    "name": "pop/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "pop/1",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "entity.turtle.hurt": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "slime/1",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.turtle.lay_egg": {
+  "sounds": [
+   {
+    "name": "pop/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "pop/1",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.turtle.shamble": {
+  "sounds": [
+   {
+    "name": "mob_step_soft/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "mob_step_soft/1",
+    "pitch": 0.6
+   },
+   {
+    "name": "mob_step_soft/2",
+    "pitch": 0.6
+   },
+   {
+    "name": "mob_step_soft/3",
+    "pitch": 0.6
+   },
+   {
+    "name": "mob_step_soft/4",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.turtle.swim": {
+  "sounds": [
+   {
+    "name": "swim/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "swim/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "swim/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "swim/3",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.vex.ambient": {
+  "sounds": [
+   {
+    "name": "witch_say/0",
+    "pitch": 1.6
+   },
+   {
+    "name": "witch_say/1",
+    "pitch": 1.6
+   }
+  ]
+ },
+ "entity.vex.charge": {
+  "sounds": [
+   {
+    "name": "attack_sweep/0",
+    "pitch": 1.5
+   },
+   {
+    "name": "attack_sweep/1",
+    "pitch": 1.5
+   }
+  ]
+ },
+ "entity.vex.death": {
+  "sounds": [
+   {
+    "name": "witch_say/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "witch_say/1",
+    "pitch": 1.4
+   }
+  ]
+ },
+ "entity.vex.hurt": {
+  "sounds": [
+   {
+    "name": "witch_say/0",
+    "pitch": 1.7
+   },
+   {
+    "name": "witch_say/1",
     "pitch": 1.7
    }
   ]
@@ -11850,6 +14229,86 @@
    {
     "name": "villager_say/3",
     "pitch": 1.2
+   }
+  ]
+ },
+ "entity.vindicator.ambient": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.75
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.75
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.75
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.75
+   }
+  ]
+ },
+ "entity.vindicator.celebrate": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.95
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.95
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.95
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.95
+   }
+  ]
+ },
+ "entity.vindicator.death": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.55
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.55
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.55
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.55
+   }
+  ]
+ },
+ "entity.vindicator.hurt": {
+  "sounds": [
+   {
+    "name": "villager_say/0",
+    "pitch": 0.85
+   },
+   {
+    "name": "villager_say/1",
+    "pitch": 0.85
+   },
+   {
+    "name": "villager_say/2",
+    "pitch": 0.85
+   },
+   {
+    "name": "villager_say/3",
+    "pitch": 0.85
    }
   ]
  },
@@ -12113,6 +14572,58 @@
    }
   ]
  },
+ "entity.wither.ambient": {
+  "sounds": [
+   {
+    "name": "moan/0",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "entity.wither.break_block": {
+  "sounds": [
+   {
+    "name": "explode/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "explode/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "explode/2",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "entity.wither.death": {
+  "sounds": [
+   {
+    "name": "moan/0",
+    "pitch": 0.4
+   }
+  ]
+ },
+ "entity.wither.hurt": {
+  "sounds": [
+   {
+    "name": "moan/0",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "entity.wither.shoot": {
+  "sounds": [
+   {
+    "name": "whoosh/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "whoosh/1",
+    "pitch": 0.6
+   }
+  ]
+ },
  "entity.wither.spawn": {
   "sounds": [
    {
@@ -12209,6 +14720,138 @@
   "sounds": [
    {
     "name": "wolf_whine/0"
+   }
+  ]
+ },
+ "entity.zoglin.ambient": {
+  "sounds": [
+   {
+    "name": "pig_say/0",
+    "pitch": 0.5
+   },
+   {
+    "name": "pig_say/1",
+    "pitch": 0.5
+   },
+   {
+    "name": "pig_say/2",
+    "pitch": 0.5
+   }
+  ]
+ },
+ "entity.zoglin.angry": {
+  "sounds": [
+   {
+    "name": "pig_say/0",
+    "pitch": 0.45
+   },
+   {
+    "name": "pig_say/1",
+    "pitch": 0.45
+   },
+   {
+    "name": "pig_say/2",
+    "pitch": 0.45
+   }
+  ]
+ },
+ "entity.zoglin.attack": {
+  "sounds": [
+   {
+    "name": "attack_strong/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "attack_strong/1",
+    "pitch": 0.7
+   },
+   {
+    "name": "attack_strong/2",
+    "pitch": 0.7
+   },
+   {
+    "name": "attack_strong/3",
+    "pitch": 0.7
+   },
+   {
+    "name": "attack_strong/4",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.zoglin.death": {
+  "sounds": [
+   {
+    "name": "pig_hurt/0",
+    "pitch": 0.45
+   }
+  ]
+ },
+ "entity.zoglin.hurt": {
+  "sounds": [
+   {
+    "name": "pig_hurt/0",
+    "pitch": 0.5
+   }
+  ]
+ },
+ "entity.zoglin.step": {
+  "sounds": [
+   {
+    "name": "mob_step_hard/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "mob_step_hard/1",
+    "pitch": 0.7
+   },
+   {
+    "name": "mob_step_hard/2",
+    "pitch": 0.7
+   },
+   {
+    "name": "mob_step_hard/3",
+    "pitch": 0.7
+   },
+   {
+    "name": "mob_step_hard/4",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.zombie_horse.ambient": {
+  "sounds": [
+   {
+    "name": "horse_say/0",
+    "pitch": 0.65
+   }
+  ]
+ },
+ "entity.zombie_horse.death": {
+  "sounds": [
+   {
+    "name": "zombie_death/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "zombie_death/1",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "entity.zombie_horse.hurt": {
+  "sounds": [
+   {
+    "name": "zombie_hurt/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "zombie_hurt/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "zombie_hurt/2",
+    "pitch": 0.8
    }
   ]
  },
@@ -12656,6 +15299,22 @@
    }
   ]
  },
+ "item.axe.scrape": {
+  "sounds": [
+   {
+    "name": "chop/0",
+    "pitch": 1.3
+   },
+   {
+    "name": "chop/1",
+    "pitch": 1.3
+   },
+   {
+    "name": "chop/2",
+    "pitch": 1.3
+   }
+  ]
+ },
  "item.axe.strip": {
   "sounds": [
    {
@@ -12666,6 +15325,22 @@
    },
    {
     "name": "chop/2"
+   }
+  ]
+ },
+ "item.axe.wax_off": {
+  "sounds": [
+   {
+    "name": "chop/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "chop/1",
+    "pitch": 1.4
+   },
+   {
+    "name": "chop/2",
+    "pitch": 1.4
    }
   ]
  },
@@ -12986,6 +15661,34 @@
    },
    {
     "name": "dig_gravel/3"
+   }
+  ]
+ },
+ "item.honey_bottle.drink": {
+  "sounds": [
+   {
+    "name": "drink/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "drink/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "drink/2",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "item.honeycomb.wax_on": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.4
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1.4
    }
   ]
  },
@@ -13348,6 +16051,14 @@
    },
    {
     "name": "dig_cloth/3"
+   }
+  ]
+ },
+ "ui.stonecutter.select_recipe": {
+  "sounds": [
+   {
+    "name": "click/0",
+    "pitch": 1.1
    }
   ]
  },

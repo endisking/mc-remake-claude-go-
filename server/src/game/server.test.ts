@@ -133,6 +133,8 @@ describe('multiplayer server', () => {
 describe('block interaction', () => {
   function setup(gameMode = 0) {
     const server = new GameServer({ seed: 7n, chunkGenBudget: 100, defaultGameMode: gameMode, scene: 'models', randomSeed: 42n });
+    // no random ticks: the showcase's cactus can grow into a neighbour and drop items mid-test
+    server.gameRules.randomTickSpeed = 0;
     const a = client(server, 'A');
     for (let i = 0; i < 3; i++) server.tick();
     const p = server.players[0]!;

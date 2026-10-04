@@ -40,13 +40,13 @@ export function attackSpeedOf(id: number): number {
 }
 
 /** Player.getCurrentItemAttackStrengthDelay: ticks to recharge. */
-export function attackStrengthDelay(id: number): number {
-  return (1 / attackSpeedOf(id)) * 20;
+export function attackStrengthDelay(id: number, speedMul = 1): number {
+  return (1 / (attackSpeedOf(id) * speedMul)) * 20;
 }
 
 /** Player.getAttackStrengthScale. */
-export function attackStrengthScale(ticker: number, id: number, partial: number): number {
-  return Math.max(0, Math.min(1, (ticker + partial) / attackStrengthDelay(id)));
+export function attackStrengthScale(ticker: number, id: number, partial: number, speedMul = 1): number {
+  return Math.max(0, Math.min(1, (ticker + partial) / attackStrengthDelay(id, speedMul)));
 }
 
 export interface AttackContext {
@@ -60,6 +60,10 @@ export interface AttackContext {
   /** walkDist − walkDistO and LivingEntity.getSpeed, for the sword sweep check */
   walked: number;
   speed: number;
+  /** ATTACK_DAMAGE modifiers from effects: Strength +3 per level, Weakness −4 per level */
+  damageBonus?: number;
+  /** ATTACK_SPEED multiplier from effects: Haste +10% per level, Mining Fatigue −10% per level */
+  speedMul?: number;
 }
 
 export interface AttackResult {
@@ -74,8 +78,8 @@ export interface AttackResult {
 
 /** Player.attack damage/flags (enchantments arrive in Phase 7). */
 export function computeAttack(c: AttackContext): AttackResult {
-  let f = attackDamageOf(c.item);
-  const f2 = attackStrengthScale(c.attackStrengthTicker, c.item, 0.5);
+  let f = Math.max(0, attackDamageOf(c.item) + (c.damageBonus ?? 0));
+  const f2 = attackStrengthScale(c.attackStrengthTicker, c.item, 0.5, c.speedMul ?? 1);
   f *= 0.2 + f2 * f2 * 0.8;
   const charged = f2 > 0.9;
   let knockback = 0;

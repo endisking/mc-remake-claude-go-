@@ -131,6 +131,16 @@ export class ParticleEngine {
     }
   }
 
+  /** BreakingItemParticle (eating crumbs, broken tools): random burst damped to 10% plus the given velocity. */
+  item(x: number, y: number, z: number, vx: number, vy: number, vz: number, layer: number): void {
+    const idx = this.add(x, y, z, vx, vy, vz, layer, 1, 1, 1, 1, 1);
+    if (idx < 0) return;
+    const i = idx * S;
+    this.sim[i + 6] = this.sim[i + 6]! * 0.1 + vx;
+    this.sim[i + 7] = this.sim[i + 7]! * 0.1 + vy;
+    this.sim[i + 8] = this.sim[i + 8]! * 0.1 + vz;
+  }
+
   /** Vanilla ParticleEngine.crack: one particle on the face being hit. */
   crack(x: number, y: number, z: number, face: number, state: number, layer: number, tint: [number, number, number]): void {
     const box = outlineBoxes(state)[0] ?? [0, 0, 0, 1, 1, 1];
@@ -152,6 +162,13 @@ export class ParticleEngine {
     this.sim[i + 6]! *= 0.2;
     this.sim[i + 7] = (this.sim[i + 7]! - 0.1) * 0.2 + 0.1;
     this.sim[i + 8]! *= 0.2;
+  }
+
+  /** HAPPY_VILLAGER (SuspendedTownParticle): small green sparkles without gravity, ~20–100 ticks. */
+  happy(x: number, y: number, z: number, xd: number, yd: number, zd: number, layer: number): void {
+    const idx = this.add(x, y, z, xd, yd, zd, layer, 0.35, 0.95, 0.3, 0, 0.6, true);
+    if (idx < 0) return;
+    this.sim[idx * S + 10] = Math.floor(20 / (this.rand() * 0.8 + 0.2));
   }
 
   tick(): void {

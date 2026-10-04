@@ -23,7 +23,10 @@ import { techTextures } from './blocks/tech';
 import { grassColormap, foliageColormap } from './colormap';
 import { widgets, optionsBackground, icons, spectatorWidgets } from './gui';
 import { allSkins } from './skins';
+import { allArmorTextures } from './armor';
+import { mobEffects } from './effects';
 import { writeItemTextures } from './items';
+import { ENTITY_TEXTURES, shadow, poof } from './entities';
 import { sun, moonPhases, clouds, rain, snowflakes, destroyStages, underwater, experienceOrbs, powderSnowOutline } from './environment';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -96,6 +99,7 @@ function main(): void {
   writePng(join(outDir, 'gui', 'options_background.png'), optionsBackground());
   writePng(join(outDir, 'gui', 'icons.png'), icons());
   writePng(join(outDir, 'gui', 'spectator_widgets.png'), spectatorWidgets());
+  writePng(join(outDir, 'gui', 'mob_effects.png'), mobEffects());
   mkdirSync(join(outDir, 'skins'), { recursive: true });
   const skins = allSkins();
   for (const sk of skins) writePng(join(outDir, 'skins', `${sk.name}.png`), sk.tex);
@@ -105,7 +109,15 @@ function main(): void {
   writePng(join(outDir, 'environment', 'powder_snow_outline.png'), powderSnowOutline());
   mkdirSync(join(outDir, 'entity'), { recursive: true });
   writePng(join(outDir, 'entity', 'experience_orb.png'), experienceOrbs());
+  mkdirSync(join(outDir, 'entity', 'armor'), { recursive: true });
+  for (const a of allArmorTextures()) writePng(join(outDir, 'entity', 'armor', `${a.name}.png`), a.tex);
   const itemCount = writeItemTextures(outDir);
+  for (const [name, make] of Object.entries(ENTITY_TEXTURES)) writePng(join(outDir, 'entity', `${name}.png`), make());
+  writeFileSync(join(outDir, 'entity', 'entities.json'), JSON.stringify(Object.keys(ENTITY_TEXTURES)));
+  mkdirSync(join(outDir, 'misc'), { recursive: true });
+  writePng(join(outDir, 'misc', 'shadow.png'), shadow());
+  mkdirSync(join(outDir, 'particle'), { recursive: true });
+  writePng(join(outDir, 'particle', 'poof.png'), poof());
   const overrides = existsSync(join(outDir, 'overrides')) ? readdirSync(join(outDir, 'overrides')).filter((f) => f.endsWith('.png')) : [];
   console.log(`texgen: ${entries.length} textures (${totalFrames} frames), ${itemCount} item sprites, ${overrides.length} overrides present`);
 }
