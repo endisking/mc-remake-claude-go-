@@ -543,7 +543,7 @@ export class ItemUse {
   readonly clouds: EffectCloud[] = [];
 
   /** ThrownPotion.makeAreaOfEffectCloud + level event 2007/2002 for the shatter. */
-  private linger(e: Thrown, hit: ThrowHit, potion: string): void {
+  linger(e: Thrown, hit: ThrowHit, potion: string): void {
     const effects = POTIONS[potion] ?? [];
     const color = potionColor({ id: e.item, count: 1, damage: 0, tag: { Potion: potion } });
     const instant = effects.some((x) => x.effect === 'instant_health' || x.effect === 'instant_damage');
@@ -571,7 +571,7 @@ export class ItemUse {
   }
 
   /** Snowball/ThrownEgg/ThrownEnderpearl.onHit. */
-  private thrownHit(e: Thrown, hit: ThrowHit): void {
+  thrownHit(e: Thrown, hit: ThrowHit): void {
     const r = this.s.rand;
     // the 0-damage "thrown" hit does nothing to players (Player.hurt ignores 0 damage)
     if (e.type === 'egg') {

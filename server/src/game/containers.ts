@@ -26,6 +26,7 @@ import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, newCa
 import { cookingRecipe } from '@shared/menu/smelting';
 import { chestPartner, isChest, isFirstHalf } from '@shared/game/chest';
 import { fillWithLoot } from '@shared/menu/chestloot';
+import type { HopperData } from './hopper';
 import type { GenBlockEntity } from '@shared/worldgen/features/underground';
 
 const FURNACES = new Set(['furnace', 'blast_furnace', 'smoker']);
@@ -215,6 +216,14 @@ export class Containers {
     c.blockEntities.set(k, be);
     this.markDirty(x, z);
     return be;
+  }
+
+  /** The item list of a container block entity, created empty when missing (hoppers, dispensers). */
+  ensureItems(x: number, y: number, z: number, id: string, size: number): (ItemStack | null)[] {
+    const be = this.getOrCreate(x, y, z, id, () => ({ id, items: new Array(size).fill(null) }));
+    this.unpackLoot(be, x, z);
+    if (!Array.isArray(be.items)) be.items = new Array(size).fill(null);
+    return be.items as (ItemStack | null)[];
   }
 
   private markDirty(x: number, z: number): void {
@@ -550,6 +559,14 @@ export class Containers {
           if (!cf.items.some((i) => i)) continue;
           for (const out of tickCampfire(cf, getProp(st, 'lit') === true)) this.dropItemStack(x, y, z, out);
           this.markDirty(x, z);
+          continue;
+        }
+        if (be.id === 'hopper') {
+          if (blockNameOf(srv.world.getState(x, y, z)) !== 'hopper') {
+            c.blockEntities.delete(k);
+            continue;
+          }
+          srv.hoppers.tick(x, y, z, be as HopperData);
           continue;
         }
         if (be.id === 'brewing_stand') {

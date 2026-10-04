@@ -57,6 +57,7 @@ import { Arrow } from './arrow';
 import { Thrown } from './throwable';
 import { Containers } from './containers';
 import { ServerRedstone } from './redstone';
+import { Hoppers } from './hopper';
 import { takeGenBlockEntities } from '@shared/worldgen/features/underground';
 import { takeGenEntities } from '@shared/worldgen/structures/entities';
 import { Commands, commandHooks, type AccessStore } from './commands';
@@ -218,6 +219,8 @@ export class GameServer {
   readonly containers = new Containers(this);
   /** redstone signals and components (redstone.ts) */
   readonly redstone = new ServerRedstone(this);
+  /** hopper transfers (hopper.ts) */
+  readonly hoppers = new Hoppers(this);
   // ---- fluids (FlowingFluid ticks; see fluidticks.ts) ----
   private readonly makeFluids = (): FluidTicks => new FluidTicks({
     getState: (x, y, z) => this.world.getState(x, y, z),
@@ -714,6 +717,8 @@ export class GameServer {
     // doors and tall plants drop from their lower half (vanilla destroys it with drops via updateShape)
     const below = this.world.getState(x, y - 1, z);
     const lootState = getProp(state, 'half') === 'upper' && blockNameOf(below) === name ? below : state;
+    // TripWireBlock.playerWillDestroy: shears disarm the string first (redstone.ts)
+    if (name === 'tripwire' && breaker && breaker.inventory.selectedStack && itemNameOf(breaker.inventory.selectedStack.id) === 'shears') this.redstone.disarmTripwire(x, y, z);
     // Level.destroyBlock leaves the block's fluid behind (waterlogged blocks, kelp, seagrass)
     this.setBlock(x, y, z, legacyBlock(FLUID_OF[state]!));
     // particles + sound for everyone else (the breaker plays them locally)

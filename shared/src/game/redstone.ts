@@ -74,6 +74,8 @@ export interface RedstoneHost {
   countEntities?(minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number, kind: 'living' | 'all' | 'arrow'): number;
   /** sky light at pos (0–15), sky darkening and the sun angle (daylight detector) */
   daylight?(x: number, y: number, z: number): { sky: number; darken: number; sunAngle: number } | null;
+  /** neighborChanged for a block this engine does not own (hoppers, rails…) */
+  neighborChangedOther?(x: number, y: number, z: number, state: number, fromBlock: number): void;
 }
 
 // --------------------------------------------------------------------------- block tables
@@ -101,6 +103,9 @@ const enum K {
   NOTE_BLOCK,
   DISPENSER,
   PISTON,
+  /** host-owned signal sources: detector rail (strong up), tripwire hook (strong into its wall) */
+  DETECTOR_RAIL,
+  TRIPWIRE_HOOK,
 }
 
 const BLOCK_COUNT = BLOCKS.length;
@@ -158,6 +163,8 @@ for (const b of BLOCKS) {
   else if (n === 'note_block') k = K.NOTE_BLOCK;
   else if (n === 'dispenser' || n === 'dropper') k = K.DISPENSER;
   else if (n === 'piston' || n === 'sticky_piston') k = K.PISTON;
+  else if (n === 'detector_rail') k = K.DETECTOR_RAIL;
+  else if (n === 'tripwire_hook') k = K.TRIPWIRE_HOOK;
   KIND[b.id] = k;
   if (n === 'cake' || n.endsWith('candle_cake') || n === 'composter' || n === 'water_cauldron' || n === 'lava_cauldron' || n === 'powder_snow_cauldron' || n === 'cauldron' ||
     n === 'end_portal_frame' || n === 'respawn_anchor' || n === 'beehive' || n === 'bee_nest') STATE_ANALOG[b.id] = 1;
@@ -254,7 +261,7 @@ const kindOf = (state: number) => KIND[blockIdOf(state)]!;
 export function isSignalSource(state: number): boolean {
   const k = kindOf(state);
   return k === K.WIRE || k === K.TORCH || k === K.WALL_TORCH || k === K.LEVER || k === K.BUTTON || k === K.PLATE || k === K.WEIGHTED_PLATE || k === K.REDSTONE_BLOCK ||
-    k === K.REPEATER || k === K.COMPARATOR || k === K.OBSERVER || k === K.DAYLIGHT || k === K.TARGET || k === K.TRAPPED_CHEST;
+    k === K.REPEATER || k === K.COMPARATOR || k === K.OBSERVER || k === K.DAYLIGHT || k === K.TARGET || k === K.TRAPPED_CHEST || k === K.DETECTOR_RAIL || k === K.TRIPWIRE_HOOK;
 }
 
 /** Whether a block id takes part in redstone at all (cheap filter for hosts). */
@@ -326,6 +333,9 @@ export class Redstone {
         return bool(s, 'powered') && facing(s) === dir ? 15 : 0;
       case K.TRAPPED_CHEST:
         return Math.max(0, Math.min(15, this.h.chestViewers?.(x, y, z) ?? 0));
+      case K.DETECTOR_RAIL:
+      case K.TRIPWIRE_HOOK:
+        return bool(s, 'powered') ? 15 : 0;
       default:
         return 0;
     }
@@ -352,6 +362,10 @@ export class Redstone {
         return this.blockSignal(s, x, y, z, dir);
       case K.TRAPPED_CHEST:
         return dir === D.UP ? this.blockSignal(s, x, y, z, dir) : 0;
+      case K.DETECTOR_RAIL:
+        return bool(s, 'powered') && dir === D.UP ? 15 : 0;
+      case K.TRIPWIRE_HOOK:
+        return bool(s, 'powered') && facing(s) === dir ? 15 : 0;
       default:
         return 0;
     }
@@ -585,7 +599,11 @@ export class Redstone {
     if (y < 0 || y > 255) return;
     const s = this.st(x, y, z);
     const k = kindOf(s);
-    if (k === K.NONE) return;
+    if (k === K.NONE) {
+      // blocks owned by the host (hoppers, rails, tripwire…)
+      if (s !== 0) this.h.neighborChangedOther?.(x, y, z, s, fromBlock);
+      return;
+    }
     switch (k) {
       case K.WIRE:
         if (this.canSurviveOnBelow(x, y, z)) this.updatePowerStrength(x, y, z, s);
@@ -674,6 +692,7 @@ export class Redstone {
         return;
       }
       default:
+        this.h.neighborChangedOther?.(x, y, z, s, fromBlock);
         return;
     }
   }
