@@ -6,7 +6,7 @@ import { Chunk } from '../../world/chunk';
 import { blockNameOf, stateOf, getProp } from '../../world/blockstate';
 import { WORLDGEN } from './data';
 import { GenLevel } from './level';
-import { fastInvSqrt, geode, monsterRoom, glowLichen, smallDripstone, dripstoneCluster, largeDripstone, replaceSingleBlock, fossil, fossilTemplate, takeGenBlockEntities, getDripstoneHeight } from './underground';
+import { carvingMaskDecorator, fastInvSqrt, geode, monsterRoom, glowLichen, smallDripstone, dripstoneCluster, largeDripstone, replaceSingleBlock, fossil, fossilTemplate, takeGenBlockEntities, getDripstoneHeight } from './underground';
 
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 /** The innermost config of a decorated configured feature. */
@@ -192,7 +192,45 @@ describe('carving mask', () => {
     expect(c.carvingMasks![0]).toBeInstanceOf(Uint8Array);
     const world = new BlockWorld();
     for (let cz = -1; cz <= 1; cz++) for (let cx = -1; cx <= 1; cx++) world.addChunk(cx === 0 && cz === 0 ? c : g.generate(cx, cz));
+    // the decorator emits exactly the carved cells, in index order (y, then z, then x)
+    const emitted: number[][] = [];
+    const lv = new GenLevel(world, g, 0, 0);
+    carvingMaskDecorator({ step: 'air' })(lv, new JavaRandom(0), 0, 0, 0, (x, y, z) => emitted.push([x, y, z]));
+    expect(emitted.length).toBeGreaterThan(0);
+    for (const [x, y, z] of emitted) {
+      expect(x! >= 0 && x! < 16 && z! >= 0 && z! < 16).toBe(true);
+      expect(blockNameOf(world.getState(x!, y!, z!))).not.toBe('bedrock');
+    }
+    const idx = emitted.map(([x, y, z]) => (y! << 8) | (z! << 4) | x!);
+    expect(idx).toEqual([...idx].sort((a, b) => a - b));
+    // cave air only appears at carved cells
+    const carved = new Set(idx);
+    for (let y = 0; y < 256; y++) for (let z = 0; z < 16; z++) for (let x = 0; x < 16; x++)
+      if (blockNameOf(world.getState(x, y, z)) === 'cave_air') expect(carved.has((y << 8) | (z << 4) | x)).toBe(true);
     g.decorate(world, 0, 0);
     expect(c.carvingMasks).toBeNull();
+  });
+
+  it('seagrass grows in carved underwater caves of ocean chunks', () => {
+    // find an ocean chunk whose liquid carvers carved something
+    const g = new OverworldGenerator(20211n);
+    let found = false;
+    for (let i = 0; i < 400 && !found; i++) {
+      const cx = (i % 20) * 3 - 30, cz = Math.trunc(i / 20) * 3 - 30;
+      const c = g.generate(cx, cz);
+      const liquid = c.carvingMasks?.[1];
+      if (!liquid || !liquid.some((b) => b !== 0)) continue;
+      found = true;
+      let n = 0, water = 0;
+      const w = new BlockWorld();
+      w.addChunk(c);
+      carvingMaskDecorator({ step: 'liquid' })(new GenLevel(w, g, cx, cz), new JavaRandom(0), cx << 4, 0, cz << 4, (x, y, z) => {
+        n++;
+        if (y < 63 && y > 10 && blockNameOf(w.getState(x, y, z)) === 'water') water++;
+      });
+      expect(n).toBeGreaterThan(0);
+      expect(water).toBeGreaterThan(0);
+    }
+    expect(found).toBe(true);
   });
 });

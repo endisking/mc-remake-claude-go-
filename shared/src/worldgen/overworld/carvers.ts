@@ -97,8 +97,8 @@ export class Carvers {
 
   /**
    * ChunkGenerator.applyCarvers for the AIR then LIQUID steps (each with its own carving mask).
-   * `masks` receives each step's carving mask (null when the step has no carvers) for the
-   * carving_mask decorator.
+   * `masks` receives each step's carving mask as a bit set (null when the step has no carvers)
+   * for the carving_mask decorator.
    */
   carve(t: CarveTarget, chunkBiome: number, masks?: (Uint8Array | null)[]): void {
     this.t = t;
@@ -115,7 +115,12 @@ export class Carvers {
             const r = new JavaRandom(largeFeatureSeed(this.seed + BigInt(j), sx, sz));
             if (r.nextFloat() <= f(carver.probability)) this.run(carver.kind, r, sx, sz);
           });
-      masks?.push(this.mask.slice());
+      if (masks) {
+        // packed as a bit set (8 KB): bit i of byte i >> 3
+        const bits = new Uint8Array(8192);
+        for (let i = 0; i < 65536; i++) if (this.mask[i]) bits[i >> 3] |= 1 << (i & 7);
+        masks.push(bits);
+      }
     }
   }
 

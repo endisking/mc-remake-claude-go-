@@ -134,7 +134,7 @@ export class Chunk {
   stage = 3;
   /** Incremented on every change; used by renderers/savers to detect dirtiness. */
   version = 0;
-  /** Worldgen only: carving masks of the AIR and LIQUID carver steps (y << 8 | z << 4 | x), dropped once decorated. */
+  /** Worldgen only: carving masks of the AIR and LIQUID carver steps as bit sets (bit y << 8 | z << 4 | x), dropped once decorated. */
   carvingMasks: (Uint8Array | null)[] | null = null;
 
   constructor(

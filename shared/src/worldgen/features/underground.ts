@@ -731,7 +731,7 @@ export function largeDripstone(c: J): Placer {
 }
 
 // ------------------------------------------------------------------ carving_mask decorator
-/** Per-chunk carving masks (index y << 8 | z << 4 | x), [air step, liquid step], set by the generator. */
+/** Per-chunk carving masks as bit sets (bit index y << 8 | z << 4 | x), [air step, liquid step], set by the generator. */
 export interface CarvingMasks {
   carvingMasks?: (Uint8Array | null)[] | null;
 }
@@ -745,7 +745,15 @@ export function carvingMaskDecorator(c: J): (lv: GenLevel, r: JavaRandom, x: num
     const mask = chunk?.carvingMasks?.[step];
     if (!mask) return;
     const bx = cx << 4, bz = cz << 4;
-    for (let i = 0; i < mask.length; i++) if (mask[i]) emit(bx + (i & 15), lv.minY + (i >> 8), bz + ((i >> 4) & 15));
+    for (let b = 0; b < mask.length; b++) {
+      const m = mask[b]!;
+      if (m === 0) continue;
+      for (let k = 0; k < 8; k++) {
+        if (!(m & (1 << k))) continue;
+        const i = (b << 3) | k;
+        emit(bx + (i & 15), lv.minY + (i >> 8), bz + ((i >> 4) & 15));
+      }
+    }
   };
 }
 
