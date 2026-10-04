@@ -1096,7 +1096,7 @@ export class GameServer {
 
   // ---------------------------------------------------------------- world access
   /** Chunks unloaded this session (serialized with their generation stage), restored instead of regenerated. */
-  private readonly stored = new Map<number, { data: ArrayBuffer; stage: number; lit: boolean }>();
+  private readonly stored = new Map<number, { data: ArrayBuffer; stage: number; lit: boolean; carvingMasks: (Uint8Array | null)[] | null }>();
 
   /**
    * Bring a chunk up to a generation stage, like vanilla's ChunkStatus pyramid: features (stage 2)
@@ -1111,6 +1111,7 @@ export class GameServer {
         c = readChunk(new ByteReader(saved.data), true);
         c.stage = saved.stage;
         c.lit = saved.lit;
+        c.carvingMasks = saved.carvingMasks;
         this.stored.delete(chunkKey(cx, cz));
       } else {
         c = this.generator.generate(cx, cz);
@@ -1146,7 +1147,7 @@ export class GameServer {
   private storeChunk(c: Chunk): void {
     const w = new ByteWriter(65536);
     writeChunk(w, c, true);
-    this.stored.set(chunkKey(c.x, c.z), { data: w.finish(), stage: c.stage, lit: c.lit });
+    this.stored.set(chunkKey(c.x, c.z), { data: w.finish(), stage: c.stage, lit: c.lit, carvingMasks: c.carvingMasks });
   }
 
   setBlock(x: number, y: number, z: number, state: number): void {

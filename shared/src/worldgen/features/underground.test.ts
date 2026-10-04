@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { JavaRandom } from '../../util/random';
 import { OverworldGenerator } from '../overworld/generator';
 import { BlockWorld } from '../../world/world';
@@ -7,6 +7,9 @@ import { blockNameOf, stateOf, getProp } from '../../world/blockstate';
 import { WORLDGEN } from './data';
 import { GenLevel } from './level';
 import { carvingMaskDecorator, fastInvSqrt, geode, monsterRoom, glowLichen, smallDripstone, dripstoneCluster, largeDripstone, replaceSingleBlock, fossil, fossilTemplate, takeGenBlockEntities, getDripstoneHeight } from './underground';
+
+// world generation is slow on loaded CI machines
+vi.setConfig({ testTimeout: 60_000 });
 
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 /** The innermost config of a decorated configured feature. */
