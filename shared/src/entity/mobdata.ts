@@ -7,7 +7,7 @@
  *   (pig), size 1/2/4 (slime), carried (enderman block state), hanging (bat), bow (skeleton).
  *   All keys of a mob are sent right after addEntity; afterwards only changed keys.
  *   Explosions: `explode { x, y, z, power, destroy }` (particles; the sound comes as `sound`).
- *   Right-click on a mob: client sends C2S `interact { target, hand }` (breeding food, shears,
+ *   Right-click on a mob: client sends C2S `interactEntity { id, hand }` (breeding food, shears,
  *   bucket, saddle, flint and steel).
  *
  * Spawning: `addEntity { id, type, x, y, z, vx, vy, vz, data }` where `type` is the minecraft-data

@@ -616,7 +616,13 @@ export class MobManager {
     const t = this.s.entities.get(targetId);
     if (!(t instanceof Mob) || t.dead || p.gameMode === 3) return;
     if ((t.x - p.x) ** 2 + (t.y - p.y) ** 2 + (t.z - p.z) ** 2 >= 36) return;
-    if (t.interact(p, hand)) this.s.broadcastToTrackers(p, { t: 'animate', id: p.id, action: hand === 1 ? 3 : 0 }, false);
+    // vanilla tries the main hand, then the off hand
+    for (const h of hand === 1 ? [1] : [0, 1]) {
+      if (t.interact(p, h)) {
+        this.s.broadcastToTrackers(p, { t: 'animate', id: p.id, action: h === 1 ? 3 : 0 }, false);
+        return;
+      }
+    }
   }
 
   /** ItemStack.shrink unless creative (Animal.usePlayerItem). */

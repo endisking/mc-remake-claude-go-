@@ -357,13 +357,9 @@ export abstract class Mob extends ServerEntity {
         this.knockback(0.4, dx, dz);
       }
     }
-    if (this.health <= 0) {
-      this.playSound(this.deathSound(), this.soundVolume(), this.voicePitch());
-      this.die(src, attacker);
-    } else if (fresh) {
-      this.ambientSoundTime = -this.ambientSoundInterval();
-      this.playSound(this.hurtSound(), this.soundVolume(), this.voicePitch());
-    }
+    // hurt/death sounds: the client plays them on entity events 2/3 (avoid double playback)
+    if (this.health <= 0) this.die(src, attacker);
+    else if (fresh) this.ambientSoundTime = -this.ambientSoundInterval();
     return true;
   }
 
@@ -464,11 +460,7 @@ export abstract class Mob extends ServerEntity {
     if (this.lastHurtByPlayerTime > 0) this.lastHurtByPlayerTime--;
     else this.lastHurtByPlayer = null;
     if (this.lastHurtByMob && (!targetAlive(this.lastHurtByMob, this.s) || this.tickCount - this.lastHurtByMobTimestamp > 100)) this.lastHurtByMob = null;
-    // Mob.baseTick: ambient sounds
-    if (!this.dead && this.rng.nextInt(1000) < this.ambientSoundTime++) {
-      this.ambientSoundTime = -this.ambientSoundInterval();
-      this.playSound(this.ambientSound(), this.soundVolume(), this.voicePitch());
-    }
+    // Mob.baseTick ambient sounds run on the client's own timer (client/src/world/mobs.ts)
     const onFire = this.isOnFire();
     if (onFire !== this.sentOnFire) this.stateDirty = true;
   }

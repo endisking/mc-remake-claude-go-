@@ -398,7 +398,7 @@ export function recycleHeld(r: EntityRenderer): void {
  * transform (blocks: rot (75, 45, 0), 2.5 px up, scale 0.375; generated: 3 px up, 1 px forward,
  * scale 0.55), converted from vanilla's y-down model space by diag(1, −1, −1) and px scale.
  */
-function heldItemTransform(left: boolean, flat: boolean, handheld = false): Mat4 {
+export function heldItemTransform(left: boolean, flat: boolean, handheld = false): Mat4 {
   const out = mat4();
   const mul = (b: Mat4) => multiply(out, out, b);
   const S = mat4();

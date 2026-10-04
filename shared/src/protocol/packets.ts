@@ -110,6 +110,7 @@ const S2C_SCHEMA = {
   keepAlive: [['id', 'f64']],
   /** Vanilla PlayerInfo UPDATE_LATENCY: a player's ping in milliseconds. */
   playerLatency: [['id', 'i32'], ['latency', 'varint']],
+  // ---- mobs (Phase 6) ----
   /**
    * Per-mob synced state (vanilla SynchedEntityData subset), one key at a time. Keys (see
    * MOB_DATA_KEYS): color (sheep DyeColor id 0–15), sheared, baby, swell_dir (creeper −1/1),
@@ -174,8 +175,8 @@ const C2S_SCHEMA = {
   /** Reply to the server's keepAlive. */
   keepAlive: [['id', 'f64']],
   // ---- mobs
-  /** Right-click an entity (vanilla Interact INTERACT): breeding food, shears, buckets, saddles, flint and steel. */
-  interact: [['target', 'i32'], ['hand', 'u8']],
+  /** Right-click an entity (vanilla Interact INTERACT): breeding food, shears, buckets, saddles, flint and steel, bones. */
+  interactEntity: [['id', 'i32'], ['hand', 'u8']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;

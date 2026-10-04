@@ -1119,8 +1119,8 @@ export class GameServer {
       case 'attack':
         this.handleAttack(p, m.target);
         break;
-      case 'interact':
-        this.mobs.interact(p, m.target, m.hand);
+      case 'interactEntity':
+        this.mobs.interact(p, m.id, m.hand);
         break;
       case 'stopSleeping':
         this.sleep.wake(p, false);

@@ -26,7 +26,7 @@ import { raycastBlocks, type BlockHit } from '@shared/world/raycast';
 import { outlineBoxes, type Box } from '@shared/world/shapes';
 import { blockNameOf, propsOf, getProp, stateToString, STATE_TO_BLOCK } from '@shared/world/blockstate';
 import { PlayerPhysics, POSE_EYE, type MoveInput, type Pose } from '@shared/entity/playerphysics';
-import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes, type Mat4 } from './render/math';
+import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes, aabbInFrustum, type Mat4 } from './render/math';
 import type { TextureManifest } from './render/blockmodels';
 import { Gui } from './gui/gui';
 import { RemotePlayer, wrapDegrees } from './world/entities';
@@ -60,7 +60,9 @@ import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
 import { isViewBlocking, hasMenuProvider } from '@shared/world/blockprops';
 import { JavaRandom } from '@shared/util/random';
-import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
+import { EntityRenderer, recycleHeld, heldItemTransform } from './render/entities/entityrenderer';
+import { MobRenderer } from './render/entities/mobrenderer';
+import { ClientMobs, isMobType, type ClientMob } from './world/mobs';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { AbstractContainerScreen, InventoryScreen, screenForMenu, type ContainerHost } from './gui/containerscreen';
@@ -94,6 +96,21 @@ export class Game implements ScreenHost, ContainerHost {
   private weather!: WeatherRenderer;
   private lines!: LineRenderer;
   private entityRenderer!: EntityRenderer;
+  private mobRenderer!: MobRenderer;
+  private readonly visibleMobs: ClientMob[] = [];
+  /** Client-side mobs (addEntity with a mob type), by entity id. */
+  readonly mobs = new ClientMobs({
+    sound: (ev, cat, x, y, z, vol, pitch) => this.playAt(ev, cat, x, y, z, vol, pitch),
+    hasSound: (ev) => this.sound.has(ev),
+    blockStep: (x, y, z, category) => {
+      const st = this.world.getState(Math.floor(x), Math.floor(y - 0.2), Math.floor(z));
+      if (st === 0) return;
+      const t = soundTypeOf(st);
+      this.playAt(t.step, category, x, y, z, t.volume * 0.15, t.pitch);
+    },
+    poof: (m) => this.mobRenderer?.poof(m),
+    forget: (id) => this.mobRenderer?.forget(id),
+  });
   /** Other players (and later all entities), by entity id. */
   readonly players = new Map<number, RemotePlayer>();
   private sentState = { sneaking: false, sprinting: false, flying: false };
@@ -426,6 +443,16 @@ export class Game implements ScreenHost, ContainerHost {
     this.entityRenderer = new EntityRenderer(this.gl);
     await this.entityRenderer.loadSkins();
     await this.entityRenderer.loadArmor();
+    this.mobRenderer = new MobRenderer(this.gl);
+    await this.mobRenderer.load();
+    // items in mobs' hands join the players' held-item queue (drawn after the entities)
+    this.mobRenderer.onHeld = (arm, light, item, left) => {
+      const info = this.entityRenderer.itemModel(item);
+      if (!info) return;
+      const out = mat4();
+      multiply(out, arm, heldItemTransform(left, info.flat));
+      this.entityRenderer.held.push({ matrix: out, light, item, left });
+    };
     const mainBake = bakeBlockModels(this.manifest, this.settings.graphics === 'fancy');
     this.bake = mainBake.bake;
     this.texLayers = mainBake.textures;
@@ -683,6 +710,7 @@ export class Game implements ScreenHost, ContainerHost {
     switch (p.t) {
       case 'login':
         this.entityId = p.entityId;
+        this.mobs.mobs.clear();
         this.world.biomeZoomSeed = p.seed;
         this.selfModel = new RemotePlayer(p.entityId, new URLSearchParams(location.search).get('name') ?? 'Player', '');
         this.selfModel.setPos(p.x, p.y, p.z, p.yaw, p.pitch, p.yaw);
@@ -749,6 +777,7 @@ export class Game implements ScreenHost, ContainerHost {
       case 'removeEntities':
         for (const id of p.ids) {
           this.players.delete(id);
+          this.mobs.remove(id);
           this.items.delete(id);
           this.bolts.delete(id);
           this.fallingBlocks.remove(id);
@@ -757,6 +786,7 @@ export class Game implements ScreenHost, ContainerHost {
       case 'entityMove': {
         this.players.get(p.id)?.lerpTo(p.x, p.y, p.z, p.yaw, p.pitch, p.headYaw);
         this.fallingBlocks.move(p.id, p.x, p.y, p.z);
+        this.mobs.move(p.id, p.x, p.y, p.z, p.yaw, p.pitch, p.headYaw, p.onGround);
         const it = this.items.get(p.id);
         if (it) {
           it.lx = p.x;
@@ -786,9 +816,12 @@ export class Game implements ScreenHost, ContainerHost {
           rp.pose = p.pose;
           rp.ticksFrozen = p.frozen;
         }
+        const mob = this.mobs.get(p.id);
+        if (mob) mob.flags = p.flags;
         break;
       }
       case 'animate':
+        if (p.action === 0) this.mobs.get(p.id)?.swing();
         if (p.action === 0 || p.action === 3) this.players.get(p.id)?.swing(p.action === 3 ? 'left' : 'right');
         else if (p.action === 1) {
           const rp = this.players.get(p.id);
@@ -855,6 +888,11 @@ export class Game implements ScreenHost, ContainerHost {
         }
         break;
       case 'equipment': {
+        const mob = this.mobs.get(p.id);
+        if (mob) {
+          mob.mainHand = p.mainHand;
+          mob.offHand = p.offHand;
+        }
         const rp = this.players.get(p.id);
         if (rp) {
           rp.mainHand = p.mainHand;
@@ -922,7 +960,9 @@ export class Game implements ScreenHost, ContainerHost {
         }
         else if (p.type === 'falling_block') this.fallingBlocks.add(p.id, p.data, p.x, p.y, p.z);
         else if (p.type === 'tnt') this.fallingBlocks.add(p.id, BLOCKS_BY_NAME.get('tnt')!.defaultState, p.x, p.y, p.z);
-        else if (p.type === 'item' || p.type === 'experience_orb') {
+        else if (isMobType(p.type)) {
+          this.mobs.add(p.id, p.type, p.x, p.y, p.z);
+        } else if (p.type === 'item' || p.type === 'experience_orb') {
           this.items.set(p.id, { x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z, steps: 0, item: 0, count: 1, age: 0, bobOffs: Math.random() * Math.PI * 2, ...(p.type === 'experience_orb' ? { orb: p.data } : {}) });
         }
         break;
@@ -979,8 +1019,17 @@ export class Game implements ScreenHost, ContainerHost {
         break;
       }
       case 'entityEvent':
-        this.entityEvent(p.id, p.event);
+        if (this.mobs.get(p.id)) this.mobs.event(p.id, p.event);
+        else this.entityEvent(p.id, p.event);
         break;
+      case 'mobData':
+        this.mobs.get(p.id)?.setData(p.key, p.value);
+        break;
+      case 'mobName': {
+        const mob = this.mobs.get(p.id);
+        if (mob) mob.customName = p.name;
+        break;
+      }
       case 'blockBreakProgress':
         if (p.stage < 0) this.otherCracks.delete(p.id);
         else this.otherCracks.set(p.id, { x: p.x, y: p.y, z: p.z, stage: p.stage });
@@ -1157,6 +1206,8 @@ export class Game implements ScreenHost, ContainerHost {
       rp.usingItem = ru?.item ?? 0;
       rp.useTicks = ru?.ticks ?? 0;
     }
+    this.mobs.tick();
+    this.mobRenderer?.tick();
     for (const [id, it] of this.items) {
       if (it.pickup && ++it.pickup.life > 3) {
         this.items.delete(id);
@@ -1208,7 +1259,7 @@ export class Game implements ScreenHost, ContainerHost {
         // Minecraft.handleKeybinds while using an item: clicks are swallowed
         b.consume('use');
         b.consume('attack');
-      } else ia.use(b.consume('use'), b.down('use'), this.target);
+      } else ia.use(b.consume('use'), b.down('use'), this.target, this.targetEntity !== null && this.mobs.get(this.targetEntity) ? this.targetEntity : null);
       if (this.gameMode === 3) {
         // MouseHandler: the middle button opens/uses the spectator menu; hotbar keys pick its slots
         const middle = i.consumePress('Mouse1');
@@ -1806,6 +1857,19 @@ export class Game implements ScreenHost, ContainerHost {
         hit = p.id;
       }
     }
+    for (const m of this.mobs.mobs.values()) {
+      // dying mobs can't be targeted (LivingEntity.isPickable: alive only)
+      if (m.deathTime > 0) continue;
+      const x = m.xo + (m.x - m.xo) * partial, y = m.yo + (m.y - m.yo) * partial, z = m.zo + (m.z - m.zo) * partial;
+      const [w, h] = m.dims();
+      // Entity.getPickRadius is 0 for mobs; the hit box is the bounding box
+      const t = rayAabb(ex, ey, ez, dx, dy, dz, x - w / 2, y, z - w / 2, x + w / 2, y + h, z + w / 2);
+      if (t === null || t > range) continue;
+      if (t * t < hitDist2) {
+        hitDist2 = t * t;
+        hit = m.id;
+      }
+    }
     if (hit === null) return;
     if (!far && hitDist2 > 9) {
       // survival reach for entities is 3: a farther entity in the way means nothing is targeted
@@ -1915,7 +1979,11 @@ export class Game implements ScreenHost, ContainerHost {
     // block entity and entity NBT come from the server when asked (none exist yet, so the
     // server's answer is the same as the client's)
     const side = queryServer ? 'server' : 'client';
-    if (this.targetEntity !== null) {
+    const mob = this.targetEntity !== null ? this.mobs.get(this.targetEntity) : undefined;
+    if (mob) {
+      this.setClipboard(`/summon minecraft:${mob.type} ${mob.x.toFixed(2)} ${mob.y.toFixed(2)} ${mob.z.toFixed(2)}`);
+      this.debugFeedback(`Copied ${side}-side entity data to clipboard`);
+    } else if (this.targetEntity !== null) {
       const e = this.players.get(this.targetEntity);
       if (!e) return;
       this.setClipboard(`/summon minecraft:player ${e.x.toFixed(2)} ${e.y.toFixed(2)} ${e.z.toFixed(2)}`);
@@ -1965,6 +2033,11 @@ export class Game implements ScreenHost, ContainerHost {
       const x = p.xo + (p.x - p.xo) * partial, y = p.yo + (p.y - p.yo) * partial, z = p.zo + (p.z - p.zo) * partial;
       const crouch = p.crouching;
       living(x, y, z, 0.6, crouch ? 1.5 : 1.8, crouch ? 1.27 : 1.62, p.headYaw, p.pitch);
+    }
+    for (const m of this.mobs.mobs.values()) {
+      const x = m.xo + (m.x - m.xo) * partial, y = m.yo + (m.y - m.yo) * partial, z = m.zo + (m.z - m.zo) * partial;
+      const [w, h] = m.dims();
+      living(x, y, z, w, h, h * 0.85, m.headYaw, m.pitch);
     }
     if (this.cameraType !== 0 && this.selfModel) {
       const s = this.selfModel, pl = this.player;
@@ -2407,6 +2480,34 @@ export class Game implements ScreenHost, ContainerHost {
       // (the entity we look through is not drawn in first person)
       const visible = [...this.players.values()].filter((p) => (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2 < ed * ed && (p !== camEnt || this.cameraType !== 0));
       this.entityRenderer.renderPlayers(visible, this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
+    }
+    {
+      // player shadows (radius 0.5; spectators are invisible and cast none)
+      const ed = 64 * this.settings.entityDistance;
+      for (const p of this.players.values()) {
+        if ((p.flags & 32) !== 0 || p === camEnt || (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2 >= ed * ed) continue;
+        this.mobRenderer.addShadow(p.xo + (p.x - p.xo) * partial, p.yo + (p.y - p.yo) * partial, p.zo + (p.z - p.zo) * partial, 0.5);
+      }
+      const sm = this.selfModel;
+      if (this.cameraType !== 0 && sm && !camEnt && this.gameMode !== 3) this.mobRenderer.addShadow(sm.xo + (sm.x - sm.xo) * partial, sm.yo + (sm.y - sm.yo) * partial, sm.zo + (sm.z - sm.zo) * partial, 0.5);
+    }
+    {
+      // LivingEntity.shouldRenderAtSqrDistance: bounding-box size × 64 blocks × entity distance
+      const visible = this.visibleMobs;
+      visible.length = 0;
+      for (const m of this.mobs.mobs.values()) {
+        const [w, h] = m.dims();
+        const d = ((w + w + h) / 3) * 64 * this.settings.entityDistance;
+        if ((m.x - cx) ** 2 + (m.y - cy) ** 2 + (m.z - cz) ** 2 >= d * d || m.id === this.cameraEntity) continue;
+        // EntityRenderer.shouldRender: frustum test on the culling box (bounding box grown by 0.5)
+        const hw = w / 2 + 0.5;
+        if (!aabbInFrustum(this.planes, m.x - hw - cx, m.y - 0.5 - cy, m.z - hw - cz, m.x + hw - cx, m.y + h + 0.5 - cy, m.z + hw - cz)) continue;
+        visible.push(m);
+      }
+      this.mobRenderer.shadows = (this.settings as { entityShadows?: boolean }).entityShadows ?? true;
+      this.mobRenderer.target = this.targetEntity;
+      this.mobRenderer.names = !this.hideHud;
+      this.mobRenderer.render(visible, this.world, this.viewProj, cx, cy, cz, camYaw, camPitch, partial, this.lightmap.tex, fog, fogStart, fogEnd, this.skyDarkenLevel());
     }
     // our own body in third person (a spectator's is a faint floating head)
     if (this.cameraType !== 0 && this.selfModel && !camEnt) {

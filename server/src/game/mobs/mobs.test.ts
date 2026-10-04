@@ -292,8 +292,8 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     const c1 = server.mobs.spawn('cow', 2.5, 64, 0.5) as Cow;
     const c2 = server.mobs.spawn('cow', 3.5, 64, 1.5) as Cow;
     c1.ageTicks = c2.ageTicks = 0;
-    a.send({ t: 'interact', target: c1.id, hand: 0 });
-    a.send({ t: 'interact', target: c2.id, hand: 0 });
+    a.send({ t: 'interactEntity', id: c1.id, hand: 0 });
+    a.send({ t: 'interactEntity', id: c2.id, hand: 0 });
     expect(c1.isInLove() && c2.isInLove()).toBe(true);
     expect(p.inventory.get(0)).toBeNull();
     let calf: Animal | undefined;
@@ -317,7 +317,7 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     sheep.ageTicks = 0;
     sheep.color = 0;
     server.tick();
-    a.send({ t: 'interact', target: sheep.id, hand: 0 });
+    a.send({ t: 'interactEntity', id: sheep.id, hand: 0 });
     expect(sheep.sheared).toBe(true);
     const wool = [...server.entities.values()].filter((e) => e instanceof ItemEntity && itemName(e.stack.id) === 'white_wool');
     expect(wool.length).toBeGreaterThanOrEqual(1);
@@ -330,7 +330,7 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     p.inventory.set(0, { id: ITEMS_BY_NAME.get('bucket')!.id, count: 1, damage: 0 });
     const cow = server.mobs.spawn('cow', 0.5, 64, 2.5) as Cow;
     cow.ageTicks = 0;
-    a.send({ t: 'interact', target: cow.id, hand: 0 });
+    a.send({ t: 'interactEntity', id: cow.id, hand: 0 });
     expect(itemName(p.inventory.get(0)!.id)).toBe('milk_bucket');
     // eggs
     const ch = server.mobs.spawn('chicken', -2.5, 64, 0.5) as Chicken;
@@ -555,7 +555,7 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     expect(w.health).toBe(8);
     let tries = 0;
     while (!w.tame && tries < 50) {
-      a.send({ t: 'interact', target: w.id, hand: 0 });
+      a.send({ t: 'interactEntity', id: w.id, hand: 0 });
       tries++;
     }
     expect(w.tame).toBe(true);
@@ -567,7 +567,7 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     expect(a.received.some((m) => m.t === 'mobData' && m.id === w.id && m.key === 'tame' && m.value === 1)).toBe(true);
     // stand up, then a zombie hurts the owner: the wolf goes for it
     p.inventory.set(p.inventory.selected, null);
-    a.send({ t: 'interact', target: w.id, hand: 0 });
+    a.send({ t: 'interactEntity', id: w.id, hand: 0 });
     expect(w.orderedToSit).toBe(false);
     const z = server.mobs.spawn('zombie', -1.5, 64, 0.5) as Zombie;
     z.baby = false;

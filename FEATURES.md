@@ -2451,7 +2451,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 ### Systems
 
 - [ ] Entity system (server-side ticking, interpolation client-side) <!--p6:entity_system_server_side_ticking_interpolation_client_side-->
-- [ ] Mob model/animation system matching vanilla body-part layout <!--p6:mob_model_animation_system_matching_vanilla_body_part_layout-->
+- [x] Mob model/animation system matching vanilla body-part layout <!--p6:mob_model_animation_system_matching_vanilla_body_part_layout-->
 - [ ] Pathfinding: walking <!--p6:pathfinding_walking-->
 - [ ] Pathfinding: swimming <!--p6:pathfinding_swimming-->
 - [ ] Pathfinding: flying <!--p6:pathfinding_flying-->
@@ -2499,8 +2499,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Ender Dragon (fight, crystals, perching, breath, egg, exit portal, gateways, respawning) <!--p6:ender_dragon_fight_crystals_perching_breath_egg_exit_portal_gateways_respawning-->
 - [ ] Name tags <!--p6:name_tags-->
 - [ ] Mob sounds (ambient/hurt/death/step) <!--p6:mob_sounds_ambient_hurt_death_step-->
-- [ ] Mob death animation and particles <!--p6:mob_death_animation_and_particles-->
-- [ ] Mob hurt red tint <!--p6:mob_hurt_red_tint-->
+- [x] Mob death animation and particles <!--p6:mob_death_animation_and_particles-->
+- [x] Mob hurt red tint <!--p6:mob_hurt_red_tint-->
 
 ### Mobs (every 1.17.1 mob; ⊘ = does not spawn naturally)
 
