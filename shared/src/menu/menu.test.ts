@@ -169,6 +169,22 @@ describe('crafting', () => {
     expect(craftingResult(grid(3, ['oak_planks', null, null, null, 'oak_planks', null, null, null, null]))).toBeNull();
     expect(craftingResult(grid(2, ['cobblestone', 'cobblestone', 'cobblestone', null]))).toBeNull();
   });
+  it('patterns are top row first (bucket, stairs, bed, door)', () => {
+    expect(name(craftingResult(grid(3, ['iron_ingot', null, 'iron_ingot', null, 'iron_ingot', null, null, null, null])))).toBe('bucketx1');
+    expect(craftingResult(grid(3, [null, 'iron_ingot', null, 'iron_ingot', null, 'iron_ingot', null, null, null]))).toBeNull();
+    const P = 'oak_planks';
+    expect(name(craftingResult(grid(3, [P, null, null, P, P, null, P, P, P])))).toBe('oak_stairsx4');
+    expect(name(craftingResult(grid(3, [null, null, P, null, P, P, P, P, P])))).toBe('oak_stairsx4'); // mirrored
+    expect(name(craftingResult(grid(3, ['white_wool', 'white_wool', 'white_wool', 'birch_planks', P, 'spruce_planks', null, null, null])))).toBe('white_bedx1');
+    expect(name(craftingResult(grid(3, [P, P, null, P, P, null, P, P, null])))).toBe('oak_doorx3');
+    expect(name(craftingResult(grid(3, ['coal', null, null, 'stick', null, null, null, null, null])))).toBe('torchx4');
+    expect(name(craftingResult(grid(3, ['charcoal', null, null, 'stick', null, null, null, null, null])))).toBe('torchx4');
+    expect(name(craftingResult(grid(3, ['paper', 'paper', 'leather', 'paper', null, null, null, null, null])))).toBe('bookx1');
+    expect(name(craftingResult(grid(3, ['iron_ingot', null, 'iron_ingot', 'iron_ingot', 'stick', 'iron_ingot', 'iron_ingot', null, 'iron_ingot'])))).toBe('railx16');
+    expect(name(craftingResult(grid(3, ['cobblestone', 'cobblestone', 'cobblestone', 'cobblestone', null, 'cobbled_deepslate', 'blackstone', 'cobblestone', 'cobblestone'])))).toBe('furnacex1');
+    // bamboo and planks don't mix for sticks (separate recipes in vanilla)
+    expect(craftingResult(grid(3, ['bamboo', null, null, P, null, null, null, null, null]))).toBeNull();
+  });
   it('shapeless in any order', () => {
     expect(name(craftingResult(grid(3, [null, 'cobblestone', null, null, null, null, 'vine', null, null])))).toBe('mossy_cobblestonex1');
     expect(name(craftingResult(grid(3, ['vine', null, null, null, null, null, null, null, 'cobblestone'])))).toBe('mossy_cobblestonex1');
