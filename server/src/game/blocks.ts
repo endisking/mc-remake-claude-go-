@@ -119,7 +119,7 @@ export class BlockBehaviors {
     this.skyDarken = skyDarkenLevel(s.dayTime, s.rainLevel, s.thunderLevel * s.rainLevel);
     this.blockTicks.tick(s.gameTime, (x, z) => this.w.isLoaded(x, z) && s.isTickingChunk(x >> 4, z >> 4), (t) => {
       const st = this.w.getState(t.x, t.y, t.z);
-      if (blockIdOf(st) === t.type) this.tickBlock(t.x, t.y, t.z, st);
+      if (blockIdOf(st) === t.type) this.safely(() => this.tickBlock(t.x, t.y, t.z, st), st);
     });
     this.randomTicks();
   }
@@ -153,7 +153,7 @@ export class BlockBehaviors {
               const l = this.randValue >> 2;
               const lx = l & 15, ly = (l >> 16) & 15, lz = (l >> 8) & 15;
               const st = sec.getState(sectionIndex(lx, ly, lz));
-              if (RANDOM_TICKING[st]) this.randomTick(cx * 16 + lx, sy * 16 + ly, cz * 16 + lz, st);
+              if (RANDOM_TICKING[st]) this.safely(() => this.randomTick(cx * 16 + lx, sy * 16 + ly, cz * 16 + lz, st), st);
             }
           }
         }
@@ -192,6 +192,15 @@ export class BlockBehaviors {
         s.setBlock(x, y, z, snow);
         s.updateNeighbors(x, y, z);
       }
+    }
+  }
+
+  /** One misbehaving block must not stop the server loop: log and carry on. */
+  private safely(f: () => void, st: number): void {
+    try {
+      f();
+    } catch (e) {
+      console.error(`block tick failed for ${blockNameOf(st)}`, e);
     }
   }
 

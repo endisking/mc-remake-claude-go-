@@ -557,4 +557,26 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     at(7, 155, 12);
     expect(get(7, 154, 12)).toBe('hanging_roots');
   });
+
+  it('every sapling type grows its tree (singles and 2×2s)', () => {
+    const { server, set, get } = setup();
+    server.blocks.randomTickSpeed = 0;
+    const kinds = ['oak', 'spruce', 'birch', 'jungle', 'acacia'];
+    kinds.forEach((k, i) => {
+      const x = -8 + i * 8, z = -8;
+      set(x, 150, z, 'grass_block');
+      set(x, 151, z, `${k}_sapling`, { stage: 1 });
+      expect(server.blocks.growTree(x, 151, z, server.world.getState(x, 151, z)), k).toBe(true);
+      expect(get(x, 151, z), k).toMatch(/_log$/);
+    });
+    ['spruce', 'jungle', 'dark_oak'].forEach((k, i) => {
+      const x = -8 + i * 10, z = 14;
+      for (let dx = 0; dx < 2; dx++) for (let dz = 0; dz < 2; dz++) {
+        set(x + dx, 150, z + dz, 'grass_block');
+        set(x + dx, 151, z + dz, `${k}_sapling`, { stage: 1 });
+      }
+      expect(server.blocks.growTree(x, 151, z, server.world.getState(x, 151, z)), k).toBe(true);
+      for (let dx = 0; dx < 2; dx++) for (let dz = 0; dz < 2; dz++) expect(get(x + dx, 151, z + dz), k).toMatch(/_log$/);
+    });
+  });
 });
