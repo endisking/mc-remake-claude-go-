@@ -25,8 +25,8 @@ const key = (p: Page, code: string) => p.evaluate((c) => {
   i.press(c);
   i.release(c);
 }, code);
-/** Freeze the game loop's hand state for a stable frame (no-op if the hook is missing). */
-const settle = () => page.waitForTimeout(700);
+/** Let the equip animation finish (3 ticks) and a few frames render (slow under SwiftShader). */
+const settle = () => page.waitForTimeout(1200);
 
 await page.goto(`${base}?nolock=1&rd=3&gamemode=creative&x=40.5&y=160&z=40.5&pitch=10&yaw=0&time=6000`);
 await page.waitForFunction(() => {
@@ -77,6 +77,30 @@ for (const [slot, name] of [['Digit9', 'empty'], ['Digit1', 'block']] as const) 
   await page.evaluate(() => { (window as any).game.debugSwingFreeze = undefined; });
 }
 
+// use poses (forced through the itemUse hook) with the planks: eating and drawing a bow
+await key(page, 'Digit1');
+await settle();
+await page.evaluate(() => { (window as any).game.itemUse = { hand: 0, item: 'bread', remaining: 20, duration: 32, anim: 'eat' }; });
+await page.waitForTimeout(150);
+await shot('use-eat');
+await page.evaluate(() => { (window as any).game.itemUse = { hand: 0, item: 'bow', remaining: 72000 - 30, duration: 72000, anim: 'bow' }; });
+await page.waitForTimeout(150);
+await shot('use-bow');
+await page.evaluate(() => { (window as any).game.itemUse = null; });
+
+// off hand: the torch moved to the off-hand slot, empty main hand; then a block in the main hand too
+await page.evaluate(() => {
+  const inv = (window as any).game.interaction.inventory;
+  inv.set(40, inv.get(1));
+  inv.set(1, null);
+});
+await key(page, 'Digit9');
+await settle();
+await shot('offhand');
+await key(page, 'Digit1');
+await settle();
+await shot('offhand-block');
+
 // walking with the empty hand (view bobbing)
 await key(page, 'Digit9');
 await settle();
@@ -86,5 +110,5 @@ await shot('walk-1');
 await page.waitForTimeout(170);
 await shot('walk-2');
 await page.evaluate(() => (window as any).game.input.release('KeyW'));
-
+await page.waitForTimeout(600);
 await browser.close();

@@ -405,6 +405,10 @@ export class Game implements ScreenHost {
         this.playAt(t.place, 'block', x + 0.5, y + 0.5, z + 0.5, (t.volume + 1) / 2, t.pitch * 0.8);
       },
       swing: (hand) => this.swingArm(hand ?? 0),
+      itemUsed: (hand) => {
+        if (hand === 0) this.mainHandHeight = 0;
+        else this.offHandHeight = 0;
+      },
       onAttack: () => {
         // client-side Player.attack: a charged sprint hit slows us and stops sprinting
         const charged = attackStrengthScale(this.attackStrengthTicker, this.interaction.inventory.selectedStack?.id ?? 0, 0.5) > 0.9;
