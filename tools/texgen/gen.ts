@@ -96,6 +96,7 @@ function main(): void {
   mkdirSync(join(outDir, 'entity'), { recursive: true });
   writePng(join(outDir, 'entity', 'experience_orb.png'), experienceOrbs());
   for (const [name, make] of Object.entries(ENTITY_TEXTURES)) writePng(join(outDir, 'entity', `${name}.png`), make());
+  writeFileSync(join(outDir, 'entity', 'entities.json'), JSON.stringify(Object.keys(ENTITY_TEXTURES)));
   mkdirSync(join(outDir, 'misc'), { recursive: true });
   writePng(join(outDir, 'misc', 'shadow.png'), shadow());
   mkdirSync(join(outDir, 'particle'), { recursive: true });
