@@ -996,6 +996,16 @@
    "cutout": true
   },
   {
+   "name": "red_mushroom",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "brown_mushroom",
+   "frames": 1,
+   "cutout": true
+  },
+  {
    "name": "weeping_vines_plant",
    "frames": 1,
    "cutout": true

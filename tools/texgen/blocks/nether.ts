@@ -245,6 +245,24 @@ const VINES_TIP = [
   '................',
   '................',
 ];
+const MUSHROOM = [
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '......aaaa......',
+  '....aabbcbaa....',
+  '...abbcbbbbba...',
+  '...abbbbbcbba...',
+  '....aaaaaaaa....',
+  '.......dd.......',
+  '.......de.......',
+  '.......dd.......',
+  '......ddde......',
+  '................',
+  '................',
+];
 const flipY = (rows: string[]) => [...rows].reverse();
 
 /** Obsidian: glassy near-black purple with lighter conchoidal flakes. */
@@ -295,6 +313,8 @@ export const netherTextures: TexDef[] = [
   { name: 'nether_sprouts', make: () => plant(SPROUTS, { a: '#3fd1b0', b: '#1d8a78' }), cutout: true },
   { name: 'crimson_fungus', make: () => plant(FUNGUS, { a: '#6e0d10', b: '#b8221f', c: '#f4b04a', d: '#d8a07a' }), cutout: true },
   { name: 'warped_fungus', make: () => plant(FUNGUS, { a: '#0c5a52', b: '#159c86', c: '#f08a2a', d: '#c08a6a' }), cutout: true },
+  { name: 'red_mushroom', make: () => plant(MUSHROOM, { a: '#8a1010', b: '#d42a24', c: '#f2e4d8', d: '#d8ccb8', e: '#a89c88' }), cutout: true },
+  { name: 'brown_mushroom', make: () => plant(MUSHROOM, { a: '#5e4030', b: '#9a7356', c: '#b48a6a', d: '#d8ccb8', e: '#a89c88' }), cutout: true },
   { name: 'weeping_vines_plant', make: () => plant(VINES, { a: '#a1141a', b: '#d6383a' }), cutout: true },
   { name: 'weeping_vines', make: () => plant(VINES_TIP, { a: '#a1141a', b: '#d6383a' }), cutout: true },
   { name: 'twisting_vines_plant', make: () => plant(VINES, { a: '#14917c', b: '#3ad1b0' }), cutout: true },

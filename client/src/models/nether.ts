@@ -27,7 +27,7 @@ MODELS[PORTAL_Z] = {
 
 const CROSS_PLANTS = new Set([
   'crimson_roots', 'warped_roots', 'nether_sprouts', 'crimson_fungus', 'warped_fungus',
-  'weeping_vines', 'weeping_vines_plant', 'twisting_vines', 'twisting_vines_plant',
+  'weeping_vines', 'weeping_vines_plant', 'twisting_vines', 'twisting_vines_plant', 'red_mushroom', 'brown_mushroom',
 ]);
 
 export function netherBlockDef(name: string, hasTexture: (t: string) => boolean): BlockStateDef | null {
