@@ -37,7 +37,8 @@ The start page lets you pick a name, then:
 - There is no ender dragon yet, so the End's exit portal is open from the start.
 - No villager trading, horses or minecarts yet. Some mobs without a model are drawn as plain boxes.
 - Pistons move instantly (no animation). Hoppers, rails and most dispenser actions are not done yet.
-- "Open to LAN" needs the page to be served by the dedicated server (it provides the `/signal` relay), or a
-  `?signal=wss://your-server/signal` parameter. It does not work from the desktop app or plain static hosting.
+- "Open to LAN" works from the desktop app (it runs the relay; friends enter the host's IP shown on the Open to
+  LAN screen and Windows may ask to allow the app through the firewall) and from the dedicated server. On plain
+  static web hosting, fill in the launcher's "Signaling server" field.
 - Some numbers (smelting recipes, structure loot weights) were written from memory and may differ slightly from
   vanilla.
