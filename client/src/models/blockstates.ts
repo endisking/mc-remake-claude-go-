@@ -171,6 +171,7 @@ const EXPLICIT: Record<string, () => BlockStateDef> = {
     return { variants };
   },
   ice: () => single({ model: model('ice', 'cube_all', { all: 'ice' }) }),
+  hay_block: () => column('hay_block', 'hay_block_side', 'hay_block_top'),
 };
 
 type Rot = 0 | 90 | 180 | 270;
@@ -343,6 +344,25 @@ function buttonDef(name: string, texture: string): BlockStateDef {
   return { variants };
 }
 
+/**
+ * Textures of the full block a slab/stairs/wall/fence/button is made of: planks for woods,
+ * `<base>s` for bricks, the sandstone top/bottom faces, smooth variants' top texture.
+ */
+function materialTextures(base: string, has: (t: string) => boolean): { top: string; bottom: string; side: string } | null {
+  const all = (t: string) => ({ top: t, bottom: t, side: t });
+  if (has(`${base}_planks`)) return all(`${base}_planks`);
+  if (base === 'smooth_stone' && has('smooth_stone_slab_side')) return { top: 'smooth_stone', bottom: 'smooth_stone', side: 'smooth_stone_slab_side' };
+  const sandstone = /^(smooth_|cut_)?(red_)?sandstone$/.exec(base);
+  if (sandstone) {
+    const top = `${sandstone[2] ?? ''}sandstone_top`;
+    if (sandstone[1] === 'smooth_') return all(top);
+    if (sandstone[1] === 'cut_') return { top, bottom: top, side: base };
+    return { top, bottom: `${sandstone[2] ?? ''}sandstone_bottom`, side: base };
+  }
+  for (const t of [base, `${base}s`, `${base}_block`]) if (has(t)) return all(t);
+  return null;
+}
+
 export function blockStateDef(name: string, hasTexture: (t: string) => boolean): BlockStateDef {
   const ex = EXPLICIT[name] ?? NATURAL[name];
   if (ex) return ex();
@@ -355,15 +375,18 @@ export function blockStateDef(name: string, hasTexture: (t: string) => boolean):
     const log = name.replace(/_wood$/, '_log').replace(/_hyphae$/, '_stem');
     if (hasTexture(log)) return column(name, log, log);
   }
-  if (name.endsWith('_slab')) {
-    const base = name.replace(/_slab$/, '');
-    const tex = hasTexture(`${base}_planks`) ? `${base}_planks` : base;
-    if (hasTexture(tex)) return slab(name, { top: tex, bottom: tex, side: tex }, model(`${name}_double`, 'cube_all', { all: tex }));
-  }
-  if (name.endsWith('_stairs')) {
-    const base = name.replace(/_stairs$/, '');
-    const tex = hasTexture(`${base}_planks`) ? `${base}_planks` : base;
-    if (hasTexture(tex)) return stairs(name, { top: tex, bottom: tex, side: tex });
+  for (const suffix of ['_slab', '_stairs', '_wall', '_fence', '_button'] as const) {
+    if (!name.endsWith(suffix)) continue;
+    const tex = materialTextures(name.slice(0, -suffix.length), hasTexture);
+    if (!tex) break;
+    if (suffix === '_slab') {
+      const dbl = tex.top === tex.side ? model(`${name}_double`, 'cube_all', { all: tex.side }) : model(`${name}_double`, 'cube_bottom_top', tex);
+      return slab(name, tex, dbl);
+    }
+    if (suffix === '_stairs') return stairs(name, tex);
+    if (suffix === '_wall') return wallDef(name, tex.side);
+    if (suffix === '_fence') return fenceDef(name, tex.side);
+    return buttonDef(name, tex.side);
   }
   if (hasTexture(name)) return single({ model: model(name, 'cube_all', { all: name }) });
   return single({ model: 'missing' });

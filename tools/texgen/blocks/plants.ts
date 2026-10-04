@@ -10,6 +10,7 @@ import { WOODS, leaves } from './flora';
 
 const STEM = pal('#2b5a14', '#3a7a1c', '#4f9a28', '#68b83a');
 const GRAY4 = pal('#454545', '#5e5e5e', '#787878', '#929292', '#adadad');
+const LILY = pal('#707070', '#8e8e8e', '#acacac', '#c8c8c8', '#e4e4e4');
 
 // ------------------------------------------------------------------ generic plant helpers
 /** A stem from (x, 15) up to row `top`, with a couple of leaves. */
@@ -305,7 +306,7 @@ function lilyPad(): Tex {
       let v = 2 + Math.round((r() - 0.5) * 1.2);
       if (d > 6.3) v = 1;
       if (Math.abs(dx) < 0.6 && dy < 0 || Math.abs(dx - dy) < 0.6 || Math.abs(dx + dy) < 0.6 && dy < 0) v = 4;
-      t.set(x, y, GRAY4[Math.max(0, Math.min(4, v))]!);
+      t.set(x, y, LILY[Math.max(0, Math.min(4, v))]!);
     }
   return t;
 }

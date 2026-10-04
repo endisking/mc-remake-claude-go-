@@ -54,10 +54,17 @@ const HARDCODED = [
   'netherrack', 'soul_sand', 'soul_soil', 'basalt', 'blackstone', 'crimson_nylium', 'warped_nylium', 'crimson_fungus', 'warped_fungus',
   'crimson_roots', 'warped_roots', 'nether_sprouts', 'nether_wart_block', 'warped_wart_block', 'shroomlight', 'glowstone', 'ancient_debris',
   'weeping_vines', 'weeping_vines_plant', 'twisting_vines', 'twisting_vines_plant', 'nether_gold_ore', 'nether_quartz_ore', 'end_stone', 'nether_portal',
+  // common structure blocks (villages, temples, dungeons, ruins)
+  'cobblestone_stairs', 'cobblestone_slab', 'mossy_cobblestone_stairs', 'mossy_cobblestone_slab', 'stone_brick_stairs', 'stone_brick_slab', 'stone_brick_wall',
+  'mossy_stone_brick_wall', 'mossy_stone_brick_stairs', 'sandstone_stairs', 'sandstone_slab', 'sandstone_wall', 'cut_sandstone_slab', 'smooth_sandstone_stairs',
+  'smooth_stone_slab', 'smooth_stone', 'stone_slab', 'stone_stairs', 'oak_planks', 'spruce_planks', 'birch_planks', 'acacia_planks', 'oak_stairs', 'spruce_stairs',
+  'acacia_stairs', 'oak_slab', 'spruce_slab', 'oak_fence', 'spruce_fence', 'acacia_fence', 'birch_fence', 'dark_oak_fence', 'bricks', 'brick_stairs', 'brick_slab',
+  'hay_block', 'white_stained_glass', 'orange_stained_glass', 'white_stained_glass_pane', 'glass_pane', 'polished_andesite', 'polished_granite', 'polished_diorite',
+  'stripped_oak_log', 'stripped_spruce_log', 'stripped_acacia_log', 'candle', 'trapped_chest', 'jack_o_lantern', 'carved_pumpkin', 'granite_wall', 'andesite_slab',
 ];
 
 /** Blocks the JSON names that belong to other areas (not natural terrain) and may still be pending. */
-const NOT_YET = new Set(['candle', 'hay_block', 'orange_stained_glass', 'crimson_button', 'warped_button', 'oak_button', 'glass']);
+const NOT_YET = new Set<string>([]);
 
 const EMPTY_OK = new Set(['air', 'cave_air', 'void_air', 'bubble_column', ...FLUID_BLOCKS]);
 
@@ -70,8 +77,9 @@ function baked(): BakeResult {
 }
 /** Multiface blocks (vine, glow lichen) with no face set are invalid and render nothing, like vanilla. */
 function noFaces(name: string, s: number): boolean {
-  if (name !== 'vine' && name !== 'glow_lichen') return false;
   const p = propsOf(s);
+  if (name.endsWith('_wall')) return p.up === false && ['north', 'east', 'south', 'west'].every((d) => p[d] === 'none');
+  if (name !== 'vine' && name !== 'glow_lichen') return false;
   return !['north', 'east', 'south', 'west', 'up', 'down'].some((d) => p[d] === true);
 }
 const byName = new Map(BLOCKS.map((b) => [b.name, b]));

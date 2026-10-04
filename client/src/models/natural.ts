@@ -88,14 +88,14 @@ MODELS.coral_wall_fan = {
     { from: [0, 6, 7], to: [16, 6, 16], shade: false, rotation: { origin: [8, 6, 16], axis: 'x', angle: -22.5 }, faces: { up: { texture: '#fan', uv: [0, 5, 16, 14] }, down: { texture: '#fan', uv: [0, 5, 16, 14] } } },
   ],
 };
-/** Floor fire: four flame sheets on the block edges leaning inward (22.4 px tall). */
+/** Floor fire: four crossing flame sheets near the centre flaring outward 22.5° (22.4 px tall). */
 MODELS.fire_floor = {
   ao: false,
   elements: [
-    plane([0, 0, 0.01], [16, 22.4, 0.01], '#fire', 'north', 'south', [0, 0, 16, 16], false, { origin: [8, 0, 0.01], axis: 'x', angle: 22.5 }),
-    plane([0, 0, 15.99], [16, 22.4, 15.99], '#fire', 'north', 'south', [0, 0, 16, 16], false, { origin: [8, 0, 15.99], axis: 'x', angle: -22.5 }),
-    plane([0.01, 0, 0], [0.01, 22.4, 16], '#fire', 'west', 'east', [0, 0, 16, 16], false, { origin: [0.01, 0, 8], axis: 'z', angle: -22.5 }),
-    plane([15.99, 0, 0], [15.99, 22.4, 16], '#fire', 'west', 'east', [0, 0, 16, 16], false, { origin: [15.99, 0, 8], axis: 'z', angle: 22.5 }),
+    plane([0, 0, 8.8], [16, 22.4, 8.8], '#fire', 'north', 'south', [0, 0, 16, 16], false, { origin: [8, 8, 8], axis: 'x', angle: 22.5, rescale: true }),
+    plane([0, 0, 7.2], [16, 22.4, 7.2], '#fire', 'north', 'south', [0, 0, 16, 16], false, { origin: [8, 8, 8], axis: 'x', angle: -22.5, rescale: true }),
+    plane([8.8, 0, 0], [8.8, 22.4, 16], '#fire', 'west', 'east', [0, 0, 16, 16], false, { origin: [8, 8, 8], axis: 'z', angle: -22.5, rescale: true }),
+    plane([7.2, 0, 0], [7.2, 22.4, 16], '#fire', 'west', 'east', [0, 0, 16, 16], false, { origin: [8, 8, 8], axis: 'z', angle: 22.5, rescale: true }),
   ],
 };
 /** Fire burning on the side of the neighbour to the north. */
@@ -350,6 +350,31 @@ function portalDef(): BlockStateDef {
   return { variants: { 'axis=x': { model: id }, 'axis=z': { model: id, y: 90 } } };
 }
 
+function candleDef(name: string, tex: string): BlockStateDef {
+  // candle footprints [x, z, height] for 1–4 candles, like the vanilla shapes
+  const layouts: [number, number, number][][] = [
+    [[7, 7, 6]],
+    [[5, 7, 6], [9, 6, 5]],
+    [[7, 9, 6], [5, 6, 5], [9, 7, 3]],
+    [[6, 8, 6], [9, 8, 5], [5, 5, 5], [8, 5, 3]],
+  ];
+  const variants: Record<string, ModelRef> = {};
+  layouts.forEach((cs, i) => {
+    const elements: ModelElement[] = [];
+    for (const [x, z, h] of cs) {
+      const side: UV = [0, 14 - h, 2, 14];
+      elements.push({
+        from: [x, 0, z], to: [x + 2, h, z + 2],
+        faces: { up: { texture: tex, uv: [2, 8, 4, 10] }, down: { texture: tex, uv: [2, 8, 4, 10], cull: 'down' }, north: { texture: tex, uv: side }, south: { texture: tex, uv: side }, west: { texture: tex, uv: side }, east: { texture: tex, uv: side } },
+      });
+      elements.push(plane([x + 1, h, z + 0.5], [x + 1, h + 1, z + 1.5], tex, 'west', 'east', [0, 7, 1, 8]));
+    }
+    const id = reg(`${name}_${i + 1}`, { ao: false, elements });
+    variants[`candles=${i + 1}`] = { model: id };
+  });
+  return { variants };
+}
+
 // ------------------------------------------------------------------ registry
 const FLOWERS = ['dandelion', 'poppy', 'blue_orchid', 'allium', 'azure_bluet', 'red_tulip', 'orange_tulip', 'white_tulip', 'pink_tulip', 'oxeye_daisy', 'cornflower', 'lily_of_the_valley', 'wither_rose'];
 const WOODS = ['oak', 'spruce', 'birch', 'jungle', 'acacia', 'dark_oak'];
@@ -480,6 +505,15 @@ export const NATURAL: Record<string, () => BlockStateDef> = {
   infested_deepslate: () => column('infested_deepslate', 'deepslate', 'deepslate_top'),
 };
 
+NATURAL.candle = () => candleDef('candle', 'candle');
+for (const c of ['white', 'orange', 'magenta', 'light_blue', 'yellow', 'lime', 'pink', 'gray', 'light_gray', 'cyan', 'purple', 'blue', 'brown', 'green', 'red', 'black']) {
+  const n = `${c}_stained_glass_pane`;
+  NATURAL[n] = () => {
+    const post = model(`${n}_post`, 'pane_post', { pane: `${c}_stained_glass`, edge: `${c}_stained_glass` });
+    const side = model(`${n}_side`, 'pane_side', { pane: `${c}_stained_glass`, edge: `${c}_stained_glass` });
+    return { multipart: [{ apply: { model: post } }, ...HORIZONTAL.map((d) => ({ when: { [d]: 'true' } as Record<string, string>, apply: { model: side, y: Y_OF[d]! } }))] };
+  };
+}
 for (const f of FLOWERS) NATURAL[f] = () => cross(f, f, 'xz');
 for (const w of WOODS) NATURAL[`${w}_sapling`] = () => cross(`${w}_sapling`);
 for (const c of CORALS)

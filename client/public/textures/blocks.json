@@ -1923,6 +1923,123 @@
    "frames": 1
   },
   {
+   "name": "hay_block_side",
+   "frames": 1
+  },
+  {
+   "name": "hay_block_top",
+   "frames": 1
+  },
+  {
+   "name": "bricks",
+   "frames": 1
+  },
+  {
+   "name": "polished_andesite",
+   "frames": 1
+  },
+  {
+   "name": "polished_diorite",
+   "frames": 1
+  },
+  {
+   "name": "polished_granite",
+   "frames": 1
+  },
+  {
+   "name": "smooth_stone",
+   "frames": 1
+  },
+  {
+   "name": "smooth_stone_slab_side",
+   "frames": 1
+  },
+  {
+   "name": "white_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "orange_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "magenta_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "light_blue_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "yellow_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "lime_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "pink_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "gray_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "light_gray_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "cyan_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "purple_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "blue_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "brown_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "green_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "red_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "black_stained_glass",
+   "frames": 1,
+   "translucent": true
+  },
+  {
+   "name": "candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
    "name": "destroy_stage_0",
    "frames": 1,
    "cutout": true
