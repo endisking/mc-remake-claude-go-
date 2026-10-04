@@ -679,6 +679,8 @@ export class ItemUse {
           if (mobOwner) {
             const ok = self.s.survival.hurt(p, src, dmg);
             if (ok) self.s.mobs.noteOwnerHurtBy(p, mobOwner);
+            // stray arrows are tipped with Slowness (30 s; Arrow.doPostHurtEffects)
+            if (ok && mobOwner.type === 'stray') self.s.mobs.addPlayerEffect(p, 'slowness', 600, 0);
             return ok;
           }
           const ok = self.s.survival.hurt(p, src, dmg, owner && owner !== p ? owner : null);

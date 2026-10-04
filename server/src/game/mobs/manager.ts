@@ -530,7 +530,19 @@ export class MobManager {
     const ok = isMob(t) ? t.hurt(src, dmg, m) : this.s.survival.hurt(t, src, dmg);
     if (ok && !isMob(t)) this.noteOwnerHurtBy(t, m);
     if (ok && m instanceof Zombie) m.afterHurtTarget(t);
+    if (ok && !isMob(t)) {
+      const eff = this.s.difficulty; // getEffectiveDifficulty ≈ difficulty id (regional difficulty not modelled)
+      // Husk.doHurtTarget: Hunger for 7 s × difficulty
+      if (m instanceof Husk) this.addPlayerEffect(t, 'hunger', 140 * eff, 0);
+      // CaveSpider.doHurtTarget: Poison 7 s on normal, 15 s on hard
+      if (m instanceof CaveSpider && eff >= Difficulty.Normal) this.addPlayerEffect(t, 'poison', (eff === Difficulty.Hard ? 15 : 7) * 20, 0);
+    }
     return ok;
+  }
+
+  /** Status effect on a player (shared EffectMap; mobs don't carry effects yet). */
+  addPlayerEffect(p: ServerPlayer, effect: string, duration: number, amplifier: number): void {
+    if (duration > 0) p.living.effects.add(effect, duration, amplifier, this.s.items.effectTarget(p));
   }
 
   setOnFire(t: Target, seconds: number): void {

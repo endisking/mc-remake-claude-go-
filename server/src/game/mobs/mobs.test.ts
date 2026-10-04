@@ -657,4 +657,22 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     c.explodeCreeper();
     expect(cow.health).toBeLessThan(10);
   });
+
+  it('husks inflict Hunger (7 s × difficulty), cave spiders Poison on normal', () => {
+    const { server, p } = setup({ dayTime: 18000 });
+    const h = server.mobs.spawn('husk', 1.5, 64, 0.5) as Zombie;
+    h.baby = false;
+    h.mainHand = null;
+    server.tick();
+    h.target = p;
+    for (let i = 0; i < 60 && p.living.health === 20; i++) server.tick();
+    expect(p.living.effects.get('hunger')?.duration).toBeGreaterThan(200);
+    h.removed = true;
+    ticks(server, 25);
+    const c = server.mobs.spawn('cave_spider', -1.5, 64, 0.5)!;
+    server.tick();
+    c.target = p;
+    for (let i = 0; i < 100 && !p.living.effects.has('poison'); i++) server.tick();
+    expect(p.living.effects.has('poison')).toBe(true);
+  });
 });
