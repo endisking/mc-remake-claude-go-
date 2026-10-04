@@ -280,7 +280,7 @@ export class Pig extends Animal {
 }
 
 export class Cow extends Animal {
-  readonly type = 'cow';
+  readonly type: string = 'cow';
   readonly maxHealth = 10;
   readonly adultWidth = 0.9;
   readonly adultHeight = 1.4;
@@ -511,5 +511,37 @@ export class Chicken extends Animal {
   }
   override stepSound(): string {
     return 'entity.chicken.step';
+  }
+}
+
+/** Mooshrooms (MushroomCow): bowls give mushroom stew, shears turn them into cows (5 mushrooms). */
+export class Mooshroom extends Cow {
+  override readonly type = 'mooshroom';
+  /** 'red' or 'brown' (lightning swaps it) */
+  variantName: 'red' | 'brown' = 'red';
+  override interact(p: ServerPlayer, hand: number): boolean {
+    const slot = hand === 1 ? 40 : p.inventory.selected;
+    const held = p.inventory.get(slot);
+    const n = held ? itemName(held.id) : '';
+    if (n === 'bowl' && !this.isBaby()) {
+      this.s.playSound(null, 'entity.mooshroom.milk', 'player', this.x, this.y, this.z, 1, 1);
+      this.s.mobs.fillContainer(p, slot, stack('mushroom_stew'));
+      return true;
+    }
+    if (n === 'shears' && !this.isBaby() && !this.dead) {
+      this.s.playSound(null, 'entity.mooshroom.shear', 'player', this.x, this.y, this.z, 1, 1);
+      const cow = this.s.mobs.spawn('cow', this.x, this.y, this.z, 'conversion') as Cow | null;
+      if (cow) {
+        cow.yaw = this.yaw;
+        cow.health = this.health;
+        cow.yBodyRot = this.yBodyRot;
+        cow.persistenceRequired = this.persistenceRequired;
+      }
+      this.removed = true;
+      for (let i = 0; i < 5; i++) this.s.mobs.spawnAtLocation(this, stack(`${this.variantName}_mushroom`), this.height);
+      this.s.mobs.damageHeldItem(p, slot, 1);
+      return true;
+    }
+    return super.interact(p, hand);
   }
 }

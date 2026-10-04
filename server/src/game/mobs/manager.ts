@@ -26,7 +26,7 @@ import type { GameServer } from '../server';
 import { DAMAGE, type DamageSource } from '../survival';
 import { Mob, isMob, targetEye, type Target, type MobCategory } from './mob';
 import { Zombie, Husk, Drowned, Skeleton, Stray, Creeper, Spider, Monster, ZombieVillager, CaveSpider } from './monsters';
-import { Pig, Cow, Sheep, Chicken, Animal } from './animals';
+import { Pig, Cow, Sheep, Chicken, Animal, Mooshroom } from './animals';
 import { Arrow } from './arrow';
 import { Slime, isSlimeChunk, moonBrightness } from './slime';
 import { Enderman } from './enderman';
@@ -40,7 +40,7 @@ import { itemForBlock } from '@shared/game/loot';
 type MobCtor = new (id: number, s: GameServer) => Mob;
 export const MOB_TYPES: Record<string, MobCtor> = {
   zombie: Zombie, husk: Husk, drowned: Drowned, zombie_villager: ZombieVillager, cave_spider: CaveSpider, skeleton: Skeleton, stray: Stray, creeper: Creeper, spider: Spider,
-  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid,
+  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, mooshroom: Mooshroom, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid,
 };
 
 /** MobCategory caps (1.17.1) and the categories we spawn. */
@@ -383,9 +383,9 @@ export class MobManager {
     const C = MOB_TYPES[type];
     if (!C) return false;
     const proto = C.prototype as Mob;
-    if (proto instanceof Animal || type === 'pig' || type === 'cow' || type === 'sheep' || type === 'chicken' || type === 'wolf') {
+    if (proto instanceof Animal) {
       const below = blockNameOf(w.getState(x, y - 1, z));
-      const ground = type === 'wolf' ? below === 'grass_block' || below === 'snow' || below === 'snow_block' : below === 'grass_block';
+      const ground = type === 'wolf' ? below === 'grass_block' || below === 'snow' || below === 'snow_block' : type === 'mooshroom' ? below === 'mycelium' : below === 'grass_block';
       return ground && Math.max(w.getSkyLight(x, y, z), w.getBlockLight(x, y, z)) > 8;
     }
     if (type === 'bat') {
