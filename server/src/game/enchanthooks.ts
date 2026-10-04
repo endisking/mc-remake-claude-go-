@@ -64,12 +64,15 @@ export function attackExtras(p: ServerPlayer): { knockback: number; fireAspect: 
 }
 
 /** ThornsEnchantment.doPostHurt (victim's armour hurts the attacker; the armour wears by 2). */
-export function thorns(s: GameServer, victim: ServerPlayer, attacker: ServerPlayer): void {
+export function thorns(s: GameServer, victim: ServerPlayer, attacker: ServerPlayer | ((damage: number) => void)): void {
   const level = entityEnchLevel('thorns', victim.inventory);
+  if (level <= 0) return;
   const r = s.rand;
   const item = randomItemWith('thorns', victim.inventory, r);
   if (thornsShouldHit(level, r)) {
-    s.survival.hurt(attacker, { id: 'thorns', magic: true, entity: { name: victim.name, player: true } } as never, thornsDamage(level, r));
+    const dmg = thornsDamage(level, r);
+    if (typeof attacker === 'function') attacker(dmg);
+    else s.survival.hurt(attacker, { id: 'thorns', magic: true, entity: { name: victim.name, player: true } } as never, dmg);
     if (item) hurtAndBreak(s, victim, item.slot, 2);
   }
 }

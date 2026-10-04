@@ -31,7 +31,7 @@ import { Arrow, Pickup } from '../arrow';
 import { explode } from '../explosion';
 import { hurtEnemyCost } from '@shared/game/items';
 import { damageBonus, mobTypeOf, entityEnchLevel } from '@shared/game/enchantments';
-import { attackExtras } from '../enchanthooks';
+import { attackExtras, thorns } from '../enchanthooks';
 import { Slime, isSlimeChunk, moonBrightness } from './slime';
 import { Enderman } from './enderman';
 import { Bat, Squid, Cod, Salmon } from './ambient';
@@ -532,6 +532,8 @@ export class MobManager {
     const ok = isMob(t) ? t.hurt(src, dmg, m) : this.s.survival.hurt(t, src, dmg);
     if (ok && !isMob(t)) this.noteOwnerHurtBy(t, m);
     if (ok && m instanceof Zombie) m.afterHurtTarget(t);
+    // Thorns on the player's armour hurts the attacking mob (Phase 7)
+    if (ok && !isMob(t)) thorns(this.s, t, (d) => m.hurt({ id: 'thorns', entity: { name: t.name, player: true } }, d, t));
     if (ok && !isMob(t)) {
       const eff = this.s.difficulty; // getEffectiveDifficulty ≈ difficulty id (regional difficulty not modelled)
       // Husk.doHurtTarget: Hunger for 7 s × difficulty
