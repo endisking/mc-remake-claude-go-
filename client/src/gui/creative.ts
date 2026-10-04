@@ -13,6 +13,24 @@ import { ClickType, Menu, SLOT_OUTSIDE, Slot, type MenuPlayer } from '@shared/me
 import { displayName } from './containerscreen';
 import { isEmptyHotbar, savedHotbars } from './hotbars';
 import { keyName } from '../keybinds';
+import { creativeTaggedStacks } from '@shared/item/creativetagged';
+import { encodeTag } from '@shared/item/stack';
+
+/** Tagged creative entries (potions, enchanted books) are listed as codes ≥ TAG_BASE. */
+const TAG_BASE = 1 << 20;
+const TAGGED: ItemStack[] = [];
+const taggedCodes = new Map<string, number[]>();
+function tabTagged(tab: CreativeTab): number[] {
+  let c = taggedCodes.get(tab);
+  if (!c) {
+    c = creativeTaggedStacks(tab).map((st) => TAG_BASE + TAGGED.push(st) - 1);
+    taggedCodes.set(tab, c);
+  }
+  return c;
+}
+const pickerStack = (code: number): ItemStack | null => (code >= TAG_BASE ? copyStack(TAGGED[code - TAG_BASE]!) : code ? { id: code, count: 1, damage: 0 } : null);
+/** A full stack of a picker item, keeping its NBT. */
+const fullOf = (it: ItemStack, count = maxStackSize(it.id)): ItemStack => ({ ...copyStack(it)!, count });
 
 
 type TabId = CreativeTab | 'hotbar' | 'search' | 'inventory';
@@ -145,7 +163,11 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
     return {
       inventory: this.host.playerInventory,
       creative: true,
-      drop: (st) => this.host.send({ t: 'creativeSlot', slot: -1, item: st.id, count: st.count, damage: st.damage }),
+      drop: (st) => {
+        // the tag goes first: the server attaches it to the next thrown stack
+        if (st.tag) this.host.send({ t: 'creativeSlotTag', slot: -1, tag: encodeTag(st.tag) });
+        this.host.send({ t: 'creativeSlot', slot: -1, item: st.id, count: st.count, damage: st.damage });
+      },
     };
   }
 
@@ -186,7 +208,7 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
       const all: number[] = [];
       for (const k of ['building_blocks', 'decorations', 'redstone', 'transportation', 'misc', 'food', 'tools', 'combat', 'brewing'] as const) all.push(...this.tabs[k]);
       this.items = q ? all.filter((id) => displayName(id).toLowerCase().includes(q) || (ITEMS_BY_ID[id]?.name ?? '').includes(q.replace(/ /g, '_'))) : all;
-    } else this.items = this.tabs[this.tab as CreativeTab] ?? [];
+    } else this.items = [...(this.tabs[this.tab as CreativeTab] ?? []), ...tabTagged(this.tab as CreativeTab)];
     this.scrollTo(this.scrollOffs);
   }
 
@@ -224,8 +246,7 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
           this.pickerIndex[r * 9 + c] = k;
           continue;
         }
-        const id = this.items[k];
-        this.menu.picker.items[r * 9 + c] = id ? { id, count: 1, damage: 0 } : null;
+        this.menu.picker.items[r * 9 + c] = pickerStack(this.items[k] ?? 0);
       }
   }
 
@@ -368,7 +389,7 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
   protected override slotClicked(slot: Slot | null, slotId: number, button: number, type: ClickType): void {
     const m = this.menu;
     const inv = this.host.playerInventory;
-    const before = inv.slots.map((s) => (isEmpty(s) ? '' : `${s.id}:${s.count}:${s.damage}`));
+    const before = inv.slots.map((s) => (isEmpty(s) ? '' : `${s.id}:${s.count}:${s.damage}:${encodeTag(s.tag)}`));
     const shift = this.host.isKeyDown('ShiftLeft') || this.host.isKeyDown('ShiftRight');
     if (slot) slotId = slot.index;
     if (!slot && type !== ClickType.QUICK_CRAFT) {
@@ -394,11 +415,11 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
       const c = m.carried;
       const it = slot.getItem();
       if (type === ClickType.SWAP) {
-        if (it) inv.set(button, { id: it.id, count: maxStackSize(it.id), damage: 0 });
+        if (it) inv.set(button, fullOf(it));
       } else if (type === ClickType.CLONE) {
-        if (isEmpty(c) && it) m.carried = { id: it.id, count: maxStackSize(it.id), damage: 0 };
+        if (isEmpty(c) && it) m.carried = fullOf(it);
       } else if (type === ClickType.THROW) {
-        if (it) this.player.drop({ id: it.id, count: button === 0 ? 1 : maxStackSize(it.id), damage: 0 });
+        if (it) this.player.drop(fullOf(it, button === 0 ? 1 : maxStackSize(it.id)));
       } else if (!isEmpty(c) && it && sameItemSameTags(c, it)) {
         if (button === 0) {
           if (shift) c.count = maxStackSize(c.id);
@@ -408,7 +429,7 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
           if (c.count <= 0) m.carried = null;
         }
       } else if (it && isEmpty(c)) {
-        m.carried = { ...it };
+        m.carried = fullOf(it, it.count);
         if (shift) m.carried.count = maxStackSize(it.id);
       } else if (button === 0) m.carried = null;
       else if (!isEmpty(c)) {
@@ -421,8 +442,11 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
     // send every changed inventory slot (SetCreativeModeSlot)
     for (let i = 0; i < 41; i++) {
       const s = inv.slots[i];
-      const k = isEmpty(s) ? '' : `${s.id}:${s.count}:${s.damage}`;
-      if (k !== before[i]) this.host.send({ t: 'creativeSlot', slot: i, item: isEmpty(s) ? 0 : s.id, count: isEmpty(s) ? 0 : s.count, damage: isEmpty(s) ? 0 : s.damage });
+      const k = isEmpty(s) ? '' : `${s.id}:${s.count}:${s.damage}:${encodeTag(s.tag)}`;
+      if (k !== before[i]) {
+        this.host.send({ t: 'creativeSlot', slot: i, item: isEmpty(s) ? 0 : s.id, count: isEmpty(s) ? 0 : s.count, damage: isEmpty(s) ? 0 : s.damage });
+        if (!isEmpty(s) && s.tag) this.host.send({ t: 'creativeSlotTag', slot: i, tag: encodeTag(s.tag) });
+      }
     }
   }
 
@@ -458,7 +482,10 @@ export class CreativeScreen extends AbstractContainerScreen<CreativeMenu> {
       inv.add(c);
       for (let i = 0; i < 41; i++) {
         const s = inv.slots[i];
-        if ((isEmpty(s) ? '' : `${s.id}:${s.count}`) !== before[i]) this.host.send({ t: 'creativeSlot', slot: i, item: s?.id ?? 0, count: s?.count ?? 0, damage: s?.damage ?? 0 });
+        if ((isEmpty(s) ? '' : `${s.id}:${s.count}`) !== before[i]) {
+          this.host.send({ t: 'creativeSlot', slot: i, item: s?.id ?? 0, count: s?.count ?? 0, damage: s?.damage ?? 0 });
+          if (s?.tag) this.host.send({ t: 'creativeSlotTag', slot: i, tag: encodeTag(s.tag) });
+        }
       }
     }
   }

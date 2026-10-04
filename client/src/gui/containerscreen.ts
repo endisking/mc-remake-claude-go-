@@ -12,6 +12,25 @@ import { ITEMS_BY_ID } from '@shared/data';
 import { isEmpty, itemName, maxStackSize, type Inventory, type ItemStack } from '@shared/item/stack';
 import { copyStack } from '@shared/menu/container';
 import { drawItemStack } from './itemicons';
+import { hasFoil, enchantmentsOf, enchantmentLine, ENCH_BY_NAME } from '@shared/game/enchantments';
+import { isPotionItem, potionName, potionOf, POTIONS } from '@shared/game/potions';
+import { EFFECT_BY_NAME, formatDuration, romanLevel } from '@shared/game/effectdata';
+
+/** PotionUtils.addPotionTooltip: effects with level and duration (blue good, red bad), or "No Effects". */
+function potionTooltip(st: ItemStack): string[] {
+  const lines = [potionName(st)];
+  const list = POTIONS[potionOf(st)] ?? [];
+  const factor = itemName(st.id) === 'lingering_potion' ? 0.25 : 1;
+  if (list.length === 0) lines.push('§7No Effects');
+  for (const e of list) {
+    const def = EFFECT_BY_NAME.get(e.effect);
+    let t = def?.displayName ?? e.effect;
+    if (e.amplifier > 0) t += ` ${romanLevel(e.amplifier + 1)}`;
+    if (e.duration > 20) t += ` (${formatDuration({ duration: e.duration }, factor)})`;
+    lines.push((def?.category === 'harmful' ? '§c' : '§9') + t);
+  }
+  return lines;
+}
 import { attackDamageOf, attackSpeedOf } from '@shared/game/combat';
 import {
   ClickType, SLOT_OUTSIDE, canItemQuickReplace, quickCraftSlotCount, ChestMenu, CraftingMenu, FurnaceMenu, InventoryMenu, StonecutterMenu, SmithingMenu, GrindstoneMenu,
@@ -56,7 +75,14 @@ function fmt(v: number): string {
 
 /** ItemStack.getTooltipLines: name (rarity colour) and attribute modifier lines. */
 export function itemTooltip(st: ItemStack): string[] {
-  const lines = [rarityColor(st.id) + displayName(st.id)];
+  if (isPotionItem(st.id) && st.tag?.Potion !== undefined) return potionTooltip(st);
+  const custom = st.tag?.display?.Name;
+  const lines = [custom ? `${hasFoil(st) && !rarityColor(st.id) ? '§b' : rarityColor(st.id)}§o${custom}` : (hasFoil(st) && !rarityColor(st.id) && (st.tag?.Enchantments?.length ?? 0) > 0 ? '§b' : rarityColor(st.id)) + displayName(st.id)];
+  // ItemStack.appendEnchantmentNames (curses red, others grey); enchanted books list stored ones
+  for (const e of enchantmentsOf(st)) {
+    const curse = ENCH_BY_NAME.get(e.id.replace(/^minecraft:/, ''))?.curse;
+    lines.push((curse ? '§c' : '§7') + enchantmentLine(e.id, e.lvl));
+  }
   const n = itemName(st.id);
   const dmg = attackDamageOf(st.id), spd = attackSpeedOf(st.id);
   if (dmg !== 1 || spd !== 4) {
@@ -665,7 +691,14 @@ export class GrindstoneScreen extends AbstractContainerScreen<GrindstoneMenu> {
 }
 
 /** Screen for a server-opened menu. */
+/** Screens for menus defined in other modules (enchanting, brewing): registered at import. */
+export const EXTRA_SCREENS: ((host: ContainerHost, menu: Menu, title: string) => AbstractContainerScreen | null)[] = [];
+
 export function screenForMenu(host: ContainerHost, menu: Menu, title: string): AbstractContainerScreen {
+  for (const f of EXTRA_SCREENS) {
+    const sc = f(host, menu, title);
+    if (sc) return sc;
+  }
   if (menu instanceof CraftingMenu) return new CraftingScreen(host, menu, title);
   if (menu instanceof FurnaceMenu) return new FurnaceScreen(host, menu, title);
   if (menu instanceof StonecutterMenu) return new StonecutterScreen(host, menu, title);

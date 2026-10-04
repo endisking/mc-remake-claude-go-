@@ -12,6 +12,8 @@
  */
 import { ITEMS_BY_ID } from '@shared/data';
 import type { ItemStack } from '@shared/item/stack';
+import { hasFoil } from '@shared/game/enchantments';
+import { isPotionItem, potionColor } from '@shared/game/potions';
 import type { Gui } from './gui';
 import type { ItemTextures } from '../render/itemtextures';
 
@@ -57,6 +59,85 @@ export function spriteLayerFor(sprites: ItemTextures, itemId: number): number {
     spriteCache.set(itemId, l);
   }
   return l;
+}
+
+// ------------------------------------------------------------------ potion colours
+const potionCache = new Map<string, HTMLCanvasElement>();
+
+/**
+ * Potion bottles: the liquid (baked in the water-bottle blue) is recoloured with the potion's
+ * colour (PotionUtils.getColor, the item colour of layer 0 in vanilla), keeping its shading.
+ */
+function drawPotionIcon(g: Gui, stack: ItemStack, x: number, y: number): void {
+  if (typeof document === 'undefined') return drawItemIcon(g, stack.id, x, y);
+  const color = potionColor(stack);
+  const key = `${stack.id}:${color}`;
+  let c = potionCache.get(key);
+  if (!c) {
+    c = Object.assign(document.createElement('canvas'), { width: 16, height: 16 });
+    const ctx = c.getContext('2d')!;
+    ctx.imageSmoothingEnabled = false;
+    drawItemIcon({ blit: (img: CanvasImageSource, sx: number, sy: number, w: number, h: number, dx: number, dy: number, dw = w, dh = h) => ctx.drawImage(img, sx, sy, w, h, dx, dy, dw, dh), fill: () => {} } as unknown as Gui, stack.id, 0, 0);
+    const im = ctx.getImageData(0, 0, 16, 16), d = im.data;
+    const base = 0.3 * 0x38 + 0.59 * 0x5d + 0.11 * 0xc6;
+    const cr = (color >> 16) & 255, cg = (color >> 8) & 255, cb = color & 255;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i]!, gg = d[i + 1]!, b = d[i + 2]!;
+      if (d[i + 3]! < 128 || !(b > r + 40 && b > gg + 25)) continue; // only the blue liquid
+      const k = (0.3 * r + 0.59 * gg + 0.11 * b) / base;
+      d[i] = Math.min(255, cr * k);
+      d[i + 1] = Math.min(255, cg * k);
+      d[i + 2] = Math.min(255, cb * k);
+    }
+    ctx.putImageData(im, 0, 0);
+    if (potionCache.size > 256) potionCache.clear();
+    potionCache.set(key, c);
+  }
+  g.ctx.drawImage(c, x, y);
+}
+
+// ------------------------------------------------------------------ enchantment glint
+let glintImg: HTMLImageElement | null = null;
+let glintMask: HTMLCanvasElement | null = null;
+let glintLayer: HTMLCanvasElement | null = null;
+
+/**
+ * ItemRenderer foil: the scrolling glint texture, masked to the icon's opaque pixels and added
+ * on top (vanilla GLINT render type: additive, scrolling with time, rotated 10°).
+ */
+export function drawGlint(g: Gui, itemId: number, x: number, y: number, now = performance.now()): void {
+  if (typeof document === 'undefined') return;
+  if (!glintImg) {
+    glintImg = new Image();
+    glintImg.src = './textures/misc/enchanted_item_glint.png';
+  }
+  if (!glintImg.complete || glintImg.naturalWidth === 0) return;
+  glintMask ??= Object.assign(document.createElement('canvas'), { width: 16, height: 16 });
+  glintLayer ??= Object.assign(document.createElement('canvas'), { width: 16, height: 16 });
+  const mctx = glintMask.getContext('2d')!, lctx = glintLayer.getContext('2d')!;
+  mctx.imageSmoothingEnabled = false;
+  lctx.imageSmoothingEnabled = false;
+  mctx.clearRect(0, 0, 16, 16);
+  drawItemIcon({ blit: (img: CanvasImageSource, sx: number, sy: number, w: number, h: number, dx: number, dy: number, dw = w, dh = h) => mctx.drawImage(img, sx, sy, w, h, dx - x, dy - y, dw, dh), fill: () => {} } as unknown as Gui, itemId, x, y);
+  // RenderStateShard.setupGlintTexturing: offsets cycle every 110 s / 30 s of (millis × 8)
+  const t = now * 8;
+  // the 64 px pattern is shrunk to one icon (GUI glint texture scale) and tiled while it scrolls
+  const T = 24;
+  const fx = ((t % 110000) / 110000) * T, fy = ((t % 30000) / 30000) * T;
+  lctx.globalCompositeOperation = 'source-over';
+  lctx.clearRect(0, 0, 16, 16);
+  lctx.save();
+  lctx.rotate((10 * Math.PI) / 180);
+  for (let ox = -2 * T; ox <= 2 * T; ox += T) for (let oy = -2 * T; oy <= 2 * T; oy += T) lctx.drawImage(glintImg, Math.floor(-fx + ox), Math.floor(fy + oy), T, T);
+  lctx.restore();
+  lctx.globalCompositeOperation = 'destination-in';
+  lctx.drawImage(glintMask, 0, 0);
+  const ctx = g.ctx;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.8;
+  ctx.drawImage(glintLayer, x, y);
+  ctx.restore();
 }
 
 /** Draw a 16×16 item icon at GUI coordinates. */
@@ -111,7 +192,9 @@ export function drawItemStack(g: Gui, stack: ItemStack | null | undefined, x: nu
     g.ctx.translate(-(x + 8), -(y + 12));
     drawItemIcon(g, stack.id, x, y);
     g.ctx.restore();
-  } else drawItemIcon(g, stack.id, x, y);
+  } else if (stack.tag?.Potion !== undefined && isPotionItem(stack.id)) drawPotionIcon(g, stack, x, y);
+  else drawItemIcon(g, stack.id, x, y);
+  if (hasFoil(stack)) drawGlint(g, stack.id, x, y);
   const max = ITEMS_BY_ID[stack.id]?.maxDurability ?? 0;
   if (max > 0 && stack.damage > 0) {
     g.fill(x + 2, y + 13, 13, 2, 0xff000000);

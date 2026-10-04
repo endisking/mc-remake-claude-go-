@@ -58,6 +58,8 @@ export class Arrow extends ServerEntity {
   life = 0;
   pickup: Pickup = Pickup.Disallowed;
   knockback = 0;
+  /** Flame: the arrow burns and sets what it hits on fire for 5 s */
+  onFire = false;
   leftOwner = false;
   /** item given back on pickup */
   item: ItemStack;

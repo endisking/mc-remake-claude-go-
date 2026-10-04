@@ -4,6 +4,7 @@
  * placing with client-side prediction, pick block, item drops, hotbar selection.
  */
 import { destroyProgress } from '@shared/game/mining';
+import { enchLevel, entityEnchLevel } from '@shared/game/enchantments';
 import { stateForPlacement, isReplaceable, companionPlacement, DX, DY, DZ } from '@shared/game/placement';
 import { canSurvive } from '@shared/game/support';
 import { blockForItem, itemForBlock } from '@shared/game/loot';
@@ -76,7 +77,10 @@ export class Interaction {
     const held = this.inventory.selectedStack;
     const eye = this.host.world.getState(Math.floor(p.x), Math.floor(p.y + p.eyeHeight), Math.floor(p.z));
     const fx = this.host.miningEffects?.() ?? { haste: 0, miningFatigue: 0 };
-    return { item: held?.id ?? 0, efficiency: 0, haste: fx.haste, miningFatigue: fx.miningFatigue, underwater: FLUID[eye] === 1, aquaAffinity: false, onGround: p.onGround };
+    return {
+      item: held?.id ?? 0, efficiency: enchLevel('efficiency', held), haste: fx.haste, miningFatigue: fx.miningFatigue,
+      underwater: FLUID[eye] === 1, aquaAffinity: entityEnchLevel('aqua_affinity', this.inventory) > 0, onGround: p.onGround,
+    };
   }
 
   private breakLocally(x: number, y: number, z: number): void {

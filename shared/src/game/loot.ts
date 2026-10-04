@@ -107,7 +107,7 @@ const RULES: Record<string, Rule> = {
   bookshelf: (_s, _c, o) => push(o, 'book', 3),
   snow_block: (_s, _c, o) => push(o, 'snowball', 4),
   snow: (s, _c, o) => push(o, 'snowball', getProp(s, 'layers') as number),
-  amethyst_cluster: (_s, _c, o) => push(o, 'amethyst_shard', 4),
+  amethyst_cluster: (_s, c, o) => push(o, 'amethyst_shard', oreDrops(c, 4)),
   wheat: (s, c, o) => {
     const ripe = getProp(s, 'age') === 7;
     if (ripe) push(o, 'wheat', 1);

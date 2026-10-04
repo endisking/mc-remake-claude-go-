@@ -11,7 +11,7 @@ import type { BlockWorld } from '@shared/world/world';
 import { ServerEntity } from './entity';
 import { segmentBox, type ArrowHost, type ArrowTarget } from './arrow';
 
-export type ThrownKind = 'snowball' | 'egg' | 'ender_pearl';
+export type ThrownKind = 'snowball' | 'egg' | 'ender_pearl' | 'potion';
 
 export interface ThrowHit {
   x: number;
@@ -88,7 +88,8 @@ export class Thrown extends ServerEntity {
     this.z = z1;
     const f = FLUID[world.getState(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z))] === 1 ? 0.8 : 0.99;
     this.vx *= f;
-    this.vy = this.vy * f - 0.03;
+    // ThrowableProjectile.getGravity: 0.03, thrown potions 0.05
+    this.vy = this.vy * f - (this.type === 'potion' ? 0.05 : 0.03);
     this.vz *= f;
     if (this.y < -64) this.removed = true;
   }

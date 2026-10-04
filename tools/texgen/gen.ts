@@ -22,6 +22,7 @@ import { decorTextures } from './blocks/decor';
 import { techTextures } from './blocks/tech';
 import { grassColormap, foliageColormap } from './colormap';
 import { widgets, optionsBackground, icons, spectatorWidgets } from './gui';
+import { glint, enchantingTable } from './enchanting';
 import { allSkins } from './skins';
 import { allArmorTextures } from './armor';
 import { mobEffects } from './effects';
@@ -100,6 +101,9 @@ function main(): void {
   writePng(join(outDir, 'gui', 'icons.png'), icons());
   writePng(join(outDir, 'gui', 'spectator_widgets.png'), spectatorWidgets());
   writePng(join(outDir, 'gui', 'mob_effects.png'), mobEffects());
+  writePng(join(outDir, 'gui', 'enchanting_table.png'), enchantingTable());
+  mkdirSync(join(outDir, 'misc'), { recursive: true });
+  writePng(join(outDir, 'misc', 'enchanted_item_glint.png'), glint());
   mkdirSync(join(outDir, 'skins'), { recursive: true });
   const skins = allSkins();
   for (const sk of skins) writePng(join(outDir, 'skins', `${sk.name}.png`), sk.tex);

@@ -8,10 +8,15 @@ import type { ServerPlayer } from './player';
 import type { C2S } from '@shared/protocol/packets';
 import { encodeStacks } from '@shared/protocol/packets';
 import { blockEntityKey, type BlockEntityData } from '@shared/world/chunk';
-import { blockNameOf, getProp, withProp } from '@shared/world/blockstate';
+import { blockNameOf, getProp, withProp, stateOf } from '@shared/world/blockstate';
 import { BLOCKS_BY_NAME } from '@shared/data';
 import { FULL_COLLISION } from '@shared/world/blockinfo';
-import { isEmpty, type ItemStack } from '@shared/item/stack';
+import { isEmpty, encodeTag, type ItemStack } from '@shared/item/stack';
+import { EnchantmentMenu } from '@shared/menu/enchanting';
+import { BrewingStandMenu, BrewingContainer } from '@shared/menu/brewing';
+import { AnvilMenu } from '@shared/menu/anvil';
+import { newBrewingStand, tickBrewingStand, bottleBits, type BrewingData } from '@shared/game/potions';
+import { countBookshelves, grindstoneExperience } from '@shared/game/enchantments';
 import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, StonecutterMenu, SmithingMenu, GrindstoneMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
 import { CompoundContainer, InventoryContainer, SimpleContainer, type Container } from '@shared/menu/container';
 import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, newCampfire, placeCampfireFood, tickCampfire, type CampfireData, type FurnaceData, type FurnaceKind } from '@shared/menu/furnace';
@@ -34,7 +39,7 @@ interface PlayerMenus {
   pos: [number, number, number] | null;
 }
 
-const stackKey = (s: ItemStack | null) => (isEmpty(s) ? '' : `${s.id}:${s.count}:${s.damage}`);
+const stackKey = (s: ItemStack | null) => (isEmpty(s) ? '' : `${s.id}:${s.count}:${s.damage}:${encodeTag(s.tag)}`);
 
 export class Containers {
   private readonly menus = new WeakMap<ServerPlayer, PlayerMenus>();
@@ -109,6 +114,15 @@ export class Containers {
     if (menu === s.containerMenu && menu !== s.inventoryMenu) s.lastSlots = menu.slots.map((sl) => stackKey(sl.getItem()));
   }
 
+  /** ServerGamePacketListenerImpl.handleRenameItem (anvil). */
+  renameItem(p: ServerPlayer, name: string): void {
+    const m = this.state(p).containerMenu;
+    if (!(m instanceof AnvilMenu) || !m.stillValid()) return;
+    // SharedConstants.filterText: no control characters, at most 50 characters
+    m.setItemName(name.replace(/[\u0000-\u001f\u007f\u00a7]/g, '').slice(0, 50));
+    this.broadcastChanges(p);
+  }
+
   /** ServerGamePacketListenerImpl.handleContainerButtonClick */
   handleButton(p: ServerPlayer, windowId: number, button: number): void {
     const s = this.state(p);
@@ -147,6 +161,7 @@ export class Containers {
       if (k !== s.lastSlots[i]) {
         s.lastSlots[i] = k;
         this.server.send(p, { t: 'windowSlot', windowId: m.containerId, slot: i, item: st?.id ?? 0, count: st?.count ?? 0, damage: st?.damage ?? 0 });
+        if (st?.tag) this.server.send(p, { t: 'windowSlotTag', windowId: m.containerId, slot: i, tag: encodeTag(st.tag) });
       }
     }
     for (let i = 0; i < m.data.length; i++) {
@@ -241,11 +256,85 @@ export class Containers {
       }, 'Stonecutter', [x, y, z]);
       return true;
     }
+    // ---- Phase 7: anvil ----
+    if (name === 'anvil' || name === 'chipped_anvil' || name === 'damaged_anvil') {
+      const valid = this.validFor(p, x, y, z, (n) => n.endsWith('anvil'));
+      this.open(p, (id) => new AnvilMenu(id, inv, {
+        level: () => p.living.experienceLevel,
+        onTake: (cost) => {
+          if (cost > 0) {
+            this.server.survival.giveExperience(p, -cost, true);
+          }
+          // AnvilMenu.onTake: 12% chance to damage the anvil (not in creative)
+          const st = this.server.world.getState(x, y, z);
+          const n = blockNameOf(st);
+          if (p.gameMode !== 1 && this.server.rand.nextFloat() < 0.12) {
+            const next = n === 'anvil' ? 'chipped_anvil' : n === 'chipped_anvil' ? 'damaged_anvil' : null;
+            if (next) {
+              this.server.setBlock(x, y, z, withProp(stateOf(next), 'facing', getProp(st, 'facing') as string));
+              this.server.playSound(null, 'block.anvil.use', 'block', x + 0.5, y + 0.5, z + 0.5, 1, this.server.rand.nextFloat() * 0.1 + 0.9);
+            } else {
+              this.server.setBlock(x, y, z, 0);
+              this.server.playSound(null, 'block.anvil.destroy', 'block', x + 0.5, y + 0.5, z + 0.5, 1, this.server.rand.nextFloat() * 0.1 + 0.9);
+            }
+          } else this.server.playSound(null, 'block.anvil.use', 'block', x + 0.5, y + 0.5, z + 0.5, 1, this.server.rand.nextFloat() * 0.1 + 0.9);
+        },
+        valid,
+      }, p.gameMode === 1), 'Repair & Name', [x, y, z]);
+      return true;
+    }
+    // ---- Phase 7: brewing stand ----
+    if (name === 'brewing_stand') {
+      const be = this.getOrCreate(x, y, z, 'brewing_stand', () => newBrewingStand() as unknown as BlockEntityData) as unknown as BrewingData;
+      const valid = this.validFor(p, x, y, z, (n) => n === 'brewing_stand');
+      const c = new BrewingContainer(be, () => this.markDirty(x, z), valid);
+      this.open(p, (id) => {
+        const m = new BrewingStandMenu(id, inv, c);
+        m.data[0] = be.brewTime;
+        m.data[1] = be.fuel;
+        return m;
+      }, 'Brewing Stand', [x, y, z]);
+      return true;
+    }
+    // ---- Phase 7: enchanting table ----
+    if (name === 'enchanting_table') {
+      const valid = this.validFor(p, x, y, z, (n) => n === 'enchanting_table');
+      const w = this.server.world;
+      this.open(p, (id) => new EnchantmentMenu(id, inv, {
+        bookshelves: () => countBookshelves(
+          (dx, dy, dz) => w.getState(x + dx, y + dy, z + dz) === 0,
+          (dx, dy, dz) => blockNameOf(w.getState(x + dx, y + dy, z + dz)) === 'bookshelf',
+        ),
+        seed: () => p.enchantmentSeed,
+        level: () => p.living.experienceLevel,
+        onEnchantmentPerformed: (levels) => {
+          // Player.onEnchantmentPerformed
+          const l = p.living;
+          l.experienceLevel -= levels;
+          if (l.experienceLevel < 0) {
+            l.experienceLevel = 0;
+            l.experienceProgress = 0;
+            l.totalExperience = 0;
+          }
+          p.enchantmentSeed = this.server.rand.nextInt();
+          l.lastSentExp = -1;
+          this.server.survival.sync(p);
+        },
+        sound: () => this.server.playSound(null, 'block.enchantment_table.use', 'block', x + 0.5, y + 0.5, z + 0.5, 1, this.server.rand.nextFloat() * 0.1 + 0.9),
+        valid,
+      }), 'Enchant', [x, y, z]);
+      return true;
+    }
     if (name === 'grindstone') {
       const valid = this.validFor(p, x, y, z, (n) => n === 'grindstone');
       this.open(p, (id) => {
         const m = new GrindstoneMenu(id, inv, valid);
         m.onUse = () => this.containerSound([x, y, z], 'block.grindstone.use', 1);
+        // Phase 7: disenchanting gives back XP at the grindstone
+        m.onExperience = (a, b) => {
+          const xp = grindstoneExperience(a, b, this.server.rand);
+          if (xp > 0) this.server.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
+        };
         return m;
       }, 'Repair & Disenchant', [x, y, z]);
       return true;
@@ -424,6 +513,23 @@ export class Containers {
           this.markDirty(x, z);
           continue;
         }
+        if (be.id === 'brewing_stand') {
+          const st = srv.world.getState(x, y, z);
+          if (blockNameOf(st) !== 'brewing_stand') {
+            c.blockEntities.delete(k);
+            continue;
+          }
+          const b = be as unknown as BrewingData;
+          const r = tickBrewingStand(b);
+          if (r.changed) this.markDirty(x, z);
+          if (r.brewed) srv.playSound(null, 'block.brewing_stand.brew', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+          if (r.drop) this.dropItemStack(x, y, z, r.drop);
+          const bits = bottleBits(b);
+          let ns = st;
+          for (let i = 0; i < 3; i++) if (getProp(ns, `has_bottle_${i}`) !== bits[i]) ns = withProp(ns, `has_bottle_${i}`, bits[i]!);
+          if (ns !== st) srv.setBlock(x, y, z, ns);
+          continue;
+        }
         if (!FURNACES.has(be.id)) continue;
         const st = srv.world.getState(x, y, z);
         if (blockNameOf(st) !== be.id) {
@@ -443,6 +549,13 @@ export class Containers {
       if (!m.stillValid(this.menuPlayer(p)) || p.living.dead) {
         this.closeContainer(p, true);
         continue;
+      }
+      if (m instanceof BrewingStandMenu && s.pos) {
+        const be = this.blockEntity(s.pos[0], s.pos[1], s.pos[2]) as unknown as BrewingData | undefined;
+        if (be && be.id === 'brewing_stand') {
+          m.data[0] = be.brewTime;
+          m.data[1] = be.fuel;
+        }
       }
       if (m instanceof FurnaceMenu && s.pos) {
         const be = this.blockEntity(s.pos[0], s.pos[1], s.pos[2]);
