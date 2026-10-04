@@ -630,6 +630,11 @@ export class ItemUse {
       hurtWither: (a) => { s.survival.hurt(p, DAMAGE.wither, a); },
       addExhaustion: (a) => p.living.food.addExhaustion(a),
       eat: (n, m) => p.living.food.eat(n, m),
+      addMaxHealth: (d) => {
+        const l = p.living;
+        l.maxHealth = Math.max(1, l.maxHealth + d);
+        if (l.health > l.maxHealth) l.health = l.maxHealth;
+      },
     };
   }
 

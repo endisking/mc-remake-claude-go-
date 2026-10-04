@@ -89,6 +89,8 @@ export async function decodeChunkRecord(rec: Uint8Array): Promise<Chunk> {
 }
 
 // ------------------------------------------------------------------ players
+import { EFFECT_NAME } from '@shared/game/effects';
+
 export function capturePlayer(p: ServerPlayer): PlayerData {
   const l = p.living;
   return {
@@ -155,6 +157,11 @@ export function applyPlayer(p: ServerPlayer, d: PlayerData): void {
   // effects come back as they were (absorption hearts are saved separately above)
   l.effects.active.clear();
   if (Array.isArray(d.effects)) {
-    for (const e of d.effects) if (e && typeof e.id === 'number' && e.duration > 0) l.effects.active.set(e.id, { ...e });
+    for (const e of d.effects) {
+      if (!e || typeof e.id !== 'number' || !(e.duration > 0)) continue;
+      l.effects.active.set(e.id, { ...e });
+      // Health Boost's MAX_HEALTH modifier comes back with it
+      if (EFFECT_NAME[e.id] === 'health_boost') l.maxHealth = 20 + 4 * (e.amplifier + 1);
+    }
   }
 }

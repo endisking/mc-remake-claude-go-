@@ -42,6 +42,8 @@ export interface EffectTarget {
   hurtWither(amount: number): void;
   addExhaustion(amount: number): void;
   eat(nutrition: number, saturationModifier: number): void;
+  /** MAX_HEALTH attribute change (Health Boost); health is clamped to the new maximum */
+  addMaxHealth?(delta: number): void;
 }
 
 const INSTANT = new Set(['instant_health', 'instant_damage', 'saturation']);
@@ -181,9 +183,11 @@ export class EffectMap {
 
   private addModifiers(name: string, t: EffectTarget, amp: number): void {
     if (name === 'absorption') t.absorption = t.absorption + 4 * (amp + 1);
+    else if (name === 'health_boost') t.addMaxHealth?.(4 * (amp + 1));
   }
 
   private removeModifiers(name: string, t: EffectTarget, amp: number): void {
     if (name === 'absorption') t.absorption = Math.max(0, t.absorption - 4 * (amp + 1));
+    else if (name === 'health_boost') t.addMaxHealth?.(-4 * (amp + 1));
   }
 }

@@ -1414,7 +1414,7 @@ export class Game implements ScreenHost {
     return {
       gameMode: this.gameMode,
       health: this.health,
-      maxHealth: 20,
+      maxHealth: 20 + 4 * (this.itemUse.amplifier('health_boost') + 1),
       absorption: this.itemUse.absorption,
       armor: this.itemUse.armorPoints(this.interaction.inventory),
       food: this.food,
