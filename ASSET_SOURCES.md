@@ -148,7 +148,7 @@ All recordings are CC0. They are trimmed, cut into single events, converted to m
 | Calming Piano Loop 60bpm by Seth_Makes_Sounds | Seth_Makes_Sounds | https://freesound.org/people/Seth_Makes_Sounds/sounds/679738/ | CC0 1.0 | music_calm1 |
 | Short_Thunder_Mid.wav by SholeColtis | SholeColtis | https://freesound.org/people/SholeColtis/sounds/683421/ | CC0 1.0 | thunder |
 | Bubble Pop by YehawSnail | YehawSnail | https://freesound.org/people/YehawSnail/sounds/683587/ | CC0 1.0 | lava_pop |
-| Drone underwater slow by xkeril | xkeril | https://freesound.org/people/xkeril/sounds/685733/ | CC0 1.0 | music_deep |
+| Drone underwater slow by xkeril | xkeril | https://freesound.org/people/xkeril/sounds/685733/ | CC0 1.0 | portal, music_deep |
 | thunder11 by saha213131 | saha213131 | https://freesound.org/people/saha213131/sounds/696550/ | CC0 1.0 | thunder |
 | lever.wav by Krokulator | Krokulator | https://freesound.org/people/Krokulator/sounds/696746/ | CC0 1.0 | lever |
 | Ambient Piano Guitar Texture G Sharp by deadrobotmusic | deadrobotmusic | https://freesound.org/people/deadrobotmusic/sounds/703138/ | CC0 1.0 | music_texture |

@@ -1553,6 +1553,25 @@
    }
   ]
  },
+ "block.candle.ambient": {
+  "sounds": [
+   {
+    "name": "fire/0",
+    "volume": 0.5,
+    "pitch": 1.2
+   },
+   {
+    "name": "fire/1",
+    "volume": 0.5,
+    "pitch": 1.2
+   },
+   {
+    "name": "fire/2",
+    "volume": 0.5,
+    "pitch": 1.2
+   }
+  ]
+ },
  "block.candle.break": {
   "sounds": [
    {
@@ -1570,6 +1589,18 @@
    {
     "name": "dig_cloth/3",
     "pitch": 1.3
+   }
+  ]
+ },
+ "block.candle.extinguish": {
+  "sounds": [
+   {
+    "name": "extinguish/0",
+    "volume": 0.6
+   },
+   {
+    "name": "extinguish/1",
+    "volume": 0.6
    }
   ]
  },
@@ -5645,16 +5676,49 @@
   ]
  },
  "block.portal.ambient": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "portal/0"
+   },
+   {
+    "name": "portal/1"
+   },
+   {
+    "name": "portal/2"
+   }
+  ]
  },
  "block.portal.travel": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "portal/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "portal/1",
+    "pitch": 0.6
+   },
+   {
+    "name": "portal/2",
+    "pitch": 0.6
+   }
+  ]
  },
  "block.portal.trigger": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "portal/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "portal/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "portal/2",
+    "pitch": 0.8
+   }
+  ]
  },
  "block.powder_snow.break": {
   "sounds": [

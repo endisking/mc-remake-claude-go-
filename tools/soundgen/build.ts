@@ -302,6 +302,7 @@ const SETS: Record<string, () => Clip[]> = {
   lever: () => [...fsWhole(151271, 0.6), ...fsWhole(696746, 0.6)],
   button: () => [...fsWhole(257357, 0.26), ...fsWhole(629020, 0.29)],
   pressure_plate: () => [...fsWhole(466272, 0.6), ...fsWhole(422870, 0.9)],
+  portal: () => fsSections(685733, [[2, 4], [9, 4], [16, 4]], -6),
   toast_in: () => kenney('interface-sounds', 'maximize_006'),
   toast_out: () => kenney('interface-sounds', 'minimize_006'),
 };
@@ -444,6 +445,11 @@ group5('netherite_block', 'metal_heavy', 'step_stone', 0.7, 0.8);
 group5('ancient_debris', 'metal_heavy', 'step_stone', 0.65, 0.7);
 Object.assign(EVENTS, {
   'block.bell.use': [{ set: 'bell' }],
+  'block.candle.ambient': [{ set: 'fire', volume: 0.5, pitch: 1.2 }],
+  'block.candle.extinguish': [{ set: 'extinguish', volume: 0.6 }],
+  'block.portal.ambient': [{ set: 'portal' }],
+  'block.portal.trigger': [{ set: 'portal', pitch: 0.8 }],
+  'block.portal.travel': [{ set: 'portal', pitch: 0.6 }],
   'block.bell.resonate': [{ set: 'bell', pitch: 0.9, volume: 0.6 }],
   'block.anvil.hit': [{ set: 'metal_heavy', volume: 0.6 }],
   'block.anvil.step': [{ set: 'metal_heavy', volume: 0.5 }],
@@ -712,8 +718,7 @@ const PLACEHOLDERS = [
   'block.note_block.harp', 'block.note_block.basedrum', 'block.note_block.snare', 'block.note_block.hat', 'block.note_block.bass',
   'block.note_block.flute', 'block.note_block.bell', 'block.note_block.guitar', 'block.note_block.chime', 'block.note_block.xylophone',
   'block.note_block.iron_xylophone', 'block.note_block.cow_bell', 'block.note_block.didgeridoo', 'block.note_block.bit',
-  'block.note_block.banjo', 'block.note_block.pling', 'block.portal.ambient', 'block.portal.travel', 'block.portal.trigger',
-  'entity.zombified_piglin.ambient', 'entity.zombified_piglin.hurt', 'entity.zombified_piglin.death', 'entity.enderman.ambient',
+  'block.note_block.banjo', 'block.note_block.pling', 'entity.zombified_piglin.ambient', 'entity.zombified_piglin.hurt', 'entity.zombified_piglin.death', 'entity.enderman.ambient',
   'entity.enderman.hurt', 'entity.enderman.death', 'entity.enderman.teleport', 'entity.wolf.ambient', 'entity.wolf.hurt',
   'entity.wolf.death', 'entity.cat.ambient', 'entity.cat.hurt', 'entity.cat.death', 'entity.villager.ambient', 'entity.villager.hurt',
   'entity.villager.death', 'entity.villager.trade', 'entity.horse.ambient', 'entity.horse.hurt', 'entity.horse.death',

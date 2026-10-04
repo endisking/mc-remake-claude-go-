@@ -18,9 +18,6 @@ block.note_block.iron_xylophone
 block.note_block.pling
 block.note_block.snare
 block.note_block.xylophone
-block.portal.ambient
-block.portal.travel
-block.portal.trigger
 block.respawn_anchor.ambient
 block.respawn_anchor.charge
 block.respawn_anchor.deplete
