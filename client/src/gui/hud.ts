@@ -102,8 +102,21 @@ export class Hud {
     this.icons = await createImageBitmap(await (await fetch('./textures/gui/icons.png')).blob());
   }
 
+  /** hotbar pickup animation (vanilla ItemStack.popTime: 5 ticks after an item is added) */
+  readonly popTime = new Int8Array(9);
+  private lastSlots: string[] = new Array(9).fill('');
+
   tick(inv: Inventory): void {
     this.tickCount++;
+    for (let i = 0; i < 9; i++) {
+      if (this.popTime[i]! > 0) this.popTime[i]!--;
+      const s = inv.get(i);
+      const key = s ? `${s.id}:${s.count}` : '';
+      const prev = this.lastSlots[i]!;
+      // a stack appeared or grew (pickups, /give): pop it
+      if (s && (prev === '' ? this.tickCount > 1 : prev.split(':')[0] === String(s.id) && s.count > Number(prev.split(':')[1]))) this.popTime[i] = 5;
+      this.lastSlots[i] = key;
+    }
     if (this.overlayTime > 0) this.overlayTime--;
     const st = inv.selectedStack;
     const key = st ? String(st.id) : '';
@@ -115,7 +128,7 @@ export class Hud {
     this.lastHighlight = key;
   }
 
-  render(g: Gui, p: HudPlayer, item: (id: number, count: number, x: number, y: number, damage: number) => void): void {
+  render(g: Gui, p: HudPlayer, item: (id: number, count: number, x: number, y: number, damage: number, pop: number) => void, partial = 0): void {
     this.renderChat(g);
     const mid = Math.floor(g.width / 2);
     const spectator = p.gameMode === 3;
@@ -128,11 +141,11 @@ export class Hud {
       const off = inv.get(40);
       if (off) {
         g.blit(g.widgets, 24, 104, 29, 24, mid - 91 - 29, g.height - 23);
-        item(off.id, off.count, mid - 91 - 26, g.height - 16 - 3, off.damage);
+        item(off.id, off.count, mid - 91 - 26, g.height - 16 - 3, off.damage, 0);
       }
       for (let i = 0; i < 9; i++) {
         const st = inv.get(i);
-        if (st) item(st.id, st.count, mid - 90 + i * 20 + 2, g.height - 16 - 3, st.damage);
+        if (st) item(st.id, st.count, mid - 90 + i * 20 + 2, g.height - 16 - 3, st.damage, this.popTime[i]! - partial);
       }
     }
     const survival = p.gameMode === 0 || p.gameMode === 2;

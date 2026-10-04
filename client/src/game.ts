@@ -1898,6 +1898,7 @@ export class Game implements ScreenHost {
     if (this.showChunkBorders) this.renderChunkBorders(cx, cy, cz, camEnt ? camEnt.x : this.player.x, camEnt ? camEnt.z : this.player.z);
     this.renderHand(partial, medium);
     this.updateItemAnim(partial);
+    this.guiPartial = partial;
     this.renderGui(cx, cy, cz);
   }
 
@@ -1926,7 +1927,7 @@ export class Game implements ScreenHost {
         g.ctx.drawImage(this.frostOverlay, 0, 0, g.width, g.height);
         g.ctx.restore();
       }
-      this.hud.render(g, this.hudState(), (id, c, x, y, dmg) => this.renderGuiItem(id, c, x, y, dmg));
+      this.hud.render(g, this.hudState(), (id, c, x, y, dmg, pop) => this.renderGuiItem(id, c, x, y, dmg, pop), this.guiPartial);
       if (this.gameMode === 3) {
         this.spectatorGui.renderHotbar(g);
         this.spectatorGui.renderTooltip(g);
@@ -1942,9 +1943,12 @@ export class Game implements ScreenHost {
   }
 
   /** A 16×16 item in the GUI with its stack count (vanilla ItemRenderer.renderGuiItem + decorations). */
-  renderGuiItem(id: number, count: number, x: number, y: number, damage = 0): void {
-    drawItemStack(this.gui, { id, count, damage }, x, y);
+  renderGuiItem(id: number, count: number, x: number, y: number, damage = 0, pop = 0): void {
+    drawItemStack(this.gui, { id, count, damage }, x, y, undefined, pop);
   }
+
+  /** partial tick of the frame being drawn (GUI animations) */
+  private guiPartial = 0;
 
   /** Compass needle and clock dial frames for item icons/models (vanilla item property functions). */
   private updateItemAnim(partial: number): void {

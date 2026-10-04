@@ -98,11 +98,20 @@ export function durabilityWidth(damage: number, max: number): number {
 
 /**
  * Icon plus decorations: the durability bar for damaged tools and the stack count
- * (or `countText` instead, e.g. for drag-split previews).
+ * (or `countText` instead, e.g. for drag-split previews). `pop` (popTime − partial, > 0 just
+ * after a pickup) squashes the icon like vanilla Gui.renderSlot.
  */
-export function drawItemStack(g: Gui, stack: ItemStack | null | undefined, x: number, y: number, countText?: string): void {
+export function drawItemStack(g: Gui, stack: ItemStack | null | undefined, x: number, y: number, countText?: string, pop = 0): void {
   if (!stack || stack.count <= 0) return;
-  drawItemIcon(g, stack.id, x, y);
+  if (pop > 0) {
+    const f1 = 1 + pop / 5;
+    g.ctx.save();
+    g.ctx.translate(x + 8, y + 12);
+    g.ctx.scale(1 / f1, (f1 + 1) / 2);
+    g.ctx.translate(-(x + 8), -(y + 12));
+    drawItemIcon(g, stack.id, x, y);
+    g.ctx.restore();
+  } else drawItemIcon(g, stack.id, x, y);
   const max = ITEMS_BY_ID[stack.id]?.maxDurability ?? 0;
   if (max > 0 && stack.damage > 0) {
     g.fill(x + 2, y + 13, 13, 2, 0xff000000);
