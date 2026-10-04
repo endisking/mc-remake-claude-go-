@@ -57,6 +57,9 @@ export class ServerPlayer {
   /** bed head position while sleeping */
   sleepingPos: [number, number, number] | null = null;
   sleepCounter = 0;
+  /** Player.takeXpDelay and the tick of the last level-up chime */
+  takeXpDelay = 0;
+  lastLevelUpTick = -1000;
   /** respawn point (bed head) and the yaw it was set with */
   respawn: { x: number; y: number; z: number; angle: number } | null = null;
   walkDistO = 0;

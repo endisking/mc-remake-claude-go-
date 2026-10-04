@@ -348,4 +348,39 @@ describe('survival', () => {
     a.send({ t: 'respawn' });
     expect(Math.abs(p.x - 31.5) <= 2 && Math.abs(p.z - 9.5) <= 3).toBe(true);
   });
+
+  it('XP orbs: death drops 7 per level as orbs that fly to and are collected by players', () => {
+    const { server, a, p } = setup();
+    a.send({ t: 'chat', message: '/xp add @s 5 levels' });
+    a.send({ t: 'chat', message: '/kill' });
+    const orbs = () => [...server.entities.values()].filter((e) => e.type === 'experience_orb') as unknown as { value: number; count: number }[];
+    expect(orbs().reduce((s, o) => s + o.value * o.count, 0)).toBe(35);
+    expect(p.living.experienceLevel).toBe(0);
+    a.send({ t: 'respawn' });
+    // walk back to the orbs and collect them
+    a.send({ t: 'chat', message: '/tp 31.5 101 7.5' });
+    a.send({ t: 'move', x: 31.5, y: 101, z: 7.5, yaw: 0, pitch: 0, onGround: true });
+    for (let i = 0; i < 200; i++) server.tick();
+    expect(orbs().length).toBe(0);
+    expect(p.living.totalExperience).toBe(35);
+    expect(a.received.some((m) => m.t === 'takeItem')).toBe(true);
+  });
+
+  it('mining coal ore gives 0–2 XP', () => {
+    const { server, p } = setup();
+    let total = 0;
+    for (let i = 0; i < 30; i++) {
+      server.setBlock(33, 101, 7, stateOf('coal_ore'));
+      p.inventory.set(0, { id: ITEMS_BY_NAME.get('wooden_pickaxe')!.id, count: 1, damage: 0 });
+      server.destroyBlock(33, 101, 7, p, true);
+      const xp = [...server.entities.values()].filter((e) => e.type === 'experience_orb') as unknown as { value: number; count: number; removed: boolean }[];
+      for (const o of xp) {
+        total += o.value * o.count;
+        o.removed = true;
+      }
+      server.tick();
+    }
+    expect(total).toBeGreaterThan(10);
+    expect(total).toBeLessThanOrEqual(60);
+  });
 });

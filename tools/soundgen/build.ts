@@ -55,6 +55,9 @@ const FREESOUND: Record<number, string> = {
   778568: 'BlondPanda', // steps on fine snow or sand
   389590: 'Jofae', // swing woosh
   507466: 'Danjocross', // clean fast swoosh
+  66876: 'hihirex', // glass ding
+  515643: 'MashedTatoes2', // ding2
+  452379: 'steffcaffrey', // small bell #2
   384423: 'cabled_mess', // footstep in the snow
 };
 
@@ -161,6 +164,8 @@ const SETS: Record<string, () => Clip[]> = {
   attack_knockback: () => kenney('impact-sounds', ...range('impactSoft_heavy_', 5)),
   attack_nodamage: () => quieter(kenney('impact-sounds', ...range('impactSoft_medium_', 5)), -6),
   attack_sweep: () => [...fsWhole(389590, 0.4), ...fsWhole(507466, 0.9)],
+  orb: () => [...fsWhole(66876, 0.35), ...fsWhole(515643, 0.35)],
+  levelup: () => fsWhole(452379, 2),
   door_open: () => kenney('rpg-audio', 'doorOpen_1', 'doorOpen_2'),
   door_close: () => kenney('rpg-audio', 'doorClose_1', 'doorClose_2', 'doorClose_3', 'doorClose_4'),
   metal_latch: () => kenney('rpg-audio', 'metalLatch', 'metalClick'),
@@ -249,6 +254,8 @@ Object.assign(EVENTS, {
   'entity.player.attack.knockback': [{ set: 'attack_knockback' }],
   'entity.player.attack.nodamage': [{ set: 'attack_nodamage' }],
   'entity.player.attack.sweep': [{ set: 'attack_sweep' }],
+  'entity.experience_orb.pickup': [{ set: 'orb' }],
+  'entity.player.levelup': [{ set: 'levelup' }],
   'block.wooden_door.open': [{ set: 'door_open' }],
   'block.wooden_door.close': [{ set: 'door_close' }],
   'block.wooden_trapdoor.open': [{ set: 'door_open', pitch: 1.2 }],
@@ -271,6 +278,7 @@ const HOOKED = new Set<string>([
   'entity.player.hurt_freeze', 'entity.player.big_fall', 'entity.player.small_fall', 'entity.player.swim', 'entity.item.pickup',
   'ui.button.click', 'entity.player.attack.strong', 'entity.player.attack.weak', 'entity.player.attack.crit',
   'entity.player.attack.knockback', 'entity.player.attack.nodamage', 'entity.player.attack.sweep',
+  'entity.experience_orb.pickup', 'entity.player.levelup',
 ]);
 
 // ------------------------------------------------------------------ build

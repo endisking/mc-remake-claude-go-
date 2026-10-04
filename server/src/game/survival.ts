@@ -12,7 +12,7 @@ import { CLIMBABLE, STUCK, blockIdAt } from '@shared/entity/blockphysics';
 import { AABB } from '@shared/entity/aabb';
 import { isRainingAt } from '@shared/world/weather';
 import { soundTypeOf } from '@shared/world/soundtype';
-import { giveExperienceLevels, giveExperiencePoints } from '@shared/game/experience';
+import { giveExperienceLevels, giveExperiencePoints, deathExperience } from '@shared/game/experience';
 
 export interface DamageSource {
   id: string;
@@ -475,6 +475,9 @@ export class Survival {
         this.s.dropAround(p, st);
         this.s.syncSlot(p, i);
       }
+      // Player.getExperienceReward: 7 per level (max 100), dropped as orbs
+      const xp = p.gameMode === 3 ? 0 : deathExperience(l.experienceLevel);
+      if (xp > 0) this.s.spawnExperience(p.x, p.y, p.z, xp);
       l.experienceLevel = 0;
       l.experienceProgress = 0;
       l.totalExperience = 0;

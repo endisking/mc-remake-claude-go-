@@ -172,3 +172,31 @@ export function underwater(): Tex {
     }
   return t;
 }
+
+/**
+ * 64×64 experience orb sheet: 16 icons (4×4) of glowing orbs growing with the orb value; drawn
+ * near-white so the renderer's green/yellow pulse tints it.
+ */
+export function experienceOrbs(): Tex {
+  const t = new Tex(64, 64);
+  for (let i = 0; i < 16; i++) {
+    const ox = (i % 4) * 16, oy = Math.floor(i / 4) * 16;
+    const r = 2 + Math.min(i, 10) * 0.5; // radius in px
+    for (let y = 0; y < 16; y++)
+      for (let x = 0; x < 16; x++) {
+        const dx = x - 7.5, dy = y - 7.5;
+        const d = Math.max(Math.abs(dx), Math.abs(dy)) * 0.55 + Math.hypot(dx, dy) * 0.45;
+        if (d > r + 0.5) continue;
+        const k = d / (r + 0.5);
+        let v: number;
+        if (k < 0.35) v = 255;
+        else if (k < 0.7) v = 225;
+        else v = 165;
+        // a highlight speck toward the top-left
+        if (dx < -r * 0.2 && dy < -r * 0.2 && k > 0.3 && k < 0.6) v = 255;
+        const edge = k >= 0.82;
+        t.set(ox + x, oy + y, edge ? [70, 92, 20, 255] : [v, v, Math.round(v * 0.75), 255]);
+      }
+  }
+  return t;
+}

@@ -36,6 +36,7 @@ import { Hud, type HudPlayer } from './gui/hud';
 import { DeathScreen } from './gui/deathscreen';
 import { InBedScreen } from './gui/inbed';
 import { ClientBolt, LightningRenderer } from './render/lightning';
+import { OrbRenderer, type OrbView } from './render/orbs';
 import { SoundEngine, type SoundCategory } from './audio/engine';
 import { soundName, SOUND_SOURCES } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
@@ -98,6 +99,7 @@ export class Game implements ScreenHost {
   readonly bolts = new Map<number, ClientBolt>();
   private readonly boltRand = new JavaRandom(BigInt(Date.now()));
   private lightning!: LightningRenderer;
+  private orbRenderer!: OrbRenderer;
   readonly sound = new SoundEngine();
   private readonly steps = new StepTracker();
   private readonly sfxRand = new JavaRandom(BigInt(Date.now()) ^ 0x5deece66dn);
@@ -120,7 +122,7 @@ export class Game implements ScreenHost {
   blockItems!: BlockItemRenderer;
   private bake!: BakeResult;
   /** Dropped item entities: id → state for rendering. */
-  readonly items = new Map<number, { x: number; y: number; z: number; xo: number; yo: number; zo: number; lx: number; ly: number; lz: number; steps: number; item: number; count: number; age: number; bobOffs: number; pickup?: { collector: number; life: number } }>();
+  readonly items = new Map<number, { x: number; y: number; z: number; xo: number; yo: number; zo: number; lx: number; ly: number; lz: number; steps: number; item: number; count: number; age: number; bobOffs: number; pickup?: { collector: number; life: number }; orb?: number }>();
   entityId = 0;
   /** Other players' digging cracks: player id → position + stage. */
   private otherCracks = new Map<number, { x: number; y: number; z: number; stage: number }>();
@@ -329,6 +331,7 @@ export class Game implements ScreenHost {
       return t === null ? null : (mainBake.textures.get(t)?.layer ?? mainBake.textures.get('missing')!.layer);
     }, (layer) => this.textures.alpha[layer]);
     this.lightning = new LightningRenderer(this.gl);
+    this.orbRenderer = new OrbRenderer(this.gl);
     this.entityRenderer.bedFacing = (rp) => {
       const st = this.world.getState(Math.floor(rp.x), Math.floor(rp.y), Math.floor(rp.z));
       if (!blockNameOf(st).endsWith('_bed')) return null;
@@ -598,8 +601,8 @@ export class Game implements ScreenHost {
           this.playAt('entity.lightning_bolt.thunder', 'weather', p.x, p.y, p.z, 10000, 0.8 + r.nextFloat() * 0.2);
           this.playAt('entity.lightning_bolt.impact', 'weather', p.x, p.y, p.z, 2, 0.5 + r.nextFloat() * 0.2);
         }
-        else if (p.type === 'item') {
-          this.items.set(p.id, { x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z, steps: 0, item: 0, count: 1, age: 0, bobOffs: Math.random() * Math.PI * 2 });
+        else if (p.type === 'item' || p.type === 'experience_orb') {
+          this.items.set(p.id, { x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z, steps: 0, item: 0, count: 1, age: 0, bobOffs: Math.random() * Math.PI * 2, ...(p.type === 'experience_orb' ? { orb: p.data } : {}) });
         }
         break;
       case 'itemStack': {
@@ -615,7 +618,13 @@ export class Game implements ScreenHost {
         const it = this.items.get(p.itemId);
         if (it) {
           const r = this.sfxRand;
-          this.playAt('entity.item.pickup', 'player', it.x, it.y, it.z, 0.2, ((r.nextFloat() - r.nextFloat()) * 0.7 + 1) * 2);
+          if (it.orb) this.playAt('entity.experience_orb.pickup', 'player', it.x, it.y, it.z, 0.1, (r.nextFloat() - r.nextFloat()) * 0.35 + 0.9);
+          else this.playAt('entity.item.pickup', 'player', it.x, it.y, it.z, 0.2, ((r.nextFloat() - r.nextFloat()) * 0.7 + 1) * 2);
+        }
+        if (it?.orb && !it.pickup) {
+          // a merged orb only gives one of its orbs: a copy flies off, the entity stays until removed
+          this.items.set(-1e9 - this.clientTicks * 16 - (p.itemId & 15), { ...it, pickup: { collector: p.collectorId, life: 0 } });
+          break;
         }
         if (it && !it.pickup) {
           const stays = p.count < it.count;
@@ -1372,7 +1381,27 @@ export class Game implements ScreenHost {
   private readonly itemRand = new JavaRandom(0n);
   /** Dropped items: block items as small spinning, bobbing cubes (vanilla ItemEntityRenderer). */
   private renderItems(cx: number, cy: number, cz: number, partial: number, fog: [number, number, number], fogStart: number, fogEnd: number): void {
+    const orbs: OrbView[] = [];
     for (const it of this.items.values()) {
+      if (it.orb) {
+        let x = it.xo + (it.x - it.xo) * partial, y = it.yo + (it.y - it.yo) * partial, z = it.zo + (it.z - it.zo) * partial;
+        if (it.pickup) {
+          const tgt = this.collectorPos(it.pickup.collector, partial);
+          if (tgt) {
+            const f = Math.min(1, (it.pickup.life + partial) / 3);
+            const f2 = f * f;
+            x += (tgt[0] - x) * f2;
+            y += (tgt[1] + 0.5 - y) * f2;
+            z += (tgt[2] - z) * f2;
+          }
+        }
+        // orbs: bounding box 0.5 → 32 blocks × entity distance
+        const ed = 0.5 * 64 * this.settings.entityDistance;
+        if ((x - cx) ** 2 + (y - cy) ** 2 + (z - cz) ** 2 < ed * ed) {
+          orbs.push({ x, y, z, value: it.orb, time: it.age + partial, light: this.world.getLight(Math.floor(x), Math.floor(y), Math.floor(z)) });
+        }
+        continue;
+      }
       if (!it.item) continue;
       // Entity.shouldRenderAtSqrDistance: bounding-box size (0.25) × 64 × entity distance
       const ed = 0.25 * 64 * this.settings.entityDistance;
@@ -1420,6 +1449,9 @@ export class Game implements ScreenHost {
         this.blockItems.draw(state, this.viewProj, m, light, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
       }
     }
+    // camera right/up from the view matrix rows (billboards)
+    const v = this.view;
+    this.orbRenderer.render(orbs, this.viewProj, cx, cy, cz, v[0]!, v[4]!, v[8]!, v[1]!, v[5]!, v[9]!, this.lightmap.tex);
   }
 
   private readonly bobMat = mat4();

@@ -11,7 +11,7 @@ import { TICKS_PER_SECOND, DAY_LENGTH } from '@shared/constants';
 import { JavaRandom } from '@shared/util/random';
 import { ServerPlayer } from './player';
 import { AABB, noCollision } from '@shared/entity/aabb';
-import { ItemEntity, LightningBolt, type ServerEntity } from './entity';
+import { ItemEntity, LightningBolt, ExperienceOrb, experienceOrbValue, type ServerEntity } from './entity';
 import { Sleep } from './sleep';
 import { isRainingAt } from '@shared/world/weather';
 import { stateForPlacement, updateShape, isReplaceable, companionPlacement, DIRS, DX, DY, DZ } from '@shared/game/placement';
@@ -417,8 +417,12 @@ export class GameServer {
     if (breaker && (breaker.gameMode === 0 || breaker.gameMode === 2)) breaker.living.food.addExhaustion(EXHAUSTION.breakBlock);
     if (drops && breaker && breaker.gameMode !== 1) {
       const held = breaker.inventory.selectedStack;
-      const items = blockDrops(state, { silkTouch: false, canHarvest: canHarvest(held?.id ?? 0, state), random: () => this.rand.nextFloat() });
+      const harvest = canHarvest(held?.id ?? 0, state);
+      const items = blockDrops(state, { silkTouch: false, canHarvest: harvest, random: () => this.rand.nextFloat() });
       for (const it of items) this.popResource(x, y, z, it);
+      // Block.spawnAfterBreak → popExperience (OreBlock / RedStoneOreBlock / SpawnerBlock)
+      const xp = harvest ? oreExperience(name, this.rand) : 0;
+      if (xp > 0) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
     }
     // beds: the other half goes too (BedBlock.updateShape → destroyBlock), dropping its loot
     // (the bed item comes from the head) unless the breaker is in creative
@@ -573,6 +577,23 @@ export class GameServer {
       if (e instanceof ItemEntity && !e.removed) {
         if ((this.gameTime + e.id) % 2 === 0) this.tryMerge(e);
       }
+      if (e instanceof ExperienceOrb && !e.removed && e.age % 20 === 1) this.scanOrb(e);
+    }
+    // experience orbs (Player.touch → ExperienceOrb.playerTouch: one orb every 2 ticks)
+    for (const p of this.players) {
+      if (p.takeXpDelay > 0) p.takeXpDelay--;
+      if (p.gameMode === 3 || p.living.dead) continue;
+      const bb = AABB.ofSize(p.x, p.y, p.z, 0.6, 1.8).inflate(1, 0.5, 1);
+      for (const e of this.entities.values()) {
+        if (!(e instanceof ExperienceOrb) || e.removed || p.takeXpDelay !== 0) continue;
+        if (!e.bb().intersects(bb)) continue;
+        p.takeXpDelay = 2;
+        for (const o of this.players) if (o === p || o.tracking.has(e.id)) this.send(o, { t: 'takeItem', itemId: e.id, collectorId: p.id, count: 1 });
+        const before = p.living.experienceLevel;
+        this.survival.giveExperience(p, e.value, false);
+        this.levelUpSound(p, before);
+        if (--e.count === 0) e.removed = true;
+      }
     }
     // pickups (Player.touch → ItemEntity.playerTouch)
     for (const p of this.players) {
@@ -595,6 +616,65 @@ export class GameServer {
       if (!e.removed) continue;
       this.entities.delete(id);
       for (const p of this.players) if (p.tracking.delete(id)) this.send(p, { t: 'removeEntities', ids: [id] });
+    }
+  }
+
+  /** ExperienceOrb.scanForEntities: follow the nearest player within 8 blocks, merge with equal orbs. */
+  private scanOrb(e: ExperienceOrb): void {
+    let best: ServerPlayer | null = null, bd = 64;
+    for (const p of this.players) {
+      if (p.gameMode === 3 || p.living.dead) continue;
+      const d = (p.x - e.x) ** 2 + (p.y - e.y) ** 2 + (p.z - e.z) ** 2;
+      if (d < bd) {
+        bd = d;
+        best = p;
+      }
+    }
+    e.following = best ? { get x() { return best.x; }, get y() { return best.y; }, get z() { return best.z; }, eyeHeight: best.phys.eyeHeight } : null;
+    const bb = e.bb().inflate(0.5);
+    for (const o of this.entities.values()) {
+      if (o === e || !(o instanceof ExperienceOrb) || o.removed || o.value !== e.value || !o.bb().intersects(bb)) continue;
+      e.count += o.count;
+      e.age = Math.min(e.age, o.age);
+      o.removed = true;
+    }
+  }
+
+  /** ExperienceOrb.award: split XP into orbs; an equal orb nearby absorbs it instead (1 in 40 id match). */
+  spawnExperience(x: number, y: number, z: number, amount: number): void {
+    const r = this.rand;
+    while (amount > 0) {
+      const v = experienceOrbValue(amount);
+      amount -= v;
+      const pick = r.nextInt(40);
+      let merged = false;
+      for (const o of this.entities.values()) {
+        if (!(o instanceof ExperienceOrb) || o.removed || o.value !== v || (o.id - pick) % 40 !== 0) continue;
+        if (Math.abs(o.x - x) > 0.5 || Math.abs(o.y - y) > 0.5 || Math.abs(o.z - z) > 0.5) continue;
+        o.count++;
+        o.age = 0;
+        merged = true;
+        break;
+      }
+      if (merged) continue;
+      const e = new ExperienceOrb(this.nextEntityId++, v);
+      e.x = x;
+      e.y = y;
+      e.z = z;
+      e.vx = (r.nextDouble() * 0.2 - 0.1) * 2;
+      e.vy = r.nextDouble() * 0.2 * 2;
+      e.vz = (r.nextDouble() * 0.2 - 0.1) * 2;
+      this.spawnEntity(e);
+    }
+  }
+
+  /** Player.giveExperienceLevels: a chime every fifth level (at most every 5 s). */
+  private levelUpSound(p: ServerPlayer, before: number): void {
+    const lvl = p.living.experienceLevel;
+    if (lvl > before && lvl % 5 === 0 && p.lastLevelUpTick < this.gameTime - 100) {
+      const f = lvl > 30 ? 1 : lvl / 30;
+      this.playSound(null, 'entity.player.levelup', 'player', p.x, p.y, p.z, f * 0.75, 1);
+      p.lastLevelUpTick = this.gameTime;
     }
   }
 
@@ -626,7 +706,7 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: 0 });
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
         } else if (!visible && p.tracking.has(e.id)) {
           p.tracking.delete(e.id);
@@ -1213,6 +1293,19 @@ function slabMergeFace(slab: number, face: number, hitY: number): boolean {
   const type = getProp(slab, 'type');
   if (type === 'bottom') return face === 1 || (face > 1 && hitY > 0.5);
   return face === 0 || (face > 1 && hitY <= 0.5);
+}
+
+/** XP from mining ores (vanilla UniformInt ranges); copper/iron/gold drop raw ore instead. */
+function oreExperience(name: string, r: JavaRandom): number {
+  const n = name.replace(/^deepslate_/, '');
+  const range = (a: number, b: number) => a + r.nextInt(b - a + 1);
+  if (n === 'coal_ore') return range(0, 2);
+  if (n === 'diamond_ore' || n === 'emerald_ore') return range(3, 7);
+  if (n === 'lapis_ore' || n === 'nether_quartz_ore') return range(2, 5);
+  if (n === 'redstone_ore') return 1 + r.nextInt(5);
+  if (n === 'nether_gold_ore') return range(0, 1);
+  if (n === 'spawner') return 15 + r.nextInt(15) + r.nextInt(15);
+  return 0;
 }
 
 function clampViewDistance(v: number): number {

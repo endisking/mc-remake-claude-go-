@@ -123,3 +123,59 @@ export class LightningBolt extends ServerEntity {
     this.striking = this.life >= 0 && !this.removed && !this.visualOnly;
   }
 }
+
+/** ExperienceOrb.getExperienceValue: the orb sizes a pile of XP splits into. */
+export function experienceOrbValue(i: number): number {
+  for (const v of [2477, 1237, 617, 307, 149, 73, 37, 17, 7, 3]) if (i >= v) return v;
+  return 1;
+}
+
+/**
+ * Experience orb (vanilla ExperienceOrb): gravity 0.03, drifts toward the nearest player within
+ * 8 blocks, bounces on the ground, merges with equal orbs, lives 5 minutes.
+ */
+export class ExperienceOrb extends ServerEntity {
+  readonly type = 'experience_orb';
+  readonly width = 0.5;
+  readonly height = 0.5;
+  readonly trackRange = 96;
+  /** how many orbs this entity stands for (merged) */
+  count = 1;
+  /** id of the player it follows */
+  following: { x: number; y: number; z: number; eyeHeight: number } | null = null;
+
+  constructor(id: number, readonly value: number) {
+    super(id);
+  }
+
+  tick(world: BlockWorld): void {
+    this.age++;
+    const inWater = FLUID[world.getState(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z))] === 1;
+    if (inWater) {
+      // setUnderwaterMovement
+      this.vx *= 0.99;
+      this.vy = Math.min(this.vy + 5.0e-4, 0.06);
+      this.vz *= 0.99;
+    } else this.vy -= 0.03;
+    const f = this.following;
+    if (f) {
+      const dx = f.x - this.x, dy = f.y + f.eyeHeight / 2 - this.y, dz = f.z - this.z;
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 < 64) {
+        const d = Math.sqrt(d2), k = 1 - d / 8;
+        const s = (k * k * 0.1) / (d || 1);
+        this.vx += dx * s;
+        this.vy += dy * s;
+        this.vz += dz * s;
+      }
+    }
+    this.moveWithCollision(world, this.vx, this.vy, this.vz);
+    let fr = 0.98;
+    if (this.onGround) fr = FRICTION[STATE_TO_BLOCK[world.getState(Math.floor(this.x), Math.floor(this.y - 1), Math.floor(this.z))]!]! * 0.98;
+    this.vx *= fr;
+    this.vy *= 0.98;
+    this.vz *= fr;
+    if (this.onGround) this.vy *= -0.9;
+    if (this.age >= 6000) this.removed = true;
+  }
+}

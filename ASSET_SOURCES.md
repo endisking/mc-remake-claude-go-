@@ -47,9 +47,11 @@ All recordings are CC0. They are trimmed, cut into single events, converted to m
 | Swing Woosh by Jofae | Jofae | https://freesound.org/people/Jofae/sounds/389590/ | CC0 1.0 | attack_sweep |
 | Splash by swordofkings128 | swordofkings128 | https://freesound.org/people/swordofkings128/sounds/398032/ | CC0 1.0 | splash |
 | HomemadeOof.wav by LucyTheDev | LucyTheDev | https://freesound.org/people/LucyTheDev/sounds/438912/ | CC0 1.0 | player_hurt |
+| Small Bell #2 by steffcaffrey | steffcaffrey | https://freesound.org/people/steffcaffrey/sounds/452379/ | CC0 1.0 | levelup |
 | BODY FALL - V HVY - DIRT by leonelmail | leonelmail | https://freesound.org/people/leonelmail/sounds/504626/ | CC0 1.0 | fall_big |
 | Clean fast Swoosh.aiff by Danjocross | Danjocross | https://freesound.org/people/Danjocross/sounds/507466/ | CC0 1.0 | attack_sweep |
 | Short Neighborhood Rain.wav by shelbyshark | shelbyshark | https://freesound.org/people/shelbyshark/sounds/513395/ | CC0 1.0 | rain |
+| ding2.wav by MashedTatoes2 | MashedTatoes2 | https://freesound.org/people/MashedTatoes2/sounds/515643/ | CC0 1.0 | orb |
 | Hiking Boot Footsteps on Gravel by Fission9 | Fission9 | https://freesound.org/people/Fission9/sounds/521588/ | CC0 1.0 | dig_gravel |
 | Glass Shatter 5.wav by Greg_Surr | Greg_Surr | https://freesound.org/people/Greg_Surr/sounds/554570/ | CC0 1.0 | glass_break |
 | Shovel - Sand/Gravel/Snow by Bricklover | Bricklover | https://freesound.org/people/Bricklover/sounds/560957/ | CC0 1.0 | dig_sand |
@@ -58,6 +60,7 @@ All recordings are CC0. They are trimmed, cut into single events, converted to m
 | Digging in wet course sand (1) by f3bbbo | f3bbbo | https://freesound.org/people/f3bbbo/sounds/651292/ | CC0 1.0 | dig_sand |
 | Digging in wet course sand (2) by f3bbbo | f3bbbo | https://freesound.org/people/f3bbbo/sounds/651293/ | CC0 1.0 | dig_sand |
 | walking in beach sand.wav by 21100495 | 21100495 | https://freesound.org/people/21100495/sounds/655366/ | CC0 1.0 | step_sand |
+| glass_ding.mp3 by hihirex | hihirex | https://freesound.org/people/hihirex/sounds/66876/ | CC0 1.0 | orb |
 | Short_Thunder_Mid.wav by SholeColtis | SholeColtis | https://freesound.org/people/SholeColtis/sounds/683421/ | CC0 1.0 | thunder |
 | thunder11 by saha213131 | saha213131 | https://freesound.org/people/saha213131/sounds/696550/ | CC0 1.0 | thunder |
 | Oof (original) by unfa | unfa | https://freesound.org/people/unfa/sounds/719053/ | CC0 1.0 | player_hurt |

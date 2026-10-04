@@ -7693,6 +7693,16 @@
    }
   ]
  },
+ "entity.experience_orb.pickup": {
+  "sounds": [
+   {
+    "name": "orb/0"
+   },
+   {
+    "name": "orb/1"
+   }
+  ]
+ },
  "entity.item.pickup": {
   "sounds": [
    {
@@ -7897,6 +7907,13 @@
    },
    {
     "name": "player_hurt/1"
+   }
+  ]
+ },
+ "entity.player.levelup": {
+  "sounds": [
+   {
+    "name": "levelup/0"
    }
   ]
  },

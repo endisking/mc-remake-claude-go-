@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 124 / 4140**
+**Progress: 126 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -156,7 +156,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Block break particles <!--p2:block_break_particles-->
 - [x] Block placement (against faces, orientation rules) <!--p2:block_placement_against_faces_orientation_rules-->
 - [x] Item drops: pop out, spin, bob, merge, pickup delay <!--p2:item_drops_pop_out_spin_bob_merge_pickup_delay-->
-- [ ] XP orbs: fly to player, merge, values <!--p2:xp_orbs_fly_to_player_merge_values-->
+- [x] XP orbs: fly to player, merge, values <!--p2:xp_orbs_fly_to_player_merge_values-->
 
 ### Game modes
 
@@ -192,7 +192,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Bed explosion in Nether/End <!--p2:bed_explosion_in_nether_end-->
 - [x] Spawn point setting and world spawn radius <!--p2:spawn_point_setting_and_world_spawn_radius-->
 - [x] Death screen with score and respawn <!--p2:death_screen_with_score_and_respawn-->
-- [ ] Dropped inventory and XP on death <!--p2:dropped_inventory_and_xp_on_death-->
+- [x] Dropped inventory and XP on death <!--p2:dropped_inventory_and_xp_on_death-->
 - [ ] Death messages (all 1.17.1 variants, original text where needed) <!--p2:death_messages_all_1_17_1_variants_original_text_where_needed-->
 
 ## Phase 3 — World generation (1.17.1 rules, Y 0–255)
