@@ -69,6 +69,9 @@ function tower(): Model {
   m.set(3, 17, 7, S('white_carpet'));
   m.set(5, 17, 1, S('wall_torch[facing=south]'));
   m.set(5, 18, 5, S('white_banner[rotation=0]'));
+  // the outpost's pillagers (more come from its structure spawn list)
+  m.entity(5, 17, 3, 'pillager');
+  m.entity(5, 1, 5, 'pillager');
   // the ground floor: crafting table and a little clutter
   m.set(7, 1, 7, S('crafting_table'));
   m.set(3, 1, 7, S('dark_oak_log[axis=x]'));
@@ -89,6 +92,7 @@ function cage(): Model {
   for (const [x, z] of [[0, 0], [4, 0], [0, 4], [4, 4]] as const) m.fill(x, 1, z, x, 3, z, log);
   m.fill(0, 4, 0, 4, 4, 4, S('dark_oak_slab[type=bottom]'));
   m.fill(1, 1, 1, 3, 3, 3, S('air'));
+  m.entity(2, 1, 2, 'iron_golem');
   return m;
 }
 

@@ -151,6 +151,8 @@ function build(r: JavaRandom): Model {
 
 function furnish(m: Model, r: JavaRandom, k: Room, x0: number, y0: number, z0: number, carpet: number, wool: number, f: number): void {
   const y = y0 + 1;
+  // the mansion's illagers: vindicators about the rooms, now and then an evoker
+  if (k !== 'corridor' && k !== 'stairs' && r.nextInt(3) === 0) m.entity(x0 + 4, y, z0 + 5, r.nextInt(4) === 0 ? 'evoker' : 'vindicator');
   switch (k) {
     case 'corridor':
       m.fill(x0 + 1, y, z0 + 1, x0 + 7, y, z0 + 7, carpet);

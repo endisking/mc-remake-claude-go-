@@ -14,6 +14,7 @@ import { IS_AIR, FLUID } from '../../world/blockinfo';
 import { BLOCK_STATE_COUNT } from '../../data';
 import type { GenLevel } from '../features/level';
 import { addBlockEntity } from '../features/underground';
+import { addGenEntity } from './entities';
 
 export class BoundingBox {
   constructor(
@@ -291,6 +292,12 @@ export abstract class Piece {
     c.lv.setState(X, Y, Z, this.tf(state));
     addBlockEntity(c.lv, { kind: 'chest', x: X, y: Y, z: Z, lootTable, lootSeed: c.rand.nextLong() });
     return true;
+  }
+
+  /** A mob placed with the structure (at the block's centre), when that block is in this chunk. */
+  entity(c: PlaceContext, x: number, y: number, z: number, type: string): void {
+    const X = this.wx(x, z), Y = this.wy(y), Z = this.wz(x, z);
+    if (c.chunk.inside(X, Y, Z)) addGenEntity(c.lv, { type, x: X + 0.5, y: Y, z: Z + 0.5, persistent: true });
   }
 
   /** A spawner block entity. */

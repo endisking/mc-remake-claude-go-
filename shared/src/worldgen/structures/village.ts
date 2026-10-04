@@ -9,7 +9,7 @@
  */
 import type { JavaRandom } from '../../util/random';
 import { IS_AIR, FLUID } from '../../world/blockinfo';
-import { blockNameOf } from '../../world/blockstate';
+import { blockNameOf, stateToString } from '../../world/blockstate';
 import { MATERIAL_BLOCKS_MOTION } from '../../world/blockprops';
 import { BoundingBox, Piece, S, type PlaceContext } from './piece';
 import { Model, TemplatePiece, VOID } from './template';
@@ -161,6 +161,7 @@ function meetingPoint(p: Palette): Model {
   m.set(4, 3, 4, S('bell[attachment=floor,facing=north]'));
   m.set(4, 2, 4, S(p.fence.endsWith('_wall') ? p.fence : p.log.endsWith('_log') ? `${p.log}[axis=y]` : p.log));
   m.set(4, 1, 4, base);
+  m.entity(1, 1, 1, 'iron_golem');
   return m;
 }
 
@@ -362,6 +363,15 @@ export function village(s: StartContext): Piece[] {
         }
         const built = buildKind(kind, p, r);
         const model = zombie ? abandon(built, r) : built;
+        // one villager per bed (the house templates carry them), zombie villagers in zombie villages
+        for (let i = 0; i < model.blocks.length; i++) {
+          const st = model.blocks[i]!;
+          if (st >= 0 && blockNameOf(st).endsWith('_bed') && String(stateToString(st)).includes('part=head')) {
+            const x = i % model.sx, z = Math.floor(i / model.sx) % model.sz, y = Math.floor(i / (model.sx * model.sz));
+            model.entity(x, y, z, zombie ? 'zombie_villager' : 'villager');
+          }
+        }
+        if (kind === 'home' && !zombie && r.nextInt(4) === 0) model.entity(model.sx >> 1, 1, model.sz >> 1, 'cat');
         // house rotation: its front (local z = 0) faces the street
         const [px, pz] = [-fz * side, fx * side]; // outward from the street
         const rot = pz > 0 ? 0 : pz < 0 ? 2 : px > 0 ? 3 : 1;

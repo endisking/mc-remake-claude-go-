@@ -9,6 +9,7 @@ import { LOCATABLE_STRUCTURES, locateStructure, structureStart } from '@shared/w
 import { BlockWorld } from '@shared/world/world';
 import { blockNameOf } from '@shared/world/blockstate';
 import { takeGenBlockEntities } from '@shared/worldgen/features/underground';
+import { takeGenEntities } from '@shared/worldgen/structures/entities';
 
 const check = process.argv.includes('--check');
 const [seedArg = '20211', xArg = '0', zArg = '0', typesArg] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
@@ -35,5 +36,8 @@ for (const t of typesArg && typesArg !== 'all' ? typesArg.split(',') : LOCATABLE
       }
   console.log(`  box ${b.x0} ${b.y0} ${b.z0} → ${b.x1} ${b.y1} ${b.z1}, ${s.pieces.length} pieces`);
   console.log('  blocks:', [...hist].sort((a, c) => c[1] - a[1]).slice(0, 24).map(([k, v]) => `${k} ${v}`).join(', '));
+  const mobs = new Map<string, number>();
+  for (const e of takeGenEntities(world)) mobs.set(e.type, (mobs.get(e.type) ?? 0) + 1);
+  if (mobs.size) console.log('  mobs:', [...mobs].map(([k, v]) => `${k} ${v}`).join(', '));
   for (const be of takeGenBlockEntities(world)) console.log(`  ${be.kind} ${be.x} ${be.y} ${be.z} ${'lootTable' in be ? be.lootTable : be.entity}`);
 }

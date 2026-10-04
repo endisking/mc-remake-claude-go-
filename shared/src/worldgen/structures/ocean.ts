@@ -187,6 +187,7 @@ function bigRuin(temp: Temp, design: number): Model {
   m.fill(2, 2, 3, 3, 3, 3, VOID);
   m.chest(2, 2, 2, 'chests/underwater_ruin_big', S('chest[facing=south]'));
   if (design & 1) m.fill(0, 6, 0, W - 1, 8, W - 1, VOID); // a lower ruin
+  m.entity(7, 2, 5, 'drowned');
   return m;
 }
 

@@ -9,6 +9,7 @@ import { getProp, withProp, blockNameOf } from '../../world/blockstate';
 import { FLUID } from '../../world/blockinfo';
 import { BoundingBox, Piece, rotateState, type PlaceContext } from './piece';
 import { addBlockEntity } from '../features/underground';
+import { addGenEntity } from './entities';
 
 /** -1 = structure void (leave the world block). */
 export const VOID = -1;
@@ -17,6 +18,11 @@ export class Model {
   readonly blocks: Int32Array;
   readonly chests: { x: number; y: number; z: number; loot: string; state: number }[] = [];
   readonly spawners: { x: number; y: number; z: number; entity: string }[] = [];
+  readonly entities: { x: number; y: number; z: number; type: string }[] = [];
+  /** a mob placed with the template */
+  entity(x: number, y: number, z: number, type: string): void {
+    this.entities.push({ x, y, z, type });
+  }
   constructor(readonly sx: number, readonly sy: number, readonly sz: number) {
     this.blocks = new Int32Array(sx * sy * sz).fill(VOID);
   }
@@ -143,6 +149,10 @@ export class TemplatePiece extends Piece {
       const n = blockNameOf(lv.getState(X, Y, Z));
       if (n !== 'chest' && n !== 'barrel' && n !== 'trapped_chest') continue;
       addBlockEntity(lv, { kind: 'chest', x: X, y: Y, z: Z, lootTable: ch.loot, lootSeed: c.rand.nextLong() });
+    }
+    for (const e of m.entities) {
+      const X = this.wx(e.x, e.z), Y = this.wy(e.y), Z = this.wz(e.x, e.z);
+      if (chunk.inside(X, Y, Z)) addGenEntity(lv, { type: e.type, x: X + 0.5, y: Y, z: Z + 0.5, persistent: true });
     }
     for (const sp of m.spawners) {
       const X = this.wx(sp.x, sp.z), Y = this.wy(sp.y), Z = this.wz(sp.x, sp.z);

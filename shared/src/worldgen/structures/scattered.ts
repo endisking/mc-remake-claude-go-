@@ -206,6 +206,7 @@ export function jungleTemple(s: StartContext): Piece[] {
 
 // ------------------------------------------------------------------ swamp hut
 class SwampHutPiece extends Piece {
+  private spawned = false;
   constructor(rand: JavaRandom, x: number, z: number) {
     const rot = rand.nextInt(4);
     super(scatteredBox(x, 64, z, 7, 7, 9, rot), rot);
@@ -249,6 +250,12 @@ class SwampHutPiece extends Piece {
     this.fill(c, 0, 4, 8, 6, 4, 8, sN);
     // stilts down to the ground
     for (const [x, z] of [[1, 2], [5, 2], [1, 7], [5, 7]] as const) this.fillDown(c, log, x, -1, z);
+    // SwampHutPiece.spawnWitch / spawnCat: a persistent witch and her black cat
+    if (!this.spawned && this.isInside(c, 2, 2, 5)) {
+      this.spawned = true;
+      this.entity(c, 2, 2, 5, 'witch');
+      this.entity(c, 2, 2, 5, 'cat');
+    }
     return true;
   }
 }
@@ -359,7 +366,14 @@ class IglooPiece extends Piece {
     this.fill(c, 4, 1, 5, 5, 3, 5, S('iron_bars'));
     this.fill(c, 3, 1, 5, 3, 3, 7, bricks);
     this.set(c, S('torch'), 3, 1, 3);
+    // the villager and the zombie villager in the cells
+    if (!this.spawnedCells) {
+      this.spawnedCells = true;
+      this.entity(c, 1, 1, 7, 'villager');
+      this.entity(c, 5, 1, 7, 'zombie_villager');
+    }
   }
+  private spawnedCells = false;
 }
 
 class IglooRoot {

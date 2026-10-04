@@ -100,6 +100,10 @@ class MonumentPiece extends Piece {
     this.fill(c, 25, 7, 25, 32, 14, 32, dk, water);
     this.fill(c, 28, 10, 28, 29, 11, 29, S('gold_block'));
     this.fill(c, 28, 7, 25, 29, 9, 25, water);
+    // three elder guardians: one in each wing's sponge room and one in the penthouse
+    this.entity(c, 10, 10, 43, 'elder_guardian');
+    this.entity(c, 46, 10, 43, 'elder_guardian');
+    this.entity(c, 28, 17, 28, 'elder_guardian');
     // the front inner gate into the hall
     this.fill(c, 26, 1, 9, 31, 6, 9, water);
     void IS_AIR;

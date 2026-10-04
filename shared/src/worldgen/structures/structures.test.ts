@@ -9,6 +9,7 @@ import { WORLDGEN } from '../features/data';
 import { B } from '../biome/biomeids';
 import { BlockWorld } from '../../world/world';
 import { takeGenBlockEntities } from '../features/underground';
+import { takeGenEntities } from './entities';
 import { JavaRandom } from '../../util/random';
 import { regionSeed } from '../rand';
 import { fillWithLoot } from '../../menu/chestloot';
@@ -119,6 +120,13 @@ describe('structure pieces', () => {
     let tnt = 0;
     for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) if (blockNameOf(world.getState(c0.x + dx, c0.y - 2, c0.z + dz)) === 'tnt') tnt++;
     expect(tnt).toBe(9);
+  }, 120000);
+
+  it('swamp hut: a witch and her cat are queued as structure mobs', () => {
+    const { world } = build('swamp_hut');
+    const mobs = takeGenEntities(world).map((e) => e.type);
+    expect(mobs).toContain('witch');
+    expect(mobs).toContain('cat');
   }, 120000);
 
   it('mineshaft: corridors within 80 blocks + depth limits, with supports', () => {
