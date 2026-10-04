@@ -83,6 +83,9 @@ const S2C_SCHEMA = {
   playerInfo: [['action', 'u8'], ['id', 'i32'], ['name', 'str'], ['skin', 'str'], ['gameMode', 'u8']],
   /** Spectate through another entity's eyes, or back to your own (vanilla SetCamera). */
   setCamera: [['id', 'i32']],
+  // ---- mobs (server simulation ↔ client rendering contract; see shared/src/entity/mobdata.ts)
+  /** Mob render state: MOB_FLAG bits and a type-specific variant (sheep colour, slime size, enderman block). */
+  mobData: [['id', 'i32'], ['flags', 'u16'], ['variant', 'i32']],
 } as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server
