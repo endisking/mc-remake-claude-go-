@@ -225,17 +225,17 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Redstone ore <!--p3:redstone_ore-->
 - [x] Diamond ore <!--p3:diamond_ore-->
 - [x] Lapis ore <!--p3:lapis_ore-->
-- [ ] Emerald ore (mountains) <!--p3:emerald_ore_mountains-->
+- [x] Emerald ore (mountains) <!--p3:emerald_ore_mountains-->
 - [x] Copper ore <!--p3:copper_ore-->
 - [x] Deepslate blobs (Y 0–16; 1.17.1 has no deepslate layer) and deepslate ore variants <!--p3:deepslate_layer_y_0_16_and_deepslate_ore_variants-->
 - [x] Tuff blobs <!--p3:tuff_blobs-->
 - [x] Dirt, gravel, granite, diorite, andesite blobs <!--p3:dirt_gravel_granite_diorite_andesite_blobs-->
 - [x] Infested stone (mountains) <!--p3:infested_stone_mountains-->
-- [ ] Amethyst geodes <!--p3:amethyst_geodes-->
-- [ ] Glow lichen in caves <!--p3:glow_lichen_in_caves-->
-- [ ] Fossils <!--p3:fossils-->
-- [ ] Dungeons (monster rooms) <!--p3:dungeons_monster_rooms-->
-- [ ] Dripstone clusters (rare, in caves) <!--p3:dripstone_clusters_rare_in_caves-->
+- [x] Amethyst geodes <!--p3:amethyst_geodes-->
+- [x] Glow lichen in caves <!--p3:glow_lichen_in_caves-->
+- [x] Fossils (original fossil shapes, vanilla placement rules) <!--p3:fossils-->
+- [x] Dungeons (monster rooms) <!--p3:dungeons_monster_rooms-->
+- [x] Dripstone clusters (rare, in caves) <!--p3:dripstone_clusters_rare_in_caves-->
 - [ ] Nether quartz ore <!--p3:nether_quartz_ore-->
 - [ ] Nether gold ore <!--p3:nether_gold_ore-->
 - [ ] Ancient debris <!--p3:ancient_debris-->
@@ -360,7 +360,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Ice spikes <!--p3:ice_spikes-->
 - [ ] Desert wells <!--p3:desert_wells-->
 - [ ] Boulders (mossy cobblestone) <!--p3:boulders_mossy_cobblestone-->
-- [ ] Pointed dripstone in caves <!--p3:pointed_dripstone_in_caves-->
+- [x] Pointed dripstone in caves <!--p3:pointed_dripstone_in_caves-->
 
 ### Overworld structures
 
