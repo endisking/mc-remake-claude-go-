@@ -33,6 +33,7 @@ import { Enderman } from './enderman';
 import { Bat, Squid } from './ambient';
 import { saveMob, applyMobSave, type MobSave } from './persist';
 import { commandHooks } from '../commands/hooks';
+import { MobSpawners } from './spawners';
 import { itemForBlock } from '@shared/game/loot';
 
 type MobCtor = new (id: number, s: GameServer) => Mob;
@@ -53,7 +54,12 @@ export class MobManager {
   /** natural and chunk-generation spawning enabled for this server (null = from the server options) */
   spawningOverride: boolean | null = null;
 
-  constructor(private readonly s: GameServer) {}
+  /** monster spawner blocks */
+  readonly spawners: MobSpawners;
+
+  constructor(private readonly s: GameServer) {
+    this.spawners = new MobSpawners(s);
+  }
 
   get naturalSpawning(): boolean {
     const o = this.s.opts;
@@ -226,6 +232,7 @@ export class MobManager {
     const s = this.s;
     // Mob.checkDespawn every tick
     for (const m of this.mobs()) this.checkDespawn(m);
+    this.spawners.tick();
     if (!this.doMobSpawning || !this.naturalSpawning || s.players.length === 0) return;
     const spawnEnemies = s.difficulty !== Difficulty.Peaceful;
     const spawnPersistent = s.gameTime % 400 === 0;

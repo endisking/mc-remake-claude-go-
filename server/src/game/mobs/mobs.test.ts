@@ -22,6 +22,7 @@ import { Slime, isSlimeChunk } from './slime';
 import { Enderman } from './enderman';
 import { Bat, Squid } from './ambient';
 import { MemoryStorage } from '../../storage/memory';
+import { spawnerTypeAt } from './spawners';
 
 const GRASS = stateOf('grass_block', { snowy: false });
 const STONE = stateOf('stone');
@@ -525,5 +526,21 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     expect(cows[0]!.x).toBeCloseTo(cow.x, 3);
     expect(s2.mobs.mobs().filter((m) => m.type === 'zombie').length).toBe(1);
     s2.stop();
+  });
+
+  it('spawners: spawn their mob in the dark while a player is within 16 blocks, at most 6 nearby', () => {
+    const { server, a } = setup({ dayTime: 18000 });
+    // a closed dark room under the surface with a spawner
+    for (let x = 10; x <= 20; x++) for (let z = 10; z <= 20; z++) for (let y = 40; y <= 46; y++) server.setBlock(x, y, z, x === 10 || x === 20 || z === 10 || z === 20 || y === 40 || y === 46 ? STONE : 0);
+    server.setBlock(15, 41, 15, stateOf('spawner'));
+    server.mobs.spawners.add(15, 41, 15, 'zombie');
+    expect(['skeleton', 'zombie', 'spider']).toContain(spawnerTypeAt(1, 2, 3));
+    ticks(server, 30);
+    expect(server.mobs.mobs().filter((m) => m.type === 'zombie').length).toBe(0); // player too far (y 64)
+    a.send({ t: 'chat', message: '/tp 15.5 42 13.5' });
+    ticks(server, 2000);
+    const zs = server.mobs.mobs().filter((m) => m.type === 'zombie');
+    expect(zs.length).toBeGreaterThan(0);
+    expect(zs.length).toBeLessThanOrEqual(6 + 4);
   });
 });

@@ -1196,6 +1196,7 @@ export class GameServer {
       // NaturalSpawner.spawnMobsForChunkGeneration for freshly generated chunks
       if (c.stage === 3 && this.gameRules.doMobSpawning && this.mobs.naturalSpawning) this.mobs.spawnForChunkGeneration(c);
     }
+    this.mobs.spawners.scanChunk(c);
     return c;
   }
 
@@ -1286,6 +1287,7 @@ export class GameServer {
     // its mobs leave with it, saved inside the chunk record
     const dirtyMobs = this.mobs.chunkNeedsSave(c.x, c.z);
     const mobs = this.mobs.unloadChunk(c.x, c.z);
+    this.mobs.spawners.dropChunk(c.x, c.z);
     this.mobs.noteSaved(c.x, c.z, mobs.length);
     if (this.shadowed.delete(key)) {
       // the save has the real chunk; forget the temporary copy
