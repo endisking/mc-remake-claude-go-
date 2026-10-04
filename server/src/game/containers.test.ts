@@ -180,4 +180,24 @@ describe('containers', () => {
     expect(p.inventory.get(9)?.id).toBe(stack('blue_shulker_box').id);
     expect(p.inventory.get(10)).toBeNull();
   });
+
+  it('two players viewing one chest see each other\'s changes', () => {
+    const { server, a, p, gx, gy, gz } = setup();
+    const b = client(server, 'B');
+    for (let i = 0; i < 3; i++) server.tick();
+    const pb = server.players[1]!;
+    pb.x = p.x;
+    pb.y = p.y;
+    pb.z = p.z;
+    server.setBlock(gx + 2, gy + 1, gz, stateOf('chest'));
+    const use = (c: typeof a) => c.send({ t: 'useOn', x: gx + 2, y: gy + 1, z: gz, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    use(a);
+    use(b);
+    const wa = (a.received.filter((m) => m.t === 'openWindow').at(-1) as Extract<S2C, { t: 'openWindow' }>).windowId;
+    p.inventory.set(0, stack('emerald', 9));
+    a.send({ t: 'clickWindow', windowId: wa, slot: 54, button: 0, clickType: 1 });
+    server.tick();
+    const seen = b.received.filter((m) => m.t === 'windowSlot' && m.item === stack('emerald').id) as Extract<S2C, { t: 'windowSlot' }>[];
+    expect(seen.at(-1)).toMatchObject({ slot: 0, count: 9 });
+  });
 });
