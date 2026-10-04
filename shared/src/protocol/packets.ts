@@ -141,10 +141,12 @@ const S2C_SCHEMA = {
   dimension: [['dimension', 'str'], ['gameMode', 'u8'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['yaw', 'f32'], ['pitch', 'f32']],
   /** Left the End through the exit portal (ClientboundGameEventPacket WIN_GAME): roll the credits when showCredits. */
   winGame: [['showCredits', 'bool']],
+  /** ClientboundBossEventPacket: op 0 add, 1 remove, 2 update (progress/name); color BossBarColor (0 pink), overlay 0 progress. */
+  bossEvent: [['op', 'u8'], ['id', 'i32'], ['name', 'str'], ['progress', 'f32'], ['color', 'u8'], ['overlay', 'u8']],
 } as const satisfies Schema;
 
 /** Keys of the mobData packet (client: client/src/world/mobs.ts). */
-export const MOB_DATA_KEYS = ['color', 'sheared', 'baby', 'swell_dir', 'charged', 'aggressive', 'saddle', 'size', 'carried', 'hanging', 'bow', 'name_visible', 'sitting', 'tame', 'health', 'profession', 'level', 'unhappy', 'pumpkin', 'sleeping', 'temper', 'chest', 'variant'] as const;
+export const MOB_DATA_KEYS = ['color', 'sheared', 'baby', 'swell_dir', 'charged', 'aggressive', 'saddle', 'size', 'carried', 'hanging', 'bow', 'name_visible', 'sitting', 'tame', 'health', 'profession', 'level', 'unhappy', 'pumpkin', 'sleeping', 'temper', 'chest', 'variant', 'beam'] as const;
 
 // ------------------------------------------------------------------ client → server
 const C2S_SCHEMA = {

@@ -90,6 +90,7 @@ import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './g
 import { netherFogColor, netherFogRange, PortalEffect, applyPortalWobble, insidePortal, ambientLight, hasSky, animatePortals, endFogColor } from './world/dimension';
 import { EndSkyRenderer } from './render/endsky';
 import { CreditsScreen } from './gui/credits';
+import { BossOverlay } from './gui/bossbar';
 import { isPortal } from '@shared/game/portalshape';
 import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
@@ -138,6 +139,8 @@ export class Game implements ScreenHost, ContainerHost {
   private readonly nauseaTmp = mat4();
   private texLayers: Map<string, { layer: number }> | null = null;
   private readonly hud = new Hud();
+  /** boss bars (bossEvent packets) */
+  readonly bossBars = new BossOverlay();
   /** online players (vanilla PlayerInfo list) */
   readonly playerInfo = new Map<number, PlayerInfoEntry>();
   /** operator permission level from the server (vanilla LocalPlayer.permissionLevel); integrated servers start at 4 */
@@ -1137,7 +1140,11 @@ export class Game implements ScreenHost, ContainerHost {
         break;
       }
       case 'dimension':
+        this.bossBars.clear();
         this.changeDimension(p);
+        break;
+      case 'bossEvent':
+        this.bossBars.handle(p);
         break;
       case 'winGame':
         // ClientboundGameEventPacket WIN_GAME: roll the credits (the first time)
@@ -2848,12 +2855,28 @@ export class Game implements ScreenHost, ContainerHost {
     if (medium === 'air' && hasSky(this.dimension)) {
       this.clouds.render(this.viewProj, cx, cy, cz, this.clientTicks + partial, s.clouds, s.renderDistance, cloudColor(tod, this.world.rain, this.world.thunder), fog);
     }
+    this.renderCrystalBeams(cx, cy, cz);
     if (this.showHitboxes) this.renderHitboxes(cx, cy, cz, partial);
     if (this.showChunkBorders) this.renderChunkBorders(cx, cy, cz, camEnt ? camEnt.x : this.player.x, camEnt ? camEnt.z : this.player.z);
     this.renderHand(partial, medium);
     this.updateItemAnim(partial);
     this.guiPartial = partial;
     this.renderGui(cx, cy, cz);
+  }
+
+  /** EnderDragonRenderer.renderCrystalBeams (simplified to a thick violet line): crystal → the dragon it heals (mobData beam). */
+  private renderCrystalBeams(cx: number, cy: number, cz: number): void {
+    let any = false;
+    for (const m of this.mobs.mobs.values()) {
+      if (m.type !== 'end_crystal') continue;
+      const id = m.data.get('beam') ?? 0;
+      const d = id ? this.mobs.mobs.get(id) : undefined;
+      if (!d) continue;
+      if (!any) this.lines.begin();
+      any = true;
+      this.lines.line(m.x - cx, m.y + 1 - cy, m.z - cz, d.x - cx, d.y + 1.5 - cy, d.z - cz, 0.85, 0.45, 1, 0.9);
+    }
+    if (any) this.lines.flush(this.viewProj, this.canvas.width, this.canvas.height, true, 3);
   }
 
   private renderGui(x: number, y: number, z: number): void {
@@ -2895,6 +2918,7 @@ export class Game implements ScreenHost, ContainerHost {
         g.ctx.restore();
       }
       this.hud.render(g, this.hudState(), (id, c, x, y, dmg, pop, tag) => this.renderGuiItem(id, c, x, y, dmg, pop, tag), this.guiPartial);
+      this.bossBars.render(g);
       renderEffects(g, this.itemUse.effects.values());
       this.renderItemActivation(g);
       // PlayerTabOverlay: while the key is held, in multiplayer or with company

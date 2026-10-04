@@ -40,6 +40,7 @@ import { commandHooks } from '../commands/hooks';
 import { MobSpawners } from './spawners';
 import { Wolf } from './wolf';
 import { Phantom, PhantomSpawner } from './phantom';
+import { EndCrystal, EnderDragon, DragonFireball } from './dragon';
 import { itemForBlock } from '@shared/game/loot';
 import { PROFESSIONS as PROFESSION_IDS, VILLAGER_TYPES, villagerTypeForBiome } from '@shared/game/trades';
 import { Villager, WanderingTrader, AbstractVillager } from './villager';
@@ -52,7 +53,7 @@ import { Horse, Donkey, Mule, AbstractHorse, AbstractChestedHorse } from './hors
 type MobCtor = new (id: number, s: GameServer) => Mob;
 export const MOB_TYPES: Record<string, MobCtor> = {
   zombie: Zombie, husk: Husk, drowned: Drowned, zombie_villager: ZombieVillager, cave_spider: CaveSpider, skeleton: Skeleton, stray: Stray, creeper: Creeper, spider: Spider,
-  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, mooshroom: Mooshroom, phantom: Phantom, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid, cod: Cod, salmon: Salmon,
+  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, mooshroom: Mooshroom, phantom: Phantom, end_crystal: EndCrystal, ender_dragon: EnderDragon, dragon_fireball: DragonFireball, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid, cod: Cod, salmon: Salmon,
   villager: Villager, wandering_trader: WanderingTrader, iron_golem: IronGolem, snow_golem: SnowGolem,
   horse: Horse, donkey: Donkey, mule: Mule, witch: Witch,
   rabbit: Rabbit, polar_bear: PolarBear, ocelot: Ocelot, cat: Cat, turtle: Turtle,
@@ -941,6 +942,7 @@ export function mobDataOf(m: Mob): Record<string, number> {
     d.tame = m.tame ? 1 : 0;
     d.aggressive = m.standCounter > 0 ? 1 : 0;
   }
+  if (m instanceof EndCrystal) d.beam = m.beamTarget;
   if (m instanceof AbstractChestedHorse) d.chest = m.hasChest ? 1 : 0;
   if (m instanceof Horse) d.variant = m.horseVariant;
   if (m instanceof Rabbit || m instanceof Cat) d.variant = m.variant();

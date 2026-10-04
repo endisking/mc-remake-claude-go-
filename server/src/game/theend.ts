@@ -12,10 +12,12 @@ import { ServerEntity, ItemEntity, ExperienceOrb } from './entity';
 import type { BlockWorld } from '@shared/world/world';
 import { stateOf, blockNameOf, getProp, withProp } from '@shared/world/blockstate';
 import { IS_AIR } from '@shared/world/blockinfo';
+import { JavaRandom } from '@shared/util/random';
 import type { ItemStack } from '@shared/item/stack';
 import { OverworldGenerator } from '@shared/worldgen/overworld/generator';
 import { locateStructure } from '@shared/worldgen/structures/placement';
-import { createEndPlatform, placeEndPodium, END_SPAWN_POINT } from '@shared/worldgen/features/end';
+import { createEndPlatform, placeEndPodium, placeGateway, setGatewayExit, END_SPAWN_POINT } from '@shared/worldgen/features/end';
+import { EnderDragon } from './mobs/dragon';
 
 const END_PORTAL = stateOf('end_portal');
 const BEDROCK = stateOf('bedrock');
@@ -124,7 +126,94 @@ export function findPortalFrame(get: (x: number, y: number, z: number) => number
 
 // ------------------------------------------------------------------ server part
 export class TheEnd {
+  /** EndDragonFight.dragonKilled: the exit portal is lit */
+  dragonKilled = false;
+  /** EndDragonFight.previouslyKilled: the egg and 12000 XP were already given */
+  previouslyKilledFlag = false;
+  /** the flags came from level data (or were decided) */
+  fightKnown = false;
+  /** EndDragonFight.gateways: the 20 ring positions, shuffled per world, used one per kill */
+  private gatewaysLeft: number[] | null = null;
+
   constructor(private readonly s: GameServer) {}
+
+  previouslyKilled(): boolean {
+    return this.previouslyKilledFlag;
+  }
+
+  private topCache = -1;
+
+  /** The top bedrock of the fountain pillar at 0, 0 (runs in the End level; cached once found); 64 without a fountain. */
+  fountainTop(): number {
+    if (this.topCache >= 0) return this.topCache;
+    const w = this.s.world;
+    if (!w.getChunk(0, 0)) return 64;
+    for (let y = 5; y < 124; y++)
+      if (w.getState(0, y, 0) === BEDROCK && w.getState(0, y + 1, 0) === BEDROCK && w.getState(0, y + 2, 0) === BEDROCK && w.getState(0, y + 3, 0) === BEDROCK) {
+        let t = y + 3;
+        while (w.getState(0, t + 1, 0) === BEDROCK) t++;
+        this.topCache = t;
+        return t;
+      }
+    return 64;
+  }
+
+  /** EndDragonFight: the living dragon in the End level, if any. */
+  findDragon(): EnderDragon | null {
+    const end = this.s.levels.get('the_end');
+    if (!end) return null;
+    for (const e of end.entities.values()) if (e instanceof EnderDragon && !e.removed) return e;
+    return null;
+  }
+
+  /** EndDragonFight.createNewDragon at (0, 128, 0) when the fight isn't won yet. Runs in the End level. */
+  ensureDragon(): EnderDragon | null {
+    if (this.dragonKilled) return null;
+    const d = this.findDragon();
+    if (d) return d;
+    for (let cx = -1; cx <= 0; cx++) for (let cz = -1; cz <= 0; cz++) this.s.ensureStage(cx, cz, 3);
+    const m = this.s.mobs.spawn('ender_dragon', 0, 128, 0, 'command');
+    return m instanceof EnderDragon ? m : null;
+  }
+
+  /** EndDragonFight.setDragonKilled: light the exit portal, the egg (first time), a new gateway. Runs in the End level. */
+  onDragonKilled(_d: EnderDragon): void {
+    const s = this.s;
+    for (let cx = -1; cx <= 0; cx++) for (let cz = -1; cz <= 0; cz++) s.ensureStage(cx, cz, 3);
+    this.topCache = -1;
+    const top = this.fountainTop();
+    const w = s.world;
+    placeEndPodium({ getState: (a, b, c) => w.getState(a, b, c), setState: (a, b, c, st) => s.setBlock(a, b, c, st) }, 0, top - 3, 0, true);
+    this.spawnNewGateway();
+    if (!this.previouslyKilledFlag) s.setBlock(0, top + 1, 0, stateOf('dragon_egg'));
+    this.previouslyKilledFlag = true;
+    this.dragonKilled = true;
+    this.fightKnown = true;
+  }
+
+  /** EndDragonFight.spawnNewGateway: one of 20 positions on a radius-96 ring at y 75, each used once. */
+  spawnNewGateway(): [number, number, number] | null {
+    if (!this.gatewaysLeft) {
+      const list = Array.from({ length: 20 }, (_, i) => i);
+      // Collections.shuffle(list, new Random(seed))
+      const r = new JavaRandom(this.s.opts.seed);
+      for (let i = list.length; i > 1; i--) {
+        const j = r.nextInt(i);
+        [list[i - 1], list[j]] = [list[j]!, list[i - 1]!];
+      }
+      this.gatewaysLeft = list;
+    }
+    const i = this.gatewaysLeft.pop();
+    if (i === undefined) return null;
+    const a = 2 * (-Math.PI + 0.15707963267948966 * i);
+    const x = Math.floor(96 * Math.cos(a)), z = Math.floor(96 * Math.sin(a)), y = 75;
+    s_ensure(this.s, x, z);
+    const w = this.s.world;
+    placeGateway({ getState: (a2, b, c) => w.getState(a2, b, c), setState: (a2, b, c, st) => this.s.setBlock(a2, b, c, st) }, x, y, z);
+    // EndGatewayBlockEntity: the exit is found by searching when first used (exit unset)
+    void setGatewayExit;
+    return [x, y, z];
+  }
 
   /** EnderEyeItem.useOn: put an eye into an empty frame; completing the ring lights the portal. */
   useEyeOn(p: ServerPlayer, slot: number, held: ItemStack, x: number, y: number, z: number): boolean {
@@ -234,6 +323,7 @@ export class TheEnd {
     s.inLevel(end, () => {
       for (let cx = (ex - 16) >> 4; cx <= (ex + 16) >> 4; cx++) for (let cz = (ez - 16) >> 4; cz <= (ez + 16) >> 4; cz++) s.ensureStage(cx, cz, 3);
       this.ensureExitPortal();
+      this.ensureDragon();
       createEndPlatform({ getState: (a, b, c) => s.world.getState(a, b, c), setState: (a, b, c, st) => s.setBlock(a, b, c, st) }, ex, ey, ez);
     });
     // Entity.findDimensionEntryPoint: END_SPAWN_POINT + (0.5, 0, 0.5), keeping the player's rotation
@@ -291,18 +381,31 @@ export class TheEnd {
 
   /**
    * EndDragonFight.spawnExitPortal: the fountain at the top block of (0, 0) when the End has none
-   * yet. There's no ender dragon yet, so the fight counts as won and the portal is lit (vanilla
-   * lights it when the dragon dies). Runs in the End level.
+   * yet, unlit until the dragon dies. A fountain that is already lit in a world without fight data
+   * (made before the dragon existed) counts as a won fight. Runs in the End level.
    */
   ensureExitPortal(): void {
     const s = this.s;
     for (let cx = -1; cx <= 0; cx++) for (let cz = -1; cz <= 0; cz++) s.ensureStage(cx, cz, 3);
     const w = s.world;
     // EndDragonFight.findExitPortal: an existing fountain's 4-high bedrock pillar
-    for (let y = 5; y < 124; y++) if (w.getState(0, y, 0) === BEDROCK && w.getState(0, y + 1, 0) === BEDROCK && w.getState(0, y + 2, 0) === BEDROCK && w.getState(0, y + 3, 0) === BEDROCK) return;
+    for (let y = 5; y < 124; y++)
+      if (w.getState(0, y, 0) === BEDROCK && w.getState(0, y + 1, 0) === BEDROCK && w.getState(0, y + 2, 0) === BEDROCK && w.getState(0, y + 3, 0) === BEDROCK) {
+        if (!this.fightKnown) {
+          const top = this.fountainTop();
+          if (w.getState(1, top - 3, 0) === END_PORTAL) this.dragonKilled = this.previouslyKilledFlag = true;
+          this.fightKnown = true;
+        }
+        return;
+      }
+    this.fightKnown = true;
     // getHeightmapPos(MOTION_BLOCKING_NO_LEAVES, 0, 0).below(), stepping below any bedrock
     let y = 127;
     while (y > 0 && IS_AIR[w.getState(0, y, 0)] === 1) y--;
-    placeEndPodium({ getState: (a, b, c) => w.getState(a, b, c), setState: (a, b, c, st) => s.setBlock(a, b, c, st) }, 0, y, 0, true);
+    placeEndPodium({ getState: (a, b, c) => w.getState(a, b, c), setState: (a, b, c, st) => s.setBlock(a, b, c, st) }, 0, y, 0, this.dragonKilled);
   }
+}
+
+function s_ensure(s: GameServer, x: number, z: number): void {
+  s.ensureStage(x >> 4, z >> 4, 3);
 }

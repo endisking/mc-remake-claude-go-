@@ -59,6 +59,8 @@ export const MOB_INFO: Record<string, MobInfo> = {
   iron_golem: N(0.7),
   wolf: N(0.5),
   phantom: H(0.75, { flying: true, step: null }),
+  end_crystal: N(0, { step: null, ambientInterval: 1e9 }),
+  ender_dragon: H(0, { flying: true, step: null }),
   horse: N(0.75),
   skeleton_horse: N(0.75),
   zombie_horse: N(0.75),

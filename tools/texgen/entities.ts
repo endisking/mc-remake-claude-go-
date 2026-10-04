@@ -1702,7 +1702,42 @@ export function poof(): Tex {
   return t;
 }
 
+/** End crystal: a pale violet glass frame around a glowing magenta core, on a dark rock base. */
+export function endCrystal(): Tex {
+  const t = new Tex(64, 32);
+  const G = hex('#d8c8f0'), GD = hex('#9a86c8');
+  const glass: Paint = (x, y, w, h) => (x === 0 || y === 0 || x === w - 1 || y === h - 1 ? G : (x + y) % 5 === 0 ? [GD[0], GD[1], GD[2], 160] : null);
+  box(t, 0, 0, 8, 8, 8, glass);
+  const C = hex('#e040c0'), CL = hex('#ff9af0');
+  box(t, 32, 0, 8, 8, 8, (x, y) => ((x * 3 + y * 5) % 7 === 0 ? CL : (x + y) % 3 === 0 ? shade(C, 0.8) : C));
+  box(t, 0, 16, 12, 4, 12, blotches(hex('#3a3440'), hex('#24202a'), 77, 1.5, 0.5, 0.08));
+  return t;
+}
+
+/** Ender dragon: near-black scaled hide with violet ridges and pale violet eyes. */
+export function enderDragon(): Tex {
+  const t = new Tex(256, 256);
+  const B = hex('#1e1a24'), BD = hex('#121016'), R = hex('#3c3050'), M = hex('#2a2234');
+  const hide = blotches(B, BD, 913, 2.2, 0.55, 0.07);
+  const scaled: Paint = (x, y, w, h) => ((x + (y >> 1)) % 6 === 0 ? R : hide(x, y, w, h));
+  box(t, 0, 0, 24, 24, 64, scaled, { top: (x, y, w, h) => (Math.abs(x - w / 2) < 1.5 ? R : scaled(x, y, w, h)) });
+  box(t, 176, 0, 10, 10, 10, scaled, { top: (x, y, w, h) => (Math.abs(x - w / 2) < 1 ? R : hide(x, y, w, h)) });
+  const head = box(t, 176, 20, 16, 16, 16, hide);
+  const [fx, fy] = head.front;
+  for (const ex of [2, 3, 12, 13]) px(t, fx + ex, fy + 6, hex('#e6b8ff'));
+  for (const ex of [3, 12]) px(t, fx + ex, fy + 7, hex('#b070f0'));
+  hline(t, fx + 1, fy + 12, 14, R);
+  box(t, 176, 52, 12, 4, 16, hide);
+  box(t, 0, 88, 56, 8, 8, scaled);
+  box(t, 0, 104, 56, 1, 56, (x, y) => (y % 9 === 0 || x % 14 === 0 ? R : (x + y) % 5 === 0 ? shade(M, 0.85) : M));
+  box(t, 0, 161, 56, 4, 4, scaled);
+  box(t, 128, 180, 16, 32, 16, hide);
+  box(t, 192, 180, 8, 24, 8, hide);
+  return t;
+}
+
 export const ENTITY_TEXTURES: Record<string, () => Tex> = {
+  end_crystal: endCrystal, ender_dragon: enderDragon,
   zombie, husk, drowned, skeleton, stray, wither_skeleton: witherSkeleton, stray_overlay: strayOverlay,
   creeper, spider, cave_spider: caveSpider, spider_eyes: spiderEyes, pig, pig_saddle: pigSaddle, cow, sheep, sheep_fur: sheepFur,
   chicken, enderman, enderman_eyes: endermanEyes, slime, bat, squid,

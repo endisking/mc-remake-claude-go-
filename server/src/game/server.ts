@@ -1763,6 +1763,8 @@ export class GameServer {
       lastPlayed: Date.now(),
       createdAt: this.createdAt,
       portalPois: this.portals.saveIndex(),
+      dragonKilled: this.theEnd.dragonKilled,
+      previouslyKilled: this.theEnd.previouslyKilledFlag,
     };
   }
 
@@ -1792,6 +1794,11 @@ export class GameServer {
     if (typeof m.pvp === 'boolean') this.pvp = m.pvp;
     this.createdAt = num(m.createdAt, this.createdAt);
     this.portals.loadIndex(m.portalPois);
+    if (typeof m.dragonKilled === 'boolean') {
+      this.theEnd.dragonKilled = m.dragonKilled;
+      this.theEnd.previouslyKilledFlag = !!m.previouslyKilled;
+      this.theEnd.fightKnown = true;
+    }
   }
 
   /**
