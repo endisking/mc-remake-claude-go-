@@ -689,6 +689,29 @@ export function turtleMesh(): VPart[] {
   ];
 }
 
+/** FoxModel.createBodyLayer (48×32) */
+export function foxMesh(): VPart[] {
+  const d = 0.001;
+  return [
+    {
+      name: 'head', pivot: [-1, 16.5, -3], boxes: [b(1, 5, -3, -2, -5, 8, 6, 6)], children: [
+        { name: 'right_ear', pivot: [0, 0, 0], boxes: [b(8, 1, -3, -4, -4, 2, 2, 1)] },
+        { name: 'left_ear', pivot: [0, 0, 0], boxes: [b(15, 1, 3, -4, -4, 2, 2, 1)] },
+        { name: 'nose', pivot: [0, 0, 0], boxes: [b(6, 18, -1, 2.01, -8, 4, 2, 3)] },
+      ],
+    },
+    {
+      name: 'body', pivot: [0, 16, -6], rot: [PI / 2, 0, 0], boxes: [b(24, 15, -3, 3.999, -3.5, 6, 11, 6)], children: [
+        { name: 'tail', pivot: [-4, 15, -1], rot: [-0.05235988, 0, 0], boxes: [b(30, 0, 2, 0, -1, 4, 9, 5)] },
+      ],
+    },
+    { name: 'right_hind_leg', pivot: [-5, 17.5, 7], boxes: [b(13, 24, 2, 0.5, -1, 2, 6, 2, d)] },
+    { name: 'left_hind_leg', pivot: [-1, 17.5, 7], boxes: [b(4, 24, 2, 0.5, -1, 2, 6, 2, d)] },
+    { name: 'right_front_leg', pivot: [-5, 17.5, 0], boxes: [b(13, 24, 2, 0.5, -1, 2, 6, 2, d)] },
+    { name: 'left_front_leg', pivot: [-1, 17.5, 0], boxes: [b(4, 24, 2, 0.5, -1, 2, 6, 2, d)] },
+  ];
+}
+
 // ------------------------------------------------------------------ animation helpers
 
 const RAD = PI / 180;
@@ -1232,6 +1255,7 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   rabbit: { tex: [64, 32], parts: rabbitMesh(), anim: rabbitAnim },
   llama: { tex: [128, 64], parts: llamaMesh(), headParts: ['head'], baby: { scaleHead: false, yHead: 10, zHead: 4, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: quadrupedAnim },
   turtle: { tex: [128, 64], parts: turtleMesh(), headParts: ['head'], baby: { scaleHead: true, yHead: 120, zHead: 0, headScale: 9, bodyScale: 6, bodyY: 120 }, anim: turtleAnim },
+  fox: { tex: [48, 32], parts: foxMesh(), headParts: ['head'], baby: { scaleHead: true, yHead: 8, zHead: 3.35, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: quadrupedAnim },
   unknown: { tex: [64, 32], parts: [{ name: 'box', pivot: [0, 0, 0], boxes: [b(0, 0, -8, 8, -8, 16, 16, 16)] }], anim: none },
 };
 
@@ -1317,6 +1341,7 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   llama: { layers: [{ model: 'llama', texture: 'llama' }], scale: 0.8 },
   trader_llama: { layers: [{ model: 'llama', texture: 'trader_llama' }], scale: 0.8 },
   turtle: { layers: [{ model: 'turtle', texture: 'turtle' }] },
+  fox: { layers: [{ model: 'fox', texture: 'fox' }] },
   /** fallback for mobs without a model: a hit-box-sized box */
   unknown: { layers: [{ model: 'unknown', texture: 'unknown' }] },
 };

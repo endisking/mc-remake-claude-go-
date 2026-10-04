@@ -65,6 +65,7 @@ export const MOB_INFO: Record<string, MobInfo> = {
   endermite: H(0.3, { flip: 180 }),
   bee: N(0.4, { flying: true, step: null }),
   rabbit: N(0.3),
+  fox: N(0.4),
   llama: N(0.7),
   trader_llama: N(0.7),
   turtle: N(0.7),
