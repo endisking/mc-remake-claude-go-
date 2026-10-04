@@ -72,5 +72,16 @@ describe('server fluid ticks', () => {
     client(server, 'A');
     for (let i = 0; i < 3; i++) server.tick();
     expect(server.fluids.size).toBeGreaterThan(0);
-  }, 60000);
+    // the ones in ticking chunks run (delay 0) and the springs start flowing
+    for (let i = 0; i < 40; i++) server.tick();
+    expect(server.fluids.processed).toBeGreaterThan(0);
+    let flowing = 0;
+    for (const c of server.world.chunks.values()) {
+      for (let y = 0; y < 256; y++) for (let z = 0; z < 16; z++) for (let x = 0; x < 16; x++) {
+        const lvl = getProp(c.getState(x, y, z), 'level');
+        if (typeof lvl === 'number' && lvl > 0) flowing++;
+      }
+    }
+    expect(flowing).toBeGreaterThan(0);
+  }, 120000);
 });

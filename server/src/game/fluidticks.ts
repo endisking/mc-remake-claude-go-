@@ -35,6 +35,8 @@ export class FluidTicks implements FluidLevel {
   /** due ticks whose chunk isn't ticking, by chunk */
   private readonly waiting = new Map<number, Tick[]>();
   ultraWarm = false;
+  /** fluid ticks run so far (diagnostics) */
+  processed = 0;
 
   constructor(private readonly host: FluidHost) {}
 
@@ -116,6 +118,7 @@ export class FluidTicks implements FluidLevel {
       this.buckets.set(now, [...rest, ...b]);
     }
     for (const tk of due) this.scheduled.delete(tk.key);
+    this.processed += due.length;
     for (const tk of due) tickFluid(this, tk.x, tk.y, tk.z, tk.type);
   }
 }
