@@ -770,11 +770,19 @@ export class BlockBehaviors {
 
   /** Block.fallOn for the block under a landing player (farmland trampling). */
   fallOn(p: ServerPlayer, fallDistance: number): void {
-    const x = Math.floor(p.x), y = Math.floor(p.y - 0.2), z = Math.floor(p.z);
+    this.entityFallOn(p.x, p.y, p.z, fallDistance, { width: 0.6, height: 1.8, player: true });
+  }
+
+  /**
+   * Block.fallOn for any landing entity (mobs call this too): FarmBlock tramples when
+   * random < distance − 0.5 for a living entity with width²·height > 0.512 that is a player or
+   * allowed to grief (gamerule mobGriefing).
+   */
+  entityFallOn(ex: number, ey: number, ez: number, fallDistance: number, e: { width: number; height: number; player: boolean; mobGriefing?: boolean }): void {
+    const x = Math.floor(ex), y = Math.floor(ey - 0.2), z = Math.floor(ez);
     const st = this.w.getState(x, y, z);
     if (blockNameOf(st) !== 'farmland') return;
-    // FarmBlock.fallOn: random < distance − 0.5, living entity with width²·height > 0.512 (players 0.648)
-    if (this.s.rand.nextFloat() < fallDistance - 0.5) this.turnToDirt(x, y, z);
+    if (this.s.rand.nextFloat() < fallDistance - 0.5 && (e.player || e.mobGriefing !== false) && e.width * e.width * e.height > 0.512) this.turnToDirt(x, y, z);
   }
 
   // ---------------------------------------------------------------- saplings and trees
