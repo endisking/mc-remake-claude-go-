@@ -83,7 +83,17 @@ const S2C_SCHEMA = {
   playerInfo: [['action', 'u8'], ['id', 'i32'], ['name', 'str'], ['skin', 'str'], ['gameMode', 'u8']],
   /** Spectate through another entity's eyes, or back to your own (vanilla SetCamera). */
   setCamera: [['id', 'i32']],
+  /**
+   * Per-mob synced state (vanilla SynchedEntityData subset), one key at a time. Keys (see
+   * MOB_DATA_KEYS): color (sheep DyeColor id 0–15), sheared, baby, swell_dir (creeper −1/1),
+   * charged, aggressive (zombie arms up / skeleton aiming / enderman creepy), saddle, size
+   * (slime), carried (enderman block state), hanging (bat resting), bow (skeleton holds a bow).
+   */
+  mobData: [['id', 'i32'], ['key', 'str'], ['value', 'i32']],
 } as const satisfies Schema;
+
+/** Keys of the mobData packet (client: client/src/world/mobs.ts). */
+export const MOB_DATA_KEYS = ['color', 'sheared', 'baby', 'swell_dir', 'charged', 'aggressive', 'saddle', 'size', 'carried', 'hanging', 'bow'] as const;
 
 // ------------------------------------------------------------------ client → server
 const C2S_SCHEMA = {
