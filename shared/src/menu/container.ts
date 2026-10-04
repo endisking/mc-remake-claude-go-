@@ -3,10 +3,13 @@
  * used by the menu system. Empty stacks are `null`; a stack whose count reaches 0 is empty.
  */
 import { ITEMS_BY_ID, ITEMS_BY_NAME } from '../data';
-import { isEmpty, maxStackSize, type Inventory, type ItemStack } from '../item/stack';
+import { isEmpty, maxStackSize, tagsEqual, type Inventory, type ItemStack } from '../item/stack';
 
 export function copyStack(s: ItemStack | null | undefined): ItemStack | null {
-  return isEmpty(s) ? null : { id: s.id, count: s.count, damage: s.damage };
+  if (isEmpty(s)) return null;
+  const c: ItemStack = { id: s.id, count: s.count, damage: s.damage };
+  if (s.tag) c.tag = JSON.parse(JSON.stringify(s.tag)) as ItemStack['tag'];
+  return c;
 }
 
 /** ItemStack.split: take up to n off `s` (mutating it) and return them. */
@@ -14,13 +17,15 @@ export function splitStack(s: ItemStack, n: number): ItemStack | null {
   const k = Math.min(n, s.count);
   if (k <= 0) return null;
   s.count -= k;
-  return { id: s.id, count: k, damage: s.damage };
+  const out: ItemStack = { id: s.id, count: k, damage: s.damage };
+  if (s.tag) out.tag = JSON.parse(JSON.stringify(s.tag)) as ItemStack['tag'];
+  return out;
 }
 
 /** ItemStack.isSameItemSameTags (our stacks carry no tags beyond damage). */
 export function sameItemSameTags(a: ItemStack | null, b: ItemStack | null): boolean {
   if (isEmpty(a) || isEmpty(b)) return isEmpty(a) && isEmpty(b);
-  return a.id === b.id && a.damage === b.damage;
+  return a.id === b.id && a.damage === b.damage && tagsEqual(a.tag, b.tag);
 }
 
 /** ItemStack.isSame: same item, and same damage for damageable items. */

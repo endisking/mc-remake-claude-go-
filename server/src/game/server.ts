@@ -21,6 +21,10 @@ import { ServerPlayer } from './player';
 import { AABB, noCollision } from '@shared/entity/aabb';
 import { ItemEntity, LightningBolt, ExperienceOrb, experienceOrbValue, type ServerEntity } from './entity';
 import { Sleep } from './sleep';
+import { minerStateOf, toolLoot, mending, installEnchantCommand, setEnchantResync, attackExtras, thorns } from './enchanthooks';
+import { damageBonus } from '@shared/game/enchantments';
+import { resendSwirl } from './effectswirl';
+import { frostWalk } from './frostwalker';
 import { FluidTicks } from './fluidticks';
 import { legacyBlock, FLUID_OF } from '@shared/game/fluids';
 import { isRainingAt } from '@shared/world/weather';
@@ -28,7 +32,7 @@ import { stateForPlacement, updateShape, isReplaceable, companionPlacement, DIRS
 import { canSurvive } from '@shared/game/support';
 import { destroyProgress, hardness, canHarvest } from '@shared/game/mining';
 import { blockDrops, blockForItem, itemForBlock } from '@shared/game/loot';
-import { isEmpty, maxStackSize, itemName, type ItemStack } from '@shared/item/stack';
+import { isEmpty, maxStackSize, itemName, encodeTag, decodeTag, tagsEqual, type ItemStack } from '@shared/item/stack';
 import { collisionBoxes } from '@shared/world/shapes';
 import { getProp, blockNameOf, parseState } from '@shared/world/blockstate';
 import { FLUID } from '@shared/world/blockinfo';
@@ -252,6 +256,8 @@ export class GameServer {
 
   constructor(readonly opts: ServerOptions) {
     this.rand = new JavaRandom(opts.randomSeed ?? BigInt(Date.now()));
+    installEnchantCommand();
+    setEnchantResync((p, slot) => this.syncSlot(p, slot));
     // development scenes (model showcase, tests) keep the flat dev terrain; worlds use the 1.17 generator
     const dev = !!(opts.scene || opts.devTerrain);
     const zoom = obfuscateSeed(opts.seed);
@@ -535,6 +541,8 @@ export class GameServer {
   syncSlot(p: ServerPlayer, slot: number): void {
     const st = p.inventory.get(slot);
     this.send(p, { t: 'setSlot', slot, item: st?.id ?? 0, count: st?.count ?? 0, damage: st?.damage ?? 0 });
+    // Phase 7: item NBT (enchantments, names) follows its slot
+    if (st?.tag) this.send(p, { t: 'slotTag', slot, tag: encodeTag(st.tag) });
   }
 
   /** Vanilla pick block: Inventory.setPickedItem (creative) / pickSlot (survival, item already owned). */
@@ -625,10 +633,9 @@ export class GameServer {
   }
 
   private minerState(p: ServerPlayer) {
-    const held = p.inventory.selectedStack;
     const eyeState = this.world.getState(Math.floor(p.x), Math.floor(p.y + 1.62), Math.floor(p.z));
-    const fx = p.living.effects;
-    return { item: held?.id ?? 0, efficiency: 0, haste: Math.max(fx.amplifier('haste'), fx.amplifier('conduit_power')) + 1, miningFatigue: fx.amplifier('mining_fatigue') + 1, underwater: FLUID[eyeState] === 1, aquaAffinity: false, onGround: p.onGround || p.flying };
+    // Phase 7: Efficiency, Aqua Affinity, Haste/Conduit Power, Mining Fatigue
+    return minerStateOf(p, eyeState);
   }
 
   private broadcastBreakProgress(p: ServerPlayer, x: number, y: number, z: number, stage: number): void {
@@ -656,10 +663,11 @@ export class GameServer {
       const held = breaker.inventory.selectedStack;
       const harvest = canHarvest(held?.id ?? 0, state);
       const shears = held ? itemNameOf(held.id) === 'shears' : false;
-      const items = blockDrops(lootState, { silkTouch: false, shears, canHarvest: harvest, random: () => this.rand.nextFloat() });
+      const tl = toolLoot(breaker);
+      const items = blockDrops(lootState, { silkTouch: tl.silkTouch, fortune: tl.fortune, shears, canHarvest: harvest, random: () => this.rand.nextFloat() });
       for (const it of items) this.popResource(x, y, z, it);
       // Block.spawnAfterBreak → popExperience (OreBlock / RedStoneOreBlock / SpawnerBlock)
-      const xp = harvest ? oreExperience(name, this.rand) : 0;
+      const xp = harvest && !tl.silkTouch ? oreExperience(name, this.rand) : 0;
       // Block.popExperience: only with doTileDrops
       if (xp > 0 && this.gameRules.doTileDrops) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
     }
@@ -814,6 +822,7 @@ export class GameServer {
     if (isEmpty(held)) return;
     const n = all ? held.count : 1;
     const stack: ItemStack = { id: held.id, count: n, damage: held.damage };
+    if (held.tag) stack.tag = JSON.parse(JSON.stringify(held.tag)) as ItemStack["tag"];
     held.count -= n;
     if (held.count <= 0) inv.set(inv.selected, null);
     this.syncSlot(p, inv.selected);
@@ -862,7 +871,9 @@ export class GameServer {
         p.takeXpDelay = 2;
         for (const o of this.players) if (o === p || o.tracking.has(e.id)) this.send(o, { t: 'takeItem', itemId: e.id, collectorId: p.id, count: 1 });
         const before = p.living.experienceLevel;
-        this.survival.giveExperience(p, e.value, false);
+        // Phase 7: Mending repairs gear first
+        const left = mending(this, p, e.value);
+        if (left > 0) this.survival.giveExperience(p, left, false);
         this.levelUpSound(p, before);
         if (--e.count === 0) e.removed = true;
       }
@@ -955,7 +966,7 @@ export class GameServer {
     if (a.stack.count >= max) return;
     const bb = a.bb().inflate(0.5, 0, 0.5);
     for (const b of this.entities.values()) {
-      if (b === a || !(b instanceof ItemEntity) || b.removed || b.stack.id !== a.stack.id || b.stack.damage !== a.stack.damage) continue;
+      if (b === a || !(b instanceof ItemEntity) || b.removed || b.stack.id !== a.stack.id || b.stack.damage !== a.stack.damage || !tagsEqual(a.stack.tag, b.stack.tag)) continue;
       if (!b.bb().intersects(bb)) continue;
       if (b.stack.count + a.stack.count > max) continue;
       // the smaller stack merges into the larger one
@@ -980,6 +991,7 @@ export class GameServer {
           p.tracking.add(e.id);
           this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId :  e instanceof Thrown ? e.item : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
+          if (e instanceof ItemEntity && e.stack.tag) this.send(p, { t: 'itemEntityTag', id: e.id, tag: encodeTag(e.stack.tag) });
           this.mobs.onStartTracking(p, e);
         } else if (!visible && p.tracking.has(e.id)) {
           p.tracking.delete(e.id);
@@ -1077,10 +1089,13 @@ export class GameServer {
     // the client's onGround, like ServerGamePacketListenerImpl.handleMovePlayer)
     this.survival.movementExhaustion(p, dx, dy, dz, p.onGround, m.onGround);
     p.walkDist += Math.hypot(dx, dz) * 0.6;
+    const movedBlock = Math.floor(m.x) !== Math.floor(p.x) || Math.floor(m.y) !== Math.floor(p.y) || Math.floor(m.z) !== Math.floor(p.z);
     p.x = m.x;
     p.y = m.y;
     p.z = m.z;
     p.onGround = m.onGround;
+    // LivingEntity.onChangedBlock: Frost Walker (Phase 7)
+    if (movedBlock) frostWalk(this, p);
     this.movementSounds(p, dx, dy, dz);
     if (m.onGround) {
       if (p.fallDistance > 0) this.blocks.fallOn(p, p.fallDistance);
@@ -1125,19 +1140,37 @@ export class GameServer {
     ph.y = p.y;
     ph.z = p.z;
     ph.updateFluidState();
+    const ex = attackExtras(p);
     const res = computeAttack({
       item, attackStrengthTicker: p.attackStrengthTicker, sprinting: p.sprinting, fallDistance: p.fallDistance, onGround: p.onGround,
       onClimbable: ph.onClimbable(), inWater: ph.isInWater, walked: p.walkDist - p.walkDistO, speed: 0.1,
       damageBonus: 3 * (p.living.effects.amplifier('strength') + 1) - 4 * (p.living.effects.amplifier('weakness') + 1),
       speedMul: (1 + 0.1 * (p.living.effects.amplifier('haste') + 1)) * (1 - 0.1 * (p.living.effects.amplifier('mining_fatigue') + 1)),
+      enchantBonus: damageBonus(p.inventory.selectedStack, 'undefined'), knockbackBonus: ex.knockback, blind: ex.blind, sweeping: ex.sweeping,
     });
     p.attackStrengthTicker = 0;
     if (!this.pvp) return;
     const r = this.rand;
     const sx = p.x, sy = p.y, sz = p.z;
     if (res.knockback > 0 && res.charged && p.sprinting) this.playSound(null, 'entity.player.attack.knockback', 'player', sx, sy, sz, 1, 1);
+    // Fire Aspect: the target burns for a moment during the hit, then 4 s per level
+    const lit = ex.fireAspect > 0 && t.living.remainingFireTicks <= 0;
+    if (lit) this.survival.setOnFire(t, 1);
     const hit = this.survival.hurt(t, DAMAGE.playerAttack, res.damage, p);
     if (hit) {
+      if (ex.fireAspect > 0) this.survival.setOnFire(t, ex.fireAspect * 4);
+      // sweep: everyone else within reach around the target takes the sweep damage
+      if (res.sweep) {
+        const yr2 = (p.yaw * Math.PI) / 180;
+        for (const o of this.players) {
+          if (o === p || o === t || o.gameMode === 3 || o.living.dead) continue;
+          if (Math.abs(o.x - t.x) > 1.3 || Math.abs(o.y - t.y) > 0.25 + 1.8 || Math.abs(o.z - t.z) > 1.3) continue;
+          if ((o.x - p.x) ** 2 + (o.y - p.y) ** 2 + (o.z - p.z) ** 2 >= 9) continue;
+          this.knockback(o, 0.4, Math.sin(yr2), -Math.cos(yr2));
+          this.survival.hurt(o, DAMAGE.playerAttack, res.sweepDamage, p);
+        }
+      }
+      thorns(this, t, p);
       const yr = (p.yaw * Math.PI) / 180;
       if (res.knockback > 0) {
         this.knockback(t, res.knockback * 0.5, Math.sin(yr), -Math.cos(yr));
@@ -1152,6 +1185,7 @@ export class GameServer {
       this.items.onAttackHit(p);
       p.living.food.addExhaustion(EXHAUSTION.attack);
     } else {
+      if (lit) t.living.remainingFireTicks = 0;
       this.playSound(null, 'entity.player.attack.nodamage', 'player', sx, sy, sz, 1, 1);
     }
     void r;
@@ -1261,13 +1295,32 @@ export class GameServer {
       case 'menuButton':
         this.containers.handleButton(p, m.windowId, m.button);
         break;
+      case 'renameItem':
+        this.containers.renameItem(p, m.name);
+        break;
       case 'creativeSlot':
         // slot −1: the creative inventory throws the stack out of the window
-        if (p.gameMode === 1 && m.slot === -1 && m.item > 0 && m.count > 0) this.tossItem(p, { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) });
+        if (p.gameMode === 1 && m.slot === -1 && m.item > 0 && m.count > 0) {
+          const thrown: ItemStack = { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) };
+          if (p.pendingCreativeTag) thrown.tag = p.pendingCreativeTag;
+          this.tossItem(p, thrown);
+        }
+        p.pendingCreativeTag = undefined;
         if (p.gameMode === 1 && m.slot >= 0 && m.slot < 41) {
           p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) } : null);
         }
         break;
+      case 'creativeSlotTag': {
+        // Phase 7: item NBT for creative slots (potions, enchanted books)
+        if (p.gameMode !== 1) break;
+        const tag = decodeTag(m.tag);
+        if (m.slot === -1) p.pendingCreativeTag = tag;
+        else if (m.slot >= 0 && m.slot < 41) {
+          const st = p.inventory.get(m.slot);
+          if (st) st.tag = tag;
+        }
+        break;
+      }
       case 'pickBlock':
         this.pickBlock(p, m.x, m.y, m.z);
         break;
@@ -1819,6 +1872,7 @@ export class GameServer {
       this.blocks.tick();
       this.redstone.tickLevel();
       this.tickEntities();
+      this.items.tickClouds(); // Phase 7: lingering potion clouds of this dimension
       this.portals.tickEntities();
       this.containers.tick();
       this.updateChunks();
@@ -1999,6 +2053,7 @@ export class GameServer {
         if (visible && !p.tracking.has(o.id)) {
           p.tracking.add(o.id);
           this.send(p, { t: 'addPlayer', id: o.id, name: o.name, skin: o.skin, x: o.x, y: o.y, z: o.z, yaw: o.yaw, pitch: o.pitch, headYaw: o.headYaw });
+          resendSwirl(this, p, o);
           this.send(p, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose, frozen: o.living.ticksFrozen });
           this.send(p, { t: 'equipment', id: o.id, mainHand: o.inventory.selectedStack?.id ?? 0, offHand: o.inventory.get(40)?.id ?? 0 });
           this.items.sendStateTo(p, o);

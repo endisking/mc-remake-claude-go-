@@ -22,7 +22,7 @@ export class ClientArrows {
   handle(p: S2C): boolean {
     switch (p.t) {
       case 'addEntity': {
-        const thrown = p.type === 'snowball' || p.type === 'egg' || p.type === 'ender_pearl';
+        const thrown = p.type === 'snowball' || p.type === 'egg' || p.type === 'ender_pearl' || p.type === 'potion';
         if (p.type !== 'arrow' && !thrown) return false;
         const h = Math.hypot(p.vx, p.vz);
         this.arrows.set(p.id, {

@@ -291,7 +291,7 @@ export function canStartUsing(id: number, ctx: { foodLevel: number; creative: bo
   const n = nameOf(id);
   if (n === 'bow') return ctx.creative || ctx.hasArrows;
   if (n === 'shield') return true;
-  if (n === 'milk_bucket' || n === 'honey_bottle') return true;
+  if (n === 'milk_bucket' || n === 'honey_bottle' || n === 'potion') return true;
   const f = foodProps(id);
   // Player.canEat: invulnerable (creative) players can always eat
   if (f) return f.alwaysEat || ctx.foodLevel < 20 || ctx.creative;

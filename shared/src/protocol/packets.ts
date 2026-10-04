@@ -101,6 +101,8 @@ const S2C_SCHEMA = {
   windowSlot: [['windowId', 'i16'], ['slot', 'i16'], ['item', 'i16'], ['count', 'u8'], ['damage', 'i16']],
   /** Container data (vanilla ContainerSetData): furnace lit time, lit duration, cook progress, total cook time. */
   windowData: [['windowId', 'u8'], ['property', 'u8'], ['value', 'i16']],
+  /** Item NBT for a window slot, sent right after its windowSlot (Phase 7); JSON of ItemTag. */
+  windowSlotTag: [['windowId', 'i16'], ['slot', 'i16'], ['tag', 'str']],
   /** The server closed a window (vanilla ContainerClose). */
   closeWindow: [['windowId', 'u8']],
   // ---- commands & player list (Phase 9) ----
@@ -110,6 +112,15 @@ const S2C_SCHEMA = {
   keepAlive: [['id', 'f64']],
   /** Vanilla PlayerInfo UPDATE_LATENCY: a player's ping in milliseconds. */
   playerLatency: [['id', 'i32'], ['latency', 'varint']],
+  // ---- status effects & enchantments (Phase 7) ----
+  /** LivingEntity DATA_EFFECT_COLOR_ID / DATA_EFFECT_AMBIENCE_ID (potion swirl particles; 0 = none). */
+  effectParticles: [['id', 'i32'], ['color', 'i32'], ['ambient', 'bool']],
+  /** Item NBT for an inventory slot (sent after setSlot; '' = none): JSON of ItemTag. */
+  slotTag: [['slot', 'i16'], ['tag', 'str']],
+  /** A lingering potion cloud's disc (AreaEffectCloud), every 5 ticks while it lasts. */
+  effectCloud: [['id', 'i32'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['radius', 'f32'], ['color', 'i32']],
+  /** Item NBT of an item entity (enchantment glint, potion colour); JSON of ItemTag. */
+  itemEntityTag: [['id', 'i32'], ['tag', 'str']],
   // ---- mobs (Phase 6) ----
   /**
    * Per-mob synced state (vanilla SynchedEntityData subset), one key at a time. Keys (see
@@ -177,6 +188,10 @@ const C2S_SCHEMA = {
   commandSuggest: [['id', 'varint'], ['text', 'str']],
   /** Reply to the server's keepAlive. */
   keepAlive: [['id', 'f64']],
+  /** Creative inventory: NBT for a slot just set with creativeSlot (slot −1: the next thrown stack); Phase 7. */
+  creativeSlotTag: [['slot', 'i16'], ['tag', 'str']],
+  /** Anvil rename box text (vanilla ServerboundRenameItemPacket). */
+  renameItem: [['name', 'str']],
   // ---- mobs
   /** Right-click an entity (vanilla Interact INTERACT): breeding food, shears, buckets, saddles, flint and steel, bones. */
   interactEntity: [['id', 'i32'], ['hand', 'u8']],
@@ -291,14 +306,22 @@ export function decodeC2S(buf: ArrayBuffer): C2S {
 export { writeSection, readSection };
 
 /** Item stack list for windowItems: per stack i16 item id, u8 count, i16 damage. */
-export function encodeStacks(list: readonly ({ id: number; count: number; damage: number } | null)[]): Uint8Array {
+export function encodeStacks(list: readonly ({ id: number; count: number; damage: number; tag?: object } | null)[]): Uint8Array {
   const w = new ByteWriter(list.length * 5 + 8);
   w.varint(list.length);
-  for (const s of list) {
+  const tagged: [number, string][] = [];
+  list.forEach((s, i) => {
     const empty = !s || s.count <= 0 || s.id <= 0;
     w.i16(empty ? 0 : s.id);
     w.u8(empty ? 0 : Math.min(255, s.count));
     w.i16(empty ? 0 : s.damage);
+    if (!empty && s.tag && Object.keys(s.tag).length > 0) tagged.push([i, JSON.stringify(s.tag)]);
+  });
+  // Phase 7: item NBT (enchantments, names) as a trailing list of (index, JSON)
+  w.varint(tagged.length);
+  for (const [i, t] of tagged) {
+    w.varint(i);
+    w.str(t);
   }
   return new Uint8Array(w.finish());
 }
@@ -306,10 +329,24 @@ export function encodeStacks(list: readonly ({ id: number; count: number; damage
 export function decodeStacks(b: Uint8Array): ({ id: number; count: number; damage: number } | null)[] {
   const r = new ByteReader(b);
   const n = r.varint();
-  const out: ({ id: number; count: number; damage: number } | null)[] = [];
+  const out: ({ id: number; count: number; damage: number; tag?: Record<string, unknown> } | null)[] = [];
   for (let i = 0; i < n; i++) {
     const id = r.i16(), count = r.u8(), damage = r.i16();
     out.push(id > 0 && count > 0 ? { id, count, damage } : null);
+  }
+  if (r.remaining > 0) {
+    const k = r.varint();
+    for (let j = 0; j < k; j++) {
+      const i = r.varint(), t = r.str();
+      const st = out[i];
+      if (st) {
+        try {
+          st.tag = JSON.parse(t) as Record<string, unknown>;
+        } catch {
+          // ignore malformed tags
+        }
+      }
+    }
   }
   return out;
 }

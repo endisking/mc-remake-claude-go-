@@ -46,6 +46,9 @@ uniform vec3 uTint;
 uniform int uUseLightmap;
 uniform vec4 uFogColor;
 uniform vec2 uFog;
+uniform sampler2D uGlintTex;
+uniform float uGlint;
+uniform float uGlintTime;
 in vec3 vUV;
 in float vShade;
 in float vTinted;
@@ -58,6 +61,13 @@ void main() {
   c.rgb *= vShade;
   if (uUseLightmap == 1) {
     c.rgb *= texture(uLightmap, uLight).rgb;
+  }
+  if (uGlint > 0.5) {
+    // enchantment glint: scrolling texture rotated 10 degrees, added on top (GLINT render type)
+    vec2 g = mat2(0.9848, 0.1736, -0.1736, 0.9848) * (vUV.xy * 2.0) + vec2(-uGlintTime, uGlintTime * 0.2727);
+    c.rgb += texture(uGlintTex, g).rgb * 0.9;
+  }
+  if (uUseLightmap == 1) {
     float f = clamp((vDist - uFog.x) / max(uFog.y - uFog.x, 0.001), 0.0, 1.0);
     c.rgb = mix(c.rgb, uFogColor.rgb, f);
   }
@@ -97,6 +107,28 @@ export class BlockItemRenderer {
   private fboTex: WebGLTexture;
   private fboDepth: WebGLRenderbuffer;
   private pixels = new Uint8Array(ICON * ICON * 4);
+  /** draw the next model with the enchantment glint (consumed by draw) */
+  glintNext = false;
+  private glintTex: WebGLTexture | null = null;
+  private glintLoading = false;
+
+  private glintTexture(): WebGLTexture | null {
+    if (this.glintTex || this.glintLoading || typeof fetch === 'undefined') return this.glintTex;
+    this.glintLoading = true;
+    void fetch('./textures/misc/enchanted_item_glint.png').then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => {
+      const gl = this.gl;
+      const t = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+      this.glintTex = t;
+    }).catch(() => {});
+    return null;
+  }
+
   /** item sprites (set by the game once loaded) */
   sprites: ItemSpriteSource | null = null;
   /** block placed by an item, if any (set by the game) */
@@ -280,6 +312,18 @@ export class BlockItemRenderer {
       const f = fog ?? { color: [0, 0, 0] as [number, number, number], start: 1e6, end: 1e6 + 1 };
       gl.uniform4f(this.u.get('uFogColor'), f.color[0], f.color[1], f.color[2], 1);
       gl.uniform2f(this.u.get('uFog'), f.start, f.end);
+    }
+    // enchantment glint (unit 2; samplers of different types never share a unit)
+    const glint = this.glintNext ? this.glintTexture() : null;
+    this.glintNext = false;
+    gl.uniform1i(this.u.get('uGlintTex'), 2);
+    gl.uniform1f(this.u.get('uGlint'), glint ? 1 : 0);
+    if (glint) {
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, glint);
+      gl.activeTexture(gl.TEXTURE0);
+      // RenderStateShard.setupGlintTexturing: (millis × 8 mod 110000) / 110000
+      gl.uniform1f(this.u.get('uGlintTime'), ((performance.now() * 8) % 110000) / 110000 * 8);
     }
     gl.bindVertexArray(m.vao);
     gl.drawArrays(gl.TRIANGLES, 0, m.count);

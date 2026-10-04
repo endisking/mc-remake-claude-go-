@@ -215,3 +215,52 @@ Deviations / gaps:
 
 Next: merge the parallel work (features, fluids, saving, inventory/crafting, mobs, items, block interactions,
 first-person view, block models), run an in-game verification pass, then cut the release at 07:13 UTC.
+
+## 2026-10-04 — Parallel build-out (15+ agents) and release prep
+
+The work was split across parallel agents in separate git worktrees and merged into this branch:
+
+- **Worldgen:**
+  - All overworld features are data-driven from the 1.17.1 reports: geodes, dungeons, glow lichen, dripstone,
+    emerald ore, our own fossil designs, huge mushrooms, bamboo, vines, corals, icebergs, ice spikes, desert
+    wells, boulders and double plants. There is a carving-mask decorator and a faster JavaRandom.
+  - Overworld structures use vanilla spacing/salts, biome checks and stronghold rings. Our own layouts are built
+    in code (no .nbt), with 1.17.1 chest loot tables as data and `/locate`.
+- **Saving:** a WorldStorage interface with IndexedDB in the browser worker and region files on disk for the
+  dedicated server. Autosave every 6000 ticks, a "Saving world" screen, the world list in the launcher, and zip
+  export/import. The chunk format is versioned (v4: block entities, carving masks, mobs).
+- **Fluids:** FlowingFluid rules for water and lava, infinite sources, cobble/stone/obsidian/basalt, springs,
+  flow push, and an ultraWarm Nether.
+- **Blocks:** scheduled and random ticks, gravity blocks, farming, saplings growing through the worldgen tree
+  features, bone meal, doors, trapdoors and gates, fire, TNT and the vanilla explosion, copper weathering, leaf
+  decay and more.
+- **Items:** durability, armour and toughness, eating, status effects, buckets, bows and arrows, throwables,
+  shields and the totem. There are 490 original item sprites with GUI/dropped/held rendering.
+- **Inventory:** vanilla click logic, all 1.17.1 crafting recipes, chests (double), barrels, ender chests,
+  furnaces/smokers/blast furnaces with smelting, stonecutter, smithing, grindstone (repair) and the creative
+  inventory.
+- **Mobs:**
+  - Server: goal AI, A* pathfinding, 1.17.1 spawning rules and caps, despawning, spawners, and 22 mob types
+    (zombie family, skeleton/stray, creeper, spiders, farm animals, wolf, slime, enderman, bat, squid, fish,
+    phantom) with loot and XP.
+  - Client: original models and textures for about 60 mobs, animations, death/hurt, shadows and name tags.
+- **Commands and multiplayer:** a Brigadier-style command system with selectors and ~ ^ coordinates (most
+  1.17.1 commands), chat with tab completion, the Tab player list, nameplates, and ops/bans/whitelist on the
+  dedicated server.
+- **The Nether:** multi-dimension server, Nether noise terrain, the 5 biomes via the multi-noise preset, nether
+  features, portals of any size with 8:1 linking, search radius and creation, and respawn anchors.
+- **Rendering and feel:** vanilla first-person hand and item poses with use animations and slim arms, block models
+  and original textures for all 898 blocks, a loading-terrain screen, the options screens (video, chat, skin
+  upload), and performance work (tick-budgeted chunk generation, 2× faster decoration, less GC).
+- **Audio:** 972 vanilla sound events backed by 363 CC0 clips, every block sound group, mob voices, the music
+  manager rules, and cave/underwater/Nether ambience.
+
+Deviations and gaps from this round:
+- Values recalled from memory because minecraft.wiki is blocked from this container: the smelting recipe list,
+  structure loot weights and spacing values. Verify them against the wiki.
+- Item stacks have no NBT, so these are missing: enchantments in loot, dyed armour, banner/firework/map
+  recipes, suspicious stew, tipped arrows, and shulker contents kept on break.
+- Not saved: scheduled block ticks, pending fluid ticks, dropped items and XP orbs.
+- Mobs without models are drawn as hitbox boxes.
+- Missing: horses/villagers (in progress), redstone (in progress), the End (in progress), editable signs,
+  recipe book, Nether fortresses and bastions.
