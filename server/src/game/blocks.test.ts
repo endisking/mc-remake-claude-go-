@@ -579,4 +579,18 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
       for (let dx = 0; dx < 2; dx++) for (let dz = 0; dz < 2; dz++) expect(get(x + dx, 151, z + dz), k).toMatch(/_log$/);
     });
   });
+
+  it('coral out of water dies after 3–5 seconds', () => {
+    const { server, set, get } = setup();
+    set(3, 150, 3, 'stone');
+    set(3, 151, 3, 'tube_coral_block');
+    set(5, 150, 3, 'stone');
+    set(5, 151, 3, 'brain_coral_block');
+    set(6, 151, 3, 'water');
+    for (let i = 0; i < 59; i++) server.tick();
+    expect(get(3, 151, 3)).toBe('tube_coral_block');
+    for (let i = 0; i < 45; i++) server.tick();
+    expect(get(3, 151, 3)).toBe('dead_tube_coral_block');
+    expect(get(5, 151, 3)).toBe('brain_coral_block');
+  });
 });

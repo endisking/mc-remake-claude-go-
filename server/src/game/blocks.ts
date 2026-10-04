@@ -304,6 +304,13 @@ export class BlockBehaviors {
     }
     if (n === 'cactus' || n === 'sugar_cane') {
       if (!canSurvive(this.w, x, y, z, st)) this.breakNaturally(x, y, z, true);
+      return;
+    }
+    if (isLiveCoral(n) && !this.coralHasWater(x, y, z, st)) {
+      // CoralBlock / CoralPlantBlock.tick: dries out
+      let dead = defaultState(`dead_${n}`);
+      if (getProp(st, 'facing') !== undefined) dead = withProp(dead, 'facing', getProp(st, 'facing') as string);
+      this.s.setBlock(x, y, z, dead);
     }
   }
 
@@ -329,6 +336,7 @@ export class BlockBehaviors {
         if (isGravityBlock(n)) this.scheduleTick(x, y, z, st, 2);
         if (n.endsWith('_concrete_powder') && touchesWater(w, x, y, z)) return this.s.setBlock(x, y, z, defaultState(concreteOf(n)));
         if ((n === 'cactus' || n === 'sugar_cane') && !canSurvive(w, x, y, z, st)) this.scheduleTick(x, y, z, st, 1);
+        if (isLiveCoral(n)) this.coralCheck(x, y, z, st);
       }
       for (let d = 0; d < 6; d++) {
         const nx = x + DX[d]!, ny = y + DY[d]!, nz = z + DZ[d]!;
@@ -351,6 +359,8 @@ export class BlockBehaviors {
           // DoorBlock / DoublePlantBlock.updateShape: a half whose partner is gone disappears
           const partnerHere = (d === 0) === (getProp(ns, 'half') === 'lower');
           if (partnerHere && n !== nn) this.s.setBlock(nx, ny, nz, getProp(ns, 'waterlogged') === true ? defaultState('water') : 0);
+        } else if (isLiveCoral(nn)) {
+          this.coralCheck(nx, ny, nz, ns);
         } else if (nn in ATTACHED_STEM) {
           // AttachedStemBlock.updateShape: losing its fruit turns it back into a grown stem
           const f = DIRS.indexOf(getProp(ns, 'facing') as (typeof DIRS)[number]);
@@ -362,6 +372,18 @@ export class BlockBehaviors {
     } finally {
       this.hookDepth--;
     }
+  }
+
+  /** CoralBlock.scanForWater / BaseCoralPlantTypeBlock.scanForWater */
+  private coralHasWater(x: number, y: number, z: number, st: number): boolean {
+    if (getProp(st, 'waterlogged') === true) return true;
+    for (let d = 0; d < 6; d++) if (FLUID[this.w.getState(x + DX[d]!, y + DY[d]!, z + DZ[d]!)] === 1) return true;
+    return false;
+  }
+
+  /** updateShape / onPlace: out of water, coral dies 60–99 ticks later. */
+  private coralCheck(x: number, y: number, z: number, st: number): void {
+    if (!this.coralHasWater(x, y, z, st)) this.scheduleTick(x, y, z, st, 60 + this.s.rand.nextInt(40));
   }
 
   // ---------------------------------------------------------------- falling blocks
@@ -1117,4 +1139,10 @@ export class BlockBehaviors {
 
 function isTreeSapling(n: string): boolean {
   return n.endsWith('_sapling') && n !== 'bamboo_sapling';
+}
+
+const CORALS = ['tube', 'brain', 'bubble', 'fire', 'horn'];
+const LIVE_CORAL = new Set(CORALS.flatMap((c) => [`${c}_coral_block`, `${c}_coral`, `${c}_coral_fan`, `${c}_coral_wall_fan`]));
+function isLiveCoral(n: string): boolean {
+  return LIVE_CORAL.has(n);
 }
