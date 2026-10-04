@@ -8,6 +8,19 @@
  * While a menu is open only a close button is shown; taps on the menu act as mouse clicks.
  */
 import type { Input } from '../input';
+
+/**
+ * Phones and tablets (Android, iPhone, iPad, including iPadOS that reports itself as a Mac). Not
+ * touchscreen laptops or Chromebooks: those have a keyboard and trackpad and keep mouse controls.
+ */
+export function isMobileDevice(nav: Pick<Navigator, 'userAgent' | 'maxTouchPoints'> & { userAgentData?: { mobile?: boolean } } = navigator): boolean {
+  const ua = nav.userAgent;
+  if (/CrOS/.test(ua)) return false;
+  if (nav.userAgentData?.mobile) return true;
+  if (/Android|iPhone|iPad|iPod|Mobile|Silk|Kindle/i.test(ua)) return true;
+  // iPadOS asks for desktop sites and reports a Mac; real Macs have no touch points
+  return /Macintosh/.test(ua) && nav.maxTouchPoints > 1;
+}
 import type { Gui } from './gui';
 
 export interface TouchHost {

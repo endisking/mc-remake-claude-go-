@@ -4,6 +4,7 @@
  */
 import { animateFluids } from './world/fluidambience';
 import { toggleFullscreen } from './fullscreen';
+import { isMobileDevice } from './gui/touch';
 import { decodeS2C, encodeC2S, PROTOCOL_VERSION, type C2S, type S2C } from '@shared/protocol/packets';
 import { BIOMES } from '@shared/data';
 import { chunkKey } from '@shared/world/chunk';
@@ -396,14 +397,18 @@ export class Game implements ScreenHost, ContainerHost {
     window.addEventListener('blur', () => {
       if (this.settings.pauseOnLostFocus && !this.screen && this.loggedIn && !this.dead) this.setScreen(new PauseScreen(this));
     });
-    // phones and tablets: touch controls appear with a touch; on touchscreen laptops (Chromebooks)
-    // using the mouse or trackpad again switches back to mouse controls
-    window.addEventListener('touchstart', () => {
-      if (!this.input.touchMode) void this.enableTouchControls();
-    }, { capture: true, passive: true });
-    window.addEventListener('pointerdown', (e) => {
-      if (e.pointerType === 'mouse' && this.input.touchMode) this.disableTouchControls();
-    }, { capture: true });
+    // phones and tablets only (not touchscreen laptops / Chromebooks): touch controls from the start;
+    // a mouse or keyboard case plugged into a tablet switches back to mouse controls, a touch
+    // switches to touch again
+    if (isMobileDevice()) {
+      void this.enableTouchControls();
+      window.addEventListener('touchstart', () => {
+        if (!this.input.touchMode) void this.enableTouchControls();
+      }, { capture: true, passive: true });
+      window.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse' && this.input.touchMode) this.disableTouchControls();
+      }, { capture: true });
+    }
     // clicking the world while no screen is open grabs the mouse again
     canvas.addEventListener('mousedown', () => {
       if (!this.screen && !this.input.locked) this.input.lock();

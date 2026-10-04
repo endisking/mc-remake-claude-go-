@@ -394,3 +394,15 @@ Still not vanilla:
   - touch ↔ mouse switching works on a touch-enabled desktop.
 - Not like vanilla Java (which has no touch controls): splitting stacks by dragging and right-click halving
   aren't available by touch yet.
+
+## 2026-10-04 — Touch controls only on mobile (0.4.6)
+
+- `isMobileDevice()` (gui/touch.ts):
+  - **Mobile:** `navigator.userAgentData.mobile`, or an Android/iPhone/iPad/iPod/Mobile/Silk/Kindle user agent,
+    or a "Macintosh" user agent with touch points (iPadOS desktop mode).
+  - **Never mobile:** Chrome OS. Chromebooks and Windows touch laptops keep pointer lock even when the screen
+    is touched.
+  - On mobile, touch mode starts immediately (no "Game Menu" from the failed pointer lock). A mouse switches to
+    mouse controls and a touch switches back (tablets with a mouse).
+- Unit tests cover the user agents. Phone emulation (Pixel 7, iPad) shows the controls at start; the touch-enabled
+  Chromebook and Windows contexts show none, even after a tap.
