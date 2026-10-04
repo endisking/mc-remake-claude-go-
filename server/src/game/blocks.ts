@@ -14,6 +14,7 @@ import { FallingBlockEntity } from './fallingblock';
 import { TickScheduler } from './ticks';
 import { tickFire, fireStateAt, fireCanSurvive, fireTickDelay, igniteOdds, type FireLevel } from './fire';
 import { MATERIAL_BLOCKS_MOTION } from '@shared/world/blockprops';
+import { primeTnt } from './explosion';
 import { BLOCK_STATE_COUNT, BIOMES, ITEMS_BY_ID } from '@shared/data';
 import { blockIdOf, blockNameOf, getProp, withProp, defaultState, stateOf, propsOf } from '@shared/world/blockstate';
 import { FLUID, FLUID_LEVEL, FULL_COLLISION, IS_AIR, LIGHT_FILTER } from '@shared/world/blockinfo';
@@ -430,6 +431,7 @@ export class BlockBehaviors {
       },
       get difficulty() { return self.s.difficulty as number; },
       get doFireTick() { return self.s.gameRules.doFireTick; },
+      explodeTnt: (x, y, z) => void primeTnt(self.s, x, y, z),
     };
   })();
 
@@ -1245,8 +1247,13 @@ export class BlockBehaviors {
       return true;
     }
     if (item === 'flint_and_steel' || item === 'fire_charge') {
-      // FlintAndSteelItem / FireChargeItem.useOn: light candles and campfires, else fire on the clicked face
-      if ((n.endsWith('candle') || n.endsWith('candle_cake') || n === 'campfire' || n === 'soul_campfire') && getProp(st, 'lit') === false && getProp(st, 'waterlogged') !== true) {
+      // TntBlock.use: lighting TNT primes it; FlintAndSteelItem / FireChargeItem.useOn: light candles
+      // and campfires, else fire on the clicked face
+      if (n === 'tnt') {
+        this.s.setBlock(x, y, z, 0);
+        this.s.updateNeighbors(x, y, z);
+        primeTnt(this.s, x, y, z);
+      } else if ((n.endsWith('candle') || n.endsWith('candle_cake') || n === 'campfire' || n === 'soul_campfire') && getProp(st, 'lit') === false && getProp(st, 'waterlogged') !== true) {
         this.s.setBlock(x, y, z, withProp(st, 'lit', true));
       } else {
         const fx = x + DX[face]!, fy = y + DY[face]!, fz = z + DZ[face]!;

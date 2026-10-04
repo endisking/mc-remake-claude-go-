@@ -661,4 +661,32 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     }
     expect(fire).toBe(true);
   });
+
+  it('lit TNT explodes after 4 seconds, breaking blocks, priming other TNT and hurting players', () => {
+    const { server, set, get, give, use, p } = setup();
+    server.blocks.randomTickSpeed = 0;
+    for (let x = 0; x <= 16; x++) for (let z = 0; z <= 16; z++) for (let y = 145; y <= 149; y++) set(x, y, z, 'stone');
+    set(8, 150, 4, 'tnt');
+    set(10, 150, 4, 'tnt');
+    p.x = 8.5;
+    p.y = 150;
+    p.z = 8.5;
+    p.gameMode = 0;
+    give('flint_and_steel');
+    use(8, 150, 4, 2);
+    expect(get(8, 150, 4)).toBe('air');
+    const health = p.living.health;
+    for (let i = 0; i < 79; i++) server.tick();
+    expect(get(8, 149, 4)).toBe('stone');
+    server.tick();
+    server.tick();
+    expect(get(8, 149, 4)).toBe('air');
+    expect(get(10, 150, 4)).toBe('air'); // primed with a short fuse
+    expect(p.living.health).toBeLessThan(health);
+    for (let i = 0; i < 40; i++) server.tick();
+    let holes = 0;
+    for (let x = 4; x <= 14; x++) for (let z = 0; z <= 8; z++) if (get(x, 149, z) === 'air') holes++;
+    expect(holes).toBeGreaterThan(10);
+    expect([...server.entities.values()].some((e) => e instanceof ItemEntity && e.stack.id === ITEMS_BY_NAME.get('cobblestone')!.id)).toBe(true);
+  });
 });
