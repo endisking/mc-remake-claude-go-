@@ -115,8 +115,8 @@ export function soundTypeNameOf(n: string): SoundTypeName {
     snow: 'snow', snow_block: 'snow', powder_snow: 'powder_snow', ladder: 'ladder', anvil: 'anvil', chipped_anvil: 'anvil',
     damaged_anvil: 'anvil', bell: 'anvil', slime_block: 'slime_block', honey_block: 'honey_block', bamboo: 'bamboo',
     bamboo_sapling: 'bamboo_sapling', scaffolding: 'scaffolding', sweet_berry_bush: 'sweet_berry_bush', wheat: 'crop', carrots: 'crop',
-    potatoes: 'crop', beetroots: 'crop', melon_stem: 'crop', pumpkin_stem: 'crop', attached_melon_stem: 'hard_crop',
-    attached_pumpkin_stem: 'hard_crop', cocoa: 'wood', vine: 'vine', nether_wart: 'nether_wart', lantern: 'lantern', soul_lantern: 'lantern',
+    potatoes: 'crop', beetroots: 'crop', melon_stem: 'hard_crop', pumpkin_stem: 'hard_crop', attached_melon_stem: 'wood',
+    attached_pumpkin_stem: 'wood', cocoa: 'wood', vine: 'vine', nether_wart: 'nether_wart', lantern: 'lantern', soul_lantern: 'lantern',
     shroomlight: 'shroomlight', weeping_vines: 'weeping_vines', weeping_vines_plant: 'weeping_vines', twisting_vines: 'twisting_vines',
     twisting_vines_plant: 'twisting_vines', basalt: 'basalt', polished_basalt: 'basalt', smooth_basalt: 'basalt',
     nether_wart_block: 'wart_block', warped_wart_block: 'wart_block', netherrack: 'netherrack', nether_sprouts: 'nether_sprouts',
@@ -132,7 +132,7 @@ export function soundTypeNameOf(n: string): SoundTypeName {
     polished_deepslate: 'polished_deepslate', deepslate_bricks: 'deepslate_bricks', cracked_deepslate_bricks: 'deepslate_bricks',
     deepslate_tiles: 'deepslate_tiles', cracked_deepslate_tiles: 'deepslate_tiles', chiseled_deepslate: 'deepslate_bricks',
     crimson_nylium: 'nylium', warped_nylium: 'nylium', crimson_fungus: 'fungus', warped_fungus: 'fungus', crimson_roots: 'roots',
-    warped_roots: 'roots', cactus: 'wool', cake: 'wool', iron_bars: 'metal', hopper: 'metal', brewing_stand: 'metal',
+    warped_roots: 'roots', cactus: 'wool', cake: 'wool', iron_bars: 'metal', hopper: 'metal',
     heavy_weighted_pressure_plate: 'wood', light_weighted_pressure_plate: 'wood', lightning_rod: 'copper', mushroom_stem: 'wood',
     brown_mushroom_block: 'wood', red_mushroom_block: 'wood', note_block: 'wood', jukebox: 'wood', bookshelf: 'wood',
     crafting_table: 'wood', chest: 'wood', trapped_chest: 'wood', barrel: 'wood', composter: 'wood', lectern: 'wood', loom: 'wood',
@@ -141,8 +141,19 @@ export function soundTypeNameOf(n: string): SoundTypeName {
     sea_lantern: 'glass', glowstone: 'glass', beacon: 'glass', redstone_lamp: 'glass', conduit: 'glass', end_portal_frame: 'glass',
     nether_portal: 'glass', tinted_glass: 'glass', candle: 'candle', iron_door: 'metal', iron_trapdoor: 'metal', rail: 'metal',
     powered_rail: 'metal', detector_rail: 'metal', activator_rail: 'metal', cauldron: 'stone', spawner: 'metal',
+    // Blocks.java exceptions that the name rules below would get wrong
+    torch: 'wood', wall_torch: 'wood', soul_torch: 'wood', soul_wall_torch: 'wood', redstone_torch: 'wood', redstone_wall_torch: 'wood',
+    fire: 'wool', soul_fire: 'wool', lever: 'wood', pumpkin: 'wood', carved_pumpkin: 'wood', jack_o_lantern: 'wood', melon: 'wood',
+    repeater: 'wood', comparator: 'wood', end_rod: 'wood', chorus_plant: 'wood', chorus_flower: 'wood', turtle_egg: 'metal',
+    candle_cake: 'wool', honeycomb_block: 'coral_block', brewing_stand: 'stone', copper_ore: 'stone', raw_copper_block: 'stone',
+    deepslate_copper_ore: 'deepslate', stripped_crimson_stem: 'stem', stripped_warped_stem: 'stem', stripped_crimson_hyphae: 'stem',
+    stripped_warped_hyphae: 'stem',
   };
   if (exact[n]) return exact[n]!;
+  // flower pots (and everything potted in them) use the pot's default stone sounds
+  if (n.startsWith('potted_')) return 'stone';
+  // dead coral blocks and dead coral plants are plain stone (Material.STONE, no .sound)
+  if (n.startsWith('dead_') && n.includes('coral')) return 'stone';
   if (n.endsWith('_candle') || n.endsWith('_candle_cake')) return n.endsWith('cake') ? 'wool' : 'candle';
   if (n.includes('nether_brick')) return 'nether_bricks';
   if (n.startsWith('crimson_') || n.startsWith('warped_')) {

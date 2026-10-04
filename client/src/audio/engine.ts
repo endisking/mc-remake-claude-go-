@@ -23,7 +23,19 @@ interface SoundFile {
 
 interface SoundEventDef {
   sounds: SoundFile[];
+  /** registered vanilla event that has no recording yet (silent) */
+  placeholder?: boolean;
 }
+
+/** A long-running sound (music track or ambience loop) the caller can fade and stop. */
+export interface SoundHandle {
+  /** true until the track ends or is stopped */
+  readonly active: boolean;
+  setVolume(v: number): void;
+  stop(): void;
+}
+
+const NO_HANDLE: SoundHandle = { active: false, setVolume() {}, stop() {} };
 
 const MAX_CHANNELS = 48;
 
@@ -116,6 +128,69 @@ export class SoundEngine {
       this.buffers.set(name, b);
     }
     return b;
+  }
+
+  /**
+   * Stream a long sound (music, ambience loop) through an <audio> element instead of decoding it
+   * to a buffer: keeps memory low on Chromebooks. Not positional (vanilla music and the underwater
+   * loop are relative sounds). Returns an inactive handle when audio is locked or the event is silent.
+   */
+  playStream(event: string, category: SoundCategory, volume: number, loop = false): SoundHandle {
+    const ctx = this.ctx;
+    if (!ctx || ctx.state !== 'running') return NO_HANDLE;
+    const file = this.pick(event);
+    if (!file) return NO_HANDLE;
+    let el: HTMLAudioElement;
+    try {
+      el = new Audio(`./sounds/${file.name}.ogg`);
+    } catch {
+      return NO_HANDLE;
+    }
+    el.loop = loop;
+    el.preload = 'auto';
+    el.playbackRate = Math.max(0.5, Math.min(2, file.pitch ?? 1));
+    (el as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = false;
+    const g = ctx.createGain();
+    const base = file.volume ?? 1;
+    g.gain.value = Math.max(0, Math.min(1, volume * base));
+    let node: MediaElementAudioSourceNode | null = null;
+    try {
+      node = ctx.createMediaElementSource(el);
+      node.connect(g);
+      g.connect(this.categories.get(category) ?? this.master);
+    } catch {
+      node = null;
+    }
+    let active = true;
+    const finish = () => {
+      if (!active) return;
+      active = false;
+      el.pause();
+      el.removeAttribute('src');
+      try {
+        node?.disconnect();
+        g.disconnect();
+      } catch {
+        /* already disconnected */
+      }
+    };
+    el.addEventListener('ended', finish);
+    el.addEventListener('error', finish);
+    void el.play().catch(finish);
+    return {
+      get active() {
+        return active;
+      },
+      setVolume: (v: number) => {
+        g.gain.value = Math.max(0, Math.min(1, v * base));
+      },
+      stop: finish,
+    };
+  }
+
+  /** Whether the event is registered as an explicit silent placeholder. */
+  isPlaceholder(event: string): boolean {
+    return this.manifest[event]?.placeholder === true;
   }
 
   /** Whether an event has at least one real audio file. */

@@ -59,6 +59,76 @@ const FREESOUND: Record<number, string> = {
   515643: 'MashedTatoes2', // ding2
   452379: 'steffcaffrey', // small bell #2
   384423: 'cabled_mess', // footstep in the snow
+  // ---- Phase 10 additions
+  442906: 'qubodup', 442907: 'qubodup', 442905: 'qubodup', 442904: 'qubodup', // pig oink / grunt / sound / squeak
+  546479: 'invertedturtle', 546481: 'invertedturtle', // cow moo
+  401636: 'Mystikuum', // cows mooing
+  171149: 'esperar', 171151: 'esperar', // sheep
+  677221: 'satoristudios3', // ewe baa
+  710300: 'michaelperfect', // sheep baaing
+  668804: 'MBPL', // chicken clucking
+  424076: 'chanyatenn', // chicken clucking
+  517778: 'SamuelGremaud', // hen
+  233097: 'JarredGibb', // chicken buck
+  754438: 'OwNathan', 754441: 'OwNathan', // zombie groans
+  555417: 'tonsil5', 555426: 'tonsil5', 555412: 'tonsil5', // zombie growl / pain / death
+  851777: 'scorpion67890', 851775: 'scorpion67890', // decayed zombie hurt / death
+  163447: 'Under7dude', // zombie hit
+  473526: 'Kneeling', // bones
+  147993: 'bewareofkites20', // bone cracking
+  257927: 'Kane53126', // bones crack
+  145363: 'kleanthism', // cracking bone
+  760564: 'NoisyRedFox', // insect
+  205754: 'scorpion67890', // surge leech (hiss)
+  672710: 'kongg_', 672712: 'kongg_', // spider attack
+  408572: 'miguelab1998', // spider steps
+  237407: 'squareal', // match sizzle (fuse)
+  372186: 'Seidolon', // fuse
+  446624: 'IdkMrGarcia', // explosion2
+  482993: 'V-ktor', // large explosion
+  609588: 'unfa', // firecracker explosion
+  816237: 'qubodup', // crunch
+  275015: 'wadaltmon', 250106: 'phatcorns', 584290: 'AntumDeluge', // apple bites
+  344406: 'jawbutch', 517672: 'danlucaz', 777238: 'sblitzer', // burps
+  531755: 'magnuswaker', 552676: 'BOAAY', 534336: 'Defaultv', // gulps
+  263675: 'PorkMuncher', 443832: 'checholio', 443819: 'checholio', // bow release
+  205938: 'Twisted_Euphoria', 521552: 'omerbhatti34', 536066: 'EminYILDIRIM', // arrow impacts
+  650574: 'soundofsong', // fire crackling loop
+  714566: 'LilMati', // cozy campfire
+  558983: 'cyberthilop', // fire crackling
+  474849: 'Fission9', // lava loop
+  253956: 'Mafon2', 733264: 'arttim', 683587: 'YehawSnail', 411462: 'TheBuilder15', // bubble pops
+  265305: 'lextrack', // water flowing
+  321490: 'dslrguide', // tiny splash
+  554595: 'jakubp.jp', // stick into water
+  398039: 'swordofkings128', // water splash 2
+  841834: 'Robo9418', // small puddle splash
+  737659: 'tiagusilva37', // hot lava ball
+  456806: 'Breviceps', // hot bubbling mud
+  174458: 'yottasounds', // cave wind
+  392668: 'corkob', // cave water drips
+  514500: 'szegvari', // big hall cave
+  504641: 'Fission9', // underwater ambience
+  660565: 'cfedorek16', // water bubbling close
+  234782: 'wubitog', // steam hiss
+  333698: 'Khrinx', // soda fizz
+  151271: 'timgormly', 696746: 'Krokulator', // levers
+  257357: 'brnck', 629020: 'Kolombooo', // button clicks
+  466272: 'proolsen', 422870: 'IPaddeh', // pressure plates
+  270588: 'michorvath', 270589: 'michorvath', // anvil hits
+  614832: 'arseniiv', 614833: 'arseniiv', // crystal bells
+  728699: 'PaperMacheToothPicksSeaAnenome', // glass bell tapping
+  442772: 'qubodup', 433840: 'Archos', // slime squish
+  536737: 'egomassive', // chain
+  262635: 'j_p_higgins', // ice crack
+  // music (calm ambient piano / pads)
+  679738: 'Seth_Makes_Sounds', // Calming Piano Loop 60bpm
+  832628: 'Jadis0x', // Calm Ambient Piano Loop
+  810857: 'CVLTIV8R', // Piano Ambience chord progression
+  703138: 'deadrobotmusic', // Ambient Piano Guitar Texture
+  808032: 'deadrobotmusic', // Ambient F Sharp Minor Ethereal Choir Pad
+  197244: 'Yuval', // gloomy ambient pad
+  685733: 'xkeril', // drone underwater slow
 };
 
 interface Credit {
@@ -107,7 +177,7 @@ function freesound(id: number): string {
 }
 
 // ------------------------------------------------------------------ clip helpers
-type Clip = { samples: Float32Array; source: string };
+type Clip = { samples: Float32Array; source: string; quality?: number };
 const clean = (s: Float32Array, peakDb = -3) => fade(normalize(trim(s), peakDb));
 
 function kenney(pack: string, ...names: string[]): Clip[] {
@@ -170,10 +240,90 @@ const SETS: Record<string, () => Clip[]> = {
   door_close: () => kenney('rpg-audio', 'doorClose_1', 'doorClose_2', 'doorClose_3', 'doorClose_4'),
   metal_latch: () => kenney('rpg-audio', 'metalLatch', 'metalClick'),
   chest_creak: () => kenney('rpg-audio', 'creak1', 'creak2', 'creak3'),
+  // ---- Phase 10: block groups with their own character
+  amethyst: () => [...fsWhole(614832, 1.2), ...fsWhole(614833, 1.2), ...fsSlices(728699, 2, 0.9)],
+  amethyst_step: () => quieter([...fsWhole(614832, 0.5), ...fsWhole(614833, 0.5)], -6),
+  slime: () => [...fsWhole(442772, 0.5), ...fsSlices(433840, 2, 0.45)],
+  chain: () => [...fsSlices(536737, 3, 0.4, { minGap: 0.15 }), ...quieter(kenney('impact-sounds', 'impactMetal_light_000', 'impactMetal_light_002'), -4)],
+  metal_light: () => kenney('impact-sounds', ...range('impactMetal_light_', 5)),
+  metal_heavy: () => kenney('impact-sounds', ...range('impactMetal_heavy_', 5)),
+  plate: () => kenney('impact-sounds', ...range('impactPlate_medium_', 5)),
+  bell: () => kenney('impact-sounds', ...range('impactBell_heavy_', 5)),
+  glass_light: () => kenney('impact-sounds', ...range('impactGlass_light_', 5)),
+  book_flip: () => kenney('rpg-audio', 'bookFlip1', 'bookFlip2', 'bookFlip3'),
+  book_place: () => kenney('rpg-audio', 'bookPlace1', 'bookPlace2', 'bookPlace3'),
+  chop: () => [...kenney('rpg-audio', 'chop'), ...kenney('impact-sounds', 'impactWood_light_000', 'impactWood_light_001')],
+
+  anvil_land: () => [...fsWhole(270588, 1.3), ...fsWhole(270589, 1.2)],
+  ice_crack: () => fsWhole(262635, 1.1),
+  // ---- mobs
+  pig_say: () => [...fsWhole(442906, 0.8), ...fsWhole(442907, 0.5), ...fsWhole(442905, 0.7)],
+  pig_hurt: () => fsWhole(442904, 0.8),
+  cow_say: () => [...fsWhole(546479, 2.6), ...fsWhole(546481, 1.5), ...fsSlices(401636, 2, 1.8, { minGap: 1 })],
+  cow_hurt: () => [...fsSections(546481, [[0, 0.6]]), ...fsSections(546479, [[0.1, 0.6]])],
+  sheep_say: () => [...fsWhole(171149, 0.8), ...fsWhole(171151, 1.2), ...fsWhole(677221, 1.4), ...fsWhole(710300, 1.9)],
+  chicken_say: () => [...fsWhole(668804, 0.8), ...fsSlices(424076, 2, 0.7, { minGap: 0.4 }), ...fsSections(517778, [[0, 0.8]])],
+  chicken_hurt: () => fsSlices(233097, 2, 0.6),
+  zombie_say: () => [...fsWhole(754438, 1.1), ...fsWhole(754441, 0.9), ...fsWhole(555417, 2.7)],
+  zombie_hurt: () => [...fsWhole(555426, 0.9), ...fsWhole(851777, 1), ...fsWhole(163447, 0.4)],
+  zombie_death: () => [...fsWhole(555412, 0.8), ...fsWhole(851775, 1.3)],
+  skeleton_say: () => fsSlices(473526, 4, 0.9, { minGap: 0.5 }),
+  skeleton_hurt: () => [...fsWhole(147993, 0.7), ...fsWhole(257927, 0.3), ...fsWhole(145363, 0.7)],
+  spider_say: () => [...fsWhole(760564, 0.4), ...fsWhole(205754, 1.2), ...fsWhole(672712, 1.1)],
+  spider_hurt: () => fsWhole(672710, 0.6),
+  spider_step: () => quieter(fsSlices(408572, 4, 0.3, { minGap: 0.12 }), -4),
+  creeper_hurt: () => [...fsWhole(816237, 0.4), ...fsWhole(147993, 0.5)],
+  fuse: () => [...fsWhole(237407, 2.3), ...fsSections(372186, [[0, 2.5]])],
+  explode: () => [...fsWhole(446624, 1.8), ...fsWhole(482993, 3.5), ...fsWhole(609588, 2.3)],
+  mob_step_soft: () => quieter(kenney('impact-sounds', ...range('footstep_grass_', 5)), -2),
+  mob_step_hard: () => quieter(kenney('impact-sounds', ...range('footstep_concrete_', 5)), -2),
+  // ---- player / items
+  eat: () => [...fsWhole(275015, 0.6), ...fsWhole(250106, 0.6), ...fsWhole(584290, 0.6)],
+  burp: () => [...fsWhole(344406, 0.5), ...fsWhole(517672, 0.8), ...fsWhole(777238, 0.9)],
+  drink: () => [...fsWhole(531755, 0.6), ...fsWhole(552676, 0.6), ...fsWhole(534336, 1)],
+  bow_shoot: () => [...fsWhole(263675, 0.8), ...fsWhole(443832, 0.5), ...fsWhole(443819, 0.55)],
+  arrow_hit: () => [...fsWhole(205938, 0.6), ...fsWhole(521552, 0.3), ...fsWhole(536066, 0.35)],
+  item_break: () => [...fsWhole(257927, 0.3), ...fsWhole(816237, 0.4)],
+  bucket_fill: () => [...fsWhole(321490, 1), ...fsWhole(554595, 0.5)],
+  bucket_empty: () => [...fsWhole(398039, 1.2), ...fsWhole(841834, 0.45)],
+  bucket_lava: () => [...fsWhole(737659, 1.2), ...fsSections(456806, [[1, 1.2]])],
+  // ---- fluids, fire, environment
+  fire: () => fsSections(650574, [[0, 1.6], [1.7, 1.6], [3.3, 1.6]], -8),
+  furnace: () => fsSections(714566, [[0.2, 1.2], [1.6, 1.2], [3.2, 1.2]], -6),
+  campfire: () => fsSections(558983, [[0.5, 1.5], [3, 1.5], [6, 1.5]], -6),
+  lava_ambient: () => fsSections(474849, [[0, 3], [5, 3], [10, 3]], -6),
+  lava_pop: () => [...fsWhole(253956, 0.25), ...fsWhole(733264, 0.2), ...fsWhole(683587, 0.4)],
+  bubble_pop: () => [...fsWhole(411462, 0.5), ...fsWhole(253956, 0.25)],
+  extinguish: () => [...fsWhole(234782, 1.5), ...fsWhole(333698, 0.35)],
+  water_ambient: () => fsSections(265305, [[0.5, 2.5], [4, 2.5], [8, 2.5]], -8),
+  cave: () => [...fsSections(174458, [[0, 6], [6, 6]], -4), ...fsSections(392668, [[2, 6], [10, 6]], -4), ...fsWhole(514500, 5.5, -4)],
+  underwater_loop: () => fsWhole(504641, 47, -8),
+  underwater_add: () => quieter(fsSlices(660565, 2, 1.2), -4),
+  lever: () => [...fsWhole(151271, 0.6), ...fsWhole(696746, 0.6)],
+  button: () => [...fsWhole(257357, 0.26), ...fsWhole(629020, 0.29)],
+  pressure_plate: () => [...fsWhole(466272, 0.6), ...fsWhole(422870, 0.9)],
+  toast_in: () => kenney('interface-sounds', 'maximize_006'),
+  toast_out: () => kenney('interface-sounds', 'minimize_006'),
 };
 
+/** Music tracks: streamed, lower bitrate, long fades (vanilla music is relative and non-positional). */
+const MUSIC: Record<string, () => Clip[]> = {
+  music_calm1: () => fsMusic(679738),
+  music_calm2: () => fsMusic(832628),
+  music_calm3: () => fsMusic(810857),
+  music_texture: () => fsMusic(703138),
+  music_choir: () => fsMusic(808032),
+  music_gloom: () => fsMusic(197244),
+  music_deep: () => fsMusic(685733),
+};
+function fsMusic(id: number): Clip[] {
+  const s = decode(freesound(id));
+  return [{ samples: fade(normalize(trim(s), -4), 1500, 3000), source: `freesound:${id}`, quality: 0 }];
+}
+Object.assign(SETS, MUSIC);
+
 // ------------------------------------------------------------------ events → sets
-type Ref = { set: string; volume?: number; pitch?: number };
+type Ref = { set: string; volume?: number; pitch?: number; stream?: boolean };
 const EVENTS: Record<string, Ref[]> = {};
 
 /** block sound groups → (dig set, step set, pitch) */
@@ -270,6 +420,260 @@ Object.assign(EVENTS, {
   'block.chest.close': [{ set: 'door_close', pitch: 1.1 }],
 } satisfies Record<string, Ref[]>);
 
+// ---- Phase 10: groups with dedicated recordings (override the pitched stone/cloth fallbacks)
+const group5 = (g: string, dig: string, step: string, pitch?: number, digPitch?: number) => {
+  EVENTS[`block.${g}.break`] = [{ set: dig, pitch: digPitch ?? pitch }];
+  EVENTS[`block.${g}.place`] = [{ set: dig, pitch: digPitch ?? pitch }];
+  for (const k of ['step', 'hit', 'fall']) EVENTS[`block.${g}.${k}`] = [{ set: step, pitch }];
+};
+group5('amethyst_block', 'amethyst', 'amethyst_step');
+group5('amethyst_cluster', 'amethyst', 'amethyst_step', 1.2);
+for (const b of ['small', 'medium', 'large']) {
+  const p = b === 'small' ? 1.5 : b === 'medium' ? 1.4 : 1.3;
+  EVENTS[`block.${b}_amethyst_bud.break`] = [{ set: 'amethyst', pitch: p }];
+  EVENTS[`block.${b}_amethyst_bud.place`] = [{ set: 'amethyst', pitch: p }];
+}
+group5('slime_block', 'slime', 'slime');
+group5('honey_block', 'slime', 'step_cloth', 0.75, 0.7);
+group5('chain', 'chain', 'chain');
+const stoneDig = (pitch: number): Ref[] => [{ set: 'dig_stone', pitch }];
+const music = (...sets: string[]): Ref[] => sets.map((set) => ({ set, stream: true }));
+group5('copper', 'plate', 'step_stone', 1.25, 1.1);
+group5('lantern', 'metal_light', 'step_stone', 1.3, 1.2);
+group5('netherite_block', 'metal_heavy', 'step_stone', 0.7, 0.8);
+group5('ancient_debris', 'metal_heavy', 'step_stone', 0.65, 0.7);
+Object.assign(EVENTS, {
+  'block.bell.use': [{ set: 'bell' }],
+  'block.bell.resonate': [{ set: 'bell', pitch: 0.9, volume: 0.6 }],
+  'block.anvil.hit': [{ set: 'metal_heavy', volume: 0.6 }],
+  'block.anvil.step': [{ set: 'metal_heavy', volume: 0.5 }],
+  'block.anvil.fall': [{ set: 'metal_heavy' }],
+  'block.lodestone.place': [{ set: 'metal_heavy', pitch: 0.9 }],
+  'block.lodestone.break': [{ set: 'metal_heavy', pitch: 0.9 }],
+  'item.book.page_turn': [{ set: 'book_flip' }],
+  'item.book.put': [{ set: 'book_place' }],
+  'item.axe.strip': [{ set: 'chop' }],
+  'item.hoe.till': [{ set: 'dig_gravel' }],
+  'item.shovel.flatten': [{ set: 'dig_grass' }],
+  'item.bone_meal.use': [{ set: 'dig_grass', pitch: 1.3, volume: 0.8 }],
+  'item.bottle.fill': [{ set: 'bucket_fill', pitch: 1.4 }],
+  'item.bottle.fill_dragonbreath': [{ set: 'bucket_fill', pitch: 1.2 }],
+  'item.bottle.empty': [{ set: 'bucket_empty', pitch: 1.4 }],
+  'block.composter.fill': [{ set: 'dig_grass', pitch: 1.1 }],
+  'block.composter.fill_success': [{ set: 'dig_grass', pitch: 0.9 }],
+  'block.composter.empty': [{ set: 'dig_gravel' }],
+  'block.composter.ready': [{ set: 'pop' }],
+  'block.brewing_stand.brew': [{ set: 'bubble_pop', pitch: 0.8 }],
+  'block.enchantment_table.use': [{ set: 'amethyst', pitch: 0.8 }],
+  'block.beacon.activate': [{ set: 'amethyst', pitch: 0.6 }],
+  'block.beacon.deactivate': [{ set: 'amethyst', pitch: 0.5 }],
+  'block.beacon.power_select': [{ set: 'amethyst', pitch: 0.7 }],
+  'entity.item_frame.place': [{ set: 'dig_wood', pitch: 1.2 }],
+  'entity.item_frame.break': [{ set: 'dig_wood', pitch: 1.1 }],
+  'entity.item_frame.add_item': [{ set: 'dig_cloth', pitch: 1.1 }],
+  'entity.item_frame.remove_item': [{ set: 'dig_cloth', pitch: 1.2 }],
+  'entity.item_frame.rotate_item': [{ set: 'dig_cloth', pitch: 1.3 }],
+  'entity.painting.place': [{ set: 'dig_wood', pitch: 1.1 }],
+  'entity.painting.break': [{ set: 'dig_wood' }],
+  'entity.firework_rocket.launch': [{ set: 'attack_sweep', pitch: 0.7 }],
+  'entity.firework_rocket.blast': [{ set: 'explode', pitch: 1.8, volume: 0.6 }],
+  'entity.firework_rocket.large_blast': [{ set: 'explode', pitch: 1.4, volume: 0.8 }],
+  'item.crossbow.shoot': [{ set: 'bow_shoot', pitch: 0.85 }],
+  'item.crossbow.loading_start': [{ set: 'metal_latch', pitch: 0.9 }],
+  'item.crossbow.loading_middle': [{ set: 'metal_latch', pitch: 1 }],
+  'item.crossbow.loading_end': [{ set: 'metal_latch', pitch: 1.1 }],
+  'item.trident.throw': [{ set: 'attack_sweep', pitch: 0.8 }],
+  'item.trident.hit': [{ set: 'arrow_hit', pitch: 0.8 }],
+  'item.trident.hit_ground': [{ set: 'arrow_hit', pitch: 0.7 }],
+  'block.amethyst_block.chime': [{ set: 'amethyst' }],
+  'block.honey_block.slide': [{ set: 'slime', pitch: 0.6, volume: 0.6 }],
+  'block.anvil.place': [{ set: 'anvil_land' }],
+  'block.anvil.land': [{ set: 'anvil_land' }],
+  'block.anvil.use': [{ set: 'anvil_land', volume: 0.8 }],
+  'block.anvil.destroy': [{ set: 'anvil_land', pitch: 0.8 }],
+  'block.anvil.break': stoneDig(0.9),
+  // mobs (the mob AI looks these up by vanilla name)
+  'entity.pig.ambient': [{ set: 'pig_say' }],
+  'entity.pig.hurt': [{ set: 'pig_hurt' }],
+  'entity.pig.death': [{ set: 'pig_hurt', pitch: 0.8 }],
+  'entity.pig.step': [{ set: 'mob_step_soft', pitch: 1.1 }],
+  'entity.pig.saddle': [{ set: 'dig_cloth' }],
+  'entity.cow.ambient': [{ set: 'cow_say' }],
+  'entity.cow.hurt': [{ set: 'cow_hurt' }],
+  'entity.cow.death': [{ set: 'cow_say', pitch: 0.85 }],
+  'entity.cow.step': [{ set: 'mob_step_soft', pitch: 0.8 }],
+  'entity.cow.milk': [{ set: 'bucket_fill', pitch: 1.1 }],
+  'entity.mooshroom.milk': [{ set: 'bucket_fill', pitch: 1.1 }],
+  'entity.mooshroom.suspicious_milk': [{ set: 'bucket_fill', pitch: 0.9 }],
+  'entity.mooshroom.shear': [{ set: 'dig_cloth', pitch: 1.2 }],
+  'entity.sheep.ambient': [{ set: 'sheep_say' }],
+  'entity.sheep.hurt': [{ set: 'sheep_say', pitch: 1.15 }],
+  'entity.sheep.death': [{ set: 'sheep_say', pitch: 0.9 }],
+  'entity.sheep.step': [{ set: 'mob_step_soft', pitch: 1.1 }],
+  'entity.sheep.shear': [{ set: 'dig_cloth', pitch: 1.2 }],
+  'entity.chicken.ambient': [{ set: 'chicken_say' }],
+  'entity.chicken.hurt': [{ set: 'chicken_hurt' }],
+  'entity.chicken.death': [{ set: 'chicken_hurt', pitch: 0.85 }],
+  'entity.chicken.step': [{ set: 'mob_step_soft', pitch: 1.6, volume: 0.6 }],
+  'entity.chicken.egg': [{ set: 'pop' }],
+  'entity.zombie.ambient': [{ set: 'zombie_say' }],
+  'entity.zombie.hurt': [{ set: 'zombie_hurt' }],
+  'entity.zombie.death': [{ set: 'zombie_death' }],
+  'entity.zombie.step': [{ set: 'mob_step_hard', pitch: 0.9 }],
+  'entity.zombie.attack_wooden_door': [{ set: 'dig_wood', pitch: 0.7 }],
+  'entity.zombie.attack_iron_door': [{ set: 'metal_latch', pitch: 0.7 }],
+  'entity.zombie.break_wooden_door': [{ set: 'dig_wood', pitch: 0.6 }],
+  'entity.zombie.infect': [{ set: 'zombie_say', pitch: 1.1 }],
+  'entity.zombie.destroy_egg': [{ set: 'pop', pitch: 0.7 }],
+  'entity.husk.ambient': [{ set: 'zombie_say', pitch: 0.8 }],
+  'entity.husk.hurt': [{ set: 'zombie_hurt', pitch: 0.8 }],
+  'entity.husk.death': [{ set: 'zombie_death', pitch: 0.8 }],
+  'entity.husk.step': [{ set: 'step_sand', pitch: 0.9 }],
+  'entity.drowned.ambient': [{ set: 'zombie_say', pitch: 0.9 }],
+  'entity.drowned.ambient_water': [{ set: 'zombie_say', pitch: 0.75 }],
+  'entity.drowned.hurt': [{ set: 'zombie_hurt', pitch: 0.9 }],
+  'entity.drowned.hurt_water': [{ set: 'zombie_hurt', pitch: 0.75 }],
+  'entity.drowned.death': [{ set: 'zombie_death', pitch: 0.9 }],
+  'entity.drowned.death_water': [{ set: 'zombie_death', pitch: 0.75 }],
+  'entity.drowned.step': [{ set: 'mob_step_hard', pitch: 0.9 }],
+  'entity.drowned.swim': [{ set: 'swim' }],
+  'entity.zombie_villager.ambient': [{ set: 'zombie_say', pitch: 1.15 }],
+  'entity.zombie_villager.hurt': [{ set: 'zombie_hurt', pitch: 1.15 }],
+  'entity.zombie_villager.death': [{ set: 'zombie_death', pitch: 1.15 }],
+  'entity.zombie_villager.step': [{ set: 'mob_step_hard', pitch: 0.95 }],
+  'entity.skeleton.ambient': [{ set: 'skeleton_say' }],
+  'entity.skeleton.hurt': [{ set: 'skeleton_hurt' }],
+  'entity.skeleton.death': [{ set: 'skeleton_say', pitch: 0.8 }],
+  'entity.skeleton.step': [{ set: 'skeleton_say', pitch: 1.4, volume: 0.4 }],
+  'entity.skeleton.shoot': [{ set: 'bow_shoot' }],
+  'entity.stray.ambient': [{ set: 'skeleton_say', pitch: 0.85 }],
+  'entity.stray.hurt': [{ set: 'skeleton_hurt', pitch: 0.85 }],
+  'entity.stray.death': [{ set: 'skeleton_say', pitch: 0.7 }],
+  'entity.stray.step': [{ set: 'skeleton_say', pitch: 1.2, volume: 0.4 }],
+  'entity.wither_skeleton.ambient': [{ set: 'skeleton_say', pitch: 0.65 }],
+  'entity.wither_skeleton.hurt': [{ set: 'skeleton_hurt', pitch: 0.65 }],
+  'entity.wither_skeleton.death': [{ set: 'skeleton_say', pitch: 0.55 }],
+  'entity.wither_skeleton.step': [{ set: 'skeleton_say', pitch: 1, volume: 0.4 }],
+  'entity.spider.ambient': [{ set: 'spider_say' }],
+  'entity.spider.hurt': [{ set: 'spider_hurt' }],
+  'entity.spider.death': [{ set: 'spider_say', pitch: 0.8 }],
+  'entity.spider.step': [{ set: 'spider_step' }],
+  'entity.creeper.hurt': [{ set: 'creeper_hurt' }],
+  'entity.creeper.death': [{ set: 'creeper_hurt', pitch: 0.8 }],
+  'entity.creeper.primed': [{ set: 'fuse' }],
+  'entity.tnt.primed': [{ set: 'fuse' }],
+  'entity.generic.explode': [{ set: 'explode' }],
+  // generic / player / items
+  'entity.generic.hurt': [{ set: 'player_hurt' }],
+  'entity.generic.death': [{ set: 'player_hurt', pitch: 0.9 }],
+  'entity.generic.eat': [{ set: 'eat' }],
+  'entity.generic.drink': [{ set: 'drink' }],
+  'entity.generic.burn': [{ set: 'extinguish', volume: 0.6 }],
+  'entity.generic.extinguish_fire': [{ set: 'extinguish' }],
+  'entity.generic.splash': [{ set: 'splash' }],
+  'entity.generic.swim': [{ set: 'swim' }],
+  'entity.generic.big_fall': [{ set: 'fall_big' }],
+  'entity.generic.small_fall': [{ set: 'fall_small' }],
+  'entity.player.burp': [{ set: 'burp' }],
+  'entity.player.breath': [{ set: 'swim', volume: 0.5 }],
+  'entity.arrow.shoot': [{ set: 'bow_shoot' }],
+  'entity.arrow.hit': [{ set: 'arrow_hit' }],
+  'entity.arrow.hit_player': [{ set: 'orb', pitch: 0.6 }],
+  'entity.egg.throw': [{ set: 'bow_shoot', pitch: 1.4, volume: 0.5 }],
+  'entity.snowball.throw': [{ set: 'bow_shoot', pitch: 1.4, volume: 0.5 }],
+  'entity.experience_bottle.throw': [{ set: 'bow_shoot', pitch: 1.3, volume: 0.5 }],
+  'entity.item.break': [{ set: 'item_break' }],
+  'item.bucket.fill': [{ set: 'bucket_fill' }],
+  'item.bucket.empty': [{ set: 'bucket_empty' }],
+  'item.bucket.fill_fish': [{ set: 'bucket_fill' }],
+  'item.bucket.empty_fish': [{ set: 'bucket_empty' }],
+  'item.bucket.fill_axolotl': [{ set: 'bucket_fill' }],
+  'item.bucket.empty_axolotl': [{ set: 'bucket_empty' }],
+  'item.bucket.fill_lava': [{ set: 'bucket_lava' }],
+  'item.bucket.empty_lava': [{ set: 'bucket_lava', pitch: 0.9 }],
+  'item.bucket.fill_powder_snow': [{ set: 'dig_snow' }],
+  'item.bucket.empty_powder_snow': [{ set: 'dig_snow', pitch: 0.9 }],
+  'item.flintandsteel.use': [{ set: 'metal_latch', pitch: 1.4 }],
+  'item.armor.equip_generic': [{ set: 'dig_cloth' }],
+  'item.armor.equip_leather': [{ set: 'dig_cloth' }],
+  'item.armor.equip_chain': [{ set: 'chain' }],
+  'item.armor.equip_iron': [{ set: 'metal_light' }],
+  'item.armor.equip_gold': [{ set: 'metal_light', pitch: 1.2 }],
+  'item.armor.equip_diamond': [{ set: 'metal_light', pitch: 1.1 }],
+  'item.armor.equip_netherite': [{ set: 'metal_heavy', pitch: 0.9 }],
+  'item.armor.equip_turtle': [{ set: 'dig_stone', pitch: 1.2 }],
+  'item.armor.equip_elytra': [{ set: 'dig_cloth', pitch: 0.8 }],
+  'item.shield.block': [{ set: 'dig_wood' }],
+  'item.shield.break': [{ set: 'dig_wood', pitch: 0.7 }],
+  // fluids / fire / redstone components / containers
+  'block.fire.ambient': [{ set: 'fire' }],
+  'block.fire.extinguish': [{ set: 'extinguish' }],
+  'block.furnace.fire_crackle': [{ set: 'furnace' }],
+  'block.blastfurnace.fire_crackle': [{ set: 'furnace', pitch: 1.1 }],
+  'block.smoker.smoke': [{ set: 'furnace', pitch: 0.9 }],
+  'block.campfire.crackle': [{ set: 'campfire' }],
+  'block.lava.ambient': [{ set: 'lava_ambient' }],
+  'block.lava.pop': [{ set: 'lava_pop' }],
+  'block.lava.extinguish': [{ set: 'extinguish' }],
+  'block.water.ambient': [{ set: 'water_ambient' }],
+  'block.bubble_column.bubble_pop': [{ set: 'bubble_pop' }],
+  'block.bubble_column.upwards_ambient': [{ set: 'underwater_add' }],
+  'block.bubble_column.upwards_inside': [{ set: 'underwater_add', pitch: 1.2 }],
+  'block.bubble_column.whirlpool_ambient': [{ set: 'underwater_add', pitch: 0.8 }],
+  'block.bubble_column.whirlpool_inside': [{ set: 'underwater_add', pitch: 0.7 }],
+  'block.lever.click': [{ set: 'lever' }],
+  'block.wooden_button.click_on': [{ set: 'button', pitch: 0.8 }],
+  'block.wooden_button.click_off': [{ set: 'button', pitch: 0.7 }],
+  'block.stone_button.click_on': [{ set: 'button' }],
+  'block.stone_button.click_off': [{ set: 'button', pitch: 0.9 }],
+  'block.wooden_pressure_plate.click_on': [{ set: 'pressure_plate', pitch: 0.8 }],
+  'block.wooden_pressure_plate.click_off': [{ set: 'pressure_plate', pitch: 0.7 }],
+  'block.stone_pressure_plate.click_on': [{ set: 'pressure_plate' }],
+  'block.stone_pressure_plate.click_off': [{ set: 'pressure_plate', pitch: 0.9 }],
+  'block.metal_pressure_plate.click_on': [{ set: 'pressure_plate', pitch: 1.2 }],
+  'block.metal_pressure_plate.click_off': [{ set: 'pressure_plate', pitch: 1.1 }],
+  'block.tripwire.click_on': [{ set: 'button', pitch: 1.2 }],
+  'block.tripwire.click_off': [{ set: 'button', pitch: 1.1 }],
+  'block.tripwire.attach': [{ set: 'metal_latch', pitch: 1.3 }],
+  'block.tripwire.detach': [{ set: 'metal_latch', pitch: 1.2 }],
+  'block.barrel.open': [{ set: 'chest_creak', pitch: 1.1 }],
+  'block.barrel.close': [{ set: 'door_close', pitch: 1.2 }],
+  'block.ender_chest.open': [{ set: 'chest_creak', pitch: 0.8 }],
+  'block.ender_chest.close': [{ set: 'door_close', pitch: 0.8 }],
+  'block.shulker_box.open': [{ set: 'chest_creak', pitch: 1.3 }],
+  'block.shulker_box.close': [{ set: 'door_close', pitch: 1.3 }],
+  'block.chest.locked': [{ set: 'metal_latch', pitch: 0.8 }],
+  // ambience
+  'ambient.cave': [{ set: 'cave' }],
+  'ambient.underwater.loop': [{ set: 'underwater_loop', stream: true }],
+  'ambient.underwater.enter': [{ set: 'splash', volume: 0.6, pitch: 0.8 }],
+  'ambient.underwater.exit': [{ set: 'splash', volume: 0.5, pitch: 1.1 }],
+  'ambient.underwater.loop.additions': [{ set: 'underwater_add' }],
+  'ambient.underwater.loop.additions.rare': [{ set: 'underwater_add', pitch: 0.8 }],
+  'ambient.underwater.loop.additions.ultra_rare': [{ set: 'cave', pitch: 0.7 }],
+  // UI
+  'ui.toast.in': [{ set: 'toast_in' }],
+  'ui.toast.out': [{ set: 'toast_out' }],
+  'ui.toast.challenge_complete': [{ set: 'levelup' }],
+  'ui.stonecutter.take_result': [{ set: 'dig_stone' }],
+  'ui.loom.take_result': [{ set: 'dig_cloth' }],
+  'ui.loom.select_pattern': [{ set: 'dig_cloth', pitch: 1.2 }],
+  'ui.cartography_table.take_result': [{ set: 'dig_cloth', pitch: 1.4 }],
+  // music (vanilla Musics: game/creative/nether share the calm set; menu, underwater and end get the pads)
+  'music.game': music('music_calm1', 'music_calm2', 'music_calm3', 'music_texture'),
+  'music.creative': music('music_calm1', 'music_calm2', 'music_calm3', 'music_texture', 'music_choir'),
+  'music.menu': music('music_choir', 'music_calm2', 'music_texture'),
+  'music.under_water': music('music_deep', 'music_choir'),
+  'music.end': music('music_choir', 'music_gloom'),
+  'music.dragon': music('music_gloom'),
+  'music.credits': music('music_calm3'),
+  'music.nether.nether_wastes': music('music_gloom', 'music_deep'),
+  'music.nether.crimson_forest': music('music_gloom', 'music_deep'),
+  'music.nether.warped_forest': music('music_gloom', 'music_choir'),
+  'music.nether.soul_sand_valley': music('music_gloom', 'music_deep'),
+  'music.nether.basalt_deltas': music('music_gloom', 'music_deep'),
+} satisfies Record<string, Ref[]>);
+
 /** Events the game currently plays (missing ones are reported). */
 const HOOKED = new Set<string>([
   ...Object.values(SOUND_TYPES).flatMap((t) => [t.break, t.step, t.place, t.hit, t.fall]),
@@ -279,7 +683,55 @@ const HOOKED = new Set<string>([
   'ui.button.click', 'entity.player.attack.strong', 'entity.player.attack.weak', 'entity.player.attack.crit',
   'entity.player.attack.knockback', 'entity.player.attack.nodamage', 'entity.player.attack.sweep',
   'entity.experience_orb.pickup', 'entity.player.levelup',
+  ...scanSourceEvents(),
 ]);
+
+/** Every vanilla sound event name quoted in the game's source (client, server, shared). */
+function scanSourceEvents(): string[] {
+  const names = new Set(SOUND_EVENTS.map((e) => e.name));
+  const found = new Set<string>();
+  const walk = (dir: string): void => {
+    for (const f of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, f.name);
+      if (f.isDirectory()) { if (f.name !== 'node_modules') walk(p); continue; }
+      if (!/\.ts$/.test(f.name) || /\.test\.ts$/.test(f.name)) continue;
+      for (const m of readFileSync(p, 'utf8').matchAll(/'((?:block|entity|item|ambient|weather|ui|music|enchant|event|particle)\.[a-z0-9_.]+)'/g)) {
+        if (names.has(m[1]!)) found.add(m[1]!);
+      }
+    }
+  };
+  for (const d of ['client/src', 'server/src', 'shared/src']) walk(join(root, d));
+  return [...found];
+}
+
+/**
+ * Vanilla events that have no recording yet but are (or soon will be) played: they get an explicit
+ * `placeholder` entry in sounds.json (silent; the engine logs them once at debug level).
+ */
+const PLACEHOLDERS = [
+  'block.note_block.harp', 'block.note_block.basedrum', 'block.note_block.snare', 'block.note_block.hat', 'block.note_block.bass',
+  'block.note_block.flute', 'block.note_block.bell', 'block.note_block.guitar', 'block.note_block.chime', 'block.note_block.xylophone',
+  'block.note_block.iron_xylophone', 'block.note_block.cow_bell', 'block.note_block.didgeridoo', 'block.note_block.bit',
+  'block.note_block.banjo', 'block.note_block.pling', 'block.portal.ambient', 'block.portal.travel', 'block.portal.trigger',
+  'entity.zombified_piglin.ambient', 'entity.zombified_piglin.hurt', 'entity.zombified_piglin.death', 'entity.enderman.ambient',
+  'entity.enderman.hurt', 'entity.enderman.death', 'entity.enderman.teleport', 'entity.wolf.ambient', 'entity.wolf.hurt',
+  'entity.wolf.death', 'entity.cat.ambient', 'entity.cat.hurt', 'entity.cat.death', 'entity.villager.ambient', 'entity.villager.hurt',
+  'entity.villager.death', 'entity.villager.trade', 'entity.horse.ambient', 'entity.horse.hurt', 'entity.horse.death',
+  'entity.slime.squish', 'entity.slime.hurt', 'entity.slime.death', 'entity.slime.jump', 'entity.witch.ambient', 'entity.witch.hurt',
+  'entity.witch.death', 'entity.ender_dragon.growl', 'entity.wither.spawn', 'entity.phantom.ambient', 'entity.bat.ambient',
+  'entity.squid.ambient', 'entity.ghast.ambient', 'entity.blaze.ambient', 'block.beacon.ambient',
+  'block.conduit.ambient', 'block.end_portal.spawn', 'block.beehive.work', 'entity.bee.loop', 'block.respawn_anchor.charge', 'block.respawn_anchor.deplete',
+  'block.respawn_anchor.set_spawn', 'block.respawn_anchor.ambient', 'item.totem.use', 'block.sculk_sensor.clicking',
+];
+// slimes reuse the slime block recordings; the rest stay silent until recordings are sourced
+Object.assign(EVENTS, {
+  'entity.slime.squish': [{ set: 'slime' }], 'entity.slime.hurt': [{ set: 'slime', pitch: 1.2 }],
+  'entity.slime.death': [{ set: 'slime', pitch: 0.8 }], 'entity.slime.jump': [{ set: 'slime', pitch: 1.1 }],
+  'entity.slime.squish_small': [{ set: 'slime', pitch: 1.4 }], 'entity.slime.hurt_small': [{ set: 'slime', pitch: 1.5 }],
+  'entity.slime.death_small': [{ set: 'slime', pitch: 1.3 }], 'entity.slime.jump_small': [{ set: 'slime', pitch: 1.4 }],
+  'entity.magma_cube.squish': [{ set: 'slime', pitch: 0.7 }], 'entity.magma_cube.hurt': [{ set: 'slime', pitch: 0.8 }],
+  'entity.magma_cube.death': [{ set: 'slime', pitch: 0.6 }], 'entity.magma_cube.jump': [{ set: 'slime', pitch: 0.75 }],
+} satisfies Record<string, Ref[]>);
 
 // ------------------------------------------------------------------ build
 const valid = new Set(SOUND_EVENTS.map((e) => e.name));
@@ -295,17 +747,21 @@ for (const set of used) {
   const clips = make();
   mkdirSync(join(outDir, set), { recursive: true });
   const files = clips.map((c, i) => {
-    encode(c.samples, join(outDir, set, `${i}.ogg`));
+    encode(c.samples, join(outDir, set, `${i}.ogg`), c.quality ?? 3);
     return { name: `${set}/${i}`, source: c.source };
   });
   setFiles.set(set, files);
   console.log(`${set}: ${files.length} clips`);
 }
-const manifest: Record<string, { sounds: { name: string; volume?: number; pitch?: number }[] }> = {};
+const manifest: Record<string, { sounds: { name: string; volume?: number; pitch?: number; stream?: boolean }[]; placeholder?: true }> = {};
 for (const ev of [...Object.keys(EVENTS)].sort()) {
-  manifest[ev] = { sounds: EVENTS[ev]!.flatMap((r) => setFiles.get(r.set)!.map((f) => ({ name: f.name, ...(r.volume ? { volume: r.volume } : {}), ...(r.pitch ? { pitch: r.pitch } : {}) }))) };
+  manifest[ev] = { sounds: EVENTS[ev]!.flatMap((r) => setFiles.get(r.set)!.map((f) => ({ name: f.name, ...(r.volume ? { volume: r.volume } : {}), ...(r.pitch ? { pitch: r.pitch } : {}), ...(r.stream ? { stream: true } : {}) }))) };
 }
-writeFileSync(join(outDir, 'sounds.json'), JSON.stringify(manifest, null, 1));
+for (const ev of [...HOOKED, ...PLACEHOLDERS].sort()) {
+  if (!valid.has(ev)) throw new Error(`not a 1.17.1 sound event: ${ev}`);
+  if (!manifest[ev]) manifest[ev] = { sounds: [], placeholder: true };
+}
+writeFileSync(join(outDir, 'sounds.json'), JSON.stringify(Object.fromEntries(Object.entries(manifest).sort(([a], [b]) => a.localeCompare(b))), null, 1));
 
 // credits
 const used_sources = new Set([...setFiles.values()].flat().map((f) => f.source));
@@ -317,6 +773,6 @@ const block = `<!-- sounds:begin (generated by tools/soundgen/build.ts) -->\n## 
 assets = assets.includes('<!-- sounds:begin') ? assets.replace(/<!-- sounds:begin[\s\S]*?<!-- sounds:end -->/, block) : `${assets.trimEnd()}\n\n${block}\n`;
 writeFileSync(assetPath, assets);
 
-const missing = [...HOOKED].filter((e) => !manifest[e]?.sounds.length).sort();
+const missing = Object.keys(manifest).filter((e) => !manifest[e]!.sounds.length).sort();
 writeFileSync(join(root, 'tools/soundgen/missing.txt'), missing.join('\n') + '\n');
-console.log(`sounds.json: ${Object.keys(manifest).length} events, ${[...setFiles.values()].flat().length} files; ${missing.length} hooked events still silent`);
+console.log(`sounds.json: ${Object.keys(manifest).length} events, ${[...setFiles.values()].flat().length} files; ${missing.length} events are silent placeholders (tools/soundgen/missing.txt)`);

@@ -7,6 +7,31 @@
 import { listWorlds, newWorldId, deleteWorld, exportWorldZip, importWorldZip, IdbStorage, type WorldSummary } from '@server/storage/idb';
 import { safeFolderName } from '@server/storage/archive';
 import { SAVE_FORMAT_VERSION, type LevelMeta } from '@server/storage/types';
+import { SoundEngine, type SoundCategory } from './audio/engine';
+import { MusicManager, MUSICS } from './audio/music';
+import { loadSettings } from './settings';
+
+/** Menu music (vanilla Musics.MENU) and button clicks on the start page; starts after the first gesture. */
+function startMenuAudio(root: HTMLElement): void {
+  const sound = new SoundEngine();
+  for (const [c, v] of Object.entries(loadSettings().volumes)) sound.volumes[c as SoundCategory] = v;
+  void sound.load();
+  const music = new MusicManager((event) => sound.playStream(event, 'music', 1));
+  const unlock = () => sound.resume();
+  window.addEventListener('pointerdown', unlock);
+  window.addEventListener('keydown', unlock);
+  root.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('button')) sound.play('ui.button.click', 'master', 0.25, 1);
+  });
+  const timer = setInterval(() => {
+    if (!root.isConnected) {
+      clearInterval(timer);
+      music.stopPlaying();
+      return;
+    }
+    music.tick(MUSICS.menu);
+  }, 50);
+}
 
 const KEY = 'blockcraft.launcher';
 
@@ -65,6 +90,7 @@ export function showLauncher(): void {
   const s = load();
   const root = document.createElement('div');
   root.id = 'launcher';
+  startMenuAudio(root);
   root.innerHTML = `
 <style>
   #launcher { position: fixed; inset: 0; display: flex; overflow: auto; padding: 16px 0; box-sizing: border-box;

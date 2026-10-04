@@ -61,6 +61,8 @@ import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
+import { MusicManager, situationalMusic, MUSICS } from './audio/music';
+import { AmbientSounds } from './audio/ambient';
 import { ItemTextures } from './render/itemtextures';
 import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './gui/itemicons';
 import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
@@ -137,6 +139,13 @@ export class Game implements ScreenHost {
   private lightning!: LightningRenderer;
   private orbRenderer!: OrbRenderer;
   readonly sound = new SoundEngine();
+  /** vanilla MusicManager (one streamed track at a time, 10-20 min apart in game) */
+  readonly music = new MusicManager((event) => this.sound.playStream(event, 'music', 1));
+  /** cave mood sounds and underwater ambience */
+  private readonly ambient = new AmbientSounds({
+    playAt: (event, x, y, z, volume, pitch) => this.playAt(event, 'ambient', x, y, z, volume, pitch),
+    playLoop: (event) => this.sound.playStream(event, 'ambient', 0, true),
+  });
   private readonly steps = new StepTracker();
   private readonly sfxRand = new JavaRandom(BigInt(Date.now()) ^ 0x5deece66dn);
   private rainSoundTime = 0;
@@ -911,6 +920,7 @@ export class Game implements ScreenHost {
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
     }
     this.tickRainSound();
+    this.tickAudio();
     // camera eye height eases toward the pose's eye height (vanilla Camera.tick)
     this.eyeHeightOld = this.eyeHeight;
     this.eyeHeight += (pl.eyeHeight - this.eyeHeight) * 0.5;
@@ -1212,6 +1222,28 @@ export class Game implements ScreenHost {
       p.lastFallDistance = 0;
     }
     this.wasOnGround = p.onGround;
+  }
+
+  /** Music manager and ambient handlers (Minecraft.tick → musicManager.tick, LocalPlayer ambient handlers). */
+  private tickAudio(): void {
+    const pl = this.player;
+    const bx = Math.floor(pl.x), by = Math.floor(pl.y), bz = Math.floor(pl.z);
+    const loaded = this.loggedIn && this.world.isLoaded(bx, bz);
+    const biome = loaded ? BIOMES[this.world.getBiome(bx, by, bz)] : undefined;
+    const underWater = loaded && pl.isUnderWater;
+    this.music.tick(situationalMusic({
+      inMenu: !loaded,
+      dimension: biome?.dimension ?? 'overworld',
+      biome: biome?.name ?? 'plains',
+      biomeCategory: biome?.category ?? 'plains',
+      underWater,
+      creativeFlying: this.gameMode === 1 && pl.abilities.mayFly,
+    }, this.music.isPlaying(MUSICS.underWater)));
+    if (!loaded) return;
+    this.ambient.tick(this.world, {
+      x: pl.x, y: pl.y, z: pl.z, eyeY: pl.y + pl.eyeHeight, underWater: underWater && this.gameMode !== 3,
+      moodSound: biome && biome.dimension === 'overworld' ? 'ambient.cave' : null,
+    });
   }
 
   /** LevelRenderer.tickRain sound part: rain sounds from random exposed blocks near the camera. */
