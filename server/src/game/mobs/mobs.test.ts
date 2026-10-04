@@ -193,7 +193,7 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     for (const [diff, expected] of [['normal', 3], ['easy', 2.5], ['hard', 4.5]] as const) {
       const { server, a, p } = setup();
       a.send({ t: 'chat', message: `/difficulty ${diff}` });
-      const z = server.mobs.spawn('zombie', 1.5, 64, 0.5) as Zombie;
+      const z = server.mobs.spawn('zombie', 3.5, 64, 0.5) as Zombie;
       z.baby = false;
       z.mainHand = null;
       server.tick();
