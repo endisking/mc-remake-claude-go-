@@ -142,7 +142,9 @@ for (let i = 3; i < 39; i++) {
     await page.keyboard.up('Shift');
   }
 }
-await page.waitForTimeout(4000);
+for (let i = 0; i < 4; i++) {
+  await page.waitForTimeout(1000);
+}
 await shot('furnace');
 await page.keyboard.press('Escape');
 await page.waitForTimeout(200);
