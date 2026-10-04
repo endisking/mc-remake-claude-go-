@@ -914,7 +914,10 @@ export class Game implements ScreenHost {
     this.fovModifier += (fovTarget - this.fovModifier) * 0.5;
     if (this.fovModifier > 1.5) this.fovModifier = 1.5;
     if (this.fovModifier < 0.1) this.fovModifier = 0.1;
-    for (const rp of this.players.values()) rp.tick();
+    for (const rp of this.players.values()) {
+      rp.tick();
+      rp.usingItem = this.itemUse?.remoteUse(rp.id)?.item ?? 0;
+    }
     for (const [id, it] of this.items) {
       if (it.pickup && ++it.pickup.life > 3) {
         this.items.delete(id);
@@ -945,6 +948,7 @@ export class Game implements ScreenHost {
       sm.offHand = this.interaction.inventory.get(40)?.id ?? 0;
       const inv = this.interaction.inventory;
       sm.armor = [inv.get(36)?.id ?? 0, inv.get(37)?.id ?? 0, inv.get(38)?.id ?? 0, inv.get(39)?.id ?? 0];
+      sm.usingItem = this.itemUse.isUsing ? this.itemUse.useItem : 0;
       sm.tick();
     }
     this.tickLiving();

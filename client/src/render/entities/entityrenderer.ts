@@ -6,7 +6,7 @@ import { createProgram, Uniforms } from '../gl';
 import { mat4, multiply, type Mat4 } from '../math';
 import { bakeEntityModel, FLOATS_PER_VERTEX, PartPose, type BakedEntityModel, type PartDef } from './model';
 import { playerParts, animateHumanoid, armorParts } from './playermodel';
-import { armorInfo } from '@shared/game/items';
+import { armorInfo, nameOf } from '@shared/game/items';
 import type { RemotePlayer } from '../../world/entities';
 import type { ClientWorld } from '../../world/clientworld';
 
@@ -237,6 +237,7 @@ export class EntityRenderer {
         attackTime: p.attackAnimO + (p.attackAnim - p.attackAnimO) * partial,
         attackArm: p.swingingArm,
         swimAmount: 0,
+        bowPose: p.usingItem !== 0 && nameOf(p.usingItem) === 'bow',
       });
       // entity base transform: translate, rotate by body yaw (yaw 0 faces +Z), scale px → blocks
       const m = this.m;

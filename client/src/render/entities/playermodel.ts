@@ -66,6 +66,8 @@ export interface HumanoidAnim {
   /** which arm swings (the off hand swings the left arm for a right-handed player) */
   attackArm?: 'right' | 'left';
   swimAmount: number;
+  /** HumanoidModel.ArmPose.BOW_AND_ARROW: both arms raised along the look direction */
+  bowPose?: boolean;
 }
 
 export function animateHumanoid(p: Record<string, PartPose>, a: HumanoidAnim): void {
@@ -104,6 +106,13 @@ export function animateHumanoid(p: Record<string, PartPose>, a: HumanoidAnim): v
     arm.xRot -= f2 * 1.2 + f3;
     arm.yRot += body.yRot * 2;
     arm.zRot += Math.sin(a.attackTime * Math.PI) * -0.4;
+  }
+  // HumanoidModel.poseRightArm BOW_AND_ARROW (yRot signs flipped: this model's yaw is mirrored)
+  if (a.bowPose) {
+    rightArm.yRot = 0.1 + head.yRot;
+    leftArm.yRot = -0.5 + head.yRot;
+    rightArm.xRot = -Math.PI / 2 + head.xRot;
+    leftArm.xRot = -Math.PI / 2 + head.xRot;
   }
   // crouching: lean forward, lower the head, pull the legs back
   if (a.crouching) {
