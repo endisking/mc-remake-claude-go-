@@ -145,7 +145,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Middle-click pick block <!--p2:middle_click_pick_block-->
 - [x] Hurt camera tilt and red flash <!--p2:hurt_camera_tilt_and_red_flash-->
 - [x] Hunger HUD shake <!--p2:hunger_hud_shake-->
-- [ ] First-person hand and held item rendering <!--p2:first_person_hand_and_held_item_rendering-->
+- [x] First-person hand and held item rendering <!--p2:first_person_hand_and_held_item_rendering-->
 - [ ] Nausea/portal screen wobble <!--p2:nausea_portal_screen_wobble-->
 
 ### Interaction
