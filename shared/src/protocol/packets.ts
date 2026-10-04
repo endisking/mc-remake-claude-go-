@@ -93,6 +93,13 @@ const S2C_SCHEMA = {
   windowData: [['windowId', 'u8'], ['property', 'u8'], ['value', 'i16']],
   /** The server closed a window (vanilla ContainerClose). */
   closeWindow: [['windowId', 'u8']],
+  // ---- commands & player list (Phase 9) ----
+  /** Answer to a commandSuggest request: JSON {start, list:[{text,tooltip?}], usage:[], error, parsedTo}. */
+  commandSuggestions: [['id', 'varint'], ['json', 'str']],
+  /** Vanilla KeepAlive: echo the id back (latency measurement). */
+  keepAlive: [['id', 'f64']],
+  /** Vanilla PlayerInfo UPDATE_LATENCY: a player's ping in milliseconds. */
+  playerLatency: [['id', 'i32'], ['latency', 'varint']],
 } as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server
@@ -130,6 +137,11 @@ const C2S_SCHEMA = {
   clickWindow: [['windowId', 'u8'], ['slot', 'i16'], ['button', 'u8'], ['clickType', 'u8']],
   /** The player closed a window (0 = the inventory). */
   closeWindow: [['windowId', 'u8']],
+  // ---- commands & player list (Phase 9) ----
+  /** Chat box tab completion (vanilla ServerboundCommandSuggestion); text includes the leading '/'. */
+  commandSuggest: [['id', 'varint'], ['text', 'str']],
+  /** Reply to the server's keepAlive. */
+  keepAlive: [['id', 'f64']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;

@@ -214,7 +214,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Ravine (canyon) carver <!--p3:ravine_canyon_carver-->
 - [x] Underwater caves and underwater ravines <!--p3:underwater_caves_and_underwater_ravines-->
 - [x] Lakes (water and lava) <!--p3:lakes_water_and_lava-->
-- [ ] Springs (water and lava) <!--p3:springs_water_and_lava-->
+- [x] Springs (water and lava) <!--p3:springs_water_and_lava-->
 - [x] Ice and snow placement by temperature <!--p3:ice_and_snow_placement_by_temperature-->
 
 ### Ores & underground (1.17.1 heights)
@@ -415,11 +415,11 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 ### Mechanics
 
 - [ ] Gravity blocks (sand, gravel, concrete powder, anvil, dragon egg, scaffolding, pointed dripstone) <!--p4:gravity_blocks_sand_gravel_concrete_powder_anvil_dragon_egg_scaffolding_pointed_dripstone-->
-- [ ] Water flow, sources, infinite sources <!--p4:water_flow_sources_infinite_sources-->
-- [ ] Lava flow (faster in Nether) <!--p4:lava_flow_faster_in_nether-->
-- [ ] Waterlogging <!--p4:waterlogging-->
-- [ ] Lava + water → cobblestone / stone / obsidian <!--p4:lava_water_cobblestone_stone_obsidian-->
-- [ ] Basalt generator (lava + soul soil + blue ice) <!--p4:basalt_generator_lava_soul_soil_blue_ice-->
+- [x] Water flow, sources, infinite sources <!--p4:water_flow_sources_infinite_sources-->
+- [x] Lava flow (faster in Nether) <!--p4:lava_flow_faster_in_nether-->
+- [x] Waterlogging <!--p4:waterlogging-->
+- [x] Lava + water → cobblestone / stone / obsidian <!--p4:lava_water_cobblestone_stone_obsidian-->
+- [x] Basalt generator (lava + soul soil + blue ice) <!--p4:basalt_generator_lava_soul_soil_blue_ice-->
 - [ ] Random ticks (randomTickSpeed 3) <!--p4:random_ticks_randomtickspeed_3-->
 - [ ] Crop growth (wheat, carrots, potatoes, beetroot, melon/pumpkin stems, nether wart) <!--p4:crop_growth_wheat_carrots_potatoes_beetroot_melon_pumpkin_stems_nether_wart-->
 - [ ] Saplings and tree growth <!--p4:saplings_and_tree_growth-->
@@ -2860,14 +2860,14 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Entity sync and interpolation <!--p9:entity_sync_and_interpolation-->
 - [ ] Block update sync <!--p9:block_update_sync-->
 - [ ] Chunk streaming <!--p9:chunk_streaming-->
-- [ ] Player list (Tab) <!--p9:player_list_tab-->
-- [ ] Chat <!--p9:chat-->
-- [ ] Nameplates <!--p9:nameplates-->
+- [x] Player list (Tab) <!--p9:player_list_tab-->
+- [x] Chat <!--p9:chat-->
+- [x] Nameplates <!--p9:nameplates-->
 - [ ] Skins (defaults + upload) <!--p9:skins_defaults_upload-->
-- [ ] PvP toggle <!--p9:pvp_toggle-->
-- [ ] Ops / permissions <!--p9:ops_permissions-->
-- [ ] Whitelist <!--p9:whitelist-->
-- [ ] Kick / ban <!--p9:kick_ban-->
+- [x] PvP toggle <!--p9:pvp_toggle-->
+- [x] Ops / permissions <!--p9:ops_permissions-->
+- [x] Whitelist <!--p9:whitelist-->
+- [x] Kick / ban <!--p9:kick_ban-->
 - [ ] Spawn protection (off by default) <!--p9:spawn_protection_off_by_default-->
 - [ ] Per-player inventories and spawns <!--p9:per_player_inventories_and_spawns-->
 - [x] Saves: region-like format <!--p9:saves_region_like_format-->
@@ -2878,39 +2878,39 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Commands
 
-- [ ] /gamemode <!--cmd:gamemode-->
-- [ ] /tp <!--cmd:tp-->
-- [ ] /give <!--cmd:give-->
-- [ ] /time <!--cmd:time-->
-- [ ] /weather <!--cmd:weather-->
-- [ ] /gamerule <!--cmd:gamerule-->
-- [ ] /difficulty <!--cmd:difficulty-->
-- [ ] /seed <!--cmd:seed-->
-- [ ] /kill <!--cmd:kill-->
+- [x] /gamemode <!--cmd:gamemode-->
+- [x] /tp <!--cmd:tp-->
+- [x] /give <!--cmd:give-->
+- [x] /time <!--cmd:time-->
+- [x] /weather <!--cmd:weather-->
+- [x] /gamerule <!--cmd:gamerule-->
+- [x] /difficulty <!--cmd:difficulty-->
+- [x] /seed <!--cmd:seed-->
+- [x] /kill <!--cmd:kill-->
 - [ ] /effect <!--cmd:effect-->
 - [ ] /enchant <!--cmd:enchant-->
 - [ ] /summon <!--cmd:summon-->
-- [ ] /setblock <!--cmd:setblock-->
-- [ ] /fill <!--cmd:fill-->
-- [ ] /clone <!--cmd:clone-->
+- [x] /setblock <!--cmd:setblock-->
+- [x] /fill <!--cmd:fill-->
+- [x] /clone <!--cmd:clone-->
 - [ ] /locate <!--cmd:locate-->
-- [ ] /spawnpoint <!--cmd:spawnpoint-->
-- [ ] /setworldspawn <!--cmd:setworldspawn-->
-- [ ] /xp <!--cmd:xp-->
-- [ ] /help <!--cmd:help-->
-- [ ] /me <!--cmd:me-->
-- [ ] /msg (/tell, /w) <!--cmd:msg_tell_w-->
-- [ ] /list <!--cmd:list-->
-- [ ] /op <!--cmd:op-->
-- [ ] /deop <!--cmd:deop-->
-- [ ] /kick <!--cmd:kick-->
-- [ ] /ban <!--cmd:ban-->
-- [ ] /pardon <!--cmd:pardon-->
-- [ ] /whitelist <!--cmd:whitelist-->
-- [ ] /clear <!--cmd:clear-->
-- [ ] /say <!--cmd:say-->
-- [ ] Target selectors (@p @a @r @s @e with arguments) <!--cmd:target_selectors_p_a_r_s_e_with_arguments-->
-- [ ] Relative and local coordinates (~ ^) <!--cmd:relative_and_local_coordinates-->
+- [x] /spawnpoint <!--cmd:spawnpoint-->
+- [x] /setworldspawn <!--cmd:setworldspawn-->
+- [x] /xp <!--cmd:xp-->
+- [x] /help <!--cmd:help-->
+- [x] /me <!--cmd:me-->
+- [x] /msg (/tell, /w) <!--cmd:msg_tell_w-->
+- [x] /list <!--cmd:list-->
+- [x] /op <!--cmd:op-->
+- [x] /deop <!--cmd:deop-->
+- [x] /kick <!--cmd:kick-->
+- [x] /ban <!--cmd:ban-->
+- [x] /pardon <!--cmd:pardon-->
+- [x] /whitelist <!--cmd:whitelist-->
+- [x] /clear <!--cmd:clear-->
+- [x] /say <!--cmd:say-->
+- [x] Target selectors (@p @a @r @s @e with arguments) <!--cmd:target_selectors_p_a_r_s_e_with_arguments-->
+- [x] Relative and local coordinates (~ ^) <!--cmd:relative_and_local_coordinates-->
 
 ### Gamerules (all 1.17.1)
 
@@ -2918,7 +2918,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] commandBlockOutput <!--gamerule:commandblockoutput-->
 - [ ] disableElytraMovementCheck <!--gamerule:disableelytramovementcheck-->
 - [ ] disableRaids <!--gamerule:disableraids-->
-- [ ] doDaylightCycle <!--gamerule:dodaylightcycle-->
+- [x] doDaylightCycle <!--gamerule:dodaylightcycle-->
 - [ ] doEntityDrops <!--gamerule:doentitydrops-->
 - [ ] doFireTick <!--gamerule:dofiretick-->
 - [ ] doImmediateRespawn <!--gamerule:doimmediaterespawn-->
@@ -2927,26 +2927,26 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] doMobLoot <!--gamerule:domobloot-->
 - [ ] doMobSpawning <!--gamerule:domobspawning-->
 - [ ] doPatrolSpawning <!--gamerule:dopatrolspawning-->
-- [ ] doTileDrops <!--gamerule:dotiledrops-->
+- [x] doTileDrops <!--gamerule:dotiledrops-->
 - [ ] doTraderSpawning <!--gamerule:dotraderspawning-->
-- [ ] doWeatherCycle <!--gamerule:doweathercycle-->
-- [ ] drowningDamage <!--gamerule:drowningdamage-->
-- [ ] fallDamage <!--gamerule:falldamage-->
-- [ ] fireDamage <!--gamerule:firedamage-->
+- [x] doWeatherCycle <!--gamerule:doweathercycle-->
+- [x] drowningDamage <!--gamerule:drowningdamage-->
+- [x] fallDamage <!--gamerule:falldamage-->
+- [x] fireDamage <!--gamerule:firedamage-->
 - [ ] forgiveDeadPlayers <!--gamerule:forgivedeadplayers-->
-- [ ] freezeDamage <!--gamerule:freezedamage-->
-- [ ] keepInventory <!--gamerule:keepinventory-->
-- [ ] logAdminCommands <!--gamerule:logadmincommands-->
+- [x] freezeDamage <!--gamerule:freezedamage-->
+- [x] keepInventory <!--gamerule:keepinventory-->
+- [x] logAdminCommands <!--gamerule:logadmincommands-->
 - [ ] maxCommandChainLength <!--gamerule:maxcommandchainlength-->
 - [ ] maxEntityCramming <!--gamerule:maxentitycramming-->
 - [ ] mobGriefing <!--gamerule:mobgriefing-->
-- [ ] naturalRegeneration <!--gamerule:naturalregeneration-->
-- [ ] playersSleepingPercentage <!--gamerule:playerssleepingpercentage-->
+- [x] naturalRegeneration <!--gamerule:naturalregeneration-->
+- [x] playersSleepingPercentage <!--gamerule:playerssleepingpercentage-->
 - [ ] randomTickSpeed <!--gamerule:randomtickspeed-->
 - [ ] reducedDebugInfo <!--gamerule:reduceddebuginfo-->
-- [ ] sendCommandFeedback <!--gamerule:sendcommandfeedback-->
-- [ ] showDeathMessages <!--gamerule:showdeathmessages-->
-- [ ] spawnRadius <!--gamerule:spawnradius-->
+- [x] sendCommandFeedback <!--gamerule:sendcommandfeedback-->
+- [x] showDeathMessages <!--gamerule:showdeathmessages-->
+- [x] spawnRadius <!--gamerule:spawnradius-->
 - [ ] spectatorsGenerateChunks <!--gamerule:spectatorsgeneratechunks-->
 - [ ] universalAnger <!--gamerule:universalanger-->
 

@@ -2,6 +2,7 @@
  * The client game: networking to a (local or remote) server, world mirror, camera,
  * frame loop and renderers.
  */
+import { animateFluids } from './world/fluidambience';
 import { decodeS2C, encodeC2S, PROTOCOL_VERSION, type C2S, type S2C } from '@shared/protocol/packets';
 import { BIOMES } from '@shared/data';
 import { chunkKey } from '@shared/world/chunk';
@@ -67,6 +68,7 @@ import { decodeStacks } from '@shared/protocol/packets';
 import { saveSettings } from './settings';
 import { ItemTextures } from './render/itemtextures';
 import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './gui/itemicons';
+import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
 export class Game implements ScreenHost, ContainerHost {
   readonly gl: WebGL2RenderingContext;
@@ -89,6 +91,12 @@ export class Game implements ScreenHost, ContainerHost {
   private readonly hud = new Hud();
   /** online players (vanilla PlayerInfo list) */
   readonly playerInfo = new Map<number, PlayerInfoEntry>();
+  /** operator permission level from the server (vanilla LocalPlayer.permissionLevel); integrated servers start at 4 */
+  permissionLevel = 4;
+  /** ping per player id (vanilla PlayerInfo latency) */
+  readonly playerLatency = new Map<number, number>();
+  /** camera position of the last frame (nameplates project from it) */
+  private readonly camPos = [0, 0, 0];
   /** entity the camera looks through while spectating (null = ourselves) */
   cameraEntity: number | null = null;
   /** game mode before the last change (F3+N returns to it) */
@@ -515,7 +523,10 @@ export class Game implements ScreenHost, ContainerHost {
   connect(t: ClientTransport): void {
     this.transport = t;
     t.onMessage = (d) => this.handle(decodeS2C(d));
-    t.onClose = (r) => console.warn('disconnected', r);
+    t.onClose = (r) => {
+      console.warn('disconnected', r);
+      this.showDisconnected(r);
+    };
     this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: '' });
   }
 
@@ -705,8 +716,8 @@ export class Game implements ScreenHost, ContainerHost {
             this.sleeping = sleeping;
             if (sleeping) {
               this.interaction.stopDestroy();
-              this.setScreen(new InBedScreen(this));
-            } else if (this.screen instanceof InBedScreen) this.setScreen(null);
+              this.setScreen(new InBedChatScreen(this.chatHost(), () => this.send({ t: 'stopSleeping' })));
+            } else if (this.screen instanceof InBedScreen || this.screen instanceof InBedChatScreen) this.setScreen(null);
           }
           break;
         }
@@ -883,6 +894,11 @@ export class Game implements ScreenHost, ContainerHost {
       }
       case 'levelEvent':
         if (p.event === 2001) this.blockBroken(p.x, p.y, p.z, p.data);
+        else if (p.event === 1501) {
+          // LevelRenderer.levelEvent LAVA_FIZZ: extinguish hiss (large smoke particles: no smoke particle type yet)
+          const r = this.sfxRand;
+          this.playAt('block.lava.extinguish', 'block', p.x + 0.5, p.y + 0.5, p.z + 0.5, 0.5, 2.6 + (r.nextFloat() - r.nextFloat()) * 0.8);
+        }
         break;
       case 'sound': {
         const name = soundName(p.event);
@@ -896,21 +912,31 @@ export class Game implements ScreenHost, ContainerHost {
         if (p.stage < 0) this.otherCracks.delete(p.id);
         else this.otherCracks.set(p.id, { x: p.x, y: p.y, z: p.z, stage: p.stage });
         break;
-      case 'chat': {
-        let text = p.json;
-        try {
-          const j = JSON.parse(p.json) as { text?: string };
-          if (typeof j.text === 'string') text = j.text;
-        } catch {
-          /* plain text */
-        }
-        this.hud.addChat(text);
+      case 'chat':
+        this.hud.addChat(componentToLegacy(p.json), componentClick(p.json));
         break;
-      }
-      case 'digAck':
+      case 'commandSuggestions':
+        if (this.screen instanceof ChatScreen) this.screen.receiveSuggestions(p.id, JSON.parse(p.json) as SuggestionReply);
+        break;
+      case 'keepAlive':
+        this.send({ t: 'keepAlive', id: p.id });
+        break;
+      case 'playerLatency':
+        this.playerLatency.set(p.id, p.latency);
+        break;
       case 'disconnect':
+        this.showDisconnected(p.reason);
+        break;
+      case 'digAck':
         break;
     }
+  }
+
+  /** Kicked, banned or the connection dropped: vanilla DisconnectedScreen. */
+  private showDisconnected(reason: string): void {
+    if (this.screen instanceof DisconnectedScreen) return;
+    this.loggedIn = false;
+    this.setScreen(new DisconnectedScreen(this, reason));
   }
 
   /** Move the camera directly (benchmark / tests); position is the eye. */
@@ -985,6 +1011,7 @@ export class Game implements ScreenHost, ContainerHost {
     this.lightmap.tick();
     if (this.world.doDaylightCycle) this.world.dayTime++;
     this.world.gameTime++;
+    animateFluids(this.world, this.player.x, this.player.y, this.player.z, this.sfxRand, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
     this.prevX = this.x;
     this.prevY = this.y;
     this.prevZ = this.z;
@@ -1090,6 +1117,9 @@ export class Game implements ScreenHost, ContainerHost {
       if (b.consume('inventory')) this.openInventory();
       // vanilla: Ctrl (Screen.hasControlDown) + drop throws the whole stack
       if (b.consume('swapOffhand')) ia.swapOffhand();
+      // vanilla handleKeybinds: T opens chat, / opens it with the slash typed
+      if (b.consume('chat')) this.openChat('');
+      else if (b.consume('command')) this.openChat('/');
       if (b.consume('drop')) ia.drop(i.isDown('ControlLeft') || i.isDown('ControlRight') || i.isDown('MetaLeft'));
     }
     if (this.loggedIn) {
@@ -1248,6 +1278,11 @@ export class Game implements ScreenHost, ContainerHost {
 
   /** LivingEntity.handleEntityEvent: hurt animation and the hurt/death sound for the local player. */
   private entityEvent(id: number, event: number): void {
+    // 24–28: our operator permission level (vanilla ClientboundEntityEventPacket)
+    if (id === this.entityId && event >= 24 && event <= 28) {
+      this.permissionLevel = event - 24;
+      return;
+    }
     const hurt = event === 2 || event === 33 || event === 36 || event === 37 || event === 44 || event === 57;
     if (id !== this.entityId) {
       const rp = this.players.get(id);
@@ -1613,7 +1648,8 @@ export class Game implements ScreenHost, ContainerHost {
         return true;
       case 'KeyN':
         // operators toggle between spectator and the previous game mode (creative if none)
-        if (this.gameMode !== 3) this.send({ t: 'chat', message: '/gamemode spectator' });
+        if (this.permissionLevel < 2) this.debugFeedback('Unable to switch gamemode; no permission');
+        else if (this.gameMode !== 3) this.send({ t: 'chat', message: '/gamemode spectator' });
         else this.send({ t: 'chat', message: `/gamemode ${GAME_MODE_NAMES[this.previousGameMode >= 0 && this.previousGameMode !== 3 ? this.previousGameMode : 1]}` });
         return true;
       case 'KeyP':
@@ -2004,6 +2040,9 @@ export class Game implements ScreenHost, ContainerHost {
     this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
 
     multiply(this.viewProj, this.proj, this.view);
+    this.camPos[0] = cx;
+    this.camPos[1] = cy;
+    this.camPos[2] = cz;
     frustumPlanes(this.planes, this.viewProj);
     this.chunks.renderDistance = s.renderDistance;
     this.chunks.update(cx, cy, cz);
@@ -2075,6 +2114,8 @@ export class Game implements ScreenHost, ContainerHost {
   private renderGui(x: number, y: number, z: number): void {
     const g = this.gui;
     g.begin(this.settings.guiScale);
+    this.hud.chatOpen = this.screen instanceof ChatScreen;
+    if (!this.hideHud) this.renderNameplates();
     if (!this.hideHud) {
       if (this.showDebug) this.renderDebug(x, y, z);
       else if (this.cameraType === 0 && (this.gameMode !== 3 || this.spectatorCrosshair())) {
@@ -2098,6 +2139,10 @@ export class Game implements ScreenHost, ContainerHost {
         g.ctx.restore();
       }
       this.hud.render(g, this.hudState(), (id, c, x, y, dmg, pop) => this.renderGuiItem(id, c, x, y, dmg, pop), this.guiPartial);
+      // PlayerTabOverlay: while the key is held, in multiplayer or with company
+      if (!this.screen && this.binds.down('playerlist') && (this.playerInfo.size > 1 || this.players.size > 0)) {
+        renderPlayerList(g, [...this.playerInfo.values()], (id) => this.playerLatency.get(id) ?? 0, (pi) => this.skinFace(pi));
+      }
       if (this.gameMode === 3) {
         this.spectatorGui.renderHotbar(g);
         this.spectatorGui.renderTooltip(g);
@@ -2110,6 +2155,73 @@ export class Game implements ScreenHost, ContainerHost {
       }
     }
     if (this.screen) this.screen.render(this.mouseGX, this.mouseGY);
+  }
+
+  // ------------------------------------------------------------------ chat (Phase 9)
+  private skinFace(pi: PlayerInfoEntry): ImageBitmap | null {
+    const file = this.entityRenderer.skinFor(pi.name, pi.skin);
+    if (!this.skinImages.has(file)) {
+      this.skinImages.set(file, null);
+      void fetch(`./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
+    }
+    return this.skinImages.get(file) ?? null;
+  }
+
+  openChat(initial: string): void {
+    this.setScreen(new ChatScreen(this.chatHost(), initial));
+  }
+
+  private chatHost(): ChatHost {
+    return {
+      gui: this.gui,
+      setScreen: (sc) => {
+        this.setScreen(sc);
+        this.input.clearPresses();
+      },
+      sendChat: (m) => this.send({ t: 'chat', message: m }),
+      requestSuggestions: (id, text) => this.send({ t: 'commandSuggest', id, text }),
+      history: this.hud.sentHistory,
+      renderChatFocused: (g) => this.hud.renderChat(g, true),
+      scrollChat: (n) => this.hud.scrollChat(n),
+      chatClickAt: (mx, my) => this.hud.chatClickAt(mx, my),
+      copyToClipboard: (t) => this.setClipboard(t),
+    };
+  }
+
+  /**
+   * Name tags above other players (vanilla EntityRenderer.renderNameTag, drawn on the GUI layer):
+   * 0.025 blocks per pixel, 0.5 above the hitbox, within 64 blocks, faint when sneaking or
+   * behind blocks, hidden for invisible players.
+   */
+  private renderNameplates(): void {
+    const g = this.gui, m = this.viewProj;
+    const [cx, cy, cz] = this.camPos as [number, number, number];
+    const camEnt = this.cameraEntity;
+    for (const p of this.players.values()) {
+      if (p.id === camEnt || (p.flags & 32) !== 0) continue;
+      const h = p.pose === 'crouching' ? 1.5 : p.pose === 'swimming' || p.pose === 'fall_flying' ? 0.6 : p.pose === 'sleeping' ? 0.2 : 1.8;
+      const x = p.x - cx, y = p.y + h + 0.5 - cy, z = p.z - cz;
+      if (x * x + y * y + z * z > 4096) continue;
+      const w = m[3]! * x + m[7]! * y + m[11]! * z + m[15]!;
+      if (w <= 0.05) continue;
+      const sx = (m[0]! * x + m[4]! * y + m[8]! * z + m[12]!) / w;
+      const sy = (m[1]! * x + m[5]! * y + m[9]! * z + m[13]!) / w;
+      if (sx < -1.2 || sx > 1.2 || sy < -1.2 || sy > 1.2) continue;
+      const scale = (0.025 * m[5]! * this.canvas.height) / 2 / w / g.scale;
+      if (scale < 0.05) continue;
+      const gx = ((sx + 1) / 2) * g.width, gy = ((1 - sy) / 2) * g.height;
+      const blocked = !!raycastBlocks(this.world, cx, cy, cz, x, y, z, Math.hypot(x, y, z) - 0.3);
+      const sneaking = p.pose === 'crouching';
+      const tw = g.font.width(p.name);
+      const ctx = g.ctx;
+      ctx.save();
+      ctx.translate(gx, gy);
+      ctx.scale(scale, scale);
+      g.fill(-tw / 2 - 1, -1, tw + 2, 9, 0x40000000);
+      ctx.globalAlpha = sneaking || blocked ? 0.125 : 1;
+      g.text(p.name, -tw / 2, 0, 0xffffff, false);
+      ctx.restore();
+    }
   }
 
   /** A 16×16 item in the GUI with its stack count (vanilla ItemRenderer.renderGuiItem + decorations). */

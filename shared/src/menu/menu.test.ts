@@ -5,6 +5,7 @@ import { InventoryContainer, SimpleContainer } from './container';
 import { craftingResult } from './recipes';
 import { FurnaceContainer, newFurnace, tickFurnace, takeFurnaceExperience } from './furnace';
 import { ITEMS_BY_ID } from '../data';
+import { fillWithLoot } from './chestloot';
 
 function player(creative = false): MenuPlayer & { dropped: ItemStack[] } {
   const dropped: ItemStack[] = [];
@@ -280,5 +281,21 @@ describe('chest menu', () => {
     expect(name(chest.getItem(0))).toBe('dirtx5');
     m.clicked(0, 0, ClickType.QUICK_MOVE, p);
     expect(name(p.inventory.get(8))).toBe('dirtx5');
+  });
+});
+
+describe('chest loot', () => {
+  it('fills a dungeon chest deterministically from its seed, splitting stacks over free slots', () => {
+    const a: (ItemStack | null)[] = new Array(27).fill(null);
+    const b: (ItemStack | null)[] = new Array(27).fill(null);
+    fillWithLoot(a, 'chests/simple_dungeon', 12345n);
+    fillWithLoot(b, 'chests/simple_dungeon', 12345n);
+    expect(a).toEqual(b);
+    const filled = a.filter(Boolean) as ItemStack[];
+    expect(filled.length).toBeGreaterThanOrEqual(2);
+    for (const st of filled) expect(st.count).toBeLessThanOrEqual(64);
+    const c: (ItemStack | null)[] = new Array(27).fill(null);
+    fillWithLoot(c, 'chests/simple_dungeon', 999n);
+    expect(c).not.toEqual(a);
   });
 });

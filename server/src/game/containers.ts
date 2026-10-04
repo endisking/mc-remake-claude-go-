@@ -17,6 +17,8 @@ import { CompoundContainer, InventoryContainer, SimpleContainer, type Container 
 import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, newCampfire, placeCampfireFood, tickCampfire, type CampfireData, type FurnaceData, type FurnaceKind } from '@shared/menu/furnace';
 import { cookingRecipe } from '@shared/menu/smelting';
 import { chestPartner, isChest, isFirstHalf } from '@shared/game/chest';
+import { fillWithLoot } from '@shared/menu/chestloot';
+import type { GenBlockEntity } from '@shared/worldgen/features/underground';
 
 const FURNACES = new Set(['furnace', 'blast_furnace', 'smoker']);
 const TITLES: Record<string, string> = { furnace: 'Furnace', blast_furnace: 'Blast Furnace', smoker: 'Smoker' };
@@ -158,17 +160,39 @@ export class Containers {
     if (cur && cur.id === id) return cur as T;
     const be = make();
     c.blockEntities.set(k, be);
-    c.version++;
+    this.markDirty(x, z);
     return be;
   }
 
   private markDirty(x: number, z: number): void {
     const c = this.server.world.getChunk(x >> 4, z >> 4);
     if (c) c.version++;
+    this.server.markChunkDirty(x >> 4, z >> 4);
+  }
+
+  /** Worldgen chests (dungeons…) and their loot table, rolled when first opened or broken. */
+  attachGenerated(list: GenBlockEntity[]): void {
+    for (const g of list) {
+      if (g.kind !== 'chest') continue;
+      const c = this.server.world.getChunk(g.x >> 4, g.z >> 4);
+      if (!c) continue;
+      c.blockEntities.set(blockEntityKey(g.x & 15, g.y, g.z & 15), { id: 'chest', items: new Array(27).fill(null), lootTable: g.lootTable, lootSeed: g.lootSeed.toString() });
+      c.version++;
+    }
+  }
+
+  /** RandomizableContainerBlockEntity.unpackLootTable */
+  private unpackLoot(be: BlockEntityData, x: number, z: number): void {
+    if (typeof be.lootTable !== 'string') return;
+    fillWithLoot(be.items as (ItemStack | null)[], be.lootTable, BigInt(String(be.lootSeed ?? '0')));
+    delete be.lootTable;
+    delete be.lootSeed;
+    this.markDirty(x, z);
   }
 
   private itemsContainer(x: number, y: number, z: number, id: string, size: number, pred: () => boolean): Container {
     const be = this.getOrCreate(x, y, z, id, () => ({ id, items: new Array(size).fill(null) }));
+    this.unpackLoot(be, x, z);
     const items = be.items as (ItemStack | null)[];
     const c = new SimpleContainer(items);
     c.onChange = () => this.markDirty(x, z);
@@ -340,7 +364,7 @@ export class Containers {
           const cf = be as unknown as CampfireData;
           if (!cf.items.some((i) => i)) continue;
           for (const out of tickCampfire(cf, getProp(st, 'lit') === true)) this.dropItemStack(x, y, z, out);
-          c.version++;
+          this.markDirty(x, z);
           continue;
         }
         if (!FURNACES.has(be.id)) continue;
@@ -351,7 +375,7 @@ export class Containers {
         }
         const f = be as unknown as FurnaceData;
         const r = tickFurnace(f);
-        if (r.changed) c.version++;
+        if (r.changed) this.markDirty(x, z);
         if (r.litChanged) srv.setBlock(x, y, z, withProp(st, 'lit', f.litTime > 0));
       }
     }
@@ -378,8 +402,9 @@ export class Containers {
     const k = blockEntityKey(x & 15, y, z & 15);
     const be = c.blockEntities.get(k);
     if (!be || blockNameOf(old) === blockNameOf(state)) return;
+    this.unpackLoot(be, x, z);
     c.blockEntities.delete(k);
-    c.version++;
+    this.markDirty(x, z);
     for (const st of (be.items as (ItemStack | null)[] | undefined) ?? []) if (!isEmpty(st)) this.dropItemStack(x, y, z, st);
     if (FURNACES.has(be.id)) {
       const xp = takeFurnaceExperience(be as unknown as FurnaceData, () => this.server.rand.nextFloat());

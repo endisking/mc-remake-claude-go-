@@ -110,6 +110,12 @@ export class Input {
     return this.mousePressed.delete(button);
   }
 
+  /** Forget key presses not yet consumed (typed into the chat box). */
+  clearPresses(): void {
+    this.pressed.clear();
+    this.released.clear();
+  }
+
   endFrame(): void {
     this.mouseDX = 0;
     this.mouseDY = 0;
