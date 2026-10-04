@@ -24,6 +24,7 @@ import { Bat, Squid } from './ambient';
 import { MemoryStorage } from '../../storage/memory';
 import { spawnerTypeAt } from './spawners';
 import { Wolf } from './wolf';
+import { Phantom } from './phantom';
 
 const GRASS = stateOf('grass_block', { snowy: false });
 const STONE = stateOf('stone');
@@ -578,5 +579,26 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     a.send({ t: 'chat', message: '/tp 20.5 64 0.5' });
     ticks(server, 40);
     expect(Math.hypot(w.x - 20.5, w.z - 0.5)).toBeLessThan(6);
+  });
+
+  it('phantoms circle above a sleepless player, swoop and bite; the spawner needs 3 days without sleep', () => {
+    const { server, p } = setup({ dayTime: 18000 });
+    const ph = server.mobs.spawn('phantom', 0.5, 90, 0.5) as Phantom;
+    let bitten = false;
+    for (let i = 0; i < 1200 && !bitten; i++) {
+      server.tick();
+      if (p.living.health < 20) bitten = true;
+    }
+    expect(bitten).toBe(true);
+    expect(20 - p.living.health).toBeCloseTo(6, 5);
+    ph.removed = true;
+    server.tick();
+    // spawner: no phantoms for a rested player, some after 3+ days awake
+    p.living.timeSinceRest = 0;
+    for (let i = 0; i < 6000; i++) server.mobs.phantoms.tick();
+    expect(server.mobs.mobs().filter((m) => m.type === 'phantom').length).toBe(0);
+    p.living.timeSinceRest = 200000;
+    for (let i = 0; i < 24000; i++) server.mobs.phantoms.tick();
+    expect(server.mobs.mobs().filter((m) => m.type === 'phantom').length).toBeGreaterThan(0);
   });
 });

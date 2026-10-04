@@ -35,12 +35,13 @@ import { saveMob, applyMobSave, type MobSave } from './persist';
 import { commandHooks } from '../commands/hooks';
 import { MobSpawners } from './spawners';
 import { Wolf } from './wolf';
+import { Phantom, PhantomSpawner } from './phantom';
 import { itemForBlock } from '@shared/game/loot';
 
 type MobCtor = new (id: number, s: GameServer) => Mob;
 export const MOB_TYPES: Record<string, MobCtor> = {
   zombie: Zombie, husk: Husk, drowned: Drowned, zombie_villager: ZombieVillager, cave_spider: CaveSpider, skeleton: Skeleton, stray: Stray, creeper: Creeper, spider: Spider,
-  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, mooshroom: Mooshroom, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid,
+  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, mooshroom: Mooshroom, phantom: Phantom, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid,
 };
 
 /** MobCategory caps (1.17.1) and the categories we spawn. */
@@ -57,9 +58,18 @@ export class MobManager {
 
   /** monster spawner blocks */
   readonly spawners: MobSpawners;
+  /** phantoms over sleepless players */
+  readonly phantoms: PhantomSpawner;
 
   constructor(private readonly s: GameServer) {
     this.spawners = new MobSpawners(s);
+    this.phantoms = new PhantomSpawner(s);
+  }
+
+  /** Level.getSkyDarken */
+  skyDarken(): number {
+    const s = this.s;
+    return skyDarkenLevel(s.dayTime, s.rainLevel, s.thunderLevel * s.rainLevel);
   }
 
   get naturalSpawning(): boolean {
@@ -192,7 +202,7 @@ export class MobManager {
     m.yHeadRot = m.yBodyRot = m.yaw;
     m.init();
     if (reason !== 'breeding' && reason !== 'conversion') {
-      if (m instanceof Zombie || m instanceof Skeleton || m instanceof Slime) m.finalizeSpawn();
+      if (m instanceof Zombie || m instanceof Skeleton || m instanceof Slime || m instanceof Phantom) m.finalizeSpawn();
       else if (m instanceof Animal) m.finalizeSpawn(groupIndex);
     }
     this.s.spawnEntity(m);
@@ -256,6 +266,7 @@ export class MobManager {
     for (const m of this.mobs()) this.checkDespawn(m);
     this.spawners.tick();
     if (!this.doMobSpawning || !this.naturalSpawning || s.players.length === 0) return;
+    this.phantoms.tick();
     const spawnEnemies = s.difficulty !== Difficulty.Peaceful;
     const spawnPersistent = s.gameTime % 400 === 0;
     const sim = s.simulationDistanceFor();
@@ -965,7 +976,7 @@ export function mobDataOf(m: Mob): Record<string, number> {
     d.charged = m.powered ? 1 : 0;
   }
   if (m instanceof Pig) d.saddle = m.saddled ? 1 : 0;
-  if (m instanceof Slime) d.size = m.size;
+  if (m instanceof Slime || m instanceof Phantom) d.size = m.size;
   if (m instanceof Enderman) d.carried = m.carried;
   if (m instanceof Bat) d.hanging = m.resting ? 1 : 0;
   if (m instanceof Skeleton) d.bow = m.holdingBow() ? 1 : 0;

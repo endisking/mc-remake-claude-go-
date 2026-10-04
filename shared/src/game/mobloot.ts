@@ -102,6 +102,9 @@ export function mobLoot(type: string, c: MobLootContext): ItemStack[] {
     case 'slime':
       if ((c.size ?? 1) === 1) entry(out, c, 'slime_ball', 0, 2, { looting: L });
       break;
+    case 'phantom':
+      entry(out, c, 'phantom_membrane', 0, 1, { looting: L, player: true });
+      break;
     case 'squid':
       entry(out, c, 'ink_sac', 1, 3, { looting: L });
       break;
