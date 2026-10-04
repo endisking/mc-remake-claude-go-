@@ -12,8 +12,8 @@ const filter = process.argv[3] ?? '';
 const out = new URL('./bench/out/mobs/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true });
 
-interface MobSpec { type: string; x: number; z: number; yaw?: number; data?: Record<string, number>; walk?: boolean; flags?: number; hurt?: boolean; die?: number; name?: string; hold?: number }
-interface Shot { cam: string; mobs: MobSpec[]; wait?: number; y?: number }
+interface MobSpec { type: string; x: number; z: number; y?: number; yaw?: number; data?: Record<string, number>; walk?: boolean; flags?: number; hurt?: boolean; die?: number; name?: string; hold?: number }
+interface Shot { cam: string; mobs: MobSpec[]; wait?: number; y?: number; /** commands run once the platform exists */ setup?: string[] }
 
 const A = ['zombie', 'skeleton', 'creeper', 'spider'];
 const B = ['pig', 'cow', 'sheep', 'chicken'];
@@ -55,6 +55,14 @@ const SHOTS: Record<string, Shot> = {
   names: { cam: NEAR, mobs: row(['pig', 'zombie', 'sheep', 'creeper'], { name: 'Sir Oinks', data: { name_visible: 1 } }) },
   v_prof: { cam: FAR, mobs: row(['villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'zombie_villager'], { yaw: 160 }).map((m, i) => ({ ...m, data: ([{ profession: 1, level: 1, variant: 2 }, { profession: 2, level: 2, variant: 0 }, { profession: 3, level: 3, variant: 1 }, { profession: 4, level: 4, variant: 3 }, { profession: 5, level: 5, variant: 4 }, { profession: 6, level: 1, variant: 5 }, { profession: 7, level: 2, variant: 6 }, { profession: 9, level: 1, variant: 4 }] as Record<string, number>[])[i] })) },
   v_prof2: { cam: FAR, mobs: row(['villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager'], { yaw: 160 }).map((m, i) => ({ ...m, data: { profession: 8 + i <= 14 ? 8 + i : 0, level: 1 + (i % 5), variant: i % 7, baby: i === 7 ? 1 : 0 } })) },
+  v_sleep: {
+    cam: 'x=24.2&y=202.5&z=-1.5&lookat=24.2,200.5,4.5&fov=60',
+    setup: ['/setblock 21 200 4 red_bed[facing=west,part=head]', '/setblock 22 200 4 red_bed[facing=west,part=foot]', '/setblock 27 200 4 cyan_bed[facing=north,part=head]', '/setblock 27 200 5 cyan_bed[facing=north,part=foot]'],
+    mobs: [
+      { type: 'villager', x: 21.5, y: 200.6875, z: 4.5, yaw: 180, data: { sleeping: 1, profession: 5, level: 2, variant: 2 } },
+      { type: 'villager', x: 27.5, y: 200.6875, z: 4.5, yaw: 180, data: { sleeping: 1, profession: 9, level: 3, variant: 4 } },
+    ],
+  },
   hv_front: { cam: 'x=24.2&y=200.8&z=-5.5&lookat=24.2,200.8,4.5&fov=60', mobs: [
     ...row(['horse', 'horse', 'horse', 'donkey', 'mule'], { yaw: 90 }).map((m, i) => ({ ...m, x: 24.2 - (i - 2) * 2.6, data: ([{ variant: 0 + (1 << 8) }, { variant: 4 + (3 << 8), saddle: 1 }, { variant: 2 + (2 << 8) }, { chest: 1, saddle: 1 }, { chest: 1 }] as Record<string, number>[])[i] })),
   ] },
@@ -87,11 +95,12 @@ const SHOTS: Record<string, Shot> = {
 
 /** Spawns mobs through the client's packet handler (the same path server packets take). */
 async function spawn(page: Page, mobs: MobSpec[]): Promise<void> {
-  await page.evaluate(({ mobs, Y }) => {
+  await page.evaluate(({ mobs, Y0 }) => {
     const g = (window as any).game;
     const h = (p: Record<string, unknown>) => g.handle(p);
     let id = 900000;
     for (const s of mobs) {
+      const Y = s.y ?? Y0;
       const eid = id++;
       const yaw = s.yaw ?? 0;
       h({ t: 'addEntity', id: eid, type: s.type, x: s.x, y: Y, z: s.z, vx: 0, vy: 0, vz: 0, data: 0 });
@@ -123,7 +132,7 @@ async function spawn(page: Page, mobs: MobSpec[]): Promise<void> {
         }, 50);
       }
     }
-  }, { mobs, Y: 200 });
+  }, { mobs, Y0: 200 });
 }
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -151,6 +160,13 @@ for (const [name, shot] of Object.entries(SHOTS)) {
     const s = g.chunks.stats();
     return g.world.getState(37, 199, 9) !== 0 && s.pending === 0 && s.building === 0;
   }, undefined, { timeout: 30000 }).catch(() => console.log(`[${name}] platform timeout`));
+  if (shot.setup) {
+    await page.evaluate((cmds) => {
+      const g = (window as any).game;
+      for (const c of cmds) g.send({ t: 'chat', message: c });
+    }, shot.setup);
+    await page.waitForTimeout(800);
+  }
   // put the camera back (the player may have fallen before the platform existed)
   const q = new URLSearchParams(shot.cam);
   await page.evaluate(([x, y, z]) => {
