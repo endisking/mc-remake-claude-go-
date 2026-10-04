@@ -71,6 +71,7 @@ const SHOTS: Record<string, Shot> = {
   j_walk: { cam: NEAR, mobs: row(['rabbit', 'llama', 'trader_llama', 'turtle'], { yaw: 110, walk: true }), wait: 1100 },
   rabbit: { cam: 'x=24.2&y=200&z=2.5&lookat=24.2,200.2,4.5&fov=60', mobs: row(['rabbit', 'rabbit', 'rabbit'], { yaw: 120 }).map((m, i) => (i === 1 ? { ...m, data: { baby: 1 } } : i === 2 ? { ...m, walk: true } : m)), wait: 900 },
   k_front: { cam: NEAR, mobs: row(['fox', 'fox', 'fox'], { yaw: 140 }).map((m, i) => (i === 1 ? { ...m, walk: true, yaw: 110 } : i === 2 ? { ...m, data: { baby: 1 } } : m)), wait: 900 },
+  chick: { cam: 'x=24.2&y=200&z=3&lookat=24.2,200.3,4.5&fov=60', mobs: row(['chicken', 'chicken'], { yaw: 120 }) },
   night: { cam: NEAR + '&time=18000', mobs: row(['spider', 'enderman', 'zombie', 'cave_spider']) },
 };
 

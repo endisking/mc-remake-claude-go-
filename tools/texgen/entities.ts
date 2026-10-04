@@ -523,9 +523,12 @@ export function chicken(): Tex {
   // wings with layered feather tips
   const wing = box(t, 24, 13, 1, 4, 6, feathers);
   for (const k of ['right', 'left'] as const) hline(t, wing[k][0], wing[k][1] + 3, 6, WD);
-  // legs: orange with toes
-  const leg = box(t, 26, 0, 3, 5, 3, (_x, y) => (y > 3 ? shade(O, 0.85) : O));
-  
+  // legs: a thin shank with spread toes (the rest of the 3×5×3 box is see-through)
+  box(t, 26, 0, 3, 5, 3, (x) => (x === 1 ? O : CLEAR), {
+    front: (x, y) => (y === 4 ? shade(O, 0.85) : x === 1 ? O : CLEAR),
+    top: (x, y) => (x === 1 && y === 1 ? O : CLEAR),
+    bottom: (x, y) => (x === 1 || y === 1 ? shade(O, 0.85) : CLEAR),
+  });
   return t;
 }
 
