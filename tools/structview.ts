@@ -13,6 +13,8 @@ import { IS_AIR } from '@shared/world/blockinfo';
 
 const cut = process.argv.includes('--cut');
 const noWater = process.argv.includes('--nowater');
+const onlyBuilt = process.argv.includes('--built');
+const NATURAL = /^(stone|dirt|grass_block|water|sand|gravel|granite|diorite|andesite|deepslate|tuff|bedrock|.*_ore|grass|tall_grass|.*_leaves|.*_log|snow|seagrass|tall_seagrass|kelp|kelp_plant|lava|clay|coarse_dirt|podzol|fern|large_fern|vine|infested_stone|glow_lichen|calcite|amethyst_block|budding_amethyst|smooth_basalt|.*amethyst.*|pointed_dripstone|dripstone_block|sandstone|red_sand|.*terracotta|snow_block|ice|packed_ice)$/;
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const [seedArg = '20211', xArg = '0', zArg = '0', rArg = '16', out = 'tools/bench/out/structview.png', yMinArg = '0', yMaxArg = '140'] = args;
 const gen = new OverworldGenerator(BigInt(seedArg));
@@ -81,6 +83,7 @@ for (let s = 0; s <= 2 * (span - 1); s++)
       const st = world.getState(x, y, z);
       if (IS_AIR[st] === 1) continue;
       const name = blockNameOf(st);
+      if (onlyBuilt && NATURAL.test(name)) continue;
       if (noWater && /^(water|kelp|kelp_plant|seagrass|tall_seagrass)$/.test(name)) continue;
       if (name === 'water' && IS_AIR[world.getState(x, y + 1, z)] !== 1) continue;
       const c = color(name);
