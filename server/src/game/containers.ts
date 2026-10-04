@@ -12,7 +12,7 @@ import { blockNameOf, getProp, withProp } from '@shared/world/blockstate';
 import { BLOCKS_BY_NAME } from '@shared/data';
 import { FULL_COLLISION } from '@shared/world/blockinfo';
 import { isEmpty, type ItemStack } from '@shared/item/stack';
-import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
+import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, StonecutterMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
 import { CompoundContainer, InventoryContainer, SimpleContainer, type Container } from '@shared/menu/container';
 import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, newCampfire, placeCampfireFood, tickCampfire, type CampfireData, type FurnaceData, type FurnaceKind } from '@shared/menu/furnace';
 import { cookingRecipe } from '@shared/menu/smelting';
@@ -107,6 +107,15 @@ export class Containers {
     this.sendAll(p, menu);
     this.syncInventoryDiff(p, snap);
     if (menu === s.containerMenu && menu !== s.inventoryMenu) s.lastSlots = menu.slots.map((sl) => stackKey(sl.getItem()));
+  }
+
+  /** ServerGamePacketListenerImpl.handleContainerButtonClick */
+  handleButton(p: ServerPlayer, windowId: number, button: number): void {
+    const s = this.state(p);
+    const menu = s.containerMenu;
+    if (menu === s.inventoryMenu || menu.containerId !== windowId || p.gameMode === 3) return;
+    if (!menu.stillValid(this.menuPlayer(p))) return;
+    if (menu.clickMenuButton(this.menuPlayer(p), button)) this.broadcastChanges(p);
   }
 
   handleClose(p: ServerPlayer, windowId: number): void {
@@ -213,6 +222,21 @@ export class Containers {
     const state = this.server.world.getState(x, y, z);
     const name = blockNameOf(state);
     const inv = new InventoryContainer(p.inventory);
+    if (name === 'stonecutter') {
+      const valid = this.validFor(p, x, y, z, (n) => n === 'stonecutter');
+      this.open(p, (id) => {
+        const m = new StonecutterMenu(id, inv, valid);
+        let last = -1;
+        // UI_STONECUTTER_TAKE_RESULT, at most once per game tick
+        m.onTakeSound = () => {
+          if (last === this.server.gameTime) return;
+          last = this.server.gameTime;
+          this.containerSound([x, y, z], 'ui.stonecutter.take_result', 1);
+        };
+        return m;
+      }, 'Stonecutter', [x, y, z]);
+      return true;
+    }
     if (name === 'crafting_table') {
       const valid = this.validFor(p, x, y, z, (n) => n === 'crafting_table');
       this.open(p, (id) => new CraftingMenu(id, inv, valid), 'Crafting', [x, y, z]);
@@ -342,10 +366,10 @@ export class Containers {
     } else this.viewers.set(k, n - 1);
   }
 
-  private containerSound(pos: [number, number, number], event: string): void {
+  private containerSound(pos: [number, number, number], event: string, pitchFixed?: number): void {
     const r = this.server.rand;
     try {
-      this.server.playSound(null, event, 'block', pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5, 0.5, r.nextFloat() * 0.1 + 0.9);
+      this.server.playSound(null, event, 'block', pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5, pitchFixed !== undefined ? 1 : 0.5, pitchFixed ?? r.nextFloat() * 0.1 + 0.9);
     } catch {
       // sound event missing from the registry: stay silent
     }

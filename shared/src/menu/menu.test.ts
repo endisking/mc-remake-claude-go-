@@ -6,6 +6,7 @@ import { craftingResult } from './recipes';
 import { FurnaceContainer, newFurnace, tickFurnace, takeFurnaceExperience } from './furnace';
 import { ITEMS_BY_ID } from '../data';
 import { fillWithLoot } from './chestloot';
+import { stonecutterRecipes } from './stonecutting';
 
 function player(creative = false): MenuPlayer & { dropped: ItemStack[] } {
   const dropped: ItemStack[] = [];
@@ -297,5 +298,16 @@ describe('chest loot', () => {
     const c: (ItemStack | null)[] = new Array(27).fill(null);
     fillWithLoot(c, 'chests/simple_dungeon', 999n);
     expect(c).not.toEqual(a);
+  });
+});
+
+describe('stonecutting', () => {
+  it('derives the 1.17.1 recipe families', () => {
+    const r = (n: string) => stonecutterRecipes(stack(n).id).map((x) => `${ITEMS_BY_ID[x.result]!.name}x${x.count}`);
+    expect(r('stone')).toEqual(['chiseled_stone_bricksx1', 'stone_brick_slabx2', 'stone_brick_stairsx1', 'stone_brick_wallx1', 'stone_bricksx1', 'stone_slabx2', 'stone_stairsx1']);
+    expect(r('copper_block')).toEqual(['cut_copperx4', 'cut_copper_slabx8', 'cut_copper_stairsx4']);
+    expect(r('sandstone')).toContain('chiseled_sandstonex1');
+    expect(r('cobblestone')).toEqual(['cobblestone_slabx2', 'cobblestone_stairsx1', 'cobblestone_wallx1']);
+    expect(r('oak_planks')).toEqual([]);
   });
 });

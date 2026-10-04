@@ -200,4 +200,22 @@ describe('containers', () => {
     const seen = b.received.filter((m) => m.t === 'windowSlot' && m.item === stack('emerald').id) as Extract<S2C, { t: 'windowSlot' }>[];
     expect(seen.at(-1)).toMatchObject({ slot: 0, count: 9 });
   });
+
+  it('stonecutter: choose a recipe, shift-click crafts the whole input', () => {
+    const { server, a, p, gx, gy, gz } = setup();
+    server.setBlock(gx + 2, gy + 1, gz, stateOf('stonecutter'));
+    a.send({ t: 'useOn', x: gx + 2, y: gy + 1, z: gz, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    const open = a.received.filter((m) => m.t === 'openWindow').at(-1) as Extract<S2C, { t: 'openWindow' }>;
+    expect(open).toMatchObject({ type: 'stonecutter', title: 'Stonecutter' });
+    p.inventory.set(9, stack('stone', 5));
+    a.send({ t: 'clickWindow', windowId: open.windowId, slot: 2, button: 0, clickType: 1 });
+    // recipes for stone are sorted by name: chiseled_stone_bricks, stone_brick_slab, … stone_slab (2)
+    const names = ['chiseled_stone_bricks', 'stone_brick_slab', 'stone_brick_stairs', 'stone_brick_wall', 'stone_bricks', 'stone_slab', 'stone_stairs'];
+    a.send({ t: 'menuButton', windowId: open.windowId, button: names.indexOf('stone_slab') });
+    a.send({ t: 'clickWindow', windowId: open.windowId, slot: 1, button: 0, clickType: 1 });
+    let slabs = 0;
+    for (const st of p.inventory.slots) if (st?.id === stack('stone_slab').id) slabs += st.count;
+    expect(slabs).toBe(10);
+    expect(p.inventory.find(stack('stone').id)).toBe(-1);
+  });
 });

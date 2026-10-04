@@ -137,6 +137,8 @@ const C2S_SCHEMA = {
   clickWindow: [['windowId', 'u8'], ['slot', 'i16'], ['button', 'u8'], ['clickType', 'u8']],
   /** The player closed a window (0 = the inventory). */
   closeWindow: [['windowId', 'u8']],
+  /** A menu button (vanilla ContainerButtonClick): stonecutter recipe index… */
+  menuButton: [['windowId', 'u8'], ['button', 'u8']],
   // ---- commands & player list (Phase 9) ----
   /** Chat box tab completion (vanilla ServerboundCommandSuggestion); text includes the leading '/'. */
   commandSuggest: [['id', 'varint'], ['text', 'str']],

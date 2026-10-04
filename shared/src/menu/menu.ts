@@ -11,6 +11,7 @@ import {
 } from './container';
 import { craftingRemainder, craftingResult } from './recipes';
 import { isFuel, cookingRecipe } from './smelting';
+import { stonecutterRecipes, type StonecutterRecipe } from './stonecutting';
 import { COOKING_TYPE, type FurnaceKind } from './furnace';
 
 export const enum ClickType {
@@ -26,7 +27,7 @@ export const enum ClickType {
 /** The clicked slot id for "outside the window" (drop the carried stack). */
 export const SLOT_OUTSIDE = -999;
 
-export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker';
+export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter';
 
 export interface MenuPlayer {
   readonly inventory: Inventory;
@@ -271,6 +272,11 @@ export abstract class Menu {
   }
   stillValid(_p: MenuPlayer): boolean {
     return true;
+  }
+
+  /** AbstractContainerMenu.clickMenuButton (stonecutter recipe buttons…); true if handled. */
+  clickMenuButton(_p: MenuPlayer, _id: number): boolean {
+    return false;
   }
 
   /** AbstractContainerMenu.removed: the carried stack goes back into the inventory. */
@@ -807,6 +813,106 @@ export class FurnaceMenu extends Menu {
   }
 }
 
+/** StonecutterMenu: 0 input, 1 result, 2–28 main, 29–37 hotbar; data[0] = selected recipe. */
+export class StonecutterMenu extends Menu {
+  readonly input = new SimpleContainer(1);
+  readonly result = new ResultContainer();
+  recipes: StonecutterRecipe[] = [];
+  private lastInput = 0;
+  /** played when a result is taken (UI_STONECUTTER_TAKE_RESULT), set by the server */
+  onTakeSound: (() => void) | null = null;
+  constructor(id: number, inv: Container, private readonly valid: () => boolean = () => true) {
+    super('stonecutter', id);
+    this.data = [-1];
+    this.input.onChange = () => this.slotsChanged();
+    this.addSlot(new Slot(this.input, 0, 20, 33));
+    const menu = this;
+    this.addSlot(
+      new (class extends Slot {
+        override mayPlace(): boolean {
+          return false;
+        }
+        override onTake(p: MenuPlayer, st: ItemStack): void {
+          menu.input.removeItem(0, 1);
+          if (menu.input.getItem(0)) menu.setupResultSlot();
+          menu.onTakeSound?.();
+          super.onTake(p, st);
+        }
+      })(this.result, 0, 143, 33),
+    );
+    this.addPlayerInventory(inv, 84);
+  }
+  get selectedRecipeIndex(): number {
+    return this.data[0]!;
+  }
+  override stillValid(): boolean {
+    return this.valid();
+  }
+  private isValidRecipeIndex(i: number): boolean {
+    return i >= 0 && i < this.recipes.length;
+  }
+  override clickMenuButton(_p: MenuPlayer, id: number): boolean {
+    if (this.isValidRecipeIndex(id)) {
+      this.data[0] = id;
+      this.setupResultSlot();
+    }
+    return true;
+  }
+  /** slotsChanged: a different input item lists its recipes and clears the selection */
+  private slotsChanged(): void {
+    const it = this.input.getItem(0);
+    const id = it?.id ?? 0;
+    if (id !== this.lastInput) {
+      this.lastInput = id;
+      this.recipes = id ? stonecutterRecipes(id) : [];
+      this.data[0] = -1;
+      this.result.items[0] = null;
+    }
+  }
+  /** Re-sync recipes after the input slot was set from outside (client mirror). */
+  refreshRecipes(): void {
+    const id = this.input.getItem(0)?.id ?? 0;
+    this.lastInput = id;
+    this.recipes = id ? stonecutterRecipes(id) : [];
+  }
+  setupResultSlot(): void {
+    const r = this.recipes[this.data[0]!];
+    this.result.items[0] = r && this.input.getItem(0) ? { id: r.result, count: r.count, damage: 0 } : null;
+  }
+  override canTakeItemForPickAll(_s: ItemStack, slot: Slot): boolean {
+    return slot.container !== this.result;
+  }
+  quickMoveStack(p: MenuPlayer, index: number): ItemStack | null {
+    const slot = this.slots[index];
+    const st = slot?.getItem();
+    if (!slot || !st) return null;
+    const orig = copyStack(st)!;
+    if (index === 1) {
+      if (!this.moveItemStackTo(st, 2, 38, true)) return null;
+      slot.onQuickCraft(st, orig);
+    } else if (index === 0) {
+      if (!this.moveItemStackTo(st, 2, 38, false)) return null;
+    } else if (stonecutterRecipes(st.id).length) {
+      if (!this.moveItemStackTo(st, 0, 1, false)) return null;
+    } else if (index >= 2 && index < 29) {
+      if (!this.moveItemStackTo(st, 29, 38, false)) return null;
+    } else if (index >= 29 && index < 38 && !this.moveItemStackTo(st, 2, 29, false)) return null;
+    if (st.count <= 0) slot.set(null);
+    slot.setChanged();
+    if (st.count === orig.count) return null;
+    slot.onTake(p, st);
+    return orig;
+  }
+  /** removed: the result vanishes, the input goes back to the player */
+  override removed(p: MenuPlayer): void {
+    super.removed(p);
+    this.result.items[0] = null;
+    const it = this.input.items[0];
+    this.input.items[0] = null;
+    if (!isEmpty(it)) placeBack(p, it);
+  }
+}
+
 /** Menu with mirror containers (client prediction for server-opened windows). */
 export function createClientMenu(type: MenuType, id: number, inv: Container): Menu {
   switch (type) {
@@ -826,6 +932,8 @@ export function createClientMenu(type: MenuType, id: number, inv: Container): Me
     case 'blast_furnace':
     case 'smoker':
       return new FurnaceMenu(type, id, inv, new SimpleContainer(3));
+    case 'stonecutter':
+      return new StonecutterMenu(id, inv);
   }
 }
 

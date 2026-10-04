@@ -14,7 +14,7 @@ import { copyStack } from '@shared/menu/container';
 import { drawItemStack } from './itemicons';
 import { attackDamageOf, attackSpeedOf } from '@shared/game/combat';
 import {
-  ClickType, SLOT_OUTSIDE, canItemQuickReplace, quickCraftSlotCount, ChestMenu, CraftingMenu, FurnaceMenu, InventoryMenu,
+  ClickType, SLOT_OUTSIDE, canItemQuickReplace, quickCraftSlotCount, ChestMenu, CraftingMenu, FurnaceMenu, InventoryMenu, StonecutterMenu,
   type Menu, type MenuPlayer, type Slot,
 } from '@shared/menu/menu';
 import { arrow, flame, inset, panel, resultSlot, silhouette, slot as slotWell, tooltip } from './containerart';
@@ -28,6 +28,8 @@ export interface ContainerHost extends ScreenHost {
   isKeyDown(code: string): boolean;
   readonly playerInventory: Inventory;
   /** Render the local player model in the GUI, feet at (x, y), looking toward (lookX, lookY) offsets. */
+  /** SimpleSoundInstance.forUI */
+  playUi?(event: string, pitch: number): void;
   renderPlayerPreview?(x: number, y: number, scale: number, lookX: number, lookY: number, box?: [number, number, number, number]): void;
 }
 
@@ -516,10 +518,112 @@ export class SimpleContainerScreen extends AbstractContainerScreen<Menu> {
   }
 }
 
+/** StonecutterScreen: input, a scrolling 4×3 grid of recipe buttons, result. */
+export class StonecutterScreen extends AbstractContainerScreen<StonecutterMenu> {
+  private scrollOffs = 0;
+  private startIndex = 0;
+  private scrolling = false;
+  private lastRecipes: unknown = null;
+
+  private get rowsTotal(): number {
+    return Math.ceil(this.menu.recipes.length / 4);
+  }
+  private canScroll(): boolean {
+    return this.menu.recipes.length > 12;
+  }
+  private syncRecipes(): void {
+    if (this.menu.recipes !== this.lastRecipes) {
+      this.lastRecipes = this.menu.recipes;
+      this.scrollOffs = 0;
+      this.startIndex = 0;
+    }
+  }
+  protected renderBg(mx: number, my: number): void {
+    this.syncRecipes();
+    const g = this.gui, l = this.leftPos, t = this.topPos;
+    panel(g, l, t, this.imageWidth, this.imageHeight);
+    for (const s of this.menu.slots) {
+      if (s.index === 1) resultSlot(g, l + s.x, t + s.y);
+      else slotWell(g, l + s.x, t + s.y);
+    }
+    // recipe area and scrollbar track
+    inset(g, l + 51, t + 13, 66, 56, 0xff8b8b8b);
+    inset(g, l + 118, t + 14, 14, 56, 0xff8b8b8b);
+    const ty = t + 15 + Math.floor(41 * this.scrollOffs);
+    panel(g, l + 119, ty, 12, 15);
+    if (!this.canScroll()) g.fill(l + 120, ty + 1, 10, 13, 0x60808080);
+    const recipes = this.menu.recipes;
+    for (let i = this.startIndex; i < Math.min(recipes.length, this.startIndex + 12); i++) {
+      const j = i - this.startIndex;
+      const bx = l + 52 + (j % 4) * 16, by = t + 14 + Math.floor(j / 4) * 18;
+      const selected = i === this.menu.selectedRecipeIndex;
+      const hover = mx >= bx && my >= by && mx < bx + 16 && my < by + 18;
+      // button: raised normally, pressed when selected, light when hovered
+      g.fill(bx, by, 16, 18, selected ? 0xff5a5a5a : hover ? 0xffd8d8d8 : 0xffb0b0b0);
+      g.fill(bx, by, 16, 1, selected ? 0xff373737 : 0xffffffff);
+      g.fill(bx, by, 1, 18, selected ? 0xff373737 : 0xffffffff);
+      g.fill(bx, by + 17, 16, 1, selected ? 0xffffffff : 0xff373737);
+      g.fill(bx + 15, by, 1, 18, selected ? 0xffffffff : 0xff373737);
+      drawStack(this.host, { id: recipes[i]!.result, count: recipes[i]!.count, damage: 0 }, bx, by + 1);
+    }
+  }
+  protected override renderExtra(mx: number, my: number): void {
+    if (!isEmpty(this.menu.carried)) return;
+    const recipes = this.menu.recipes;
+    for (let i = this.startIndex; i < Math.min(recipes.length, this.startIndex + 12); i++) {
+      const j = i - this.startIndex;
+      const bx = this.leftPos + 52 + (j % 4) * 16, by = this.topPos + 14 + Math.floor(j / 4) * 18;
+      if (mx >= bx && my >= by && mx < bx + 16 && my < by + 18) tooltip(this.gui, itemTooltip({ id: recipes[i]!.result, count: 1, damage: 0 }), mx, my);
+    }
+  }
+  protected override mouseClickedExtra(mx: number, my: number, button: number): boolean {
+    if (button !== 0) return false;
+    this.scrolling = false;
+    const recipes = this.menu.recipes;
+    for (let i = this.startIndex; i < Math.min(recipes.length, this.startIndex + 12); i++) {
+      const j = i - this.startIndex;
+      const dx = mx - (this.leftPos + 52 + (j % 4) * 16), dy = my - (this.topPos + 14 + Math.floor(j / 4) * 18);
+      if (dx >= 0 && dy >= 0 && dx < 16 && dy < 18 && this.menu.clickMenuButton(this.player, i)) {
+        this.host.playUi?.('ui.stonecutter.select_recipe', 1);
+        this.host.send({ t: 'menuButton', windowId: this.menu.containerId, button: i });
+        return true;
+      }
+    }
+    const sx = this.leftPos + 119, sy = this.topPos + 9;
+    if (mx >= sx && mx < sx + 12 && my >= sy && my < sy + 54) {
+      this.scrolling = true;
+      return true;
+    }
+    return false;
+  }
+  override mouseMove(mx: number, my: number): void {
+    if (this.scrolling && this.canScroll()) {
+      const i = this.topPos + 14, j = i + 54;
+      this.scrollOffs = Math.max(0, Math.min(1, (my - i - 7.5) / (j - i - 15)));
+      this.startIndex = Math.floor(this.scrollOffs * (this.rowsTotal - 3) + 0.5) * 4;
+    }
+    super.mouseMove(mx, my);
+  }
+  override mouseUp(domButton = 0): void {
+    if (this.scrolling) {
+      this.scrolling = false;
+      return;
+    }
+    super.mouseUp(domButton);
+  }
+  override mouseScrolled(_mx: number, _my: number, delta: number): void {
+    if (!this.canScroll()) return;
+    const extra = this.rowsTotal - 3;
+    this.scrollOffs = Math.max(0, Math.min(1, this.scrollOffs + delta / extra));
+    this.startIndex = Math.floor(this.scrollOffs * extra + 0.5) * 4;
+  }
+}
+
 /** Screen for a server-opened menu. */
 export function screenForMenu(host: ContainerHost, menu: Menu, title: string): AbstractContainerScreen {
   if (menu instanceof CraftingMenu) return new CraftingScreen(host, menu, title);
   if (menu instanceof FurnaceMenu) return new FurnaceScreen(host, menu, title);
+  if (menu instanceof StonecutterMenu) return new StonecutterScreen(host, menu, title);
   if (menu instanceof InventoryMenu) return new InventoryScreen(host, menu);
   if (menu.type === 'generic_3x3' || menu.type === 'hopper') return new SimpleContainerScreen(host, menu, title);
   return new ChestScreen(host, menu as ChestMenu, title);

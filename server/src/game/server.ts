@@ -1075,6 +1075,9 @@ export class GameServer {
       case 'closeWindow':
         this.containers.handleClose(p, m.windowId);
         break;
+      case 'menuButton':
+        this.containers.handleButton(p, m.windowId, m.button);
+        break;
       case 'creativeSlot':
         // slot −1: the creative inventory throws the stack out of the window
         if (p.gameMode === 1 && m.slot === -1 && m.item > 0 && m.count > 0) this.tossItem(p, { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) });
