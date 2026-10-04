@@ -63,6 +63,12 @@ export function canSurvive(world: StateGetter, x: number, y: number, z: number, 
     if (FLUID[world.getState(x, y + 1, z)] !== 0) return false;
     return belowName === 'cactus' || belowName === 'sand' || belowName === 'red_sand';
   }
+  if (name === 'nether_wart') return belowName === 'soul_sand';
+  if (name === 'sweet_berry_bush') return ['grass_block', 'dirt', 'coarse_dirt', 'podzol', 'rooted_dirt', 'moss_block', 'mycelium', 'farmland'].includes(belowName);
+  if (name === 'cocoa') {
+    const f = DIRS.indexOf(getProp(state, 'facing') as (typeof DIRS)[number]);
+    return /^(stripped_)?jungle_(log|wood)$/.test(blockNameOf(world.getState(x + DX[f]!, y, z + DZ[f]!)));
+  }
   if (name === 'melon_stem' || name === 'pumpkin_stem' || name === 'attached_melon_stem' || name === 'attached_pumpkin_stem') return belowName === 'farmland';
   if (name.endsWith('_wall_sign')) {
     const f = DIRS.indexOf(getProp(state, 'facing') as (typeof DIRS)[number]);

@@ -1,7 +1,7 @@
 /** Derived block behaviour flags (vanilla BlockBehaviour.Properties predicates). */
 import { FULL_COLLISION, COLLISION_SHAPE_ID } from './blockinfo';
 import { BLOCK_STATE_COUNT } from '../data';
-import { blockNameOf } from './blockstate';
+import { blockNameOf, getProp as getPropOf } from './blockstate';
 
 /**
  * isSuffocating / isViewBlocking: full collision cubes, except glass and leaves which opt out
@@ -21,6 +21,10 @@ export const isViewBlocking = isSuffocating;
  */
 export function isInteractive(state: number): boolean {
   if (isOpenableByHand(state)) return true;
+  const name = blockNameOf(state);
+  // harvestable berries
+  if (name === 'sweet_berry_bush' && (getPropOf(state, 'age') as number) > 1) return true;
+  if ((name === 'cave_vines' || name === 'cave_vines_plant') && getPropOf(state, 'berries') === true) return true;
   return blockNameOf(state).endsWith('_bed');
 }
 

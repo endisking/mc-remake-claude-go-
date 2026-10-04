@@ -46,6 +46,13 @@ for (const w of ['crimson', 'warped']) {
   STRIPPABLE[`${w}_stem`] = `stripped_${w}_stem`;
   STRIPPABLE[`${w}_hyphae`] = `stripped_${w}_hyphae`;
 }
+/** GrowingPlantHeadBlock subclasses: grow direction (1 up, −1 down), chance per random tick, body block. */
+const GROWING_HEADS: Record<string, { dir: number; chance: number; body: string }> = {
+  kelp: { dir: 1, chance: 0.14, body: 'kelp_plant' },
+  weeping_vines: { dir: -1, chance: 0.1, body: 'weeping_vines_plant' },
+  twisting_vines: { dir: 1, chance: 0.1, body: 'twisting_vines_plant' },
+  cave_vines: { dir: -1, chance: 0.11, body: 'cave_vines_plant' },
+};
 const FLATTENABLE = new Set(['grass_block', 'dirt', 'podzol', 'coarse_dirt', 'mycelium', 'rooted_dirt']);
 
 /** BlockState.isRandomlyTicking for the behaviours implemented here. */
@@ -58,6 +65,9 @@ for (let s = 0; s < BLOCK_STATE_COUNT; s++) {
   else if (n in CROP_MAX_AGE) t = (getProp(s, 'age') as number) < CROP_MAX_AGE[n]!;
   else if (n.endsWith('_leaves')) t = leavesDecaying(s);
   else if (n === 'snow' || n === 'ice') t = true;
+  else if (n === 'nether_wart' || n === 'sweet_berry_bush') t = (getProp(s, 'age') as number) < 3;
+  else if (n === 'cocoa') t = (getProp(s, 'age') as number) < 2;
+  else if (n in GROWING_HEADS) t = (getProp(s, 'age') as number) < 25;
   RANDOM_TICKING[s] = t ? 1 : 0;
 }
 
@@ -174,6 +184,22 @@ export class BlockBehaviors {
     if (n === 'sugar_cane' || n === 'cactus') return this.growColumn(x, y, z, st, n);
     if (n in STEM_FRUIT) return this.growStem(x, y, z, st, n);
     if (n === 'farmland') return this.farmlandTick(x, y, z, st);
+    if (n === 'nether_wart') {
+      // NetherWartBlock: 1 in 10
+      if ((getProp(st, 'age') as number) < 3 && r.nextInt(10) === 0) this.s.setBlock(x, y, z, withProp(st, 'age', (getProp(st, 'age') as number) + 1));
+      return;
+    }
+    if (n === 'sweet_berry_bush') {
+      const age = getProp(st, 'age') as number;
+      if (age < 3 && r.nextInt(5) === 0 && this.rawBrightness(x, y + 1, z) >= 9) this.s.setBlock(x, y, z, withProp(st, 'age', age + 1));
+      return;
+    }
+    if (n === 'cocoa') {
+      const age = getProp(st, 'age') as number;
+      if (r.nextInt(5) === 0 && age < 2) this.s.setBlock(x, y, z, withProp(st, 'age', age + 1));
+      return;
+    }
+    if (n in GROWING_HEADS) return this.growHead(x, y, z, st, n);
     if (n === 'snow') {
       // SnowLayerBlock: melts under block light > 11
       if ((this.w.getLight(x, y, z) & 15) > 11) this.breakNaturally(x, y, z, false);
@@ -409,6 +435,25 @@ export class BlockBehaviors {
     if (this.s.rand.nextInt(growthChanceDenominator(f)) === 0) this.s.setBlock(x, y, z, withProp(st, 'age', age + 1));
   }
 
+  /** GrowingPlantHeadBlock.randomTick: kelp, weeping/twisting vines and cave vines extend by one. */
+  private growHead(x: number, y: number, z: number, st: number, n: string): void {
+    const h = GROWING_HEADS[n]!;
+    const r = this.s.rand;
+    const age = getProp(st, 'age') as number;
+    if (age >= 25 || r.nextDouble() >= h.chance) return;
+    const ty = y + h.dir;
+    const target = this.w.getState(x, ty, z);
+    const ok = n === 'kelp' ? FLUID[target] === 1 && FLUID_LEVEL[target] === 0 && blockNameOf(target) === 'water' : IS_AIR[target] === 1;
+    if (!ok) return;
+    let grown = withProp(st, 'age', Math.min(25, age + 1));
+    if (n === 'cave_vines') grown = withProp(grown, 'berries', r.nextFloat() < 0.11);
+    this.s.setBlock(x, ty, z, grown);
+    // the old head becomes a body piece (GrowingPlantHeadBlock.updateShape)
+    let body = defaultState(h.body);
+    if (n === 'cave_vines') body = withProp(body, 'berries', getProp(st, 'berries') as boolean);
+    this.s.setBlock(x, y, z, body);
+  }
+
   /** SugarCaneBlock / CactusBlock.randomTick: age 0–15, up to 3 tall. */
   private growColumn(x: number, y: number, z: number, st: number, n: string): void {
     const w = this.w;
@@ -554,6 +599,13 @@ export class BlockBehaviors {
       const tall = defaultState(n === 'fern' ? 'large_fern' : 'tall_grass');
       if (!IS_AIR[w.getState(x, y + 1, z)] || !canSurvive(w, x, y, z, withProp(tall, 'half', 'lower'))) return false;
       this.placeDouble(x, y, z, tall);
+    } else if (n === 'sweet_berry_bush' || n === 'cocoa') {
+      const age = getProp(st, 'age') as number;
+      if (age >= (n === 'cocoa' ? 2 : 3)) return false;
+      this.s.setBlock(x, y, z, withProp(st, 'age', age + 1));
+    } else if (n === 'cave_vines' || n === 'cave_vines_plant') {
+      if (getProp(st, 'berries') === true) return false;
+      this.s.setBlock(x, y, z, withProp(st, 'berries', true));
     } else if (TALL_FLOWERS.has(n)) {
       // TallFlowerBlock: pops a copy of itself
       this.s.popResource(x, y, z, { id: itemForBlock(st), count: 1, damage: 0 });
@@ -711,6 +763,25 @@ export class BlockBehaviors {
     const st = w.getState(x, y, z);
     const n = blockNameOf(st);
     const r = this.s.rand;
+    if (n === 'sweet_berry_bush') {
+      // SweetBerryBushBlock.use: bone meal on an unripe bush passes through to the item
+      const age = getProp(st, 'age') as number;
+      const held = p.inventory.selectedStack;
+      if (age !== 3 && held && ITEMS_BY_ID[held.id]?.name === 'bone_meal') return false;
+      if (age <= 1) return false;
+      const j = 1 + r.nextInt(2);
+      this.s.popResource(x, y, z, { id: itemForBlock(st), count: j + (age === 3 ? 1 : 0), damage: 0 });
+      this.s.playSound(null, 'block.sweet_berry_bush.pick_berries', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 0.8 + r.nextFloat() * 0.4);
+      this.s.setBlock(x, y, z, withProp(st, 'age', 1));
+      return true;
+    }
+    if ((n === 'cave_vines' || n === 'cave_vines_plant') && getProp(st, 'berries') === true) {
+      // CaveVines.use
+      this.s.popResource(x, y, z, { id: itemForBlock(st), count: 1, damage: 0 });
+      this.s.playSound(null, 'block.cave_vines.pick_berries', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 0.8 + r.nextFloat() * 0.4);
+      this.s.setBlock(x, y, z, withProp(st, 'berries', false));
+      return true;
+    }
     if (n.endsWith('_door') && n !== 'iron_door') {
       const open = !(getProp(st, 'open') as boolean);
       this.s.setBlock(x, y, z, withProp(st, 'open', open));

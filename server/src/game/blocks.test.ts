@@ -373,4 +373,44 @@ describe('block behaviours on the server', () => {
     expect(get(8, 150, 8)).toBe('dirt');
     void server;
   });
+
+  it('bone meal on grass scatters grass and the biome flowers', () => {
+    const { server, set, get, give, use } = setup();
+    for (let x = 2; x <= 14; x++) for (let z = 2; z <= 14; z++) set(x, 150, z, 'grass_block');
+    give('bone_meal', 64);
+    for (let i = 0; i < 6; i++) use(8, 150, 8);
+    const found = new Set<string>();
+    for (let x = 2; x <= 14; x++) for (let z = 2; z <= 14; z++) found.add(get(x, 151, z));
+    expect(found.has('grass')).toBe(true);
+    expect(found.has('dandelion') || found.has('poppy') || found.has('tall_grass')).toBe(true);
+    void server;
+  });
+
+  it('sweet berries grow, and ripe bushes are picked by hand', () => {
+    const { server, set, get, send, p } = setup();
+    set(5, 150, 5, 'grass_block');
+    set(5, 151, 5, 'sweet_berry_bush', { age: 0 });
+    for (let i = 0; i < 300 && getProp(server.world.getState(5, 151, 5), 'age') !== 3; i++) server.blocks.randomTick(5, 151, 5, server.world.getState(5, 151, 5));
+    expect(getProp(server.world.getState(5, 151, 5), 'age')).toBe(3);
+    p.inventory.set(p.inventory.selected, null);
+    send({ t: 'useOn', x: 5, y: 151, z: 5, face: 1, cx: 0.5, cy: 0.5, cz: 0.5, hand: 0 });
+    expect(getProp(server.world.getState(5, 151, 5), 'age')).toBe(1);
+    const berries = [...server.entities.values()].filter((e) => e instanceof ItemEntity && e.stack.id === ITEMS_BY_NAME.get('sweet_berries')!.id) as ItemEntity[];
+    expect(berries.reduce((a, b) => a + b.stack.count, 0)).toBeGreaterThanOrEqual(2);
+    void get;
+  });
+
+  it('nether wart and kelp grow', () => {
+    const { server, set, get } = setup();
+    set(3, 150, 3, 'soul_sand');
+    set(3, 151, 3, 'nether_wart');
+    for (let i = 0; i < 400; i++) server.blocks.randomTick(3, 151, 3, server.world.getState(3, 151, 3));
+    expect(getProp(server.world.getState(3, 151, 3), 'age')).toBe(3);
+    set(6, 150, 3, 'stone');
+    for (let y = 151; y <= 155; y++) set(6, y, 3, 'water');
+    set(6, 151, 3, 'kelp', { age: 0 });
+    for (let i = 0; i < 200; i++) for (let y = 151; y <= 155; y++) if (get(6, y, 3) === 'kelp') server.blocks.randomTick(6, y, 3, server.world.getState(6, y, 3));
+    expect(get(6, 151, 3)).toBe('kelp_plant');
+    expect(get(6, 155, 3)).toBe('kelp');
+  });
 });

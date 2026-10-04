@@ -273,6 +273,11 @@ export function stateForPlacement(block: string, ctx: PlaceContext, existing: nu
     setWater();
     return s;
   }
+  if (block === 'cocoa') {
+    // CocoaBlock: faces the log it hangs on
+    if (face === 'up' || face === 'down') return null;
+    return withProp(s, 'facing', opposite(face));
+  }
   if (block.endsWith('_leaves')) {
     // LeavesBlock.getStateForPlacement: player-placed leaves never decay
     s = withProp(s, 'persistent', true);

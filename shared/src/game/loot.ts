@@ -66,6 +66,13 @@ const RULES: Record<string, Rule> = {
   fern: (_s, c, o) => (c.shears ? push(o, 'fern', 1) : c.random() < 0.125 && push(o, 'wheat_seeds', uniformBonus(c, 1, 2))),
   tall_grass: (s, c, o) => getProp(s, 'half') === 'lower' && (c.shears ? push(o, 'grass', 2) : c.random() < 0.125 && push(o, 'wheat_seeds', uniformBonus(c, 1, 2))),
   large_fern: (s, c, o) => getProp(s, 'half') === 'lower' && (c.shears ? push(o, 'fern', 2) : c.random() < 0.125 && push(o, 'wheat_seeds', uniformBonus(c, 1, 2))),
+  nether_wart: (s, c, o) => push(o, 'nether_wart', getProp(s, 'age') === 3 ? uniformBonus(c, range(c.random, 2, 4)) : 1),
+  cocoa: (s, _c, o) => push(o, 'cocoa_beans', getProp(s, 'age') === 2 ? 3 : 1),
+  sweet_berry_bush: (s, c, o) => {
+    const age = getProp(s, 'age') as number;
+    if (age === 3) push(o, 'sweet_berries', range(c.random, 2, 3));
+    else if (age === 2) push(o, 'sweet_berries', range(c.random, 1, 2));
+  },
   melon_stem: (s, c, o) => stemSeeds(s, c, o, 'melon_seeds'),
   pumpkin_stem: (s, c, o) => stemSeeds(s, c, o, 'pumpkin_seeds'),
   attached_melon_stem: (_s, c, o) => push(o, 'melon_seeds', binomial(c.random, 3, 0.53333336)),
