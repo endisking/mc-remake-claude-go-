@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 122 / 4140**
+**Progress: 123 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -151,7 +151,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 ### Interaction
 
 - [x] Block raycast targeting (reach 4.5 survival, 5 creative) <!--p2:block_raycast_targeting_reach_4_5_survival_5_creative-->
-- [ ] Entity targeting (reach 3) <!--p2:entity_targeting_reach_3-->
+- [x] Entity targeting (reach 3) <!--p2:entity_targeting_reach_3-->
 - [x] Exact mining time: hardness, tool, tier, Efficiency, Haste, Mining Fatigue, underwater, airborne <!--p2:exact_mining_time_hardness_tool_tier_efficiency_haste_mining_fatigue_underwater_airborne-->
 - [x] Block break particles <!--p2:block_break_particles-->
 - [x] Block placement (against faces, orientation rules) <!--p2:block_placement_against_faces_orientation_rules-->

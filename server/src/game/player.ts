@@ -45,6 +45,16 @@ export class ServerPlayer {
   lastSentPitch = NaN;
   stateDirty = true;
   sentMainHand = -1;
+  /** Player.attackStrengthTicker and the item it was measured with */
+  attackStrengthTicker = 0;
+  lastMainHandItem = 0;
+  walkDist = 0;
+  /** velocity from knockback (players otherwise move client-side) */
+  vx = 0;
+  vy = 0;
+  vz = 0;
+  knockbackDirty = false;
+  walkDistO = 0;
   sentOffHand = -1;
   readonly inventory = new Inventory();
   /** Block being dug in survival: position and start tick. */

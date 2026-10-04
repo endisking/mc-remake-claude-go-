@@ -44,9 +44,11 @@ All recordings are CC0. They are trimmed, cut into single events, converted to m
 | Rustling Grass by alegemaate | alegemaate | https://freesound.org/people/alegemaate/sounds/364712/ | CC0 1.0 | dig_grass |
 | Glass Break 1.wav by mccormick_iain | mccormick_iain | https://freesound.org/people/mccormick_iain/sounds/371094/ | CC0 1.0 | glass_break |
 | Footstep in the snow_01 [RAW] by cabled_mess | cabled_mess | https://freesound.org/people/cabled_mess/sounds/384423/ | CC0 1.0 | dig_snow |
+| Swing Woosh by Jofae | Jofae | https://freesound.org/people/Jofae/sounds/389590/ | CC0 1.0 | attack_sweep |
 | Splash by swordofkings128 | swordofkings128 | https://freesound.org/people/swordofkings128/sounds/398032/ | CC0 1.0 | splash |
 | HomemadeOof.wav by LucyTheDev | LucyTheDev | https://freesound.org/people/LucyTheDev/sounds/438912/ | CC0 1.0 | player_hurt |
 | BODY FALL - V HVY - DIRT by leonelmail | leonelmail | https://freesound.org/people/leonelmail/sounds/504626/ | CC0 1.0 | fall_big |
+| Clean fast Swoosh.aiff by Danjocross | Danjocross | https://freesound.org/people/Danjocross/sounds/507466/ | CC0 1.0 | attack_sweep |
 | Short Neighborhood Rain.wav by shelbyshark | shelbyshark | https://freesound.org/people/shelbyshark/sounds/513395/ | CC0 1.0 | rain |
 | Hiking Boot Footsteps on Gravel by Fission9 | Fission9 | https://freesound.org/people/Fission9/sounds/521588/ | CC0 1.0 | dig_gravel |
 | Glass Shatter 5.wav by Greg_Surr | Greg_Surr | https://freesound.org/people/Greg_Surr/sounds/554570/ | CC0 1.0 | glass_break |
@@ -62,7 +64,7 @@ All recordings are CC0. They are trimmed, cut into single events, converted to m
 | Steps_Fine_Snow_Or_Sand_Strong_29 by BlondPanda | BlondPanda | https://freesound.org/people/BlondPanda/sounds/778568/ | CC0 1.0 | step_sand |
 | Body Fall Over.wav by raubana | raubana | https://freesound.org/people/raubana/sounds/82027/ | CC0 1.0 | fall_small |
 | Closeup Thunder Strike 01 by loganzsound | loganzsound | https://freesound.org/people/loganzsound/sounds/840628/ | CC0 1.0 | thunder, thunder_impact |
-| Impact Sounds (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/impact-sounds | CC0 1.0 | dig_wood, step_wood, step_grass, dig_stone, step_stone, step_cloth, dig_snow, step_snow, step_ladder |
+| Impact Sounds (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/impact-sounds | CC0 1.0 | dig_wood, step_wood, step_grass, dig_stone, step_stone, step_cloth, dig_snow, step_snow, step_ladder, attack_strong, attack_weak, attack_knockback, attack_nodamage |
 | RPG Audio (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/rpg-audio | CC0 1.0 | dig_cloth, door_open, door_close, metal_latch, chest_creak |
 | UI Audio (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/ui-audio | CC0 1.0 | click |
 <!-- sounds:end -->

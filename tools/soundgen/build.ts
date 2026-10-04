@@ -53,6 +53,8 @@ const FREESOUND: Record<number, string> = {
   651293: 'f3bbbo', // digging in wet coarse sand (2)
   560957: 'Bricklover', // shovel - sand/gravel/snow
   778568: 'BlondPanda', // steps on fine snow or sand
+  389590: 'Jofae', // swing woosh
+  507466: 'Danjocross', // clean fast swoosh
   384423: 'cabled_mess', // footstep in the snow
 };
 
@@ -154,6 +156,11 @@ const SETS: Record<string, () => Clip[]> = {
   splash: () => fsWhole(398032, 1.4),
   pop: () => [...fsWhole(323741, 0.3), ...fsWhole(573152, 0.4)],
   click: () => kenney('ui-audio', 'click1'),
+  attack_strong: () => kenney('impact-sounds', ...range('impactPunch_heavy_', 5)),
+  attack_weak: () => quieter(kenney('impact-sounds', ...range('impactPunch_medium_', 5)), -4),
+  attack_knockback: () => kenney('impact-sounds', ...range('impactSoft_heavy_', 5)),
+  attack_nodamage: () => quieter(kenney('impact-sounds', ...range('impactSoft_medium_', 5)), -6),
+  attack_sweep: () => [...fsWhole(389590, 0.4), ...fsWhole(507466, 0.9)],
   door_open: () => kenney('rpg-audio', 'doorOpen_1', 'doorOpen_2'),
   door_close: () => kenney('rpg-audio', 'doorClose_1', 'doorClose_2', 'doorClose_3', 'doorClose_4'),
   metal_latch: () => kenney('rpg-audio', 'metalLatch', 'metalClick'),
@@ -236,6 +243,12 @@ Object.assign(EVENTS, {
   'entity.player.splash.high_speed': [{ set: 'splash' }],
   'entity.item.pickup': [{ set: 'pop' }],
   'ui.button.click': [{ set: 'click' }],
+  'entity.player.attack.strong': [{ set: 'attack_strong' }],
+  'entity.player.attack.weak': [{ set: 'attack_weak' }],
+  'entity.player.attack.crit': [{ set: 'attack_strong', pitch: 1.2 }],
+  'entity.player.attack.knockback': [{ set: 'attack_knockback' }],
+  'entity.player.attack.nodamage': [{ set: 'attack_nodamage' }],
+  'entity.player.attack.sweep': [{ set: 'attack_sweep' }],
   'block.wooden_door.open': [{ set: 'door_open' }],
   'block.wooden_door.close': [{ set: 'door_close' }],
   'block.wooden_trapdoor.open': [{ set: 'door_open', pitch: 1.2 }],
@@ -256,7 +269,8 @@ const HOOKED = new Set<string>([
   'entity.lightning_bolt.thunder', 'entity.lightning_bolt.impact', 'weather.rain', 'weather.rain.above', 'entity.player.hurt',
   'entity.player.death', 'entity.player.hurt_on_fire', 'entity.player.hurt_drown', 'entity.player.hurt_sweet_berry_bush',
   'entity.player.hurt_freeze', 'entity.player.big_fall', 'entity.player.small_fall', 'entity.player.swim', 'entity.item.pickup',
-  'ui.button.click',
+  'ui.button.click', 'entity.player.attack.strong', 'entity.player.attack.weak', 'entity.player.attack.crit',
+  'entity.player.attack.knockback', 'entity.player.attack.nodamage', 'entity.player.attack.sweep',
 ]);
 
 // ------------------------------------------------------------------ build

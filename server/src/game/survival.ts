@@ -38,6 +38,7 @@ export const DAMAGE = {
   sweetBerryBush: { id: 'sweetBerryBush' },
   freeze: { id: 'freeze', bypassArmor: true },
   lightningBolt: { id: 'lightningBolt' },
+  playerAttack: { id: 'player' },
 } as const satisfies Record<string, DamageSource>;
 
 /** Death messages (vanilla wording; %s = player name). */
@@ -56,6 +57,7 @@ const DEATH: Record<string, string> = {
   sweetBerryBush: '%s was poked to death by a sweet berry bush',
   freeze: '%s froze to death',
   lightningBolt: '%s was struck by lightning',
+  player: '%s was slain by %k',
 };
 const FALL_MESSAGES: Record<string, string> = {
   generic: '%s fell from a high place',
@@ -118,6 +120,7 @@ export class LivingState {
   lastClimbable: string | null = null;
   lastClimbableTick = -1000;
   lastFallDistanceWhenHurt = 0;
+  lastAttacker: string | null = null;
 
   get dead(): boolean {
     return this.health <= 0;
@@ -138,8 +141,9 @@ export class Survival {
   }
 
   /** LivingEntity.hurt (+ Player/ServerPlayer checks). Returns whether damage was applied. */
-  hurt(p: ServerPlayer, src: DamageSource, amount: number): boolean {
+  hurt(p: ServerPlayer, src: DamageSource, amount: number, attacker: ServerPlayer | null = null): boolean {
     const l = p.living;
+    if (attacker) l.lastAttacker = attacker.name;
     if (this.invulnerableTo(p, src) || l.dead) return false;
     if (l.spawnInvulnerableTime > 0 && src.id !== 'outOfWorld') return false;
     if (amount <= 0) return false;
@@ -154,6 +158,15 @@ export class Survival {
       l.invulnerableTime = 20;
       this.actuallyHurt(p, src, amount);
       l.hurtTime = 10;
+      // LivingEntity.hurt: knock the victim away from the attacker
+      if (attacker) {
+        let dx = attacker.x - p.x, dz = attacker.z - p.z;
+        while (dx * dx + dz * dz < 1e-4) {
+          dx = (Math.random() - Math.random()) * 0.01;
+          dz = (Math.random() - Math.random()) * 0.01;
+        }
+        this.s.knockback(p, 0.4, dx, dz);
+      }
     }
     // entity event 2/36/37/44/57: hurt animation + the hurt sound for the player itself
     const event = src.id === 'drown' ? 36 : src.id === 'onFire' ? 37 : src.id === 'sweetBerryBush' ? 44 : src.id === 'freeze' ? 57 : 2;
@@ -473,7 +486,7 @@ export class Survival {
       const fromClimb = l.lastClimbable && this.s.gameTime - l.lastClimbableTick < 100 ? l.lastClimbable : 'generic';
       return (FALL_MESSAGES[fromClimb] ?? FALL_MESSAGES.generic!).replace('%s', p.name);
     }
-    return (DEATH[src.id] ?? DEATH.generic!).replace('%s', p.name);
+    return (DEATH[src.id] ?? DEATH.generic!).replace('%s', p.name).replace('%k', l.lastAttacker ?? 'someone');
   }
 
   /** PlayerList.respawn: back to spawn with fresh survival state. */

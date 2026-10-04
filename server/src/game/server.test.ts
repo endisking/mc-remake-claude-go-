@@ -282,4 +282,41 @@ describe('survival', () => {
     for (let i = 0; i < 10; i++) server.tick();
     expect(e.y).toBeLessThan(y);
   });
+
+  it('PvP: charged fist hits deal 1 damage and knock the victim back; spam hits are weaker', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, defaultGameMode: 0, scene: 'models', randomSeed: 1n });
+    const a = client(server, 'A');
+    const b = client(server, 'B');
+    for (let i = 0; i < 3; i++) server.tick();
+    const [pa, pb] = server.players as [typeof server.players[0], typeof server.players[0]];
+    a.send({ t: 'chat', message: '/tp 31.5 101 7.5' });
+    a.send({ t: 'move', x: 31.5, y: 101, z: 7.5, yaw: 0, pitch: 0, onGround: true });
+    b.send({ t: 'chat', message: '/tp 31.5 101 9.5' });
+    b.send({ t: 'move', x: 31.5, y: 101, z: 9.5, yaw: 180, pitch: 0, onGround: true });
+    for (let i = 0; i < 61; i++) server.tick();
+    pb.living.food.foodLevel = 17;
+    pb.living.food.saturationLevel = 0;
+    a.send({ t: 'attack', target: pb.id, sneaking: false });
+    expect(pb.living.health).toBe(19);
+    server.tick();
+    const motion = b.received.filter((m) => m.t === 'entityMotion').at(-1) as Extract<S2C, { t: 'entityMotion' }>;
+    expect(motion.vz).toBeCloseTo(0.4); // pushed away from A (A is at lower z)
+    expect(motion.vy).toBeCloseTo(0.4);
+    // immediately again: inside the invulnerability window and with an uncharged fist
+    a.send({ t: 'attack', target: pb.id, sneaking: false });
+    expect(pb.living.health).toBe(19);
+    // pvp off
+    for (let i = 0; i < 20; i++) server.tick();
+    server.pvp = false;
+    a.send({ t: 'attack', target: pb.id, sneaking: false });
+    expect(pb.living.health).toBe(19);
+    server.pvp = true;
+    for (let i = 0; i < 10; i++) server.tick(); // recharge (the blocked swing reset the cooldown)
+    pb.living.health = 1;
+    a.send({ t: 'attack', target: pb.id, sneaking: false });
+    expect(pb.living.dead).toBe(true);
+    const died = b.received.find((m) => m.t === 'playerDied') as Extract<S2C, { t: 'playerDied' }>;
+    expect(died.message).toBe('B was slain by A');
+    void pa;
+  });
 });

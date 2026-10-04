@@ -10,7 +10,6 @@ import type { EntityRenderer } from './entities/entityrenderer';
 import { LIGHT0, LIGHT1 } from './entities/entityrenderer';
 import type { BlockItemRenderer } from './blockitem';
 import type { ItemStack } from '@shared/item/stack';
-import { ITEMS_BY_ID } from '@shared/data';
 
 export interface HandFrame {
   /** held item (main hand) and the block state it renders as, if any */
@@ -65,17 +64,7 @@ void main() {
   outColor = c * uColor;
 }`;
 
-/** Vanilla attack speeds (attack_speed attribute) of held items, for the equip dip. */
-export function attackSpeedOf(id: number): number {
-  const n = ITEMS_BY_ID[id]?.name ?? '';
-  if (n.endsWith('_sword')) return 1.6;
-  if (n.endsWith('_pickaxe')) return 1.2;
-  if (n.endsWith('_shovel')) return 1.0;
-  if (n.endsWith('_axe')) return n.startsWith('wooden') || n.startsWith('stone') ? 0.8 : n.startsWith('iron') ? 0.9 : 1.0;
-  if (n.endsWith('_hoe')) return ({ wooden: 1, stone: 2, iron: 3, golden: 1, diamond: 4, netherite: 4 } as Record<string, number>)[n.split('_')[0]!] ?? 1;
-  if (n === 'trident') return 1.1;
-  return 4;
-}
+export { attackSpeedOf } from '@shared/game/combat';
 
 export class HandRenderer {
   private readonly ps = new PoseStack();

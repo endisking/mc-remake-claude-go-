@@ -26,6 +26,7 @@ import { Survival, DEFAULT_GAME_RULES, DAMAGE, type GameRules } from './survival
 import { Difficulty, EXHAUSTION } from '@shared/game/food';
 import { soundId, sourceId, type SoundSource } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
+import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
 
 export interface Connection {
@@ -67,6 +68,8 @@ export class GameServer {
   readonly gameRules: GameRules = { ...DEFAULT_GAME_RULES };
   difficulty: Difficulty = Difficulty.Normal;
   readonly survival = new Survival(this);
+  /** server.properties pvp */
+  pvp = true;
   /** Server simulation distance (chunks); the single-player host's setting overrides it. */
   simulationDistance = 10;
   private nextEntityId = 1;
@@ -643,6 +646,7 @@ export class GameServer {
     // exhaustion from movement and jumping, then fall damage (Entity.checkFallDamage driven by
     // the client's onGround, like ServerGamePacketListenerImpl.handleMovePlayer)
     this.survival.movementExhaustion(p, dx, dy, dz, p.onGround, m.onGround);
+    p.walkDist += Math.hypot(dx, dz) * 0.6;
     p.x = m.x;
     p.y = m.y;
     p.z = m.z;
@@ -653,6 +657,60 @@ export class GameServer {
       p.fallDistance = 0;
     } else if (dy < 0) p.fallDistance -= dy;
     if (p.flying) p.fallDistance = 0;
+  }
+
+  /** ServerGamePacketListenerImpl.handleInteract (attack) → Player.attack. */
+  private handleAttack(p: ServerPlayer, targetId: number): void {
+    if (p.gameMode === 3) return;
+    const t = this.players.find((o) => o.id === targetId);
+    // items, orbs, arrows and yourself can't be attacked (vanilla disconnects; we ignore)
+    if (!t || t === p || t.gameMode === 3 || t.living.dead) return;
+    const dx = t.x - p.x, dy = t.y - p.y, dz = t.z - p.z;
+    if (dx * dx + dy * dy + dz * dz >= 36) return;
+    const item = p.inventory.selectedStack?.id ?? 0;
+    const ph = p.phys;
+    ph.x = p.x;
+    ph.y = p.y;
+    ph.z = p.z;
+    ph.updateFluidState();
+    const res = computeAttack({
+      item, attackStrengthTicker: p.attackStrengthTicker, sprinting: p.sprinting, fallDistance: p.fallDistance, onGround: p.onGround,
+      onClimbable: ph.onClimbable(), inWater: ph.isInWater, walked: p.walkDist - p.walkDistO, speed: 0.1,
+    });
+    p.attackStrengthTicker = 0;
+    if (!this.pvp) return;
+    const r = this.rand;
+    const sx = p.x, sy = p.y, sz = p.z;
+    if (res.knockback > 0 && res.charged && p.sprinting) this.playSound(null, 'entity.player.attack.knockback', 'player', sx, sy, sz, 1, 1);
+    const hit = this.survival.hurt(t, DAMAGE.playerAttack, res.damage, p);
+    if (hit) {
+      const yr = (p.yaw * Math.PI) / 180;
+      if (res.knockback > 0) {
+        this.knockback(t, res.knockback * 0.5, Math.sin(yr), -Math.cos(yr));
+        p.sprinting = false;
+        p.stateDirty = true;
+      }
+      if (res.critical) this.playSound(null, 'entity.player.attack.crit', 'player', sx, sy, sz, 1, 1);
+      if (res.sweep) this.playSound(null, 'entity.player.attack.sweep', 'player', sx, sy, sz, 1, 1);
+      else if (!res.critical) this.playSound(null, res.charged ? 'entity.player.attack.strong' : 'entity.player.attack.weak', 'player', sx, sy, sz, 1, 1);
+      if (res.critical) this.broadcastToTrackers(t, { t: 'animate', id: t.id, action: 4 }, true);
+      p.living.food.addExhaustion(EXHAUSTION.attack);
+    } else {
+      this.playSound(null, 'entity.player.attack.nodamage', 'player', sx, sy, sz, 1, 1);
+    }
+    void r;
+  }
+
+  /** LivingEntity.knockback, sent to the victim's client as a velocity (SetEntityMotion). */
+  knockback(t: ServerPlayer, strength: number, x: number, z: number): void {
+    if (strength <= 0) return;
+    const len = Math.hypot(x, z) || 1;
+    const kx = (x / len) * strength, kz = (z / len) * strength;
+    // the server-side velocity of a player is its last knockback (movement is client-driven)
+    t.vx = t.vx / 2 - kx;
+    t.vy = t.onGround ? Math.min(0.4, t.vy / 2 + strength) : t.vy;
+    t.vz = t.vz / 2 - kz;
+    t.knockbackDirty = true;
   }
 
   /** Entity.move step/swim sounds of a player, heard by everyone else. */
@@ -700,6 +758,9 @@ export class GameServer {
         break;
       case 'heldSlot':
         if (m.slot >= 0 && m.slot < 9) p.inventory.selected = m.slot;
+        break;
+      case 'attack':
+        this.handleAttack(p, m.target);
         break;
       case 'swapOffhand': {
         if (p.gameMode === 3) break;
@@ -860,6 +921,20 @@ export class GameServer {
     for (const p of this.players) {
       p.updatePose();
       this.survival.tick(p);
+      // Player.tick: attack strength recharges; switching to a different item restarts it
+      p.attackStrengthTicker++;
+      const main = p.inventory.selectedStack?.id ?? 0;
+      if (main !== p.lastMainHandItem) {
+        p.attackStrengthTicker = 0;
+        p.lastMainHandItem = main;
+      }
+      p.walkDistO = p.walkDist;
+      // knockback velocity goes to the victim's client, then decays server-side
+      if (p.knockbackDirty) {
+        this.send(p, { t: 'entityMotion', id: p.id, vx: p.vx, vy: p.vy, vz: p.vz });
+        p.knockbackDirty = false;
+      }
+      p.vx = p.vy = p.vz = 0;
     }
     this.tickEntities();
     this.updateChunks();

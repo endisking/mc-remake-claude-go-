@@ -35,6 +35,8 @@ export interface InteractionHost {
   swing(hand?: 0 | 1): void;
   /** attack at nothing: swing and reset the attack strength (vanilla startAttack miss) */
   missSwing(): void;
+  /** attacked an entity (client-side Player.attack effects + cooldown reset) */
+  onAttack(): void;
 }
 
 export class Interaction {
@@ -78,9 +80,16 @@ export class Interaction {
     this.host.onBlockBroken(x, y, z, st);
   }
 
-  /** Attack key pressed this tick. */
-  startAttack(target: BlockHit | null): void {
+  /** Attack key pressed this tick (an entity in the crosshair wins over a block). */
+  startAttack(target: BlockHit | null, entity: number | null = null): void {
     if (this.missTime > 0) return;
+    if (entity !== null) {
+      // MultiPlayerGameMode.attack: tell the server, swing, restart the attack cooldown
+      this.host.send({ t: 'attack', target: entity, sneaking: this.host.player.shiftDown });
+      if (this.host.gameMode !== 3) this.host.onAttack();
+      this.host.swing();
+      return;
+    }
     if (!target) {
       // vanilla: a miss swings, resets the attack cooldown and (in survival) blocks attacking for 10 ticks
       if (this.host.gameMode !== 1) this.missTime = 10;

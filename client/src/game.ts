@@ -38,6 +38,7 @@ import { ClientBolt, LightningRenderer } from './render/lightning';
 import { SoundEngine, type SoundCategory } from './audio/engine';
 import { soundName, SOUND_SOURCES } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
+import { attackStrengthScale } from '@shared/game/combat';
 import { isRainingAt } from '@shared/world/weather';
 import { StepTracker } from '@shared/entity/steps';
 import { Button } from './gui/screen';
@@ -123,6 +124,8 @@ export class Game implements ScreenHost {
   breakStage = -1;
   /** Block the crosshair points at (reach 5 in creative, 4.5 survival). */
   target: BlockHit | null = null;
+  /** entity in the crosshair (GameRenderer.pick), or null */
+  targetEntity: number | null = null;
   private readonly hitScratch = {} as BlockHit;
   reach = 5;
   readonly gui: Gui;
@@ -346,6 +349,16 @@ export class Game implements ScreenHost {
         this.playAt(t.place, 'block', x + 0.5, y + 0.5, z + 0.5, (t.volume + 1) / 2, t.pitch * 0.8);
       },
       swing: (hand) => this.swingArm(hand ?? 0),
+      onAttack: () => {
+        // client-side Player.attack: a charged sprint hit slows us and stops sprinting
+        const charged = attackStrengthScale(this.attackStrengthTicker, this.interaction.inventory.selectedStack?.id ?? 0, 0.5) > 0.9;
+        if (charged && this.player.sprinting) {
+          this.player.vx *= 0.6;
+          this.player.vz *= 0.6;
+          this.player.sprinting = false;
+        }
+        this.resetAttackStrength();
+      },
       missSwing: () => {
         this.swingArm();
         this.resetAttackStrength();
@@ -497,6 +510,14 @@ export class Game implements ScreenHost {
         break;
       case 'gameMode':
         this.setGameMode(p.mode);
+        break;
+      case 'entityMotion':
+        // LocalPlayer.lerpMotion (knockback)
+        if (p.id === this.entityId) {
+          this.player.vx = p.vx;
+          this.player.vy = p.vy;
+          this.player.vz = p.vz;
+        }
         break;
       case 'equipment': {
         const rp = this.players.get(p.id);
@@ -763,7 +784,7 @@ export class Game implements ScreenHost {
       ia.tick();
       const b = this.binds;
       const attackPressed = b.consume('attack');
-      if (attackPressed) ia.startAttack(this.target);
+      if (attackPressed) ia.startAttack(this.target, this.targetEntity);
       ia.continueAttack(b.down('attack') && !attackPressed, this.target);
       ia.use(b.consume('use'), b.down('use'), this.target);
       if (b.consume('pickItem')) ia.pickBlock(this.target);
@@ -1187,6 +1208,42 @@ export class Game implements ScreenHost {
     return Math.floor((1 - d) * 11);
   }
 
+  /**
+   * GameRenderer.pick entity part: players within 3 blocks in survival (6 in creative); a nearer
+   * entity hides the block behind it, and a farther survival hit becomes a miss.
+   */
+  private pickEntity(ex: number, ey: number, ez: number, dx: number, dy: number, dz: number, partial: number): void {
+    this.targetEntity = null;
+    const far = this.gameMode === 1;
+    const range = far ? 6 : this.reach;
+    let best = this.target ? this.target.distance * this.target.distance : range * range;
+    let hit: number | null = null;
+    let hitDist2 = Infinity;
+    for (const p of this.players.values()) {
+      if (p.pose === 'dying') continue;
+      const x = p.xo + (p.x - p.xo) * partial, y = p.yo + (p.y - p.yo) * partial, z = p.zo + (p.z - p.zo) * partial;
+      const h = p.crouching ? 1.5 : 1.8;
+      const t = rayAabb(ex, ey, ez, dx, dy, dz, x - 0.3, y, z - 0.3, x + 0.3, y + h, z + 0.3);
+      if (t === null || t > range) continue;
+      const d2 = t * t;
+      if (d2 < hitDist2) {
+        hitDist2 = d2;
+        hit = p.id;
+      }
+    }
+    if (hit === null) return;
+    if (!far && hitDist2 > 9) {
+      // survival reach for entities is 3: a farther entity in the way means nothing is targeted
+      this.target = null;
+      return;
+    }
+    if (hitDist2 < best || !this.target) {
+      best = hitDist2;
+      this.targetEntity = hit;
+      this.target = null;
+    }
+  }
+
   /** Minecraft.debugFeedback: "[Debug]:" prefix in bold yellow. */
   private debugFeedback(msg: string): void {
     this.hud.addChat(`§e§l[Debug]:§r ${msg}`);
@@ -1505,6 +1562,7 @@ export class Game implements ScreenHost {
     }
     // targeted block outline (vanilla: black, 40% alpha)
     this.target = raycastBlocks(this.world, ex, ey, ez, eyeLookX, eyeLookY, eyeLookZ, this.reach, false, this.hitScratch);
+    this.pickEntity(ex, ey, ez, eyeLookX, eyeLookY, eyeLookZ, partial);
     if (this.target && !this.hideHud) {
       const t = this.target;
       this.lines.begin();
@@ -1638,6 +1696,23 @@ export class Game implements ScreenHost {
 }
 
 const IDENTITY4 = mat4();
+
+/** Ray vs box (slab method); returns the entry distance along the unit direction, or null. */
+function rayAabb(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): number | null {
+  let tmin = 0, tmax = Infinity;
+  for (const [o, d, a, b] of [[ox, dx, x0, x1], [oy, dy, y0, y1], [oz, dz, z0, z1]] as const) {
+    if (Math.abs(d) < 1e-12) {
+      if (o < a || o > b) return null;
+      continue;
+    }
+    let t1 = (a - o) / d, t2 = (b - o) / d;
+    if (t1 > t2) [t1, t2] = [t2, t1];
+    tmin = Math.max(tmin, t1);
+    tmax = Math.min(tmax, t2);
+    if (tmin > tmax) return null;
+  }
+  return tmin;
+}
 
 /** Default item tints (vanilla ItemColors): grass and leaves in item form. */
 function itemTint(state: number): [number, number, number] {
