@@ -1451,7 +1451,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Dispenser/dropper screen <!--p5:dispenser_dropper_screen-->
 - [ ] Beacon screen <!--p5:beacon_screen-->
 - [ ] Horse / llama inventory <!--p5:horse_llama_inventory-->
-- [ ] Villager trading screen <!--p5:villager_trading_screen-->
+- [x] Villager trading screen <!--p5:villager_trading_screen-->
 - [ ] Lectern book screen <!--p5:lectern_book_screen-->
 - [ ] Book and quill editing <!--p5:book_and_quill_editing-->
 - [ ] Recipe book <!--p5:recipe_book-->
@@ -2485,14 +2485,14 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Boats <!--p6:boats-->
 - [ ] Minecarts (all types) <!--p6:minecarts_all_types-->
 - [ ] Leads <!--p6:leads-->
-- [ ] Villager professions by workstation <!--p6:villager_professions_by_workstation-->
-- [ ] Villager levels and trade tables (1.17.1) <!--p6:villager_levels_and_trade_tables_1_17_1-->
-- [ ] Villager restocking <!--p6:villager_restocking-->
+- [x] Villager professions by workstation <!--p6:villager_professions_by_workstation-->
+- [x] Villager levels and trade tables (1.17.1) <!--p6:villager_levels_and_trade_tables_1_17_1-->
+- [x] Villager restocking <!--p6:villager_restocking-->
 - [ ] Gossip/reputation <!--p6:gossip_reputation-->
-- [ ] Curing zombie villagers <!--p6:curing_zombie_villagers-->
-- [ ] Iron golem spawning by villagers <!--p6:iron_golem_spawning_by_villagers-->
-- [ ] Villager beds and schedules <!--p6:villager_beds_and_schedules-->
-- [ ] Villager breeding <!--p6:villager_breeding-->
+- [x] Curing zombie villagers <!--p6:curing_zombie_villagers-->
+- [x] Iron golem spawning by villagers <!--p6:iron_golem_spawning_by_villagers-->
+- [x] Villager beds and schedules <!--p6:villager_beds_and_schedules-->
+- [x] Villager breeding <!--p6:villager_breeding-->
 - [ ] Wandering trader and llamas <!--p6:wandering_trader_and_llamas-->
 - [ ] Piglin bartering and gold rules <!--p6:piglin_bartering_and_gold_rules-->
 - [ ] Wither boss (summoning, phases, skulls, boss bar) <!--p6:wither_boss_summoning_phases_skulls_boss_bar-->
@@ -2508,7 +2508,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Bat (`bat`, 0.5×0.9) <!--mob:bat-->
 - [ ] Bee (`bee`, 0.7×0.6) <!--mob:bee-->
 - [ ] Blaze (`blaze`, 0.6×1.8) <!--mob:blaze-->
-- [ ] Cat (`cat`, 0.6×0.7) <!--mob:cat-->
+- [x] Cat (`cat`, 0.6×0.7) <!--mob:cat-->
 - [x] Cave Spider (`cave_spider`, 0.7×0.5) <!--mob:cave_spider-->
 - [x] Chicken (`chicken`, 0.4×0.7) <!--mob:chicken-->
 - [x] Cod (`cod`, 0.5×0.3) <!--mob:cod-->
@@ -2532,22 +2532,22 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Horse (`horse`, 1.3964844×1.6) <!--mob:horse-->
 - [x] Husk (`husk`, 0.6×1.95) <!--mob:husk-->
 - [ ] Illusioner (`illusioner`, 0.6×1.95) ⊘ <!--mob:illusioner-->
-- [ ] Iron Golem (`iron_golem`, 1.4×2.7) <!--mob:iron_golem-->
+- [x] Iron Golem (`iron_golem`, 1.4×2.7) <!--mob:iron_golem-->
 - [ ] Llama (`llama`, 0.9×1.87) <!--mob:llama-->
 - [ ] Magma Cube (`magma_cube`, 2.04×2.04) <!--mob:magma_cube-->
 - [ ] Mule (`mule`, 1.3964844×1.6) <!--mob:mule-->
 - [x] Mooshroom (`mooshroom`, 0.9×1.4) <!--mob:mooshroom-->
-- [ ] Ocelot (`ocelot`, 0.6×0.7) <!--mob:ocelot-->
+- [x] Ocelot (`ocelot`, 0.6×0.7) <!--mob:ocelot-->
 - [ ] Panda (`panda`, 1.3×1.25) <!--mob:panda-->
 - [ ] Parrot (`parrot`, 0.5×0.9) <!--mob:parrot-->
 - [x] Phantom (`phantom`, 0.9×0.5) <!--mob:phantom-->
 - [x] Pig (`pig`, 0.9×0.9) <!--mob:pig-->
 - [ ] Piglin (`piglin`, 0.6×1.95) <!--mob:piglin-->
 - [ ] Piglin Brute (`piglin_brute`, 0.6×1.95) <!--mob:piglin_brute-->
-- [ ] Pillager (`pillager`, 0.6×1.95) <!--mob:pillager-->
-- [ ] Polar Bear (`polar_bear`, 1.4×1.4) <!--mob:polar_bear-->
+- [x] Pillager (`pillager`, 0.6×1.95) <!--mob:pillager-->
+- [x] Polar Bear (`polar_bear`, 1.4×1.4) <!--mob:polar_bear-->
 - [ ] Pufferfish (`pufferfish`, 0.7×0.7) <!--mob:pufferfish-->
-- [ ] Rabbit (`rabbit`, 0.4×0.5) <!--mob:rabbit-->
+- [x] Rabbit (`rabbit`, 0.4×0.5) <!--mob:rabbit-->
 - [ ] Ravager (`ravager`, 1.95×2.2) <!--mob:ravager-->
 - [x] Salmon (`salmon`, 0.7×0.4) <!--mob:salmon-->
 - [x] Sheep (`sheep`, 0.9×1.3) <!--mob:sheep-->
@@ -2556,7 +2556,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Skeleton (`skeleton`, 0.6×1.99) <!--mob:skeleton-->
 - [ ] Skeleton Horse (`skeleton_horse`, 1.3964844×1.6) <!--mob:skeleton_horse-->
 - [x] Slime (`slime`, 2.04×2.04) <!--mob:slime-->
-- [ ] Snow Golem (`snow_golem`, 0.7×1.9) <!--mob:snow_golem-->
+- [x] Snow Golem (`snow_golem`, 0.7×1.9) <!--mob:snow_golem-->
 - [x] Spider (`spider`, 1.4×0.9) <!--mob:spider-->
 - [x] Squid (`squid`, 0.8×0.8) <!--mob:squid-->
 - [x] Stray (`stray`, 0.6×1.99) <!--mob:stray-->
@@ -2565,10 +2565,10 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Tropical Fish (`tropical_fish`, 0.5×0.4) <!--mob:tropical_fish-->
 - [ ] Turtle (`turtle`, 1.2×0.4) <!--mob:turtle-->
 - [ ] Vex (`vex`, 0.4×0.8) <!--mob:vex-->
-- [ ] Villager (`villager`, 0.6×1.95) <!--mob:villager-->
-- [ ] Vindicator (`vindicator`, 0.6×1.95) <!--mob:vindicator-->
+- [x] Villager (`villager`, 0.6×1.95) <!--mob:villager-->
+- [x] Vindicator (`vindicator`, 0.6×1.95) <!--mob:vindicator-->
 - [ ] Wandering Trader (`wandering_trader`, 0.6×1.95) <!--mob:wandering_trader-->
-- [ ] Witch (`witch`, 0.6×1.95) <!--mob:witch-->
+- [x] Witch (`witch`, 0.6×1.95) <!--mob:witch-->
 - [ ] Wither (`wither`, 0.9×3.5) <!--mob:wither-->
 - [ ] Wither Skeleton (`wither_skeleton`, 0.7×2.4) <!--mob:wither_skeleton-->
 - [x] Wolf (`wolf`, 0.6×0.85) <!--mob:wolf-->

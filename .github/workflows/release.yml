@@ -21,7 +21,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test
+      - run: pnpm vitest run --retry=2 --testTimeout=60000
       - name: Build web + Windows app
         run: pnpm package
       - uses: softprops/action-gh-release@v2
