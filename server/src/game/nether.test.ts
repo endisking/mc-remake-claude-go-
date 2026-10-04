@@ -93,4 +93,32 @@ describe('nether portals on the server', () => {
       expect([...storage.chunks.keys()].some((k) => !k.includes(':'))).toBe(true);
     });
   });
+
+  it('beds explode in the nether; death there respawns in the overworld', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true });
+    const a = client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    server.changeDimension(p, 'the_nether', 0.5, 100, 0.5, 0, 0);
+    // past the spawn invulnerability
+    for (let i = 0; i < 70; i++) server.tick();
+    const nether = server.levels.get('the_nether')!;
+    const y = nether.world.getChunk(0, 0)!.motionBlocking[(4 << 4) | 1]!;
+    server.inLevel(nether, () => {
+      server.setBlock(1, y, 4, stateOf('red_bed', { part: 'head', facing: 'south' }));
+      server.setBlock(1, y, 3, stateOf('red_bed', { part: 'foot', facing: 'south' }));
+    });
+    p.x = 1.5;
+    p.y = y;
+    p.z = 1.5;
+    a.send({ t: 'useOn', x: 1, y, z: 4, face: 1, cx: 0.5, cy: 0.5, cz: 0.5, hand: 0 });
+    expect(blockNameOf(nether.world.getState(1, y, 4))).not.toBe('red_bed');
+    expect(blockNameOf(nether.world.getState(1, y, 3))).not.toBe('red_bed');
+    expect(p.living.health).toBeLessThan(20);
+    // die and respawn: back in the overworld
+    a.send({ t: 'chat', message: '/kill @s' });
+    a.send({ t: 'respawn' });
+    expect(p.dimension).toBe('overworld');
+    expect(a.received.filter((m) => m.t === 'dimension').at(-1)).toMatchObject({ dimension: 'overworld' });
+  });
 });

@@ -10,6 +10,7 @@ import { isSuffocating } from '@shared/world/blockprops';
 import { isDay } from '@shared/world/daylight';
 import { collisionBoxes } from '@shared/world/shapes';
 import { AABB, noCollision } from '@shared/entity/aabb';
+import { explode } from './explosion';
 
 const MSG = {
   occupied: 'This bed is occupied',
@@ -48,6 +49,14 @@ export class Sleep {
       z += dz;
       st = this.s.world.getState(x, y, z);
       if (!this.isBed(st)) return true;
+    }
+    // BedBlock.use outside the overworld (DimensionType.bedWorks false): the bed explodes (power 5, fire)
+    if (this.s.level && !this.s.level.type.bedWorks) {
+      const [fdx, fdz] = step(getProp(st, 'facing') as Dir);
+      this.s.setBlock(x, y, z, 0);
+      if (this.isBed(this.s.world.getState(x - fdx, y, z - fdz))) this.s.setBlock(x - fdx, y, z - fdz, 0);
+      explode(this.s, x + 0.5, y + 0.5, z + 0.5, 5, true, 'destroy');
+      return true;
     }
     if (getProp(st, 'occupied') === true) {
       this.s.actionBar(p, MSG.occupied);
