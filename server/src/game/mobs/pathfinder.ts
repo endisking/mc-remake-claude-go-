@@ -9,6 +9,7 @@ import { collisionBoxes } from '@shared/world/shapes';
 import { FLUID, FULL_COLLISION } from '@shared/world/blockinfo';
 import { AABB, noCollision } from '@shared/entity/aabb';
 import type { StateGetter } from '@shared/world/raycast';
+import { BLOCK_STATE_COUNT } from '@shared/data';
 
 export const enum PathType {
   BLOCKED, OPEN, WALKABLE, WALKABLE_DOOR, TRAPDOOR, POWDER_SNOW, FENCE, LAVA, WATER, WATER_BORDER, RAIL,
@@ -84,6 +85,38 @@ const isFenceLike = (n: string) => n.endsWith('_fence') || n.endsWith('_wall') |
 /** WalkNodeEvaluator.getBlockPathTypeRaw. */
 export function rawPathType(w: StateGetter, x: number, y: number, z: number): PathType {
   const st = w.getState(x, y, z);
+  let v = RAW[st]!;
+  if (v < 0) v = RAW[st] = rawPathTypeOf(st);
+  return v as PathType;
+}
+
+/** per-state caches: raw path type, neighbour danger (0 none, 1 cactus, 2 other, 3 fire), collision top */
+const RAW = new Int8Array(BLOCK_STATE_COUNT).fill(-1);
+const DANGER = new Int8Array(BLOCK_STATE_COUNT).fill(-1);
+const TOP = new Float32Array(BLOCK_STATE_COUNT).fill(NaN);
+
+function dangerOf(st: number): number {
+  let v = DANGER[st]!;
+  if (v >= 0) return v;
+  v = 0;
+  if (st !== 0) {
+    const n = blockNameOf(st);
+    if (n === 'cactus') v = 1;
+    else if (n === 'sweet_berry_bush') v = 2;
+    else if (n === 'fire' || n === 'soul_fire' || n === 'magma_block' || FLUID[st] === 2 || ((n === 'campfire' || n === 'soul_campfire') && getProp(st, 'lit') === true)) v = 3;
+  }
+  return (DANGER[st] = v);
+}
+
+function collisionTop(st: number): number {
+  let v = TOP[st]!;
+  if (v === v) return v;
+  v = 0;
+  for (const b of collisionBoxes(st)) v = Math.max(v, b[4]);
+  return (TOP[st] = v);
+}
+
+function rawPathTypeOf(st: number): PathType {
   if (st === 0) return PathType.OPEN;
   const n = blockNameOf(st);
   if (n === 'cave_air' || n === 'void_air') return PathType.OPEN;
@@ -129,12 +162,10 @@ function checkNeighbours(w: StateGetter, x: number, y: number, z: number, t: Pat
     for (let dy = -1; dy <= 1; dy++)
       for (let dz = -1; dz <= 1; dz++) {
         if (!dx && !dz) continue;
-        const st = w.getState(x + dx, y + dy, z + dz);
-        if (st === 0) continue;
-        const n = blockNameOf(st);
-        if (n === 'cactus') return PathType.DANGER_CACTUS;
-        if (n === 'sweet_berry_bush') return PathType.DANGER_OTHER;
-        if (n === 'fire' || n === 'soul_fire' || n === 'magma_block' || FLUID[st] === 2 || ((n === 'campfire' || n === 'soul_campfire') && getProp(st, 'lit') === true)) return PathType.DANGER_FIRE;
+        const d = dangerOf(w.getState(x + dx, y + dy, z + dz));
+        if (d === 1) return PathType.DANGER_CACTUS;
+        if (d === 2) return PathType.DANGER_OTHER;
+        if (d === 3) return PathType.DANGER_FIRE;
       }
   return t;
 }
@@ -142,10 +173,7 @@ function checkNeighbours(w: StateGetter, x: number, y: number, z: number, t: Pat
 /** Collision-shape top of the block below (WalkNodeEvaluator.getFloorLevel). */
 export function floorLevel(w: StateGetter, x: number, y: number, z: number, canFloat: boolean): number {
   if (canFloat && FLUID[w.getState(x, y, z)] === 1) return y + 0.5;
-  const below = w.getState(x, y - 1, z);
-  let top = 0;
-  for (const b of collisionBoxes(below)) top = Math.max(top, b[4]);
-  return y - 1 + top;
+  return y - 1 + collisionTop(w.getState(x, y - 1, z));
 }
 
 const DIRS: [number, number][] = [[0, 1], [-1, 0], [1, 0], [0, -1]];
@@ -180,27 +208,29 @@ export class PathSearch {
     if (c !== undefined) return c;
     const m = this.mob;
     let first = PathType.BLOCKED;
-    const seen: PathType[] = [];
+    // EnumSet of the footprint's types as a bit mask (iterated in enum order, allocation-free)
+    let mask = 0;
     for (let i = 0; i < this.sizeX; i++)
       for (let j = 0; j < this.sizeY; j++)
         for (let l = 0; l < this.sizeX; l++) {
           let t = staticPathType(this.w, x + i, y + j, z + l);
           if (t === PathType.DOOR_WOOD_CLOSED && m.canOpenDoors) t = PathType.WALKABLE_DOOR;
           if (i === 0 && j === 0 && l === 0) first = t;
-          seen.push(t);
+          mask |= 1 << t;
         }
     let res: PathType;
-    if (seen.includes(PathType.FENCE)) res = PathType.FENCE;
+    if (mask & (1 << PathType.FENCE)) res = PathType.FENCE;
     else {
       let best = PathType.BLOCKED;
       res = -1 as PathType;
-      // EnumSet iteration: unique types in enum order
-      for (const t of [...new Set(seen)].sort((a, b) => a - b)) {
-        if (m.malus(t) < 0) {
-          res = t;
+      for (let t = 0; mask >>> t !== 0; t++) {
+        if (!(mask & (1 << t))) continue;
+        const ml = m.malus(t as PathType);
+        if (ml < 0) {
+          res = t as PathType;
           break;
         }
-        if (m.malus(t) >= m.malus(best)) best = t;
+        if (ml >= m.malus(best)) best = t as PathType;
       }
       if (res === (-1 as PathType)) res = first === PathType.OPEN && m.malus(best) === 0 && this.sizeX <= 1 ? PathType.OPEN : best;
     }
