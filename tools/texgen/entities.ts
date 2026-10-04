@@ -509,8 +509,8 @@ export function chicken(): Tex {
   const head = box(t, 0, 0, 4, 6, 3, feathers);
   const [fx, fy] = head.front;
   // eyes high on the head with a glint
-  px(t, fx, fy + 2, hex('#1a1a1a'));
-  px(t, fx + 3, fy + 2, hex('#1a1a1a'));
+  px(t, fx, fy + 1, hex('#1a1a1a'));
+  px(t, fx + 3, fy + 1, hex('#1a1a1a'));
   // little red comb tuft on the top
   hline(t, head.top[0] + 1, head.top[1], 2, R);
   px(t, head.top[0] + 1, head.top[1] + 1, R);
