@@ -387,6 +387,7 @@ export class Game implements ScreenHost {
       return { flat: this.blockItems.isFlat(BLOCKS_BY_NAME.get(block)!.defaultState) };
     };
     this.hand = new HandRenderer(this.gl, this.entityRenderer, this.blockItems, () => this.textures.tex, mainBake.textures.get('fire_1')!.layer);
+    this.growthParticleLayer = mainBake.textures.get('snow')?.layer ?? 0;
     this.interaction = new Interaction({
       world: this.world,
       player: this.player,
@@ -1048,6 +1049,8 @@ export class Game implements ScreenHost {
     this.playAt(event, 'player', p.x, p.y, p.z, volume, pitch);
   }
 
+  /** texture layer tinted green for growth sparkles (no dedicated particle sprite sheet yet) */
+  private growthParticleLayer = 0;
   /** levelEvent 1505 (BoneMealItem.addGrowthParticles): green sparkles over the grown block. */
   private growthParticles(x: number, y: number, z: number, data: number): void {
     const st = this.world.getState(x, y, z);
@@ -1065,7 +1068,7 @@ export class Game implements ScreenHost {
       d = 3;
       e = 1;
     } else e = 1;
-    const layer = this.particleLayer(BLOCKS_BY_NAME.get('white_concrete')!.defaultState);
+    const layer = this.growthParticleLayer;
     const g = () => (Math.random() + Math.random() + Math.random() - 1.5) * 0.02;
     this.particles.happy(x + 0.5, y + 0.5, z + 0.5, 0, 0, 0, layer);
     for (let i = 0; i < count; i++) {
