@@ -3,7 +3,7 @@ import { GameServer, type Connection } from '../server';
 import { encodeC2S, decodeS2C, PROTOCOL_VERSION, type S2C } from '@shared/protocol/packets';
 import { Chunk } from '@shared/world/chunk';
 import { BlockWorld } from '@shared/world/world';
-import { stateOf } from '@shared/world/blockstate';
+import { stateOf, blockNameOf as blockNameOfState } from '@shared/world/blockstate';
 import { BIOMES_BY_NAME, ITEMS_BY_NAME } from '@shared/data';
 import { damageAfterArmor, totalArmor } from '@shared/game/armor';
 import { mobLoot } from '@shared/game/mobloot';
@@ -600,5 +600,28 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     p.living.timeSinceRest = 200000;
     for (let i = 0; i < 24000; i++) server.mobs.phantoms.tick();
     expect(server.mobs.mobs().filter((m) => m.type === 'phantom').length).toBeGreaterThan(0);
+  });
+
+  it('door-breaking zombies hack through wooden doors on hard in 240 ticks', () => {
+    const { server, a, p } = setup({ dayTime: 18000 });
+    a.send({ t: 'chat', message: '/difficulty hard' });
+    // a wall at x = 3 with an oak door, the player behind it
+    for (let z = -6; z <= 6; z++) for (let y = 64; y <= 66; y++) server.setBlock(3, y, z, STONE);
+    server.setBlock(3, 64, 0, stateOf('oak_door', { facing: 'west', half: 'lower', hinge: 'left', open: false, powered: false }));
+    server.setBlock(3, 65, 0, stateOf('oak_door', { facing: 'west', half: 'upper', hinge: 'left', open: false, powered: false }));
+    a.send({ t: 'chat', message: '/tp 6.5 64 0.5' });
+    const z = server.mobs.spawn('zombie', 0.5, 64, 0.5) as Zombie;
+    z.baby = false;
+    z.mainHand = null;
+    z.setCanBreakDoors(true);
+    server.tick();
+    z.target = p;
+    let broke = -1;
+    for (let i = 0; i < 600 && broke < 0; i++) {
+      server.tick();
+      if (!server.world.getState(3, 64, 0) || !blockNameOfState(server.world.getState(3, 64, 0)).endsWith('_door')) broke = i;
+    }
+    expect(broke).toBeGreaterThan(200);
+    expect(a.received.some((m) => m.t === 'blockBreakProgress' && m.id === z.id)).toBe(true);
   });
 });

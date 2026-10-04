@@ -1,5 +1,6 @@
 /** Hostile mobs: zombie (+ husk, drowned), skeleton (+ stray), creeper, spider (vanilla 1.17.1). */
 import { stack, itemName } from '@shared/item/stack';
+import { blockNameOf, getProp } from '@shared/world/blockstate';
 import { attackDamageOf } from '@shared/game/combat';
 import { Difficulty } from '@shared/game/food';
 import type { ServerPlayer } from '../player';
@@ -41,6 +42,77 @@ class ZombieAttackGoal extends MeleeAttackGoal {
     super.tick();
     this.raiseArmTicks++;
     this.m.setAggressive(this.raiseArmTicks >= 5 && this.ticksUntilNextAttack < 10);
+  }
+}
+
+/** BreakDoorGoal: on hard, a door-breaking zombie hacks through a closed wooden door in its path (240 ticks). */
+export class BreakDoorGoal extends Goal {
+  private dx = 0;
+  private dy = 0;
+  private dz = 0;
+  private breakTime = 0;
+  private lastProgress = -1;
+  constructor(private readonly m: Mob) {
+    super();
+  }
+  private isWoodenDoor(x: number, y: number, z: number): boolean {
+    const n = blockNameOf(this.m.world.getState(x, y, z));
+    return n.endsWith('_door') && n !== 'iron_door';
+  }
+  private isOpen(): boolean {
+    return getProp(this.m.world.getState(this.dx, this.dy, this.dz), 'open') === true;
+  }
+  /** DoorInteractGoal.canUse: a wooden door at the next path nodes (or above our feet) within 1.5 blocks */
+  private findDoor(): boolean {
+    const m = this.m;
+    if (!m.horizontalCollision) return false;
+    const p = m.navigation.path;
+    if (p && !p.done && m.navigation.canOpenDoors) {
+      for (let i = 0; i < Math.min(p.index + 2, p.nodes.length); i++) {
+        const n = p.nodes[i]!;
+        if ((m.x - (n.x + 0.5)) ** 2 + (m.y - (n.y + 1)) ** 2 + (m.z - (n.z + 0.5)) ** 2 > 2.25) continue;
+        if (this.isWoodenDoor(n.x, n.y + 1, n.z)) {
+          [this.dx, this.dy, this.dz] = [n.x, n.y + 1, n.z];
+          return true;
+        }
+      }
+    }
+    [this.dx, this.dy, this.dz] = [Math.floor(m.x), Math.floor(m.y) + 1, Math.floor(m.z)];
+    return this.isWoodenDoor(this.dx, this.dy, this.dz);
+  }
+  canUse(): boolean {
+    return this.m.s.difficulty === Difficulty.Hard && this.findDoor() && !this.isOpen();
+  }
+  override start(): void {
+    this.breakTime = 0;
+  }
+  override canContinueToUse(): boolean {
+    const m = this.m;
+    return this.breakTime <= 240 && this.isWoodenDoor(this.dx, this.dy, this.dz) && !this.isOpen() && (m.x - (this.dx + 0.5)) ** 2 + (m.y - (this.dy + 0.5)) ** 2 + (m.z - (this.dz + 0.5)) ** 2 < 4 && m.s.difficulty === Difficulty.Hard;
+  }
+  override stop(): void {
+    this.progress(-1);
+  }
+  private progress(stage: number): void {
+    const s = this.m.s;
+    for (const o of s.players) s.send(o, { t: 'blockBreakProgress', id: this.m.id, x: this.dx, y: this.dy, z: this.dz, stage });
+  }
+  override tick(): void {
+    const m = this.m, s = m.s;
+    if (m.rng.nextInt(20) === 0) {
+      s.playSound(null, 'entity.zombie.attack_wooden_door', 'hostile', this.dx + 0.5, this.dy + 0.5, this.dz + 0.5, 2, (m.rng.nextFloat() - m.rng.nextFloat()) * 0.2 + 1);
+      m.swing();
+    }
+    this.breakTime++;
+    const i = Math.floor((this.breakTime / 240) * 10);
+    if (i !== this.lastProgress) {
+      this.progress(i);
+      this.lastProgress = i;
+    }
+    if (this.breakTime === 240) {
+      s.destroyBlock(this.dx, this.dy, this.dz, null, false);
+      s.playSound(null, 'entity.zombie.break_wooden_door', 'hostile', this.dx + 0.5, this.dy + 0.5, this.dz + 0.5, 2, (m.rng.nextFloat() - m.rng.nextFloat()) * 0.2 + 1);
+    }
   }
 }
 
@@ -98,9 +170,21 @@ export class Zombie extends Monster {
   override stepSound(): string {
     return 'entity.zombie.step';
   }
+  canBreakDoors = false;
+  /** Zombie.setCanBreakDoors: open-door paths plus the BreakDoorGoal */
+  setCanBreakDoors(v: boolean): void {
+    if (v === this.canBreakDoors) return;
+    this.canBreakDoors = v;
+    this.navigation.canOpenDoors = v;
+    if (v) this.goalSelector.add(1, new BreakDoorGoal(this));
+  }
   /** Zombie.finalizeSpawn + populateDefaultEquipmentSlots */
   finalizeSpawn(): void {
     const r = this.rng;
+    // canBreakDoors: 10% × the regional special multiplier (non-zero only on hard)
+    const eff = this.s.difficulty === Difficulty.Hard ? 3 * (0.75 + Math.max(0, Math.min(1, (this.s.gameTime - 72000) / 1440000)) * 0.25) : 0;
+    const special = eff < 2 ? 0 : eff > 4 ? 1 : (eff - 2) / 2;
+    this.setCanBreakDoors(r.nextFloat() < special * 0.1);
     this.baby = r.nextFloat() < 0.05;
     if (r.nextFloat() < (this.s.difficulty === Difficulty.Hard ? 0.05 : 0.01)) {
       this.mainHand = r.nextInt(3) === 0 ? stack('iron_sword') : stack('iron_shovel');
