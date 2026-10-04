@@ -123,6 +123,8 @@ export class LivingState {
   lastAttacker: string | null = null;
   /** ticks since the player last slept (phantoms, Phase 6) */
   timeSinceRest = 0;
+  /** Entity.ticksFrozen (powder snow; 140 = fully frozen) */
+  ticksFrozen = 0;
 
   get dead(): boolean {
     return this.health <= 0;
@@ -265,7 +267,14 @@ export class Survival {
     }
 
     // contact damage from blocks the player is inside / standing on
-    this.blockContact(p);
+    const inPowderSnow = this.blockContact(p);
+    // LivingEntity.aiStep freezing: +1 per tick in powder snow (up to 140), −2 outside;
+    // fully frozen players take 1 freeze damage every 2 s (leather armour protects — Phase 5)
+    const before = l.ticksFrozen;
+    if (inPowderSnow && p.gameMode !== 3) l.ticksFrozen = Math.min(140, l.ticksFrozen + 1);
+    else l.ticksFrozen = Math.max(0, l.ticksFrozen - 2);
+    if (l.ticksFrozen !== before) p.stateDirty = true;
+    if (this.s.gameTime % 40 === 0 && l.ticksFrozen >= 140 && p.gameMode !== 3) this.hurt(p, DAMAGE.freeze, 1);
 
     // climbing resets falls (and remembers where the fall started for the death message)
     const feet = w.getState(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z));
@@ -349,8 +358,9 @@ export class Survival {
     return false;
   }
 
-  /** entityInside / stepOn damage: cactus, fire, campfires, sweet berry bushes, magma blocks. */
-  private blockContact(p: ServerPlayer): void {
+  /** entityInside / stepOn damage: cactus, fire, campfires, sweet berry bushes, magma blocks. Returns isInPowderSnow. */
+  private blockContact(p: ServerPlayer): boolean {
+    let powderSnow = false;
     const w = this.s.world;
     const bb = p.phys.boundingBox().deflate(0.001);
     let stuck = false;
@@ -369,6 +379,7 @@ export class Survival {
             continue;
           }
           if (!inside) continue;
+          if (n === 'powder_snow') powderSnow = true;
           if (STUCK[blockIdAt(st) * 3]) stuck = true;
           if (n === 'fire' || n === 'soul_fire') {
             if (p.gameMode === 3) continue;
@@ -391,6 +402,7 @@ export class Survival {
     }
     p.prevTickX = p.x;
     p.prevTickZ = p.z;
+    return powderSnow;
   }
 
   /** Entity.checkFallDamage on landing, with Block.fallOn multipliers. */

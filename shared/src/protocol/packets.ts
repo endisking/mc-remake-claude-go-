@@ -38,7 +38,7 @@ const S2C_SCHEMA = {
   /** Absolute entity position/rotation update (interpolated on the client over 3 ticks). */
   entityMove: [['id', 'i32'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['yaw', 'f32'], ['pitch', 'f32'], ['headYaw', 'f32'], ['onGround', 'bool']],
   /** Shared flags: 1 on fire, 2 crouching, 8 sprinting, 16 swimming, 128 fall flying; pose name. */
-  entityState: [['id', 'i32'], ['flags', 'u8'], ['pose', 'str']],
+  entityState: [['id', 'i32'], ['flags', 'u8'], ['pose', 'str'], ['frozen', 'u8']],
   /** 0 swing main arm, 1 hurt, 3 swing off hand, 4 critical, 5 magic critical. */
   animate: [['id', 'i32'], ['action', 'u8']],
   gameMode: [['mode', 'u8']],

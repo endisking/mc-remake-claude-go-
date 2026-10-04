@@ -200,3 +200,21 @@ export function experienceOrbs(): Tex {
   }
   return t;
 }
+
+/** 128×128 frost vignette drawn over the screen while freezing (alpha scales with the frost). */
+export function powderSnowOutline(): Tex {
+  const t = new Tex(128, 128);
+  const r = rng(5150);
+  for (let y = 0; y < 128; y++)
+    for (let x = 0; x < 128; x++) {
+      const dx = Math.min(x, 127 - x) / 64, dy = Math.min(y, 127 - y) / 64;
+      const edge = Math.min(dx, dy);
+      // icy crystals thicken toward the border, with some ragged noise
+      const n = r();
+      const a = Math.max(0, Math.min(1, (0.32 - edge) / 0.32 + (n - 0.5) * 0.35));
+      if (a <= 0.02) continue;
+      const bright = 200 + Math.round(n * 55);
+      t.set(x, y, [bright, Math.min(255, bright + 15), 255, Math.round(a * 230)]);
+    }
+  return t;
+}

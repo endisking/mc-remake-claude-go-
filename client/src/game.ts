@@ -95,6 +95,9 @@ export class Game implements ScreenHost {
   /** in bed (server pose) and the client-side Player.sleepCounter for the fade */
   sleeping = false;
   private sleepCounter = 0;
+  /** Entity.ticksFrozen from the server (140 = fully frozen) */
+  ticksFrozen = 0;
+  private frostOverlay: ImageBitmap | null = null;
   private skyFlashTime = 0;
   readonly bolts = new Map<number, ClientBolt>();
   private readonly boltRand = new JavaRandom(BigInt(Date.now()));
@@ -299,6 +302,7 @@ export class Game implements ScreenHost {
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
     await Promise.all([this.gui.load(), this.hud.load(), this.sound.load()]);
+    void fetch('./textures/environment/powder_snow_outline.png').then((r) => r.blob()).then((b) => createImageBitmap(b)).then((bmp) => (this.frostOverlay = bmp));
     for (const [c, v] of Object.entries(this.settings.volumes)) this.sound.volumes[c as SoundCategory] = v;
     // audio may only start after a user gesture
     const unlock = () => this.sound.resume();
@@ -505,6 +509,7 @@ export class Game implements ScreenHost {
       case 'entityState': {
         if (p.id === this.entityId) {
           this.onFire = (p.flags & 1) !== 0;
+          this.ticksFrozen = p.frozen;
           const sleeping = p.pose === 'sleeping';
           if (sleeping !== this.sleeping) {
             this.sleeping = sleeping;
@@ -519,6 +524,7 @@ export class Game implements ScreenHost {
         if (rp) {
           rp.flags = p.flags;
           rp.pose = p.pose;
+          rp.ticksFrozen = p.frozen;
         }
         break;
       }
@@ -1133,7 +1139,7 @@ export class Game implements ScreenHost {
       xpProgress: this.xpProgress,
       xpLevel: this.xpLevel,
       inventory: this.interaction.inventory,
-      heartType: 'normal',
+      heartType: this.ticksFrozen >= 140 ? 'frozen' : 'normal',
       hardcore: false,
       regeneration: false,
       hungerEffect: false,
@@ -1667,6 +1673,14 @@ export class Game implements ScreenHost {
         ctx.fillRect(cx, cy - 7, 1, 7);
         ctx.fillRect(cx, cy + 1, 1, 7);
         ctx.restore();
+      }
+      // Gui.renderTextureOverlay: frost creeps in while freezing
+      if (this.ticksFrozen > 0 && this.frostOverlay && this.gameMode !== 3) {
+        g.ctx.save();
+        g.ctx.globalAlpha = Math.min(1, this.ticksFrozen / 140);
+        g.ctx.imageSmoothingEnabled = true;
+        g.ctx.drawImage(this.frostOverlay, 0, 0, g.width, g.height);
+        g.ctx.restore();
       }
       this.hud.render(g, this.hudState(), (id, c, x, y) => this.renderGuiItem(id, c, x, y));
       // Gui.render: fade to dark blue while falling asleep

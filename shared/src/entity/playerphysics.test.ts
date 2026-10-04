@@ -184,4 +184,35 @@ describe('player physics (vanilla 1.17.1 values)', () => {
     }
     expect(jumped).toBe(false);
   });
+
+  it('slides slowly down the side of a honey block', () => {
+    const honey: Record<string, number> = {};
+    for (let y = 64; y < 80; y++) honey[`1,${y},0`] = stateOf('honey_block');
+    const p = spawn(world(honey));
+    // hug the honey column's west side (x 0.75 + 0.3 = 1.05 → inside the 1/16 inset)
+    p.x = 0.75;
+    p.y = 78;
+    p.onGround = false;
+    for (let i = 0; i < 30; i++) p.tick({ ...NO_INPUT, strafe: -1 });
+    expect(p.vy).toBeGreaterThan(-0.12);
+    expect(p.fallDistance).toBe(0);
+  });
+
+  it('bubble columns push up and pull down', () => {
+    const col: Record<string, number> = {};
+    for (let y = 64; y < 70; y++) col[`0,${y},0`] = stateOf('bubble_column', { drag: false });
+    const p = spawn(world(col));
+    p.onGround = false;
+    p.y = 65;
+    for (let i = 0; i < 10; i++) p.tick(NO_INPUT);
+    expect(p.y).toBeGreaterThan(66);
+    const down: Record<string, number> = {};
+    for (let y = 64; y < 80; y++) down[`0,${y},0`] = stateOf('bubble_column', { drag: true });
+    const q = spawn(world(down));
+    q.onGround = false;
+    q.y = 75;
+    const y0 = q.y;
+    for (let i = 0; i < 10; i++) q.tick(NO_INPUT);
+    expect(q.y).toBeLessThan(y0 - 1);
+  });
 });

@@ -163,7 +163,9 @@ export class EntityRenderer {
       const x = p.xo + (p.x - p.xo) * partial - camX;
       const y = p.yo + (p.y - p.yo) * partial - camY;
       const z = p.zo + (p.z - p.zo) * partial - camZ;
-      const bodyYaw = lerpAngle(p.bodyYawO, p.bodyYaw, partial);
+      // LivingEntityRenderer.isShaking: fully frozen entities shiver
+      const shake = p.ticksFrozen >= 140 ? (Math.cos((p.tickCount + partial) * 3.25) * Math.PI * 0.4) : 0;
+      const bodyYaw = lerpAngle(p.bodyYawO, p.bodyYaw, partial) + shake;
       const headYaw = lerpAngle(p.headYawO, p.headYaw, partial);
       let poses = this.poses.get(p.id);
       if (!poses) {

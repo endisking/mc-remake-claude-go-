@@ -38,6 +38,8 @@ export class RemotePlayer {
   hurtTime = 0;
   /** shared flag: on fire */
   onFire = false;
+  /** Entity.ticksFrozen (fully frozen players shake) */
+  ticksFrozen = 0;
   /** held item ids (main hand, off hand) */
   mainHand = 0;
   offHand = 0;

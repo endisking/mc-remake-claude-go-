@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 126 / 4140**
+**Progress: 129 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -119,11 +119,11 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Lava physics (drag 0.5) <!--p2:lava_physics_drag_0_5-->
 - [ ] Ladders, vines, twisting/weeping vines, scaffolding climbing <!--p2:ladders_vines_twisting_weeping_vines_scaffolding_climbing-->
 - [ ] Soul sand slowdown, soul speed <!--p2:soul_sand_slowdown_soul_speed-->
-- [ ] Honey block slowdown and slide <!--p2:honey_block_slowdown_and_slide-->
+- [x] Honey block slowdown and slide <!--p2:honey_block_slowdown_and_slide-->
 - [x] Cobweb slowdown <!--p2:cobweb_slowdown-->
 - [x] Sweet berry bush slowdown <!--p2:sweet_berry_bush_slowdown-->
 - [ ] Powder snow sinking, freezing, leather boots walking <!--p2:powder_snow_sinking_freezing_leather_boots_walking-->
-- [ ] Bubble columns (up/down) <!--p2:bubble_columns_up_down-->
+- [x] Bubble columns (up/down) <!--p2:bubble_columns_up_down-->
 - [x] Slime block bounce <!--p2:slime_block_bounce-->
 - [x] Bed bounce <!--p2:bed_bounce-->
 - [ ] Elytra flight physics and firework boost <!--p2:elytra_flight_physics_and_firework_boost-->
@@ -182,7 +182,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Cactus damage <!--p2:cactus_damage-->
 - [x] Sweet berry bush damage <!--p2:sweet_berry_bush_damage-->
 - [x] Magma block damage <!--p2:magma_block_damage-->
-- [ ] Freezing damage (powder snow) <!--p2:freezing_damage_powder_snow-->
+- [x] Freezing damage (powder snow) <!--p2:freezing_damage_powder_snow-->
 - [x] Lightning damage <!--p2:lightning_damage-->
 - [x] Damage immunity frames (10 ticks) <!--p2:damage_immunity_frames_10_ticks-->
 

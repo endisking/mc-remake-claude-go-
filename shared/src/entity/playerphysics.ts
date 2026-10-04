@@ -48,6 +48,8 @@ const MAX_UP_STEP = 0.6;
 const GRAVITY = 0.08;
 const ID_WATER = BLOCKS_BY_NAME.get('water')!.id;
 const ID_BUBBLE = BLOCKS_BY_NAME.get('bubble_column')!.id;
+const ID_HONEY = BLOCKS_BY_NAME.get('honey_block')!.id;
+const ID_POWDER_SNOW = BLOCKS_BY_NAME.get('powder_snow')!.id;
 const ID_SCAFFOLDING = BLOCKS_BY_NAME.get('scaffolding')!.id;
 const ID_LADDER = BLOCKS_BY_NAME.get('ladder')!.id;
 
@@ -308,6 +310,8 @@ export class PlayerPhysics {
   }
 
   private blockSpeedFactor(): number {
+    // Player.getBlockSpeedFactor: no slowdown while flying or gliding
+    if (this.abilities.flying || this.pose === 'fall_flying') return 1;
     const s = this.state(this.x, this.y, this.z);
     const b = STATE_TO_BLOCK[s]!;
     const f = SPEED_FACTOR[b]!;
@@ -439,12 +443,23 @@ export class PlayerPhysics {
   /** Fall distance at the moment of the last landing (consumed by fall-damage logic). */
   lastFallDistance = 0;
 
+  /** Entity.isInPowderSnow (set by checkInsideBlocks each move). */
+  isInPowderSnow = false;
+
   private checkInsideBlocks(): void {
     const bb = this.boundingBox().deflate(0.001);
+    this.isInPowderSnow = false;
+    const feet = STATE_TO_BLOCK[this.world.getState(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z))]!;
     for (let x = Math.floor(bb.minX); x <= Math.floor(bb.maxX); x++)
       for (let y = Math.floor(bb.minY); y <= Math.floor(bb.maxY); y++)
         for (let z = Math.floor(bb.minZ); z <= Math.floor(bb.maxZ); z++) {
-          const b = STATE_TO_BLOCK[this.world.getState(x, y, z)]!;
+          const st = this.world.getState(x, y, z);
+          const b = STATE_TO_BLOCK[st]!;
+          if (b === ID_POWDER_SNOW) {
+            // PowderSnowBlock.entityInside: stuck only while the feet are in it
+            this.isInPowderSnow = true;
+            if (feet !== ID_POWDER_SNOW) continue;
+          }
           const sx = STUCK[b * 3]!;
           if (sx !== 0) {
             this.fallDistance = 0;
@@ -452,7 +467,38 @@ export class PlayerPhysics {
             this.stuckY = STUCK[b * 3 + 1]!;
             this.stuckZ = STUCK[b * 3 + 2]!;
           }
+          if (b === ID_HONEY && this.honeySliding(x, y, z)) {
+            // HoneyBlock.doSlideMovement
+            if (this.vy < -0.13) {
+              const k = -0.05 / this.vy;
+              this.vx *= k;
+              this.vz *= k;
+            }
+            this.vy = -0.05;
+            this.fallDistance = 0;
+          }
+          if (b === ID_BUBBLE) {
+            const down = getProp(st, 'drag') === true;
+            if (this.world.getState(x, y + 1, z) === 0) {
+              // Entity.onAboveBubbleCol
+              this.vy = down ? Math.max(-0.9, this.vy - 0.03) : Math.min(1.8, this.vy + 0.1);
+            } else {
+              // Entity.onInsideBubbleColumn
+              this.vy = down ? Math.max(-0.3, this.vy - 0.03) : Math.min(0.7, this.vy + 0.06);
+              this.fallDistance = 0;
+            }
+          }
         }
+  }
+
+  /** HoneyBlock.isSlidingDown: falling past the side of a honey block. */
+  private honeySliding(x: number, y: number, z: number): boolean {
+    if (this.onGround) return false;
+    if (this.y > y + 0.9375 - 1.0e-7) return false;
+    if (this.vy >= -0.08) return false;
+    const d0 = Math.abs(x + 0.5 - this.x), d1 = Math.abs(z + 0.5 - this.z);
+    const d2 = 0.4375 + this.width / 2;
+    return d0 + 1.0e-7 > d2 || d1 + 1.0e-7 > d2;
   }
 
   private handleOnClimbable(): void {

@@ -383,4 +383,20 @@ describe('survival', () => {
     expect(total).toBeGreaterThan(10);
     expect(total).toBeLessThanOrEqual(60);
   });
+
+  it('powder snow freezes after 7 s, then 1 damage every 2 s; thaws twice as fast', () => {
+    const { server, p } = setup();
+    p.living.food.foodLevel = 17;
+    p.living.food.saturationLevel = 0;
+    server.setBlock(31, 101, 7, stateOf('powder_snow'));
+    server.setBlock(31, 102, 7, stateOf('powder_snow'));
+    for (let i = 0; i < 140; i++) server.tick();
+    expect(p.living.ticksFrozen).toBe(140);
+    for (let i = 0; i < 80; i++) server.tick();
+    expect(p.living.health).toBe(18);
+    server.setBlock(31, 101, 7, 0);
+    server.setBlock(31, 102, 7, 0);
+    for (let i = 0; i < 70; i++) server.tick();
+    expect(p.living.ticksFrozen).toBe(0);
+  });
 });

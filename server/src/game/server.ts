@@ -1206,7 +1206,7 @@ export class GameServer {
         if (visible && !p.tracking.has(o.id)) {
           p.tracking.add(o.id);
           this.send(p, { t: 'addPlayer', id: o.id, name: o.name, skin: o.skin, x: o.x, y: o.y, z: o.z, yaw: o.yaw, pitch: o.pitch, headYaw: o.headYaw });
-          this.send(p, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose });
+          this.send(p, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose, frozen: o.living.ticksFrozen });
           this.send(p, { t: 'equipment', id: o.id, mainHand: o.inventory.selectedStack?.id ?? 0, offHand: o.inventory.get(40)?.id ?? 0 });
         } else if (!visible && p.tracking.has(o.id)) {
           p.tracking.delete(o.id);
@@ -1227,7 +1227,7 @@ export class GameServer {
       for (const p of this.players) {
         if (!p.tracking.has(o.id)) continue;
         if (moved) this.send(p, { t: 'entityMove', id: o.id, x: o.x, y: o.y, z: o.z, yaw: o.yaw, pitch: o.pitch, headYaw: o.headYaw, onGround: o.onGround });
-        if (o.stateDirty) this.send(p, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose });
+        if (o.stateDirty) this.send(p, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose, frozen: o.living.ticksFrozen });
       }
       // held items (LivingEntity.detectEquipmentUpdates)
       const main = o.inventory.selectedStack?.id ?? 0, off = o.inventory.get(40)?.id ?? 0;
@@ -1237,7 +1237,7 @@ export class GameServer {
         for (const p of this.players) if (p.tracking.has(o.id)) this.send(p, { t: 'equipment', id: o.id, mainHand: main, offHand: off });
       }
       // entity data also goes to the player itself (on-fire overlay)
-      if (o.stateDirty) this.send(o, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose });
+      if (o.stateDirty) this.send(o, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose, frozen: o.living.ticksFrozen });
       o.stateDirty = false;
     }
   }

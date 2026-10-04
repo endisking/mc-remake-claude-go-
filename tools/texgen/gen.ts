@@ -18,7 +18,7 @@ import { animatedTextures } from './blocks/animated';
 import { grassColormap, foliageColormap } from './colormap';
 import { widgets, optionsBackground, icons } from './gui';
 import { allSkins } from './skins';
-import { sun, moonPhases, clouds, rain, snowflakes, destroyStages, underwater, experienceOrbs } from './environment';
+import { sun, moonPhases, clouds, rain, snowflakes, destroyStages, underwater, experienceOrbs, powderSnowOutline } from './environment';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const outDir = join(root, 'client', 'public', 'textures');
@@ -90,6 +90,7 @@ function main(): void {
   writeFileSync(join(outDir, 'skins', 'skins.json'), JSON.stringify(skins.map((s) => s.name)));
   writePng(join(outDir, 'environment', 'snow.png'), snowflakes());
   writePng(join(outDir, 'environment', 'underwater.png'), underwater());
+  writePng(join(outDir, 'environment', 'powder_snow_outline.png'), powderSnowOutline());
   mkdirSync(join(outDir, 'entity'), { recursive: true });
   writePng(join(outDir, 'entity', 'experience_orb.png'), experienceOrbs());
   const overrides = existsSync(join(outDir, 'overrides')) ? readdirSync(join(outDir, 'overrides')).filter((f) => f.endsWith('.png')) : [];
