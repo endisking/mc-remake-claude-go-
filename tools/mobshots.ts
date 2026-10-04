@@ -52,6 +52,9 @@ const SHOTS: Record<string, Shot> = {
   close: { cam: 'x=24.2&y=200&z=1.8&lookat=24.2,200.8,4.5&fov=65', mobs: row(['pig', 'creeper', 'zombie']) },
   close2: { cam: 'x=24.2&y=200&z=1.8&lookat=24.2,200.8,4.5&fov=65', mobs: row(['cow', 'skeleton', 'sheep']) },
   names: { cam: NEAR, mobs: row(['pig', 'zombie', 'sheep', 'creeper'], { name: 'Sir Oinks', data: { name_visible: 1 } }) },
+  e_front: { cam: NEAR, mobs: row(['villager', 'witch', 'zombie_villager', 'wandering_trader']) },
+  e_side: { cam: NEAR, mobs: row(['villager', 'witch', 'zombie_villager', 'wandering_trader'], { yaw: 120, walk: true }), wait: 1100 },
+  f_front: { cam: NEAR, mobs: row(['creeper', 'glow_squid', 'wolf', 'villager']).map((m, i) => ({ ...m, data: ([{ charged: 1 }, {}, {}, { baby: 1 }] as Record<string, number>[])[i] })) },
   night: { cam: NEAR + '&time=18000', mobs: row(['spider', 'enderman', 'zombie', 'cave_spider']) },
 };
 

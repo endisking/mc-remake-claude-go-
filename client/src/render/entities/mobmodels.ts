@@ -348,6 +348,74 @@ export function squidMesh(): VPart[] {
   return parts;
 }
 
+/** VillagerModel.createBodyModel: tall head with a nose, robe, folded arms. */
+export function villagerMesh(): VPart[] {
+  return [
+    {
+      name: 'head', pivot: [0, 0, 0], boxes: [b(0, 0, -4, -10, -4, 8, 10, 8)], children: [
+        {
+          name: 'hat', pivot: [0, 0, 0], boxes: [b(32, 0, -4, -10, -4, 8, 10, 8, 0.51)], children: [
+            { name: 'hat_rim', pivot: [0, 0, 0], rot: [-PI / 2, 0, 0], boxes: [b(30, 47, -8, -8, -6, 16, 16, 1)] },
+          ],
+        },
+        { name: 'nose', pivot: [0, -2, 0], boxes: [b(24, 0, -1, -1, -6, 2, 4, 2)] },
+      ],
+    },
+    {
+      name: 'body', pivot: [0, 0, 0], boxes: [b(16, 20, -4, 0, -3, 8, 12, 6)], children: [
+        { name: 'jacket', pivot: [0, 0, 0], boxes: [b(0, 38, -4, 0, -3, 8, 18, 6, 0.5)] },
+      ],
+    },
+    { name: 'arms', pivot: [0, 3, -1], rot: [-0.75, 0, 0], boxes: [b(44, 22, -8, -2, -2, 4, 8, 4), b(44, 22, 4, -2, -2, 4, 8, 4, 0, true), b(40, 38, -4, 2, -2, 8, 4, 4)] },
+    { name: 'right_leg', pivot: [-2, 12, 0], boxes: [b(0, 22, -2, 0, -2, 4, 12, 4)] },
+    { name: 'left_leg', pivot: [2, 12, 0], boxes: [b(0, 22, -2, 0, -2, 4, 12, 4, 0, true)] },
+  ];
+}
+
+/** WitchModel: the villager body with a mole on the nose and a crooked pointed hat. */
+export function witchMesh(): VPart[] {
+  const m = villagerMesh();
+  const head = m[0]!;
+  head.children = [
+    {
+      name: 'hat', pivot: [-5, -10.03125, -5], boxes: [b(0, 64, 0, 0, 0, 10, 2, 10)], children: [
+        {
+          name: 'hat2', pivot: [1.75, -4, 2], rot: [-0.05235988, 0, 0.02617994], boxes: [b(0, 76, 0, 0, 0, 7, 4, 7)], children: [
+            {
+              name: 'hat3', pivot: [1.75, -4, 2], rot: [-0.10471976, 0, 0.05235988], boxes: [b(0, 87, 0, 0, 0, 4, 4, 4)], children: [
+                { name: 'hat4', pivot: [1.75, -2, 2], rot: [-0.20943952, 0, 0.10471976], boxes: [b(0, 95, 0, 0, 0, 1, 2, 1, 0.25)] },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'nose', pivot: [0, -2, 0], boxes: [b(24, 0, -1, -1, -6, 2, 4, 2)], children: [
+        { name: 'mole', pivot: [0, -2, 0], boxes: [b(0, 0, 0, 3, -6.75, 1, 1, 1, -0.25)] },
+      ],
+    },
+  ];
+  return m;
+}
+
+/** ZombieVillagerModel: humanoid limbs with the villager head and robe. */
+export function zombieVillagerMesh(): VPart[] {
+  return [
+    { name: 'head', pivot: [0, 0, 0], boxes: [b(0, 0, -4, -10, -4, 8, 10, 8), b(24, 0, -1, -3, -6, 2, 4, 2)] },
+    {
+      name: 'hat', pivot: [0, 0, 0], boxes: [b(32, 0, -4, -10, -4, 8, 10, 8, 0.5)], children: [
+        { name: 'hat_rim', pivot: [0, 0, 0], rot: [-PI / 2, 0, 0], boxes: [b(30, 47, -8, -8, -6, 16, 16, 1)] },
+      ],
+    },
+    { name: 'body', pivot: [0, 0, 0], boxes: [b(16, 20, -4, 0, -3, 8, 12, 6), b(0, 38, -4, 0, -3, 8, 20, 6, 0.05)] },
+    { name: 'right_arm', pivot: [-5, 2, 0], boxes: [b(44, 22, -3, -2, -2, 4, 12, 4)] },
+    { name: 'left_arm', pivot: [5, 2, 0], boxes: [b(44, 22, -1, -2, -2, 4, 12, 4, 0, true)] },
+    { name: 'right_leg', pivot: [-2, 12, 0], boxes: [b(0, 22, -2, 0, -2, 4, 12, 4)] },
+    { name: 'left_leg', pivot: [2, 12, 0], boxes: [b(0, 22, -2, 0, -2, 4, 12, 4, 0, true)] },
+  ];
+}
+
 // ------------------------------------------------------------------ animation helpers
 
 const RAD = PI / 180;
@@ -608,6 +676,16 @@ const squidAnim = (p: Poses, a: MobAnim) => {
   for (let j = 0; j < 8; j++) p[`tentacle${j}`]!.xRot = ang;
 };
 
+/** VillagerModel.setupAnim: head look, half-amplitude leg swing, arms stay folded. */
+const villagerAnim = (p: Poses, a: MobAnim) => {
+  p.head!.yRot = a.netHeadYaw * RAD;
+  p.head!.xRot = a.headPitch * RAD;
+  p.right_leg!.xRot = Math.cos(a.limbSwing * 0.6662) * 1.4 * a.limbSwingAmount * 0.5;
+  p.left_leg!.xRot = Math.cos(a.limbSwing * 0.6662 + PI) * 1.4 * a.limbSwingAmount * 0.5;
+  p.right_leg!.yRot = 0;
+  p.left_leg!.yRot = 0;
+};
+
 const none = () => {};
 
 export const MOB_MODELS: Record<string, MobModelDef> = {
@@ -629,6 +707,11 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   slime_outer: { tex: [64, 32], parts: slimeOuterMesh(), anim: none },
   bat: { tex: [64, 64], parts: batMesh(), anim: batAnim },
   squid: { tex: [64, 32], parts: squidMesh(), anim: squidAnim },
+  creeper_charged: { tex: [64, 32], parts: creeperMesh(2), anim: creeperAnim },
+  villager: { tex: [64, 64], parts: villagerMesh(), anim: villagerAnim },
+  witch: { tex: [64, 128], parts: witchMesh(), headParts: ['head'], anim: villagerAnim },
+  zombie_villager: { tex: [64, 64], parts: zombieVillagerMesh(), headParts: ['head', 'hat'], baby: HUMANOID_BABY, anim: zombieAnim },
+  unknown: { tex: [64, 32], parts: [{ name: 'box', pivot: [0, 0, 0], boxes: [b(0, 0, -8, 8, -8, 16, 16, 16)] }], anim: none },
 };
 
 /** How each mob type is drawn: base model + texture, extra layers, render scale. */
@@ -643,12 +726,16 @@ export interface MobLayer {
   emissive?: boolean;
   /** translucent (slime outer body) */
   translucent?: boolean;
+  /** scrolling repeat texture (charged creeper energy swirl; drawn additively) */
+  scroll?: boolean;
 }
 
 export interface MobRenderDef {
   layers: MobLayer[];
   /** MobRenderer.scale */
   scale?: number;
+  /** whole-model scale for babies (villagers shrink uniformly instead of using AgeableListModel) */
+  babyScale?: number;
 }
 
 export const MOB_RENDER: Record<string, MobRenderDef> = {
@@ -658,7 +745,12 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   skeleton: { layers: [{ model: 'skeleton', texture: 'skeleton' }] },
   stray: { layers: [{ model: 'skeleton', texture: 'stray' }, { model: 'stray_overlay', texture: 'stray_overlay' }] },
   wither_skeleton: { layers: [{ model: 'skeleton', texture: 'wither_skeleton' }], scale: 1.2 },
-  creeper: { layers: [{ model: 'creeper', texture: 'creeper' }] },
+  creeper: {
+    layers: [
+      { model: 'creeper', texture: 'creeper' },
+      { model: 'creeper_charged', texture: 'creeper_armor', when: (m) => (m.data.get('charged') ?? 0) !== 0, emissive: true, scroll: true, color: () => [0.5, 0.5, 0.5] },
+    ],
+  },
   spider: { layers: [{ model: 'spider', texture: 'spider' }, { model: 'spider', texture: 'spider_eyes', emissive: true }] },
   cave_spider: { layers: [{ model: 'spider', texture: 'cave_spider' }, { model: 'spider', texture: 'spider_eyes', emissive: true }], scale: 0.7 },
   pig: { layers: [{ model: 'pig', texture: 'pig' }, { model: 'pig_saddle', texture: 'pig_saddle', when: (m) => (m.data.get('saddle') ?? 0) !== 0 }] },
@@ -674,7 +766,17 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   slime: { layers: [{ model: 'slime', texture: 'slime' }, { model: 'slime_outer', texture: 'slime', translucent: true }], scale: 0.999 },
   bat: { layers: [{ model: 'bat', texture: 'bat' }], scale: 0.35 },
   squid: { layers: [{ model: 'squid', texture: 'squid' }] },
+  glow_squid: { layers: [{ model: 'squid', texture: 'glow_squid' }, { model: 'squid', texture: 'glow_squid', emissive: true, color: () => [0.35, 0.35, 0.35] }] },
+  villager: { layers: [{ model: 'villager', texture: 'villager' }], scale: 0.9375, babyScale: 0.5 },
+  wandering_trader: { layers: [{ model: 'villager', texture: 'wandering_trader' }], scale: 0.9375 },
+  witch: { layers: [{ model: 'witch', texture: 'witch' }], scale: 0.9375 },
+  zombie_villager: { layers: [{ model: 'zombie_villager', texture: 'zombie_villager' }] },
+  /** fallback for mobs without a model: a hit-box-sized box */
+  unknown: { layers: [{ model: 'unknown', texture: 'unknown' }] },
 };
+
+/** Textures sampled with repeat wrapping (scrolling layers). */
+export const MOB_SCROLLING = new Set(['creeper_armor']);
 
 const sheepColorOf = (m: ClientMob): [number, number, number] => sheepColor(m.data.get('color') ?? 0);
 

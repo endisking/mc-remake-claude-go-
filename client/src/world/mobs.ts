@@ -44,6 +44,10 @@ export const MOB_INFO: Record<string, MobInfo> = {
   sheep: N(0.7, { ambientInterval: 120 }),
   chicken: N(0.3, { ambientInterval: 120 }),
   squid: N(0.7, { category: 'neutral', step: null }),
+  glow_squid: N(0.7, { category: 'neutral', step: null }),
+  villager: N(0.5),
+  wandering_trader: N(0.5),
+  witch: H(0.5),
   bat: N(0.25, { category: 'ambient', flying: true, step: null }),
 };
 

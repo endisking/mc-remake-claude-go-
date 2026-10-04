@@ -614,6 +614,148 @@ export function squid(): Tex {
   return t;
 }
 
+// ------------------------------------------------------------------ villager family
+
+interface VillagerLook {
+  skin: string; skinDark: string; hair: string; eye: string; robe: string; robeDark: string; trim: string; seed: number;
+  h?: number; undead?: boolean;
+}
+
+/** Villager layout (64×64): tall head with a long nose, robe over a tunic, folded arms. */
+function villagerTex(look: VillagerLook, t = new Tex(64, 64)): Tex {
+  const S = hex(look.skin), SD = hex(look.skinDark), HA = hex(look.hair), E = hex(look.eye), R = hex(look.robe), RD = hex(look.robeDark), TR = hex(look.trim);
+  const skin = look.undead ? blotches(S, SD, look.seed, 2.4, 0.66, 0.07) : noisy(S, 0.04, look.seed);
+  const head = box(t, 0, 0, 8, 10, 8, skin);
+  const [fx, fy] = head.front;
+  // hair: a fringe ring around the sides and back, bald crown
+  for (const k of ['right', 'left', 'back'] as const) {
+    const [x, y, w] = head[k];
+    hline(t, x, y + 1, w, HA);
+    hline(t, x, y + 2, w, shade(HA, 0.9));
+    if (k === 'back') rect(t, x, y + 3, w, 3, noisy(HA, 0.06, look.seed + 1));
+  }
+  // separate bushy brows over small round eyes, deep-set under the brow ridge
+  hline(t, fx + 1, fy + 3, 2, shade(HA, 0.8));
+  hline(t, fx + 5, fy + 3, 2, shade(HA, 0.8));
+  px(t, fx + 1, fy + 4, hex('#f0ece0'));
+  px(t, fx + 2, fy + 4, E);
+  px(t, fx + 5, fy + 4, E);
+  px(t, fx + 6, fy + 4, hex('#f0ece0'));
+  // mouth and chin shadow below the nose
+  hline(t, fx + 3, fy + 8, 2, shade(SD, 0.7));
+  hline(t, fx + 2, fy + 9, 4, SD);
+  if (look.undead) {
+    rect(t, fx + 1, fy + 4, 2, 1, () => shade(SD, 0.5));
+    rect(t, fx + 5, fy + 4, 2, 1, () => shade(SD, 0.5));
+    px(t, fx + 2, fy + 4, E);
+    px(t, fx + 5, fy + 4, E);
+  }
+  // nose (2×4×2) with a darker tip
+  box(t, 24, 0, 2, 4, 2, (_x, y) => (y === 3 ? SD : shade(S, 0.95)));
+  // tunic and robe
+  const robe = blotches(R, RD, look.seed + 2, 2.5, 0.62, 0.05);
+  const body = box(t, 16, 20, 8, 12, 6, robe);
+  hline(t, body.front[0] + 2, body.front[1], 4, SD); // collar
+  const jacket = box(t, 0, 38, 8, 18, 6, robe);
+  for (const k of ['right', 'front', 'left', 'back'] as const) {
+    const [x, y, w] = jacket[k];
+    hline(t, x, y + 6, w, TR); // sash
+    hline(t, x, y + 17, w, shade(RD, 0.8)); // hem
+    if (look.undead) for (let i = 0; i < w; i += 3) px(t, x + i, y + 17, CLEAR);
+  }
+  // front placket with buttons
+  vline(t, jacket.front[0] + 4, jacket.front[1] + 7, 10, shade(RD, 0.85));
+  for (let j = 8; j < 17; j += 3) px(t, jacket.front[0] + 3, jacket.front[1] + j, TR);
+  rect(t, jacket.top[0], jacket.top[1], 8, 6, () => CLEAR);
+  // arms: sleeves with hands showing where they meet
+  const sleeves = box(t, 44, 22, 4, 8, 4, robe);
+  for (const k of ['right', 'front', 'left', 'back'] as const) hline(t, sleeves[k][0], sleeves[k][1] + 7, 4, shade(RD, 0.85));
+  rect(t, sleeves.bottom[0], sleeves.bottom[1], 4, 4, () => S);
+  const hands = box(t, 40, 38, 8, 4, 4, skin);
+  rect(t, hands.front[0], hands.front[1], 8, 4, (x) => (x === 3 || x === 4 ? SD : S));
+  // legs: trousers and shoes
+  const leg = box(t, 0, 22, 4, 12, 4, noisy(shade(RD, 0.8), 0.05, look.seed + 3));
+  for (const k of ['right', 'front', 'left', 'back'] as const) rect(t, leg[k][0], leg[k][1] + 10, 4, 2, () => hex('#3a2e26'));
+  return t;
+}
+
+export const villager = () => villagerTex({ skin: '#c99a74', skinDark: '#a87a58', hair: '#6a6a66', eye: '#3a6a8a', robe: '#6a5a7a', robeDark: '#54466a', trim: '#c8a05a', seed: 181 });
+export const wanderingTrader = () => villagerTex({ skin: '#b88a64', skinDark: '#946a4a', hair: '#3a2e24', eye: '#4a3a24', robe: '#2f4f8a', robeDark: '#243c6c', trim: '#e0c050', seed: 183 });
+export function zombieVillager(): Tex {
+  const t = villagerTex({ skin: '#5f8a4c', skinDark: '#45683a', hair: '#3a4a30', eye: '#e8e070', robe: '#5a4a3a', robeDark: '#463a2c', trim: '#7a6a4a', seed: 187, undead: true });
+  // ZombieVillagerModel arms are 4×12×4 (outstretched): torn sleeves over green forearms
+  const S = hex('#5f8a4c'), R = hex('#5a4a3a');
+  const arm = box(t, 44, 22, 4, 12, 4, blotches(S, hex('#45683a'), 188, 2.4, 0.66, 0.07));
+  for (const k of ['right', 'front', 'left', 'back'] as const) {
+    const [x, y, w] = arm[k];
+    rect(t, x, y, w, 6, noisy(R, 0.06, 189));
+    for (let i = 0; i < w; i += 2) px(t, x + i, y + 6, R);
+  }
+  return t;
+}
+
+/** Witch: villager layout (64×128) plus a crooked four-tier hat and a warty mole. */
+export function witch(): Tex {
+  const t = new Tex(64, 128);
+  villagerTex({ skin: '#a8b49a', skinDark: '#86927a', hair: '#2a2a30', eye: '#8a2aa8', robe: '#3a2a4a', robeDark: '#2a1e38', trim: '#6aa83a', seed: 191 }, t);
+  // mole (1×1×1 box at 0,0)
+  box(t, 0, 0, 1, 1, 1, () => hex('#4a5a3a'));
+  // hat tiers: brim 10×2×10, then 7×4×7, 4×4×4, 1×2×1 tip
+  const H = hex('#2a1e30'), HD = hex('#1c1422'), BAND = hex('#8a3a2a');
+  box(t, 0, 64, 10, 2, 10, noisy(H, 0.06, 192));
+  const t2 = box(t, 0, 76, 7, 4, 7, noisy(H, 0.06, 193));
+  for (const k of ['right', 'front', 'left', 'back'] as const) hline(t, t2[k][0], t2[k][1] + 3, 7, BAND);
+  px(t, t2.front[0] + 3, t2.front[1] + 3, hex('#d8c050'));
+  box(t, 0, 87, 4, 4, 4, noisy(HD, 0.06, 194));
+  box(t, 0, 95, 1, 2, 1, () => HD);
+  return t;
+}
+
+// ------------------------------------------------------------------ misc layers
+
+/** Charged creeper energy swirl (tileable, scrolled and drawn additively). */
+export function creeperArmor(): Tex {
+  const t = new Tex(64, 32);
+  for (let y = 0; y < 32; y++)
+    for (let x = 0; x < 64; x++) {
+      // interference of two diagonal waves, tileable on 64×32
+      const a = Math.sin(((x + y * 2) / 64) * Math.PI * 4) + Math.sin(((x * 2 - y) / 32) * Math.PI * 2);
+      const v = Math.max(0, a) / 2;
+      const c = v > 0.55 ? hex('#a8c8ff') : v > 0.3 ? hex('#5a78d8') : v > 0.12 ? hex('#2a3a8a') : hex('#000000', 0);
+      t.set(x, y, c);
+    }
+  return t;
+}
+
+/** Glow squid: teal mantle with bright cyan spots (drawn again full-bright). */
+export function glowSquid(): Tex {
+  const t = new Tex(64, 32);
+  const B = hex('#1a6a6a'), BD = hex('#124e52'), G = hex('#7af0e0');
+  const body = box(t, 0, 0, 12, 16, 12, blotches(B, BD, 201, 2.5, 0.6));
+  const r = rng(202);
+  for (const k of ['right', 'front', 'left', 'back', 'top'] as const) {
+    const [x, y, w, h] = body[k];
+    for (let i = 0; i < 8; i++) px(t, x + Math.floor(r() * w), y + Math.floor(r() * (h - 5)), G);
+  }
+  const [fx, fy] = body.front;
+  for (const ex of [fx + 1, fx + 8]) {
+    rect(t, ex, fy + 11, 3, 3, () => hex('#e0fff8'));
+    hline(t, ex, fy + 12, 3, hex('#0a2a2a'));
+  }
+  box(t, 48, 0, 2, 18, 2, (x, y) => (y % 4 === 3 ? G : x ? BD : B));
+  return t;
+}
+
+/** Placeholder for mobs without a model yet: a plain crate-like box with two eyes. */
+export function unknownMob(): Tex {
+  const t = new Tex(64, 32);
+  const C = hex('#8a8a8a');
+  const f = box(t, 0, 0, 16, 16, 16, (x, y, w, h) => (x === 0 || y === 0 || x === w - 1 || y === h - 1 ? shade(C, 0.7) : shade(C, 1 + ((x * 7 + y * 3) % 5) * 0.02)));
+  rect(t, f.front[0] + 4, f.front[1] + 5, 2, 3, () => hex('#1a1a1a'));
+  rect(t, f.front[0] + 10, f.front[1] + 5, 2, 3, () => hex('#1a1a1a'));
+  return t;
+}
+
 // ------------------------------------------------------------------ shadow, poof
 
 /** Entity blob shadow: a soft dark disc (alpha falls off toward the edge). */
@@ -651,4 +793,6 @@ export const ENTITY_TEXTURES: Record<string, () => Tex> = {
   zombie, husk, drowned, skeleton, stray, wither_skeleton: witherSkeleton, stray_overlay: strayOverlay,
   creeper, spider, cave_spider: caveSpider, spider_eyes: spiderEyes, pig, pig_saddle: pigSaddle, cow, sheep, sheep_fur: sheepFur,
   chicken, enderman, enderman_eyes: endermanEyes, slime, bat, squid,
+  glow_squid: glowSquid, creeper_armor: creeperArmor, villager, wandering_trader: wanderingTrader, witch, zombie_villager: zombieVillager,
+  unknown: unknownMob,
 };

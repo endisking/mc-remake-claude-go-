@@ -9,7 +9,7 @@ import { createProgram, Uniforms } from '../gl';
 import { mat4, multiply, type Mat4 } from '../math';
 import { FLOATS_PER_VERTEX } from './model';
 import { LIGHT0, LIGHT1 } from './entityrenderer';
-import { MOB_MODELS, MOB_RENDER, MOB_TEXTURES, bakeMobModel, createPoses, type BakedMobModel, type MobAnim, type MobModelDef, type Poses, type VPose } from './mobmodels';
+import { MOB_MODELS, MOB_RENDER, MOB_TEXTURES, MOB_SCROLLING, bakeMobModel, createPoses, type BakedMobModel, type MobAnim, type MobModelDef, type Poses, type VPose } from './mobmodels';
 import type { ClientMob } from '../../world/mobs';
 import type { ClientWorld } from '../../world/clientworld';
 import { collisionBoxes } from '@shared/world/shapes';
@@ -204,7 +204,7 @@ export class MobRenderer {
     };
     await Promise.all([
       ...MOB_TEXTURES.map(async (n) => {
-        const t = await load(`${base}entity/${n}.png`);
+        const t = await load(`${base}entity/${n}.png`, !MOB_SCROLLING.has(n));
         if (t) this.textures.set(n, t.tex);
       }),
       (async () => {
@@ -316,8 +316,7 @@ export class MobRenderer {
 
   private renderMob(m: ClientMob, world: ClientWorld, camX: number, camY: number, camZ: number, partial: number): void {
     const gl = this.gl;
-    const rdef = MOB_RENDER[m.type];
-    if (!rdef) return;
+    const rdef = MOB_RENDER[m.type] ?? MOB_RENDER.unknown!;
     const x = m.xo + (m.x - m.xo) * partial - camX;
     const y = m.yo + (m.y - m.yo) * partial - camY;
     const z = m.zo + (m.z - m.zo) * partial - camZ;
@@ -349,8 +348,14 @@ export class MobRenderer {
       mulTranslate(E, 0, -1.2, 0);
     }
     let sx = 1, sy = 1, sz = 1;
-    const base = rdef.scale ?? 1;
+    const base = (rdef.scale ?? 1) * (m.baby && rdef.babyScale ? rdef.babyScale : 1);
     sx = sy = sz = base;
+    if (!MOB_RENDER[m.type]) {
+      // mobs without a model yet: a box the size of their hit box, so they can be seen and hit
+      const [bw, bh] = m.dims();
+      sx = sz = bw;
+      sy = bh;
+    }
     if (m.type === 'creeper') {
       // CreeperRenderer.scale: swell wider than tall, with a jitter
       let f = m.swelling(partial);
@@ -435,6 +440,11 @@ export class MobRenderer {
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         }
       }
+      if (layer.scroll) {
+        // CreeperPowerLayer: the energy swirl texture scrolls with age (u, v += 0.01·age)
+        const f = (m.tickCount + partial) * 0.01;
+        gl.uniform4f(this.u.get('uUVRect'), f, f, 1, 1);
+      }
       gl.bindVertexArray(gm.vao);
       const parts = gm.baked.parts;
       for (let i = 0; i < parts.length; i++) {
@@ -455,6 +465,7 @@ export class MobRenderer {
         gl.disable(gl.BLEND);
         gl.depthMask(true);
       }
+      if (layer.scroll) gl.uniform4f(this.u.get('uUVRect'), 0, 0, 1, 1);
     }
   }
 
