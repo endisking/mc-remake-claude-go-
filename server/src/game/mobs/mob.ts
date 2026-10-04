@@ -411,6 +411,10 @@ export abstract class Mob extends ServerEntity {
 
   // ------------------------------------------------------------------ ticking
   tick(_world: BlockWorld): void {
+    // entities in chunks that aren't loaded (and their neighbours) don't tick, like vanilla's entity-ticking chunks
+    const cx = Math.floor(this.x) >> 4, cz = Math.floor(this.z) >> 4;
+    const w = this.s.world;
+    if (!w.getChunk(cx, cz) || !w.getChunk(cx + 1, cz) || !w.getChunk(cx - 1, cz) || !w.getChunk(cx, cz + 1) || !w.getChunk(cx, cz - 1)) return;
     this.tickCount++;
     this.age++;
     this.sightCache.clear();
