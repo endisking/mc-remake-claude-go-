@@ -96,9 +96,23 @@ try {
   console.log('pause buttons', JSON.stringify(btns));
   // nether
   await page.evaluate(() => (window as any).game.setScreen(null));
-  await cmd('/execute in minecraft:the_nether run tp @s 0 80 0');
+  // build an obsidian frame on the platform, light it with flint and steel, step in
+  const f = await G<number[]>('[Math.floor(g.player.x), Math.floor(g.player.y), Math.floor(g.player.z)]');
+  const fz = f[2]! - 3;
+  await cmd(`/fill ${f[0]! - 1} ${f[1]! - 1} ${fz} ${f[0]! + 2} ${f[1]! + 3} ${fz} obsidian`);
+  await cmd(`/fill ${f[0]} ${f[1]} ${fz} ${f[0]! + 1} ${f[1]! + 2} ${fz} air`);
+  await cmd('/clear @s');
+  await cmd('/give @s flint_and_steel 1');
+  await page.waitForTimeout(1500);
+  await page.keyboard.press('Digit1');
+  await page.evaluate(([x, y, z]) => (window as any).game.send({ t: 'useOn', x, y, z, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 }), [f[0]!, f[1]! - 1, fz]);
+  await page.waitForTimeout(1500);
+  console.log('frame', f, await G(`[${f[0]! - 1}, ${f[0]}, ${f[0]! + 1}, ${f[0]! + 2}].map(x => [${f[1]! - 1}, ${f[1]}, ${f[1]! + 1}].map(y => g.world.getState(x, y, ${fz})))`), await G('[g.interaction.inventory.selected, g.interaction.inventory.slots.slice(0, 3).map(s => s && s.id)]'));
+  console.log('portal block',await G(`g.world.getState(${f[0]}, ${f[1]}, ${fz}) === g.stateOfName('nether_portal') || g.world.getState(${f[0]}, ${f[1]}, ${fz})`));
+  await cmd(`/tp @s ${f[0]! + 1} ${f[1]} ${fz + 0.5}`);
+  await page.waitForFunction(() => (window as any).game.dimension === 'the_nether', undefined, { timeout: 90000, polling: 500 }).catch(() => console.log('NO NETHER'));
   await page.waitForTimeout(8000);
-  console.log('dimension', await G('[g.dimension && (g.dimension.id || g.dimension), g.player.y]'));
+  console.log('dimension', await G('[g.dimension, g.player.x, g.player.y, g.player.z]'));
   await shot('c5-nether');
   await cmd('/time set 18000');
   await cmd('/weather thunder');
