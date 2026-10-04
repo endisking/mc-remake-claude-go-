@@ -28,7 +28,7 @@ import { allArmorTextures } from './armor';
 import { mobEffects } from './effects';
 import { writeItemTextures } from './items';
 import { ENTITY_TEXTURES, shadow, poof } from './entities';
-import { sun, moonPhases, clouds, rain, snowflakes, destroyStages, underwater, experienceOrbs, powderSnowOutline } from './environment';
+import { sun, moonPhases, clouds, rain, snowflakes, destroyStages, underwater, experienceOrbs, powderSnowOutline, endSky } from './environment';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const outDir = join(root, 'client', 'public', 'textures');
@@ -111,6 +111,7 @@ function main(): void {
   writePng(join(outDir, 'environment', 'snow.png'), snowflakes());
   writePng(join(outDir, 'environment', 'underwater.png'), underwater());
   writePng(join(outDir, 'environment', 'powder_snow_outline.png'), powderSnowOutline());
+  writePng(join(outDir, 'environment', 'end_sky.png'), endSky());
   mkdirSync(join(outDir, 'entity'), { recursive: true });
   writePng(join(outDir, 'entity', 'experience_orb.png'), experienceOrbs());
   mkdirSync(join(outDir, 'entity', 'armor'), { recursive: true });

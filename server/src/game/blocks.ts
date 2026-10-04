@@ -1209,6 +1209,7 @@ export class BlockBehaviors {
     const st = w.getState(x, y, z);
     const n = blockNameOf(st);
     const r = this.s.rand;
+    if (item === 'ender_eye') return this.s.theEnd.useEyeOn(p, slot, held, x, y, z);
     if (item === 'bone_meal') {
       if (!this.boneMeal(x, y, z)) return false;
       if (p.gameMode !== 1) this.shrink(p, slot, held);
