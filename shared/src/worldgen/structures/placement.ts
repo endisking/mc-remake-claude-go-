@@ -151,7 +151,6 @@ export function potentialChunk(def: FeatureDef, seed: bigint, cx: number, cz: nu
 }
 
 // ------------------------------------------------------------------ strongholds
-const strongholdCache = new Map<bigint, [number, number][]>();
 const STRONGHOLD_BIOMES = new Set<number>(Object.entries(B).filter(([n]) => (WORLDGEN.biomes[n]?.starts ?? []).includes('minecraft:stronghold')).map(([, id]) => id));
 
 /** BiomeSource.findBiomeHorizontal (not closest-first): a random matching quart within radius, or null. */
@@ -170,35 +169,52 @@ function findBiomeHorizontal(gen: OverworldGenerator, x: number, z: number, radi
   return pos;
 }
 
-/** ChunkGenerator.generateStrongholds: 128 positions in rings (distance 32, count 128, spread 3). */
-export function strongholdPositions(gen: OverworldGenerator): [number, number][] {
-  let list = strongholdCache.get(gen.seed);
-  if (list) return list;
-  list = [];
-  const distance = 32, count = 128;
-  let spread = 3;
-  const r = new JavaRandom(gen.seed);
-  let d = r.nextDouble() * Math.PI * 2;
-  let l = 0, m = 0;
-  for (let n = 0; n < count; n++) {
-    const e = 4 * distance + distance * m * 6 + (r.nextDouble() - 0.5) * distance * 2.5;
-    let o = javaRound(Math.cos(d) * e), p = javaRound(Math.sin(d) * e);
-    const pos = findBiomeHorizontal(gen, (o << 4) + 8, (p << 4) + 8, 112, (b) => STRONGHOLD_BIOMES.has(b), r);
-    if (pos) {
-      o = pos[0] >> 4;
-      p = pos[1] >> 4;
-    }
-    list.push([o, p]);
-    d += (Math.PI * 2) / spread;
-    if (++l === spread) {
-      l = 0;
-      spread += Math.trunc((2 * spread) / (++m + 1));
-      spread = Math.min(spread, count - n);
-      d += r.nextDouble() * Math.PI * 2;
-    }
+/** Resumable ChunkGenerator.generateStrongholds state (positions are produced ring by ring, in order). */
+interface RingState { r: JavaRandom; d: number; l: number; m: number; spread: number; n: number; list: [number, number][] }
+const ringStates = new Map<bigint, RingState>();
+const RING_DISTANCE = 32, RING_COUNT = 128;
+
+function ringState(gen: OverworldGenerator): RingState {
+  let st = ringStates.get(gen.seed);
+  if (!st) {
+    const r = new JavaRandom(gen.seed);
+    st = { r, d: r.nextDouble() * Math.PI * 2, l: 0, m: 0, spread: 3, n: 0, list: [] };
+    ringStates.set(gen.seed, st);
   }
-  strongholdCache.set(gen.seed, list);
-  return list;
+  return st;
+}
+
+/** Generates the next stronghold position (one step of the vanilla loop). */
+function nextStronghold(gen: OverworldGenerator, st: RingState): void {
+  const r = st.r, distance = RING_DISTANCE;
+  const e = 4 * distance + distance * st.m * 6 + (r.nextDouble() - 0.5) * distance * 2.5;
+  let o = javaRound(Math.cos(st.d) * e), p = javaRound(Math.sin(st.d) * e);
+  const pos = findBiomeHorizontal(gen, (o << 4) + 8, (p << 4) + 8, 112, (b) => STRONGHOLD_BIOMES.has(b), r);
+  if (pos) {
+    o = pos[0] >> 4;
+    p = pos[1] >> 4;
+  }
+  st.list.push([o, p]);
+  st.d += (Math.PI * 2) / st.spread;
+  if (++st.l === st.spread) {
+    st.l = 0;
+    st.spread += Math.trunc((2 * st.spread) / (++st.m + 1));
+    st.spread = Math.min(st.spread, RING_COUNT - st.n);
+    st.d += r.nextDouble() * Math.PI * 2;
+  }
+  st.n++;
+}
+
+/**
+ * ChunkGenerator.generateStrongholds: 128 positions in rings (distance 32, count 128, spread 3).
+ * With `withinChunks`, only the rings that can come that close to the origin are computed (the
+ * random sequence is the same; later rings are generated on demand).
+ */
+export function strongholdPositions(gen: OverworldGenerator, withinChunks = Infinity): [number, number][] {
+  const st = ringState(gen);
+  // ring m lies at 128 + 192 m ± 40 chunks, moved at most 7 chunks by the biome search
+  while (st.n < RING_COUNT && 4 * RING_DISTANCE + RING_DISTANCE * st.m * 6 - 40 - 8 <= withinChunks) nextStronghold(gen, st);
+  return st.list;
 }
 /** Math.round(double) → long */
 const javaRound = (v: number) => Math.floor(v + 0.5);
@@ -206,8 +222,9 @@ const javaRound = (v: number) => Math.floor(v + 0.5);
 /** Nearest ring distance is 128 - 40 chunks; skip the ring computation for chunks well inside it. */
 const STRONGHOLD_MIN_CHUNKS = 128 - 40 - 28 - 8 - 2;
 function hasStronghold(gen: OverworldGenerator, cx: number, cz: number): boolean {
-  if (cx * cx + cz * cz < STRONGHOLD_MIN_CHUNKS * STRONGHOLD_MIN_CHUNKS) return false;
-  return strongholdPositions(gen).some(([x, z]) => x === cx && z === cz);
+  const d = Math.hypot(cx, cz);
+  if (d < STRONGHOLD_MIN_CHUNKS) return false;
+  return strongholdPositions(gen, d).some(([x, z]) => x === cx && z === cz);
 }
 
 // ------------------------------------------------------------------ starts
