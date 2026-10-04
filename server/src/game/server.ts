@@ -1065,7 +1065,8 @@ export class GameServer {
     }
     for (const e of this.entities.values()) {
       if (e.removed || e instanceof Mob) continue;
-      if (e.x === e.sentX && e.y === e.sentY && e.z === e.sentZ) continue;
+      if (e.x === e.sentX && e.y === e.sentY && e.z === e.sentZ && e.yaw === e.sentRot) continue; // yaw: boats turning in place
+      e.sentRot = e.yaw;
       e.sentX = e.x;
       e.sentY = e.y;
       e.sentZ = e.z;
