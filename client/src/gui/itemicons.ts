@@ -121,12 +121,14 @@ export function drawGlint(g: Gui, itemId: number, x: number, y: number, now = pe
   drawItemIcon({ blit: (img: CanvasImageSource, sx: number, sy: number, w: number, h: number, dx: number, dy: number, dw = w, dh = h) => mctx.drawImage(img, sx, sy, w, h, dx - x, dy - y, dw, dh), fill: () => {} } as unknown as Gui, itemId, x, y);
   // RenderStateShard.setupGlintTexturing: offsets cycle every 110 s / 30 s of (millis × 8)
   const t = now * 8;
-  const fx = ((t % 110000) / 110000) * 64, fy = ((t % 30000) / 30000) * 64;
+  // the 64 px pattern is shrunk to one icon (GUI glint texture scale) and tiled while it scrolls
+  const T = 24;
+  const fx = ((t % 110000) / 110000) * T, fy = ((t % 30000) / 30000) * T;
   lctx.globalCompositeOperation = 'source-over';
   lctx.clearRect(0, 0, 16, 16);
   lctx.save();
   lctx.rotate((10 * Math.PI) / 180);
-  for (let ox = -64; ox <= 64; ox += 64) for (let oy = -64; oy <= 64; oy += 64) lctx.drawImage(glintImg, Math.floor(-fx + ox), Math.floor(fy + oy) - 64, 64, 64);
+  for (let ox = -2 * T; ox <= 2 * T; ox += T) for (let oy = -2 * T; oy <= 2 * T; oy += T) lctx.drawImage(glintImg, Math.floor(-fx + ox), Math.floor(fy + oy), T, T);
   lctx.restore();
   lctx.globalCompositeOperation = 'destination-in';
   lctx.drawImage(glintMask, 0, 0);
