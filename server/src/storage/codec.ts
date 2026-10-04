@@ -8,8 +8,8 @@ import { ByteWriter, ByteReader } from '@shared/protocol/buffer';
 import type { ServerPlayer } from '../game/player';
 import { SAVE_FORMAT_VERSION, type PlayerData } from './types';
 
-/** 1: stage, lit, chunk; 2: + carving masks (kept until the chunk is decorated); 3: + entities (mob saves, JSON). */
-const CHUNK_FORMAT = 3;
+/** 1: stage, lit, chunk; 2: + carving masks (kept until the chunk is decorated); 3: + block entities (in the chunk body); 4: + entities (mob saves, JSON). */
+const CHUNK_FORMAT = 4;
 
 /** Entity save data read with a chunk (deserializeChunk) — the mobs that were in it. */
 export const chunkEntities = new WeakMap<Chunk, unknown[]>();
@@ -51,10 +51,10 @@ export function serializeChunk(c: Chunk, entities?: unknown[]): Uint8Array {
 export function deserializeChunk(raw: Uint8Array): Chunk {
   const r = new ByteReader(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer);
   const format = r.u8();
-  if (format !== 1 && format !== 2 && format !== 3) throw new Error(`unknown chunk format ${format}`);
+  if (format < 1 || format > 4) throw new Error(`unknown chunk format ${format}`);
   const stage = r.u8();
   const lit = r.u8() === 1;
-  const c = readChunk(r, true);
+  const c = readChunk(r, true, format >= 3);
   if (format >= 2) {
     const n = r.u8();
     if (n) {
@@ -65,7 +65,7 @@ export function deserializeChunk(raw: Uint8Array): Chunk {
       }
     }
   }
-  if (format >= 3) {
+  if (format >= 4) {
     const n = r.u32();
     if (n) chunkEntities.set(c, JSON.parse(new TextDecoder().decode(r.bytes(n))) as unknown[]);
   }
@@ -121,6 +121,7 @@ export function capturePlayer(p: ServerPlayer): PlayerData {
     xpTotal: l.totalExperience,
     score: l.score,
     inventory: p.inventory.slots.map((s) => (s && s.count > 0 ? { ...s } : null)),
+    enderItems: p.enderChest.map((s) => (s && s.count > 0 ? { ...s } : null)),
     selected: p.inventory.selected,
     respawn: p.respawn ? { ...p.respawn } : null,
   };
@@ -153,6 +154,12 @@ export function applyPlayer(p: ServerPlayer, d: PlayerData): void {
   l.experienceProgress = num(d.xpProgress, 0);
   l.totalExperience = num(d.xpTotal, 0);
   l.score = num(d.score, 0);
+  if (Array.isArray(d.enderItems)) {
+    for (let i = 0; i < p.enderChest.length; i++) {
+      const s = d.enderItems[i];
+      p.enderChest[i] = s && typeof s.id === 'number' && s.count > 0 ? { ...s } : null;
+    }
+  }
   if (Array.isArray(d.inventory)) {
     for (let i = 0; i < p.inventory.slots.length; i++) {
       const s = d.inventory[i];

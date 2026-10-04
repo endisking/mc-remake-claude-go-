@@ -20,8 +20,12 @@ export const isViewBlocking = isSuffocating;
  * sneaking with an item in hand). Grows as block interactions are implemented.
  */
 export function isInteractive(state: number): boolean {
-  return blockNameOf(state).endsWith('_bed');
+  const n = blockNameOf(state);
+  return n.endsWith('_bed') || OPENABLE_CONTAINERS.has(n) || n.endsWith('shulker_box');
 }
+
+/** Container blocks whose menus are implemented (server Containers.useBlock). */
+const OPENABLE_CONTAINERS = new Set(['crafting_table', 'chest', 'trapped_chest', 'ender_chest', 'barrel', 'furnace', 'blast_furnace', 'smoker', 'dispenser', 'dropper', 'hopper', 'stonecutter', 'smithing_table', 'grindstone']);
 
 const MENU_PROVIDERS = new Set([
   'crafting_table', 'chest', 'trapped_chest', 'furnace', 'blast_furnace', 'smoker', 'dispenser', 'dropper', 'hopper',

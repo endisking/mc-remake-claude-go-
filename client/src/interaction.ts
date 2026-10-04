@@ -34,6 +34,8 @@ export interface InteractionHost {
   /** a block was placed by the local player (prediction) */
   onBlockPlaced(x: number, y: number, z: number, state: number): void;
   swing(hand?: 0 | 1): void;
+  /** ItemInHandRenderer.itemUsed: an item was used up (count changed) or used in creative → re-equip from the bottom */
+  itemUsed?(hand: 0 | 1): void;
   /** attack at nothing: swing and reset the attack strength (vanilla startAttack miss) */
   missSwing(): void;
   /** attacked an entity (client-side Player.attack effects + cooldown reset) */
@@ -219,6 +221,8 @@ export class Interaction {
           stack.count--;
           if (stack.count <= 0) this.inventory.set(slot, null);
         }
+        // Minecraft.startUseItem: the count changed (survival) or infinite items (creative)
+        if (stack) this.host.itemUsed?.(hand);
       }
       return;
     }

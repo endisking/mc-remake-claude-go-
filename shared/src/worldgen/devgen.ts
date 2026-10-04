@@ -9,6 +9,7 @@ import { BIOMES_BY_NAME } from '../data';
 import { JavaRandom } from '../util/random';
 import { PerlinNoise } from '../util/noise';
 import { applyShowcase } from './showcase';
+import { applyNaturalShowcase } from './naturalShowcase';
 
 const S = {
   bedrock: stateOf('bedrock'),
@@ -98,6 +99,7 @@ export class DevGenerator {
       for (let y = h + 1; y <= h + 3; y++) c.setState(10, y, 8, S.glass);
     }
     if (this.scene === 'models') applyShowcase(c);
+    if (this.scene === 'natural') applyNaturalShowcase(c);
     for (const s of c.sections) s.recount();
     c.computeHeightmaps();
     return c;

@@ -3,14 +3,15 @@
  * 200–799 ticks (first after 20) try 4 spawns within ±4 blocks (y ±1), obeying the mob's spawn
  * rules (darkness for monsters), at most 6 of that type nearby.
  *
- * The chunk format has no block entities yet, so spawner blocks are found when their chunk loads
- * and the mob type is the dungeon distribution (skeleton ¼, zombie ½, spider ¼) picked from the
- * position, stable across reloads.
+ * Spawner blocks are found when their chunk loads; the mob comes from the chunk's block entity
+ * ({ id: 'mob_spawner', entity }) written when worldgen placed it, else the dungeon distribution
+ * (skeleton ¼, zombie ½, spider ¼) picked from the position.
  */
 import { AABB, noCollision } from '@shared/entity/aabb';
 import { stateOf } from '@shared/world/blockstate';
 import { ENTITIES_BY_NAME } from '@shared/data';
-import type { Chunk } from '@shared/world/chunk';
+import { blockEntityKey, type Chunk } from '@shared/world/chunk';
+import type { GenBlockEntity } from '@shared/worldgen/features/underground';
 import type { GameServer } from '../server';
 import { Mob } from './mob';
 
@@ -49,9 +50,22 @@ export class MobSpawners {
       let i = b.indexOf(SPAWNER);
       while (i >= 0) {
         const x = c.x * 16 + (i & 15), y = sy * 16 + (i >> 8), z = c.z * 16 + ((i >> 4) & 15);
-        this.add(x, y, z, spawnerTypeAt(x, y, z));
+        const be = c.blockEntities.get(blockEntityKey(x & 15, y, z & 15));
+        const type = be && be.id === 'mob_spawner' && typeof be.entity === 'string' ? be.entity : spawnerTypeAt(x, y, z);
+        if (!this.spawners.has(`${x},${y},${z}`)) this.add(x, y, z, type);
         i = b.indexOf(SPAWNER, i + 1);
       }
+    }
+  }
+
+  /** Spawners placed by worldgen (dungeons): remember the mob in the chunk's block entities. */
+  attachGenerated(list: GenBlockEntity[]): void {
+    for (const g of list) {
+      if (g.kind !== 'spawner') continue;
+      const c = this.s.world.getChunk(g.x >> 4, g.z >> 4);
+      if (!c) continue;
+      c.blockEntities.set(blockEntityKey(g.x & 15, g.y, g.z & 15), { id: 'mob_spawner', entity: g.entity.replace(/^minecraft:/, '') });
+      c.version++;
     }
   }
 
