@@ -286,10 +286,17 @@ function isReplaceablePlant(s: number): boolean {
 
 /** A structure start: its pieces in generation order, and their combined box. */
 export class StructureStart {
-  readonly box: BoundingBox;
+  /** the pieces' combined box at creation (x/z never change; pieces may move vertically when placed) */
+  readonly xzBox: BoundingBox;
   constructor(readonly feature: string, readonly cx: number, readonly cz: number, readonly pieces: Piece[]) {
-    this.box = pieces[0]!.box.copy();
-    for (const p of pieces) this.box.encapsulate(p.box);
+    this.xzBox = this.box;
+  }
+
+  /** the pieces' current combined box */
+  get box(): BoundingBox {
+    const b = this.pieces[0]!.box.copy();
+    for (const p of this.pieces) b.encapsulate(p.box);
+    return b;
   }
 
   /** StructureStart.placeInChunk */

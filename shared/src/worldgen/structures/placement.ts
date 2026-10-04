@@ -260,7 +260,7 @@ export function startsReaching(gen: OverworldGenerator, type: string, cx: number
   const x0 = cx << 4, z0 = cz << 4;
   const consider = (sx: number, sz: number) => {
     const s = structureStart(gen, type, sx, sz);
-    if (s && s.box.intersectsXZ(x0, z0, x0 + 15, z0 + 15)) out.push(s);
+    if (s && s.xzBox.intersectsXZ(x0, z0, x0 + 15, z0 + 15)) out.push(s);
   };
   if (def.spacing === 1) {
     for (let sx = cx - R; sx <= cx + R; sx++) for (let sz = cz - R; sz <= cz + R; sz++) consider(sx, sz);

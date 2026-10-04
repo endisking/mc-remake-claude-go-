@@ -12,6 +12,7 @@ import { BlockWorld } from '@shared/world/world';
 import { IS_AIR } from '@shared/world/blockinfo';
 
 const cut = process.argv.includes('--cut');
+const noWater = process.argv.includes('--nowater');
 const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 const [seedArg = '20211', xArg = '0', zArg = '0', rArg = '16', out = 'tools/bench/out/structview.png', yMinArg = '0', yMaxArg = '140'] = args;
 const gen = new OverworldGenerator(BigInt(seedArg));
@@ -80,6 +81,7 @@ for (let s = 0; s <= 2 * (span - 1); s++)
       const st = world.getState(x, y, z);
       if (IS_AIR[st] === 1) continue;
       const name = blockNameOf(st);
+      if (noWater && /^(water|kelp|kelp_plant|seagrass|tall_seagrass)$/.test(name)) continue;
       if (name === 'water' && IS_AIR[world.getState(x, y + 1, z)] !== 1) continue;
       const c = color(name);
       // iso: screen x = (i - j) * S + centre, screen y = (i + j) * S/2 - y * S
