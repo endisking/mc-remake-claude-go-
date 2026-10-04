@@ -45,6 +45,7 @@ import { PROFESSIONS as PROFESSION_IDS } from '@shared/game/trades';
 import { Villager, WanderingTrader, AbstractVillager } from './villager';
 import { IronGolem, SnowGolem } from './golems';
 import { Witch } from './witch';
+import { Pillager, Vindicator } from './illagers';
 import { Rabbit, PolarBear, Ocelot, Cat, Turtle } from './creatures';
 import { Horse, Donkey, Mule, AbstractHorse, AbstractChestedHorse } from './horse';
 
@@ -55,6 +56,7 @@ export const MOB_TYPES: Record<string, MobCtor> = {
   villager: Villager, wandering_trader: WanderingTrader, iron_golem: IronGolem, snow_golem: SnowGolem,
   horse: Horse, donkey: Donkey, mule: Mule, witch: Witch,
   rabbit: Rabbit, polar_bear: PolarBear, ocelot: Ocelot, cat: Cat, turtle: Turtle,
+  pillager: Pillager, vindicator: Vindicator,
 };
 
 /** MobCategory caps (1.17.1) and the categories we spawn. */
@@ -220,7 +222,7 @@ export class MobManager {
     m.yHeadRot = m.yBodyRot = m.yaw;
     m.init();
     if (reason !== 'breeding' && reason !== 'conversion') {
-      if (m instanceof Zombie || m instanceof Skeleton || m instanceof Slime || m instanceof Phantom) m.finalizeSpawn();
+      if (m instanceof Zombie || m instanceof Skeleton || m instanceof Slime || m instanceof Phantom || m instanceof Pillager || m instanceof Vindicator) m.finalizeSpawn();
       else if (m instanceof Animal) m.finalizeSpawn(groupIndex);
     }
     this.s.spawnEntity(m);

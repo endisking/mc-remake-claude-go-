@@ -139,6 +139,12 @@ export function mobLoot(type: string, c: MobLootContext): ItemStack[] {
     case 'turtle':
       entry(out, c, 'seagrass', 0, 2, { looting: L });
       break;
+    case 'pillager':
+      entry(out, c, 'arrow', 0, 2, { looting: L });
+      break;
+    case 'vindicator':
+      entry(out, c, 'emerald', 0, 1, { looting: L, player: true });
+      break;
     case 'iron_golem':
       entry(out, c, 'poppy', 0, 2);
       entry(out, c, 'iron_ingot', 3, 5);
