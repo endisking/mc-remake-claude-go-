@@ -213,24 +213,24 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Cave carver <!--p3:cave_carver-->
 - [x] Ravine (canyon) carver <!--p3:ravine_canyon_carver-->
 - [x] Underwater caves and underwater ravines <!--p3:underwater_caves_and_underwater_ravines-->
-- [ ] Lakes (water and lava) <!--p3:lakes_water_and_lava-->
+- [x] Lakes (water and lava) <!--p3:lakes_water_and_lava-->
 - [ ] Springs (water and lava) <!--p3:springs_water_and_lava-->
-- [ ] Ice and snow placement by temperature <!--p3:ice_and_snow_placement_by_temperature-->
+- [x] Ice and snow placement by temperature <!--p3:ice_and_snow_placement_by_temperature-->
 
 ### Ores & underground (1.17.1 heights)
 
-- [ ] Coal ore <!--p3:coal_ore-->
-- [ ] Iron ore <!--p3:iron_ore-->
-- [ ] Gold ore (incl. badlands extra) <!--p3:gold_ore_incl_badlands_extra-->
-- [ ] Redstone ore <!--p3:redstone_ore-->
-- [ ] Diamond ore <!--p3:diamond_ore-->
-- [ ] Lapis ore <!--p3:lapis_ore-->
+- [x] Coal ore <!--p3:coal_ore-->
+- [x] Iron ore <!--p3:iron_ore-->
+- [x] Gold ore (incl. badlands extra) <!--p3:gold_ore_incl_badlands_extra-->
+- [x] Redstone ore <!--p3:redstone_ore-->
+- [x] Diamond ore <!--p3:diamond_ore-->
+- [x] Lapis ore <!--p3:lapis_ore-->
 - [ ] Emerald ore (mountains) <!--p3:emerald_ore_mountains-->
-- [ ] Copper ore <!--p3:copper_ore-->
-- [ ] Deepslate layer (Y 0–16) and deepslate ore variants <!--p3:deepslate_layer_y_0_16_and_deepslate_ore_variants-->
-- [ ] Tuff blobs <!--p3:tuff_blobs-->
-- [ ] Dirt, gravel, granite, diorite, andesite blobs <!--p3:dirt_gravel_granite_diorite_andesite_blobs-->
-- [ ] Infested stone (mountains) <!--p3:infested_stone_mountains-->
+- [x] Copper ore <!--p3:copper_ore-->
+- [x] Deepslate blobs (Y 0–16; 1.17.1 has no deepslate layer) and deepslate ore variants <!--p3:deepslate_layer_y_0_16_and_deepslate_ore_variants-->
+- [x] Tuff blobs <!--p3:tuff_blobs-->
+- [x] Dirt, gravel, granite, diorite, andesite blobs <!--p3:dirt_gravel_granite_diorite_andesite_blobs-->
+- [x] Infested stone (mountains) <!--p3:infested_stone_mountains-->
 - [ ] Amethyst geodes <!--p3:amethyst_geodes-->
 - [ ] Glow lichen in caves <!--p3:glow_lichen_in_caves-->
 - [ ] Fossils <!--p3:fossils-->
