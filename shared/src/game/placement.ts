@@ -273,6 +273,15 @@ export function stateForPlacement(block: string, ctx: PlaceContext, existing: nu
     setWater();
     return s;
   }
+  if (block === 'bamboo') {
+    // BambooBlock.getStateForPlacement: a shoot on soil, a stalk on bamboo
+    const bn = blockNameOf(below);
+    if (bn === 'bamboo_sapling') return withProp(s, 'age', 0);
+    if (bn === 'bamboo') return withProp(s, 'age', (getProp(below, 'age') as number) > 0 ? 1 : 0);
+    const above = ctx.world.getState(ctx.x, ctx.y + 1, ctx.z);
+    if (blockNameOf(above) === 'bamboo') return withProp(s, 'age', getProp(above, 'age') as number);
+    return BLOCKS_BY_NAME.get('bamboo_sapling')!.defaultState;
+  }
   if (block === 'cocoa') {
     // CocoaBlock: faces the log it hangs on
     if (face === 'up' || face === 'down') return null;

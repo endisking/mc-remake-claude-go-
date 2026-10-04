@@ -13,6 +13,8 @@ const FLOWERS_AND_PLANTS = new Set([
   'pink_tulip', 'oxeye_daisy', 'cornflower', 'lily_of_the_valley', 'wither_rose', 'oak_sapling', 'spruce_sapling', 'birch_sapling',
   'jungle_sapling', 'acacia_sapling', 'dark_oak_sapling',
 ]);
+/** BlockTags.BAMBOO_PLANTABLE_ON (1.17.1) */
+const BAMBOO_PLANTABLE_ON = new Set(['bamboo', 'bamboo_sapling', 'coarse_dirt', 'dirt', 'grass_block', 'gravel', 'moss_block', 'mycelium', 'podzol', 'red_sand', 'rooted_dirt', 'sand']);
 const TALL_PLANTS = new Set(['tall_grass', 'large_fern', 'sunflower', 'lilac', 'rose_bush', 'peony']);
 
 export function canSurvive(world: StateGetter, x: number, y: number, z: number, state: number): boolean {
@@ -73,6 +75,7 @@ export function canSurvive(world: StateGetter, x: number, y: number, z: number, 
     return belowName === 'cactus' || belowName === 'sand' || belowName === 'red_sand';
   }
   if (name === 'nether_wart') return belowName === 'soul_sand';
+  if (name === 'bamboo' || name === 'bamboo_sapling') return BAMBOO_PLANTABLE_ON.has(belowName);
   if (name === 'sweet_berry_bush') return ['grass_block', 'dirt', 'coarse_dirt', 'podzol', 'rooted_dirt', 'moss_block', 'mycelium', 'farmland'].includes(belowName);
   if (name === 'cocoa') {
     const f = DIRS.indexOf(getProp(state, 'facing') as (typeof DIRS)[number]);
