@@ -870,7 +870,11 @@ export class Game implements ScreenHost {
       this.yaw = (Math.atan2(-dx, dz) * 180) / Math.PI;
       this.pitch = (-Math.atan2(dy, Math.hypot(dx, dz)) * 180) / Math.PI;
     }
-    if (q.has('fly')) this.player.abilities.flying = true;
+    if (q.has('fly')) {
+      this.player.abilities.flying = true;
+      // again after the game mode / abilities packets that follow a /gamemode in cmd
+      for (const ms of [2000, 6000]) setTimeout(() => (this.player.abilities.flying = this.player.abilities.mayFly), ms);
+    }
     if (n('camera') !== undefined) this.cameraType = n('camera')!;
     if (q.has('hitboxes')) this.showHitboxes = true;
     for (const g of q.getAll('give')) this.send({ t: 'chat', message: `/give @s ${g.replace(':', ' ')}` });
