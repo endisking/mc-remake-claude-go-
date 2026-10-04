@@ -110,7 +110,21 @@ const S2C_SCHEMA = {
   keepAlive: [['id', 'f64']],
   /** Vanilla PlayerInfo UPDATE_LATENCY: a player's ping in milliseconds. */
   playerLatency: [['id', 'i32'], ['latency', 'varint']],
+  // ---- mobs (Phase 6) ----
+  /**
+   * Per-mob synced state (vanilla SynchedEntityData subset), one key at a time. Keys (see
+   * MOB_DATA_KEYS): color (sheep DyeColor id 0–15), sheared, baby, swell_dir (creeper −1/1),
+   * charged, aggressive (zombie arms up / skeleton aiming / enderman creepy), saddle, size
+   * (slime), carried (enderman block state), hanging (bat resting), bow (skeleton holds a bow),
+   * name_visible (custom name always shown), sitting / tame / health (wolf pose and tail).
+   */
+  mobData: [['id', 'i32'], ['key', 'str'], ['value', 'i32']],
+  /** A mob's custom name (name tag); empty clears it. Shown when looked at, or always with mobData name_visible = 1. */
+  mobName: [['id', 'i32'], ['name', 'str']],
 } as const satisfies Schema;
+
+/** Keys of the mobData packet (client: client/src/world/mobs.ts). */
+export const MOB_DATA_KEYS = ['color', 'sheared', 'baby', 'swell_dir', 'charged', 'aggressive', 'saddle', 'size', 'carried', 'hanging', 'bow', 'name_visible', 'sitting', 'tame', 'health'] as const;
 
 // ------------------------------------------------------------------ client → server
 const C2S_SCHEMA = {
