@@ -10,9 +10,8 @@ import type { BlockWorld } from '../../world/world';
 import { decorationSeed, featureSeed } from '../rand';
 import { WORLDGEN } from '../features/data';
 import { configuredFeature, type Placer } from '../features/engine';
-import { GenLevel } from '../features/level';
+import { GenLevel, type GenSource } from '../features/level';
 import { B } from '../biome/biomeids';
-import type { OverworldGenerator } from './generator';
 
 /** GenerationStep.Decoration */
 export const STEP = {
@@ -42,7 +41,7 @@ export function biomeFeatures(biome: number): Placer[][] {
 }
 
 /** ChunkGenerator.applyBiomeDecoration for chunk (cx, cz). */
-export function decorateChunk(gen: OverworldGenerator, world: BlockWorld, cx: number, cz: number): void {
+export function decorateChunk(gen: GenSource, world: BlockWorld, cx: number, cz: number): void {
   const x = cx << 4, z = cz << 4;
   // BiomeSource.getPrimaryBiome: the quart cell at the chunk centre
   const biome = gen.quartBiome((cx << 2) + 2, (cz << 2) + 2);

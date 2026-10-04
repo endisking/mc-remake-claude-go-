@@ -7,7 +7,17 @@ import type { BlockWorld } from '../../world/world';
 import { IS_AIR, FLUID } from '../../world/blockinfo';
 import { MATERIAL_BLOCKS_MOTION, MATERIAL_SOLID } from '../../world/blockprops';
 import { blockNameOf } from '../../world/blockstate';
-import type { OverworldGenerator } from '../overworld/generator';
+/** What features need from the dimension's generator (OverworldGenerator, NetherGenerator). */
+export interface GenSource {
+  readonly seed: bigint;
+  /** biome at a block (BiomeManager zoom) */
+  blockBiome(x: number, z: number): number;
+  /** biome at quart coordinates */
+  quartBiome(qx: number, qz: number): number;
+  topMaterialIsMycelium(biome: number): boolean;
+  /** the dimension's sea level (63 when absent) */
+  readonly seaLevel?: number;
+}
 
 export type HeightmapType = 'WORLD_SURFACE_WG' | 'WORLD_SURFACE' | 'OCEAN_FLOOR_WG' | 'OCEAN_FLOOR' | 'MOTION_BLOCKING' | 'MOTION_BLOCKING_NO_LEAVES';
 
@@ -29,11 +39,13 @@ const colKey = (x: number, z: number) => (x + 0x2000000) * 0x4000000 + (z + 0x20
 export class GenLevel {
   readonly minY = 0;
   readonly height = 256;
-  readonly seaLevel = 63;
+  get seaLevel(): number {
+    return this.gen.seaLevel ?? 63;
+  }
 
   constructor(
     readonly world: BlockWorld,
-    readonly gen: OverworldGenerator,
+    readonly gen: GenSource,
     /** chunk being decorated */
     readonly cx: number,
     readonly cz: number,
