@@ -618,12 +618,14 @@ export function dripstoneCluster(c: J): Placer {
       lv.setState(x, floor0, z, WATER);
     }
     let m: number, n: number;
-    if (ceil !== null && r.nextDouble() < chance && !isLavaBlock(lv.getState(x, ceil, z))) {
+    const stalactite = r.nextDouble() < chance;
+    if (ceil !== null && stalactite && !isLavaBlock(lv.getState(x, ceil, z))) {
       replaceWithDripstone(lv, x, ceil, z, layer(r), 1);
       const l = floor !== null ? Math.min(h, ceil - floor) : h;
       m = dripHeight(r, lx, lz, dens, l);
     } else m = 0;
-    if (floor !== null && r.nextDouble() < chance && !isLavaBlock(lv.getState(x, floor, z))) {
+    const stalagmite = r.nextDouble() < chance;
+    if (floor !== null && stalagmite && !isLavaBlock(lv.getState(x, floor, z))) {
       replaceWithDripstone(lv, x, floor, z, layer(r), -1);
       n = ceil !== null ? Math.max(0, m + between(r, -maxDiff, maxDiff)) : dripHeight(r, lx, lz, dens, h);
     } else n = 0;
