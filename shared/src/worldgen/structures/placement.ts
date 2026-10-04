@@ -303,11 +303,14 @@ export function placeStructures(gen: OverworldGenerator, lv: GenLevel, step: num
 // ------------------------------------------------------------------ /locate
 const genCache = new Map<bigint, OverworldGenerator>();
 const LOCATE_ALIASES: Record<string, string> = {
-  bastion_remnant: 'bastion_remnant', buried_treasure: 'buried_treasure', desert_pyramid: 'desert_pyramid', igloo: 'igloo',
+  buried_treasure: 'buried_treasure', desert_pyramid: 'desert_pyramid', igloo: 'igloo',
   jungle_pyramid: 'jungle_pyramid', mansion: 'mansion', mineshaft: 'mineshaft', monument: 'monument', ocean_ruin: 'ocean_ruin',
   pillager_outpost: 'pillager_outpost', ruined_portal: 'ruined_portal', shipwreck: 'shipwreck', stronghold: 'stronghold',
   swamp_hut: 'swamp_hut', village: 'village',
 };
+
+/** Structure ids /locate can find in the overworld. */
+export const LOCATABLE_STRUCTURES = Object.keys(LOCATE_ALIASES);
 
 /**
  * /locate (StructureFeature.getNearestGeneratedFeature, search radius 100 regions; strongholds:
