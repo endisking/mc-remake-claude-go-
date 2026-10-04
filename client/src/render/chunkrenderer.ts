@@ -117,12 +117,13 @@ export class ChunkRenderer {
   // scheduling scratch (no per-frame allocation)
   private readonly pickS: (RenderSection | null)[] = [null, null, null, null, null, null, null, null];
   private readonly pickD = new Float64Array(8);
+  /** Snapshot buffers returned by the workers, reused for the next snapshots. */
+  private readonly pool: { states: Uint16Array; light: Uint8Array; tints: Uint32Array }[] = [];
   private nextJob = 1;
   private readonly uploads: MeshOutput[] = [];
   private frameNo = 0;
   private readonly visible: RenderSection[] = [];
   private buildTimes: number[] = [];
-  private readonly tintScratch = new Uint32Array(768);
   renderDistance = 8;
   /** Time budget for mesh uploads per frame in ms (keeps frame times smooth). */
   uploadBudgetMs = 3;
@@ -151,6 +152,7 @@ export class ChunkRenderer {
           this.schedule(this.camX, this.camY, this.camZ);
         } else if (m.type === 'mesh') {
           entry.busy = false;
+          if (m.recycle && this.pool.length < 16) this.pool.push(m.recycle);
           this.buildTimes.push(m.ms);
           if (this.buildTimes.length > 100) this.buildTimes.shift();
           this.onMeshed(m.id, m.out as MeshOutput);
@@ -242,8 +244,10 @@ export class ChunkRenderer {
 
   /** Copy the section and a one-block border into a padded snapshot. */
   private snapshot(s: RenderSection): MeshInput {
-    const states = new Uint16Array(PADDED_VOLUME);
-    const light = new Uint8Array(PADDED_VOLUME);
+    const pooled = this.pool.pop();
+    const states = pooled ? pooled.states.fill(0) : new Uint16Array(PADDED_VOLUME);
+    const light = pooled ? pooled.light.fill(0) : new Uint8Array(PADDED_VOLUME);
+    const tintBuf = pooled?.tints;
     for (let dcx = -1; dcx <= 1; dcx++)
       for (let dcz = -1; dcz <= 1; dcz++) {
         const chunk = this.world.getChunk(s.sx + dcx, s.sz + dcz);
@@ -272,15 +276,16 @@ export class ChunkRenderer {
             }
         }
       }
-    return { sx: s.sx, sy: s.sy, sz: s.sz, states, light, tints: this.sectionTints(s) };
+    return { sx: s.sx, sy: s.sy, sz: s.sz, states, light, tints: this.sectionTints(s, tintBuf) };
   }
 
-  /** Tints for a section (a fresh copy: it is transferred to the worker). */
-  private sectionTints(s: RenderSection): Uint32Array {
+  /** Tints for a section, in `into` or a fresh array (it is transferred to the worker). */
+  private sectionTints(s: RenderSection, into?: Uint32Array): Uint32Array {
+    const out = into ?? new Uint32Array(768);
     if (this.world.biomeZoomSeed === null) {
       // dev scenes: quart biomes vary with y
-      this.biomes.fillSectionTints(this.world, s.sx * 16, s.sy * 16 + 8, s.sz * 16, this.tintScratch);
-      return this.tintScratch.slice();
+      this.biomes.fillSectionTints(this.world, s.sx * 16, s.sy * 16 + 8, s.sz * 16, out);
+      return out;
     }
     if (this.tintCacheRadius !== this.biomes.blendRadius) {
       this.tintCache.clear();
@@ -294,7 +299,8 @@ export class ChunkRenderer {
       this.biomes.fillSectionTints(this.world, s.sx * 16, 64, s.sz * 16, t);
       this.tintCache.set(key, t);
     }
-    return t.slice();
+    out.set(t);
+    return out;
   }
 
   private schedule(camX: number, camY: number, camZ: number): void {

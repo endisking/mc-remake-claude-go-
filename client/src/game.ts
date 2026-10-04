@@ -1943,7 +1943,8 @@ export class Game implements ScreenHost {
   }
 
   private resize(): void {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Render Resolution (Video Settings) scales the 3D view; the canvas is stretched pixelated
+    const dpr = Math.min(window.devicePixelRatio || 1, 2) * Math.max(0.25, Math.min(1, this.settings.renderScale || 1));
     const w = Math.floor(this.canvas.clientWidth * dpr), h = Math.floor(this.canvas.clientHeight * dpr);
     if (this.canvas.width !== w || this.canvas.height !== h) {
       this.canvas.width = w;

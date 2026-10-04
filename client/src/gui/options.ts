@@ -177,6 +177,8 @@ export class VideoSettingsScreen extends OptionsListScreen {
       { kind: 'slider', label: 'FOV Effects', min: 0, max: 100, step: 1, get: () => Math.round(s.fovEffectScale * 100), set: (v) => (s.fovEffectScale = v / 100), fmt: (v) => (v === 0 ? 'OFF' : pct(v)) },
       { kind: 'slider', label: 'Biome Blend', min: 0, max: 7, step: 1, get: () => s.biomeBlend, set: (v) => (s.biomeBlend = v), fmt: (v) => (v === 0 ? 'OFF' : `${v * 2 + 1}x${v * 2 + 1}`), reload: true },
       { kind: 'cycle', label: 'Cave Culling', get: () => onOff(s.caveCulling), next: () => (s.caveCulling = !s.caveCulling) },
+      // not in vanilla: fewer pixels to fill on low-end GPUs (school Chromebooks)
+      { kind: 'slider', label: 'Render Resolution', min: 25, max: 100, step: 5, get: () => Math.round(s.renderScale * 100), set: (v) => (s.renderScale = v / 100), fmt: pct },
     ];
   }
 }

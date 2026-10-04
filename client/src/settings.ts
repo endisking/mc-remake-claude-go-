@@ -19,6 +19,8 @@ export interface Settings {
   biomeBlend: number;
   mouseSensitivity: number;
   caveCulling: boolean;
+  /** 3D view resolution relative to the screen's pixels (0.25–1); lower = less GPU fill work */
+  renderScale: number;
   /** key mapping id → key code (only changed bindings are stored) */
   keys: Record<string, string>;
   toggleCrouch: boolean;
@@ -78,6 +80,7 @@ export const DEFAULT_SETTINGS: Settings = {
   biomeBlend: 2,
   mouseSensitivity: 0.5,
   caveCulling: true,
+  renderScale: 1,
   keys: {},
   toggleCrouch: false,
   toggleSprint: false,
@@ -151,5 +154,6 @@ export function applyQueryOverrides(s: Settings, q: URLSearchParams): Settings {
     out.vsync = n('fps')! < 0;
   }
   if (q.has('cave')) out.caveCulling = q.get('cave') !== '0';
+  if (n('scale') !== undefined) out.renderScale = Math.max(0.25, Math.min(1, n('scale')!));
   return out;
 }
