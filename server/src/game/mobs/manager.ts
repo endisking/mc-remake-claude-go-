@@ -34,12 +34,13 @@ import { Bat, Squid } from './ambient';
 import { saveMob, applyMobSave, type MobSave } from './persist';
 import { commandHooks } from '../commands/hooks';
 import { MobSpawners } from './spawners';
+import { Wolf } from './wolf';
 import { itemForBlock } from '@shared/game/loot';
 
 type MobCtor = new (id: number, s: GameServer) => Mob;
 export const MOB_TYPES: Record<string, MobCtor> = {
   zombie: Zombie, husk: Husk, drowned: Drowned, zombie_villager: ZombieVillager, cave_spider: CaveSpider, skeleton: Skeleton, stray: Stray, creeper: Creeper, spider: Spider,
-  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid,
+  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid,
 };
 
 /** MobCategory caps (1.17.1) and the categories we spawn. */
@@ -146,6 +147,27 @@ export class MobManager {
   monstersNear(x: number, y: number, z: number): boolean {
     const box = new AABB(x - 8, y - 5, z - 8, x + 8, y + 5, z + 8);
     return this.nearbyMobs(x, z, 10).some((m) => m instanceof Monster && !m.dead && m.bb().intersects(box));
+  }
+
+  /** Player.lastHurtByMob / lastHurtMob (wolves defend their owner and join its fights). */
+  private readonly combatMemory = new WeakMap<ServerPlayer, { hurtBy: { mob: Mob; time: number } | null; hurt: { mob: Mob; time: number } | null }>();
+  private combat(p: ServerPlayer) {
+    let c = this.combatMemory.get(p);
+    if (!c) this.combatMemory.set(p, (c = { hurtBy: null, hurt: null }));
+    return c;
+  }
+  noteOwnerHurtBy(p: ServerPlayer, m: Mob): void {
+    this.combat(p).hurtBy = { mob: m, time: this.s.gameTime };
+  }
+  /** the mob that hurt this player within the last 5 s */
+  ownerHurtBy(p: ServerPlayer): { mob: Mob; time: number } | null {
+    const c = this.combat(p).hurtBy;
+    return c && this.s.gameTime - c.time <= 100 && !c.mob.dead ? c : null;
+  }
+  /** the mob this player last hurt */
+  ownerHurt(p: ServerPlayer): { mob: Mob; time: number } | null {
+    const c = this.combat(p).hurt;
+    return c && !c.mob.dead ? c : null;
   }
 
   isDay(): boolean {
@@ -361,8 +383,10 @@ export class MobManager {
     const C = MOB_TYPES[type];
     if (!C) return false;
     const proto = C.prototype as Mob;
-    if (proto instanceof Animal || type === 'pig' || type === 'cow' || type === 'sheep' || type === 'chicken') {
-      return blockNameOf(w.getState(x, y - 1, z)) === 'grass_block' && Math.max(w.getSkyLight(x, y, z), w.getBlockLight(x, y, z)) > 8;
+    if (proto instanceof Animal || type === 'pig' || type === 'cow' || type === 'sheep' || type === 'chicken' || type === 'wolf') {
+      const below = blockNameOf(w.getState(x, y - 1, z));
+      const ground = type === 'wolf' ? below === 'grass_block' || below === 'snow' || below === 'snow_block' : below === 'grass_block';
+      return ground && Math.max(w.getSkyLight(x, y, z), w.getBlockLight(x, y, z)) > 8;
     }
     if (type === 'bat') {
       // Bat.checkBatSpawnRules: below sea level, dark (outside the Halloween season)
@@ -487,6 +511,7 @@ export class MobManager {
     const dmg = m instanceof Zombie ? m.attackDamageValue() : m.attackDamage;
     const src: DamageSource = { id: 'mob', scalesWithDifficulty: true, knockbackFrom: m, entity: { name: this.displayName(m), player: false } };
     const ok = isMob(t) ? t.hurt(src, dmg, m) : this.s.survival.hurt(t, src, dmg);
+    if (ok && !isMob(t)) this.noteOwnerHurtBy(t, m);
     if (ok && m instanceof Zombie) m.afterHurtTarget(t);
     return ok;
   }
@@ -518,6 +543,7 @@ export class MobManager {
     const src: DamageSource = { ...DAMAGE.playerAttack, entity: { name: p.name, player: true } };
     const hpBefore = t.health;
     const hit = t.hurt(src, res.damage, p);
+    if (hit) this.combat(p).hurt = { mob: t, time: s.gameTime };
     if (!hit) {
       s.playSound(null, 'entity.player.attack.nodamage', 'player', sx, sy, sz, 1, 1);
       return;
@@ -943,5 +969,11 @@ export function mobDataOf(m: Mob): Record<string, number> {
   if (m instanceof Enderman) d.carried = m.carried;
   if (m instanceof Bat) d.hanging = m.resting ? 1 : 0;
   if (m instanceof Skeleton) d.bow = m.holdingBow() ? 1 : 0;
+  if (m instanceof Wolf) {
+    d.tame = m.tame ? 1 : 0;
+    d.sitting = m.sitting ? 1 : 0;
+    d.health = Math.ceil(m.health);
+    d.aggressive = m.angerTime > 0 || (!!m.target && !m.tame) ? 1 : 0;
+  }
   return d;
 }

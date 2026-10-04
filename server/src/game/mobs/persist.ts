@@ -9,6 +9,7 @@ import { Creeper } from './monsters';
 import { Animal, Sheep, Pig, Chicken } from './animals';
 import { Slime } from './slime';
 import { Enderman } from './enderman';
+import { Wolf } from './wolf';
 
 export interface MobSave {
   type: string;
@@ -33,6 +34,9 @@ export interface MobSave {
   carried?: number;
   inWaterTime?: number;
   conversionTime?: number;
+  owner?: string | null;
+  sitting?: boolean;
+  anger?: number;
 }
 
 export function saveMob(m: Mob): MobSave {
@@ -59,6 +63,11 @@ export function saveMob(m: Mob): MobSave {
   if (m instanceof Slime) o.size = m.size;
   if (m instanceof Creeper) o.powered = m.powered;
   if (m instanceof Enderman) o.carried = m.carried;
+  if (m instanceof Wolf) {
+    o.owner = m.tame ? m.ownerName : null;
+    o.sitting = m.orderedToSit;
+    o.anger = m.angerTime;
+  }
   return o;
 }
 
@@ -91,5 +100,13 @@ export function applyMobSave(m: Mob, o: MobSave): void {
   if (m instanceof Chicken && o.eggTime) m.eggTime = o.eggTime;
   if (m instanceof Creeper) m.powered = !!o.powered;
   if (m instanceof Enderman) m.carried = o.carried ?? 0;
+  if (m instanceof Wolf && o.owner) {
+    m.tame = true;
+    m.ownerName = o.owner;
+    m.attackDamage = 4;
+    m.health = o.health;
+    m.orderedToSit = !!o.sitting;
+  }
+  if (m instanceof Wolf) m.angerTime = o.anger ?? 0;
   m.flagsDirty = true;
 }

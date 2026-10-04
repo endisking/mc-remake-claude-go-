@@ -23,6 +23,7 @@ import { Enderman } from './enderman';
 import { Bat, Squid } from './ambient';
 import { MemoryStorage } from '../../storage/memory';
 import { spawnerTypeAt } from './spawners';
+import { Wolf } from './wolf';
 
 const GRASS = stateOf('grass_block', { snowy: false });
 const STONE = stateOf('stone');
@@ -542,5 +543,40 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     const zs = server.mobs.mobs().filter((m) => m.type === 'zombie');
     expect(zs.length).toBeGreaterThan(0);
     expect(zs.length).toBeLessThanOrEqual(6 + 4);
+  });
+
+  it('wolves: tamed with bones (1 in 3), sit on command, defend the owner, teleport to it', () => {
+    const { server, a, p } = setup({ dayTime: 18000 });
+    give(a, 'bone', 64);
+    const w = server.mobs.spawn('wolf', 2.5, 64, 0.5) as Wolf;
+    w.ageTicks = 0;
+    expect(w.health).toBe(8);
+    let tries = 0;
+    while (!w.tame && tries < 50) {
+      a.send({ t: 'interact', target: w.id, hand: 0 });
+      tries++;
+    }
+    expect(w.tame).toBe(true);
+    expect(w.ownerName).toBe('A');
+    expect(w.health).toBe(20);
+    expect(w.orderedToSit).toBe(true);
+    ticks(server, 3);
+    expect(w.sitting).toBe(true);
+    expect(a.received.some((m) => m.t === 'mobData' && m.id === w.id && m.key === 'tame' && m.value === 1)).toBe(true);
+    // stand up, then a zombie hurts the owner: the wolf goes for it
+    p.inventory.set(p.inventory.selected, null);
+    a.send({ t: 'interact', target: w.id, hand: 0 });
+    expect(w.orderedToSit).toBe(false);
+    const z = server.mobs.spawn('zombie', -1.5, 64, 0.5) as Zombie;
+    z.baby = false;
+    z.target = p;
+    for (let i = 0; i < 100 && w.target !== z; i++) server.tick();
+    expect(w.target).toBe(z);
+    // far from the owner: teleports next to it
+    z.removed = true;
+    w.target = null;
+    a.send({ t: 'chat', message: '/tp 20.5 64 0.5' });
+    ticks(server, 40);
+    expect(Math.hypot(w.x - 20.5, w.z - 0.5)).toBeLessThan(6);
   });
 });

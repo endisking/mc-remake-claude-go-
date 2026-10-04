@@ -148,6 +148,7 @@ export class Arrow extends ServerEntity {
     };
     const ok = isMob(t) ? (t as Mob).hurt(src, dmg, owner) : this.s.survival.hurt(t as ServerPlayer, src, dmg, owner && !isMob(owner) ? (owner as ServerPlayer) : null);
     if (ok) {
+      if (owner && isMob(owner) && !isMob(t)) this.s.mobs.noteOwnerHurtBy(t as ServerPlayer, owner as Mob);
       const r = this.s.rand;
       this.s.playSound(null, 'entity.arrow.hit', 'neutral', this.x, this.y, this.z, 1, 1.2 / (r.nextFloat() * 0.2 + 0.9));
       this.removed = true;
