@@ -170,11 +170,25 @@ export function bamboo(c: J): Placer {
 // ------------------------------------------------------------------ vines
 const VINE_FACES = [1, 2, 3, 4, 5].map((d) => ({ d, s: st('vine', { [DIR_NAMES[d]!]: true }) }));
 /** VinesFeature (1.17.1): from y 64 up to the build limit, a vine on each air block next to a full face. */
+const vineTop = new Int16Array(49);
 export const vines: Placer = (lv, r, ox, _oy, oz) => {
+  // (speed-up, same result) above the world surface of a column and its four neighbours there
+  // is only air, so no vine: vineTop caches that height for the 7×7 columns the loop can visit
+  vineTop.fill(-1);
+  const top = (x: number, z: number) => {
+    const i = (x - ox + 3) * 7 + (z - oz + 3);
+    let h = vineTop[i]!;
+    if (h < 0) {
+      h = Math.max(lv.getHeight('WORLD_SURFACE', x, z), lv.getHeight('WORLD_SURFACE', x - 1, z), lv.getHeight('WORLD_SURFACE', x + 1, z),
+        lv.getHeight('WORLD_SURFACE', x, z - 1), lv.getHeight('WORLD_SURFACE', x, z + 1));
+      vineTop[i] = h;
+    }
+    return h;
+  };
   for (let y = 64; y < 256; y++) {
     const x = ox + r.nextInt(4) - r.nextInt(4);
     const z = oz + r.nextInt(4) - r.nextInt(4);
-    if (!lv.isEmpty(x, y, z)) continue;
+    if (y >= top(x, z) || !lv.isEmpty(x, y, z)) continue;
     for (const { d, s } of VINE_FACES)
       if (faceFull(lv.getState(x + DIR_X[d]!, y + DIR_Y[d]!, z + DIR_Z[d]!))) {
         lv.setState(x, y, z, s);
