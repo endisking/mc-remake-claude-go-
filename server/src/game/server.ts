@@ -697,6 +697,7 @@ export class GameServer {
     if (isEmpty(held)) return;
     const n = all ? held.count : 1;
     const stack: ItemStack = { id: held.id, count: n, damage: held.damage };
+    if (held.tag) stack.tag = JSON.parse(JSON.stringify(held.tag)) as ItemStack["tag"];
     held.count -= n;
     if (held.count <= 0) inv.set(inv.selected, null);
     this.syncSlot(p, inv.selected);

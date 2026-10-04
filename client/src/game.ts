@@ -59,7 +59,7 @@ import { itemName, decodeTag, type ItemStack, type ItemTag } from '@shared/item/
 import { EffectsClient } from './effects';
 import './gui/enchantmentscreen';
 import './gui/brewingscreen';
-import { entityEnchLevel } from '@shared/game/enchantments';
+import { entityEnchLevel, hasFoil } from '@shared/game/enchantments';
 import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
 import { isViewBlocking, hasMenuProvider } from '@shared/world/blockprops';
@@ -2158,10 +2158,12 @@ export class Game implements ScreenHost, ContainerHost {
     const ov = this.heldOverride(stack);
     const key = (ov !== null ? bi.spriteKey(ov) : null) ?? bi.modelKey(stack.id) ?? bi.spriteKey('missing');
     if (key === null) return null;
-    let m = this.heldModels.get(key);
+    const foil = hasFoil(stack);
+    const ck = foil ? key + 0.5 : key; // separate cache entry for the glinting variant
+    let m = this.heldModels.get(ck);
     if (m === undefined) {
-      m = { display: bi.display(key), draw: (p, mm, l, lm, lights) => bi.draw(key, p, mm, l, lm, undefined, false, lights) };
-      this.heldModels.set(key, m);
+      m = { display: bi.display(key), draw: (p, mm, l, lm, lights) => { bi.glintNext = foil; bi.draw(key, p, mm, l, lm, undefined, false, lights); } };
+      this.heldModels.set(ck, m);
     }
     return m;
   }
@@ -2252,6 +2254,7 @@ export class Game implements ScreenHost, ContainerHost {
         const wx = cs * ox + sn * oz, wz = -sn * ox + cs * oz;
         const m = this.itemModel;
         m.set([cs * sc, 0, -sn * sc, 0, 0, sc, 0, 0, sn * sc, 0, cs * sc, 0, x - cx + wx, y - cy + bob + lift + oy, z - cz + wz, 1]);
+        this.blockItems.glintNext = !!it.tag && hasFoil({ id: it.item, tag: it.tag });
         this.blockItems.draw(state, this.viewProj, m, light, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
       }
     }
