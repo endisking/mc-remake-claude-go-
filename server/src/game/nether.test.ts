@@ -136,4 +136,26 @@ describe('nether portals on the server', () => {
     const nether = server.levels.get('the_nether')!;
     expect([...nether.entities.values()].some((e) => e.type === 'item')).toBe(true);
   });
+
+  it('saves the nether: rejoining puts the player back in it with its chunks', async () => {
+    const storage = new MemoryStorage();
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true, storage });
+    await server.load();
+    client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    server.changeDimension(p, 'the_nether', 40.5, 70, 40.5, 0, 0);
+    for (let i = 0; i < 5; i++) server.tick();
+    const nether = server.levels.get('the_nether')!;
+    server.inLevel(nether, () => server.setBlock(41, 100, 41, stateOf('glowstone')));
+    await server.save();
+    const again = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true, storage });
+    await again.load();
+    const b = client(again, 'A');
+    const login = b.received.find((m) => m.t === 'login') as Extract<S2C, { t: 'login' }>;
+    expect(login.dimension).toBe('the_nether');
+    expect(login.x).toBeCloseTo(40.5, 5);
+    for (let i = 0; i < 10; i++) again.tick();
+    expect(blockNameOf(again.levels.get('the_nether')!.world.getState(41, 100, 41))).toBe('glowstone');
+  });
 });
