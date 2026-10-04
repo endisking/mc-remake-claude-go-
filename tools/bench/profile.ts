@@ -71,7 +71,7 @@ const walk2 = (n: any, path: string[]) => {
 };
 walk2(heap.head, []);
 console.log('--- top allocation stacks (KB)');
-for (const [k, v] of [...stacks].sort((a, b) => b[1] - a[1]).slice(0, 8)) console.log((v / 1024).toFixed(0).padStart(8), k.split(' < ').reverse().join(' < '));
+for (const [k, v] of [...stacks].sort((a, b) => b[1] - a[1]).slice(0, 30)) console.log((v / 1024).toFixed(0).padStart(8), k.split(' < ').reverse().join(' < '));
 console.log('--- top allocation sites (KB sampled during flight)');
 for (const [k, v] of [...alloc].sort((a, b) => b[1] - a[1]).slice(0, 25)) console.log((v / 1024).toFixed(0).padStart(8), k);
 await browser.close();
