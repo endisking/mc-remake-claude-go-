@@ -64,6 +64,14 @@ export interface AttackContext {
   damageBonus?: number;
   /** ATTACK_SPEED multiplier from effects: Haste +10% per level, Mining Fatigue −10% per level */
   speedMul?: number;
+  /** EnchantmentHelper.getDamageBonus for the target (Sharpness/Smite/Bane/Impaling) */
+  enchantBonus?: number;
+  /** Knockback enchantment level */
+  knockbackBonus?: number;
+  /** Blindness prevents critical hits */
+  blind?: boolean;
+  /** Sweeping Edge level */
+  sweeping?: number;
 }
 
 export interface AttackResult {
@@ -74,20 +82,27 @@ export interface AttackResult {
   /** extra knockback levels (sprint + Knockback enchantment) */
   knockback: number;
   sweep: boolean;
+  /** damage dealt to entities caught by the sweep (1 + ratio × damage) */
+  sweepDamage: number;
 }
 
 /** Player.attack damage/flags (enchantments arrive in Phase 7). */
 export function computeAttack(c: AttackContext): AttackResult {
   let f = Math.max(0, attackDamageOf(c.item) + (c.damageBonus ?? 0));
+  let f1 = c.enchantBonus ?? 0;
   const f2 = attackStrengthScale(c.attackStrengthTicker, c.item, 0.5, c.speedMul ?? 1);
   f *= 0.2 + f2 * f2 * 0.8;
+  f1 *= f2;
   const charged = f2 > 0.9;
-  let knockback = 0;
+  let knockback = c.knockbackBonus ?? 0;
   const sprintHit = c.sprinting && charged;
   if (sprintHit) knockback++;
-  const critical = charged && c.fallDistance > 0 && !c.onGround && !c.onClimbable && !c.inWater && !c.sprinting;
+  const critical = charged && c.fallDistance > 0 && !c.onGround && !c.onClimbable && !c.inWater && !c.blind && !c.sprinting;
   if (critical) f *= 1.5;
+  f += f1;
   const isSword = /_sword$/.test(ITEMS_BY_ID[c.item]?.name ?? '');
   const sweep = charged && !critical && !sprintHit && c.onGround && c.walked < c.speed && isSword;
-  return { damage: f, charged, critical, knockback, sweep };
+  const lvl = c.sweeping ?? 0;
+  const ratio = lvl > 0 ? 1 - 1 / (lvl + 1) : 0;
+  return { damage: f, charged, critical, knockback, sweep, sweepDamage: 1 + ratio * f };
 }

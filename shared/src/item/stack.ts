@@ -7,6 +7,54 @@ export interface ItemStack {
   count: number;
   /** damage taken (durability used) */
   damage: number;
+  /** NBT-like extra data (enchantments, custom name, repair cost, potion); absent = none */
+  tag?: ItemTag;
+}
+
+/** One enchantment on a stack (vanilla {id:"minecraft:sharpness",lvl:5s}; ids without namespace). */
+export interface EnchEntry {
+  id: string;
+  lvl: number;
+}
+
+/** The parts of vanilla item NBT that Blockcraft uses. */
+export interface ItemTag {
+  Enchantments?: EnchEntry[];
+  /** enchanted books */
+  StoredEnchantments?: EnchEntry[];
+  /** anvil prior-work penalty */
+  RepairCost?: number;
+  display?: { Name?: string };
+  /** potion id (potions, splash/lingering potions, tipped arrows) */
+  Potion?: string;
+  [key: string]: unknown;
+}
+
+/** Wire/save form of a tag: JSON, '' for none. */
+export function encodeTag(tag: ItemTag | undefined): string {
+  return tag && Object.keys(tag).length > 0 ? JSON.stringify(tag) : '';
+}
+
+export function decodeTag(s: string): ItemTag | undefined {
+  if (!s) return undefined;
+  try {
+    const t = JSON.parse(s) as unknown;
+    return t && typeof t === 'object' ? (t as ItemTag) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** ItemStack.tagMatches */
+export function tagsEqual(a: ItemTag | undefined, b: ItemTag | undefined): boolean {
+  return encodeTag(a) === encodeTag(b);
+}
+
+/** Deep copy of a stack (tag included). */
+export function copyStack(s: ItemStack): ItemStack {
+  const c: ItemStack = { id: s.id, count: s.count, damage: s.damage };
+  if (s.tag) c.tag = JSON.parse(JSON.stringify(s.tag)) as ItemTag;
+  return c;
 }
 
 export const AIR_ITEM = AIR_ITEM_ID;
@@ -31,7 +79,7 @@ export function itemName(id: number): string {
 }
 
 export function sameItem(a: ItemStack, b: ItemStack): boolean {
-  return a.id === b.id && a.damage === b.damage;
+  return a.id === b.id && a.damage === b.damage && tagsEqual(a.tag, b.tag);
 }
 
 /**
@@ -73,6 +121,7 @@ export class Inventory {
       if (!this.slots[i]) {
         const n = Math.min(left, max);
         this.slots[i] = { id: s.id, count: n, damage: s.damage };
+        if (s.tag) this.slots[i]!.tag = copyStack(s).tag;
         left -= n;
       }
     }

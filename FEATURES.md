@@ -189,7 +189,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 ### Beds, spawn, death
 
 - [ ] Beds: sleeping, skipping night, phantom reset, "You may not rest now" <!--p2:beds_sleeping_skipping_night_phantom_reset_you_may_not_rest_now-->
-- [ ] Bed explosion in Nether/End <!--p2:bed_explosion_in_nether_end-->
+- [x] Bed explosion in Nether/End <!--p2:bed_explosion_in_nether_end-->
 - [x] Spawn point setting and world spawn radius <!--p2:spawn_point_setting_and_world_spawn_radius-->
 - [x] Death screen with score and respawn <!--p2:death_screen_with_score_and_respawn-->
 - [x] Dropped inventory and XP on death <!--p2:dropped_inventory_and_xp_on_death-->
@@ -236,10 +236,10 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Fossils (original fossil shapes, vanilla placement rules) <!--p3:fossils-->
 - [x] Dungeons (monster rooms) <!--p3:dungeons_monster_rooms-->
 - [x] Dripstone clusters (rare, in caves) <!--p3:dripstone_clusters_rare_in_caves-->
-- [ ] Nether quartz ore <!--p3:nether_quartz_ore-->
-- [ ] Nether gold ore <!--p3:nether_gold_ore-->
-- [ ] Ancient debris <!--p3:ancient_debris-->
-- [ ] Magma, soul sand, gravel, blackstone blobs (Nether) <!--p3:magma_soul_sand_gravel_blackstone_blobs_nether-->
+- [x] Nether quartz ore <!--p3:nether_quartz_ore-->
+- [x] Nether gold ore <!--p3:nether_gold_ore-->
+- [x] Ancient debris <!--p3:ancient_debris-->
+- [x] Magma, soul sand, gravel, blackstone blobs (Nether) <!--p3:magma_soul_sand_gravel_blackstone_blobs_nether-->
 
 ### Overworld biomes
 
@@ -387,16 +387,16 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Nether
 
-- [ ] Nether terrain (Y 0–127, bedrock roof) <!--p3n:nether_terrain_y_0_127_bedrock_roof-->
-- [ ] Lava ocean at Y 31 <!--p3n:lava_ocean_at_y_31-->
+- [x] Nether terrain (Y 0–127, bedrock roof) <!--p3n:nether_terrain_y_0_127_bedrock_roof-->
+- [x] Lava ocean at Y 31 <!--p3n:lava_ocean_at_y_31-->
 - [ ] Nether fortresses <!--p3n:nether_fortresses-->
 - [ ] Bastion remnants (all 4 types) <!--p3n:bastion_remnants_all_4_types-->
 - [ ] Nether ruined portals <!--p3n:nether_ruined_portals-->
-- [ ] Crimson/warped huge fungi <!--p3n:crimson_warped_huge_fungi-->
-- [ ] Glowstone clusters <!--p3n:glowstone_clusters-->
-- [ ] Basalt pillars and deltas <!--p3n:basalt_pillars_and_deltas-->
-- [ ] Nether fires <!--p3n:nether_fires-->
-- [ ] Weeping and twisting vines <!--p3n:weeping_and_twisting_vines-->
+- [x] Crimson/warped huge fungi <!--p3n:crimson_warped_huge_fungi-->
+- [x] Glowstone clusters <!--p3n:glowstone_clusters-->
+- [x] Basalt pillars and deltas <!--p3n:basalt_pillars_and_deltas-->
+- [x] Nether fires <!--p3n:nether_fires-->
+- [x] Weeping and twisting vines <!--p3n:weeping_and_twisting_vines-->
 - [ ] Nether fossils <!--p3n:nether_fossils-->
 
 ### End
@@ -474,7 +474,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Banners on blocks <!--p4:banners_on_blocks-->
 - [ ] Mob heads <!--p4:mob_heads-->
 - [ ] End portal frames and eyes <!--p4:end_portal_frames_and_eyes-->
-- [ ] Nether portal block behavior <!--p4:nether_portal_block_behavior-->
+- [x] Nether portal block behavior <!--p4:nether_portal_block_behavior-->
 - [ ] Spawners <!--p4:spawners-->
 
 ### Redstone (exact)
@@ -787,8 +787,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Nether Brick Fence (`nether_brick_fence`) <!--block:nether_brick_fence-->
 - [ ] Nether Brick Stairs (`nether_brick_stairs`) <!--block:nether_brick_stairs-->
 - [ ] Nether Wart (`nether_wart`) <!--block:nether_wart-->
-- [ ] Enchanting Table (`enchanting_table`) <!--block:enchanting_table-->
-- [ ] Brewing Stand (`brewing_stand`) <!--block:brewing_stand-->
+- [x] Enchanting Table (`enchanting_table`) <!--block:enchanting_table-->
+- [x] Brewing Stand (`brewing_stand`) <!--block:brewing_stand-->
 - [ ] Cauldron (`cauldron`) <!--block:cauldron-->
 - [ ] Cauldron (`water_cauldron`) <!--block:water_cauldron-->
 - [ ] Cauldron (`lava_cauldron`) <!--block:lava_cauldron-->
@@ -858,9 +858,9 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Creeper Head (`creeper_wall_head`) <!--block:creeper_wall_head-->
 - [ ] Dragon Head (`dragon_head`) <!--block:dragon_head-->
 - [ ] Dragon Head (`dragon_wall_head`) <!--block:dragon_wall_head-->
-- [ ] Anvil (`anvil`) <!--block:anvil-->
-- [ ] Chipped Anvil (`chipped_anvil`) <!--block:chipped_anvil-->
-- [ ] Damaged Anvil (`damaged_anvil`) <!--block:damaged_anvil-->
+- [x] Anvil (`anvil`) <!--block:anvil-->
+- [x] Chipped Anvil (`chipped_anvil`) <!--block:chipped_anvil-->
+- [x] Damaged Anvil (`damaged_anvil`) <!--block:damaged_anvil-->
 - [ ] Trapped Chest (`trapped_chest`) <!--block:trapped_chest-->
 - [ ] Light Weighted Pressure Plate (`light_weighted_pressure_plate`) <!--block:light_weighted_pressure_plate-->
 - [ ] Heavy Weighted Pressure Plate (`heavy_weighted_pressure_plate`) <!--block:heavy_weighted_pressure_plate-->
@@ -1204,7 +1204,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Blast Furnace (`blast_furnace`) <!--block:blast_furnace-->
 - [ ] Cartography Table (`cartography_table`) <!--block:cartography_table-->
 - [ ] Fletching Table (`fletching_table`) <!--block:fletching_table-->
-- [ ] Grindstone (`grindstone`) <!--block:grindstone-->
+- [x] Grindstone (`grindstone`) <!--block:grindstone-->
 - [ ] Lectern (`lectern`) <!--block:lectern-->
 - [ ] Smithing Table (`smithing_table`) <!--block:smithing_table-->
 - [ ] Stonecutter (`stonecutter`) <!--block:stonecutter-->
@@ -1442,10 +1442,10 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Smithing table (netherite upgrades) <!--p5:smithing_table_netherite_upgrades-->
 - [ ] Loom (banner patterns) <!--p5:loom_banner_patterns-->
 - [ ] Cartography table <!--p5:cartography_table-->
-- [ ] Grindstone <!--p5:grindstone-->
-- [ ] Anvil (repair, combine, rename, XP cost, prior-work penalty, Too Expensive!) <!--p5:anvil_repair_combine_rename_xp_cost_prior_work_penalty_too_expensive-->
-- [ ] Enchanting table screen <!--p5:enchanting_table_screen-->
-- [ ] Brewing stand screen <!--p5:brewing_stand_screen-->
+- [x] Grindstone <!--p5:grindstone-->
+- [x] Anvil (repair, combine, rename, XP cost, prior-work penalty, Too Expensive!) <!--p5:anvil_repair_combine_rename_xp_cost_prior_work_penalty_too_expensive-->
+- [x] Enchanting table screen <!--p5:enchanting_table_screen-->
+- [x] Brewing stand screen <!--p5:brewing_stand_screen-->
 - [x] Chest / double chest / barrel / shulker screens <!--p5:chest_double_chest_barrel_shulker_screens-->
 - [x] Hopper screen <!--p5:hopper_screen-->
 - [x] Dispenser/dropper screen <!--p5:dispenser_dropper_screen-->
@@ -1469,7 +1469,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Bundle (1.17.1: exists, not obtainable in survival) <!--p5:bundle_1_17_1_exists_not_obtainable_in_survival-->
 - [x] Bows and arrows <!--p5:bows_and_arrows-->
 - [x] Food eating effects <!--p5:food_eating_effects-->
-- [ ] Tooltips (names, enchantments, durability, lore) <!--p5:tooltips_names_enchantments_durability_lore-->
+- [x] Tooltips (names, enchantments, durability, lore) <!--p5:tooltips_names_enchantments_durability_lore-->
 
 ### Items (every 1.17.1 non-block item)
 
@@ -1646,7 +1646,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Blaze Rod (`blaze_rod`) <!--item:blaze_rod-->
 - [ ] Ghast Tear (`ghast_tear`) <!--item:ghast_tear-->
 - [ ] Gold Nugget (`gold_nugget`) <!--item:gold_nugget-->
-- [ ] Potion (`potion`) <!--item:potion-->
+- [x] Potion (`potion`) <!--item:potion-->
 - [ ] Glass Bottle (`glass_bottle`) <!--item:glass_bottle-->
 - [ ] Spider Eye (`spider_eye`) <!--item:spider_eye-->
 - [ ] Fermented Spider Eye (`fermented_spider_eye`) <!--item:fermented_spider_eye-->
@@ -1721,7 +1721,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Zombie Horse Spawn Egg (`zombie_horse_spawn_egg`) ⊘ <!--item:zombie_horse_spawn_egg-->
 - [ ] Zombie Villager Spawn Egg (`zombie_villager_spawn_egg`) ⊘ <!--item:zombie_villager_spawn_egg-->
 - [ ] Zombified Piglin Spawn Egg (`zombified_piglin_spawn_egg`) ⊘ <!--item:zombified_piglin_spawn_egg-->
-- [ ] Bottle o' Enchanting (`experience_bottle`) <!--item:experience_bottle-->
+- [x] Bottle o' Enchanting (`experience_bottle`) <!--item:experience_bottle-->
 - [ ] Fire Charge (`fire_charge`) <!--item:fire_charge-->
 - [ ] Book and Quill (`writable_book`) <!--item:writable_book-->
 - [ ] Written Book (`written_book`) <!--item:written_book-->
@@ -1737,7 +1737,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Pumpkin Pie (`pumpkin_pie`) <!--item:pumpkin_pie-->
 - [ ] Firework Rocket (`firework_rocket`) <!--item:firework_rocket-->
 - [ ] Firework Star (`firework_star`) <!--item:firework_star-->
-- [ ] Enchanted Book (`enchanted_book`) <!--item:enchanted_book-->
+- [x] Enchanted Book (`enchanted_book`) <!--item:enchanted_book-->
 - [ ] Nether Brick (`nether_brick`) <!--item:nether_brick-->
 - [ ] Prismarine Shard (`prismarine_shard`) <!--item:prismarine_shard-->
 - [ ] Prismarine Crystals (`prismarine_crystals`) <!--item:prismarine_crystals-->
@@ -1763,10 +1763,10 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Beetroot Seeds (`beetroot_seeds`) <!--item:beetroot_seeds-->
 - [ ] Beetroot Soup (`beetroot_soup`) <!--item:beetroot_soup-->
 - [ ] Dragon's Breath (`dragon_breath`) <!--item:dragon_breath-->
-- [ ] Splash Potion (`splash_potion`) <!--item:splash_potion-->
+- [x] Splash Potion (`splash_potion`) <!--item:splash_potion-->
 - [ ] Spectral Arrow (`spectral_arrow`) <!--item:spectral_arrow-->
 - [ ] Tipped Arrow (`tipped_arrow`) <!--item:tipped_arrow-->
-- [ ] Lingering Potion (`lingering_potion`) <!--item:lingering_potion-->
+- [x] Lingering Potion (`lingering_potion`) <!--item:lingering_potion-->
 - [x] Shield (`shield`) <!--item:shield-->
 - [x] Totem of Undying (`totem_of_undying`) <!--item:totem_of_undying-->
 - [ ] Shulker Shell (`shulker_shell`) <!--item:shulker_shell-->
@@ -2450,32 +2450,32 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Systems
 
-- [ ] Entity system (server-side ticking, interpolation client-side) <!--p6:entity_system_server_side_ticking_interpolation_client_side-->
+- [x] Entity system (server-side ticking, interpolation client-side) <!--p6:entity_system_server_side_ticking_interpolation_client_side-->
 - [x] Mob model/animation system matching vanilla body-part layout <!--p6:mob_model_animation_system_matching_vanilla_body_part_layout-->
-- [ ] Pathfinding: walking <!--p6:pathfinding_walking-->
+- [x] Pathfinding: walking <!--p6:pathfinding_walking-->
 - [ ] Pathfinding: swimming <!--p6:pathfinding_swimming-->
 - [ ] Pathfinding: flying <!--p6:pathfinding_flying-->
-- [ ] Pathfinding: climbing <!--p6:pathfinding_climbing-->
-- [ ] Goal-based AI framework <!--p6:goal_based_ai_framework-->
-- [ ] Natural spawning: light levels <!--p6:natural_spawning_light_levels-->
-- [ ] Natural spawning: biome rules <!--p6:natural_spawning_biome_rules-->
+- [x] Pathfinding: climbing <!--p6:pathfinding_climbing-->
+- [x] Goal-based AI framework <!--p6:goal_based_ai_framework-->
+- [x] Natural spawning: light levels <!--p6:natural_spawning_light_levels-->
+- [x] Natural spawning: biome rules <!--p6:natural_spawning_biome_rules-->
 - [ ] Natural spawning: structure rules (fortress, monument, witch hut, outpost) <!--p6:natural_spawning_structure_rules_fortress_monument_witch_hut_outpost-->
-- [ ] Mob caps per category <!--p6:mob_caps_per_category-->
-- [ ] Despawning (instant 128, random 32+) <!--p6:despawning_instant_128_random_32-->
-- [ ] Spawners <!--p6:spawners-->
+- [x] Mob caps per category <!--p6:mob_caps_per_category-->
+- [x] Despawning (instant 128, random 32+) <!--p6:despawning_instant_128_random_32-->
+- [x] Spawners <!--p6:spawners-->
 - [ ] Raids (waves by difficulty, Bad Omen, Hero of the Village) <!--p6:raids_waves_by_difficulty_bad_omen_hero_of_the_village-->
 - [ ] Patrols <!--p6:patrols-->
-- [ ] Phantoms (insomnia) <!--p6:phantoms_insomnia-->
-- [ ] Slime chunks <!--p6:slime_chunks-->
+- [x] Phantoms (insomnia) <!--p6:phantoms_insomnia-->
+- [x] Slime chunks <!--p6:slime_chunks-->
 - [ ] Zombie sieges <!--p6:zombie_sieges-->
-- [ ] Fleeing / panic <!--p6:fleeing_panic-->
-- [ ] Tempting with food <!--p6:tempting_with_food-->
-- [ ] Breeding and baby mobs <!--p6:breeding_and_baby_mobs-->
-- [ ] Taming <!--p6:taming-->
-- [ ] Sitting / following owner <!--p6:sitting_following_owner-->
-- [ ] Hunting <!--p6:hunting-->
+- [x] Fleeing / panic <!--p6:fleeing_panic-->
+- [x] Tempting with food <!--p6:tempting_with_food-->
+- [x] Breeding and baby mobs <!--p6:breeding_and_baby_mobs-->
+- [x] Taming <!--p6:taming-->
+- [x] Sitting / following owner <!--p6:sitting_following_owner-->
+- [x] Hunting <!--p6:hunting-->
 - [ ] Door opening / breaking <!--p6:door_opening_breaking-->
-- [ ] Avoiding sunlight / burning in daylight <!--p6:avoiding_sunlight_burning_in_daylight-->
+- [x] Avoiding sunlight / burning in daylight <!--p6:avoiding_sunlight_burning_in_daylight-->
 - [ ] Picking up items <!--p6:picking_up_items-->
 - [ ] Wearing armor and equipment chances <!--p6:wearing_armor_and_equipment_chances-->
 - [ ] Mob drops with Looting <!--p6:mob_drops_with_looting-->
@@ -2498,28 +2498,28 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Wither boss (summoning, phases, skulls, boss bar) <!--p6:wither_boss_summoning_phases_skulls_boss_bar-->
 - [ ] Ender Dragon (fight, crystals, perching, breath, egg, exit portal, gateways, respawning) <!--p6:ender_dragon_fight_crystals_perching_breath_egg_exit_portal_gateways_respawning-->
 - [ ] Name tags <!--p6:name_tags-->
-- [ ] Mob sounds (ambient/hurt/death/step) <!--p6:mob_sounds_ambient_hurt_death_step-->
+- [x] Mob sounds (ambient/hurt/death/step) <!--p6:mob_sounds_ambient_hurt_death_step-->
 - [x] Mob death animation and particles <!--p6:mob_death_animation_and_particles-->
 - [x] Mob hurt red tint <!--p6:mob_hurt_red_tint-->
 
 ### Mobs (every 1.17.1 mob; ⊘ = does not spawn naturally)
 
 - [ ] Axolotl (`axolotl`, 0.75×0.42) <!--mob:axolotl-->
-- [ ] Bat (`bat`, 0.5×0.9) <!--mob:bat-->
+- [x] Bat (`bat`, 0.5×0.9) <!--mob:bat-->
 - [ ] Bee (`bee`, 0.7×0.6) <!--mob:bee-->
 - [ ] Blaze (`blaze`, 0.6×1.8) <!--mob:blaze-->
 - [ ] Cat (`cat`, 0.6×0.7) <!--mob:cat-->
-- [ ] Cave Spider (`cave_spider`, 0.7×0.5) <!--mob:cave_spider-->
-- [ ] Chicken (`chicken`, 0.4×0.7) <!--mob:chicken-->
-- [ ] Cod (`cod`, 0.5×0.3) <!--mob:cod-->
-- [ ] Cow (`cow`, 0.9×1.4) <!--mob:cow-->
-- [ ] Creeper (`creeper`, 0.6×1.7) <!--mob:creeper-->
+- [x] Cave Spider (`cave_spider`, 0.7×0.5) <!--mob:cave_spider-->
+- [x] Chicken (`chicken`, 0.4×0.7) <!--mob:chicken-->
+- [x] Cod (`cod`, 0.5×0.3) <!--mob:cod-->
+- [x] Cow (`cow`, 0.9×1.4) <!--mob:cow-->
+- [x] Creeper (`creeper`, 0.6×1.7) <!--mob:creeper-->
 - [ ] Dolphin (`dolphin`, 0.9×0.6) <!--mob:dolphin-->
 - [ ] Donkey (`donkey`, 1.3964844×1.5) <!--mob:donkey-->
-- [ ] Drowned (`drowned`, 0.6×1.95) <!--mob:drowned-->
+- [x] Drowned (`drowned`, 0.6×1.95) <!--mob:drowned-->
 - [ ] Elder Guardian (`elder_guardian`, 1.9975×1.9975) <!--mob:elder_guardian-->
 - [ ] Ender Dragon (`ender_dragon`, 16×8) <!--mob:ender_dragon-->
-- [ ] Enderman (`enderman`, 0.6×2.9) <!--mob:enderman-->
+- [x] Enderman (`enderman`, 0.6×2.9) <!--mob:enderman-->
 - [ ] Endermite (`endermite`, 0.4×0.3) <!--mob:endermite-->
 - [ ] Evoker (`evoker`, 0.6×1.95) <!--mob:evoker-->
 - [ ] Fox (`fox`, 0.6×0.7) <!--mob:fox-->
@@ -2530,18 +2530,18 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Guardian (`guardian`, 0.85×0.85) <!--mob:guardian-->
 - [ ] Hoglin (`hoglin`, 1.3964844×1.4) <!--mob:hoglin-->
 - [ ] Horse (`horse`, 1.3964844×1.6) <!--mob:horse-->
-- [ ] Husk (`husk`, 0.6×1.95) <!--mob:husk-->
+- [x] Husk (`husk`, 0.6×1.95) <!--mob:husk-->
 - [ ] Illusioner (`illusioner`, 0.6×1.95) ⊘ <!--mob:illusioner-->
 - [ ] Iron Golem (`iron_golem`, 1.4×2.7) <!--mob:iron_golem-->
 - [ ] Llama (`llama`, 0.9×1.87) <!--mob:llama-->
 - [ ] Magma Cube (`magma_cube`, 2.04×2.04) <!--mob:magma_cube-->
 - [ ] Mule (`mule`, 1.3964844×1.6) <!--mob:mule-->
-- [ ] Mooshroom (`mooshroom`, 0.9×1.4) <!--mob:mooshroom-->
+- [x] Mooshroom (`mooshroom`, 0.9×1.4) <!--mob:mooshroom-->
 - [ ] Ocelot (`ocelot`, 0.6×0.7) <!--mob:ocelot-->
 - [ ] Panda (`panda`, 1.3×1.25) <!--mob:panda-->
 - [ ] Parrot (`parrot`, 0.5×0.9) <!--mob:parrot-->
-- [ ] Phantom (`phantom`, 0.9×0.5) <!--mob:phantom-->
-- [ ] Pig (`pig`, 0.9×0.9) <!--mob:pig-->
+- [x] Phantom (`phantom`, 0.9×0.5) <!--mob:phantom-->
+- [x] Pig (`pig`, 0.9×0.9) <!--mob:pig-->
 - [ ] Piglin (`piglin`, 0.6×1.95) <!--mob:piglin-->
 - [ ] Piglin Brute (`piglin_brute`, 0.6×1.95) <!--mob:piglin_brute-->
 - [ ] Pillager (`pillager`, 0.6×1.95) <!--mob:pillager-->
@@ -2549,17 +2549,17 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Pufferfish (`pufferfish`, 0.7×0.7) <!--mob:pufferfish-->
 - [ ] Rabbit (`rabbit`, 0.4×0.5) <!--mob:rabbit-->
 - [ ] Ravager (`ravager`, 1.95×2.2) <!--mob:ravager-->
-- [ ] Salmon (`salmon`, 0.7×0.4) <!--mob:salmon-->
-- [ ] Sheep (`sheep`, 0.9×1.3) <!--mob:sheep-->
+- [x] Salmon (`salmon`, 0.7×0.4) <!--mob:salmon-->
+- [x] Sheep (`sheep`, 0.9×1.3) <!--mob:sheep-->
 - [ ] Shulker (`shulker`, 1×1) <!--mob:shulker-->
 - [ ] Silverfish (`silverfish`, 0.4×0.3) <!--mob:silverfish-->
-- [ ] Skeleton (`skeleton`, 0.6×1.99) <!--mob:skeleton-->
+- [x] Skeleton (`skeleton`, 0.6×1.99) <!--mob:skeleton-->
 - [ ] Skeleton Horse (`skeleton_horse`, 1.3964844×1.6) <!--mob:skeleton_horse-->
-- [ ] Slime (`slime`, 2.04×2.04) <!--mob:slime-->
+- [x] Slime (`slime`, 2.04×2.04) <!--mob:slime-->
 - [ ] Snow Golem (`snow_golem`, 0.7×1.9) <!--mob:snow_golem-->
-- [ ] Spider (`spider`, 1.4×0.9) <!--mob:spider-->
-- [ ] Squid (`squid`, 0.8×0.8) <!--mob:squid-->
-- [ ] Stray (`stray`, 0.6×1.99) <!--mob:stray-->
+- [x] Spider (`spider`, 1.4×0.9) <!--mob:spider-->
+- [x] Squid (`squid`, 0.8×0.8) <!--mob:squid-->
+- [x] Stray (`stray`, 0.6×1.99) <!--mob:stray-->
 - [ ] Strider (`strider`, 0.9×1.7) <!--mob:strider-->
 - [ ] Trader Llama (`trader_llama`, 0.9×1.87) <!--mob:trader_llama-->
 - [ ] Tropical Fish (`tropical_fish`, 0.5×0.4) <!--mob:tropical_fish-->
@@ -2571,16 +2571,16 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Witch (`witch`, 0.6×1.95) <!--mob:witch-->
 - [ ] Wither (`wither`, 0.9×3.5) <!--mob:wither-->
 - [ ] Wither Skeleton (`wither_skeleton`, 0.7×2.4) <!--mob:wither_skeleton-->
-- [ ] Wolf (`wolf`, 0.6×0.85) <!--mob:wolf-->
+- [x] Wolf (`wolf`, 0.6×0.85) <!--mob:wolf-->
 - [ ] Zoglin (`zoglin`, 1.3964844×1.4) <!--mob:zoglin-->
-- [ ] Zombie (`zombie`, 0.6×1.95) <!--mob:zombie-->
+- [x] Zombie (`zombie`, 0.6×1.95) <!--mob:zombie-->
 - [ ] Zombie Horse (`zombie_horse`, 1.3964844×1.6) <!--mob:zombie_horse-->
-- [ ] Zombie Villager (`zombie_villager`, 0.6×1.95) <!--mob:zombie_villager-->
+- [x] Zombie Villager (`zombie_villager`, 0.6×1.95) <!--mob:zombie_villager-->
 - [ ] Zombified Piglin (`zombified_piglin`, 0.6×1.95) <!--mob:zombified_piglin-->
 
 ### Other entities
 
-- [ ] Area Effect Cloud (`area_effect_cloud`) <!--entity:area_effect_cloud-->
+- [x] Area Effect Cloud (`area_effect_cloud`) <!--entity:area_effect_cloud-->
 - [ ] Armor Stand (`armor_stand`) <!--entity:armor_stand-->
 - [x] Arrow (`arrow`) <!--entity:arrow-->
 - [ ] Boat (`boat`) <!--entity:boat-->
@@ -2614,8 +2614,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Spectral Arrow (`spectral_arrow`) <!--entity:spectral_arrow-->
 - [x] Thrown Egg (`egg`) <!--entity:egg-->
 - [x] Thrown Ender Pearl (`ender_pearl`) <!--entity:ender_pearl-->
-- [ ] Thrown Bottle o' Enchanting (`experience_bottle`) <!--entity:experience_bottle-->
-- [ ] Potion (`potion`) <!--entity:potion-->
+- [x] Thrown Bottle o' Enchanting (`experience_bottle`) <!--entity:experience_bottle-->
+- [x] Potion (`potion`) <!--entity:potion-->
 - [ ] Trident (`trident`) <!--entity:trident-->
 - [ ] Wither Skull (`wither_skull`) <!--entity:wither_skull-->
 - [ ] Fishing Bobber (`fishing_bobber`) <!--entity:fishing_bobber-->
@@ -2634,7 +2634,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Shields: disabled by axes <!--p7:shields_disabled_by_axes-->
 - [x] Armor points formula <!--p7:armor_points_formula-->
 - [x] Armor toughness formula <!--p7:armor_toughness_formula-->
-- [ ] Protection enchantment EPF <!--p7:protection_enchantment_epf-->
+- [x] Protection enchantment EPF <!--p7:protection_enchantment_epf-->
 - [ ] Invulnerability frames <!--p7:invulnerability_frames-->
 - [x] Bows (charge, power, crits) <!--p7:bows_charge_power_crits-->
 - [ ] Crossbows (charging, multishot, piercing, fireworks) <!--p7:crossbows_charging_multishot_piercing_fireworks-->
@@ -2645,40 +2645,40 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Enchanting
 
-- [ ] Enchanting table bookshelf counting <!--p7:enchanting_table_bookshelf_counting-->
-- [ ] Exact 1.17.1 enchantment selection algorithm <!--p7:exact_1_17_1_enchantment_selection_algorithm-->
-- [ ] Enchanted books <!--p7:enchanted_books-->
-- [ ] Treasure-only enchantments <!--p7:treasure_only_enchantments-->
+- [x] Enchanting table bookshelf counting <!--p7:enchanting_table_bookshelf_counting-->
+- [x] Exact 1.17.1 enchantment selection algorithm <!--p7:exact_1_17_1_enchantment_selection_algorithm-->
+- [x] Enchanted books <!--p7:enchanted_books-->
+- [x] Treasure-only enchantments <!--p7:treasure_only_enchantments-->
 - [ ] Curses <!--p7:curses-->
-- [ ] Enchantment glint rendering <!--p7:enchantment_glint_rendering-->
+- [x] Enchantment glint rendering <!--p7:enchantment_glint_rendering-->
 - [ ] Lapis cost and XP level cost <!--p7:lapis_cost_and_xp_level_cost-->
-- [ ] Enchantment: Protection (max 4) <!--ench:protection-->
-- [ ] Enchantment: Fire Protection (max 4) <!--ench:fire_protection-->
-- [ ] Enchantment: Feather Falling (max 4) <!--ench:feather_falling-->
+- [x] Enchantment: Protection (max 4) <!--ench:protection-->
+- [x] Enchantment: Fire Protection (max 4) <!--ench:fire_protection-->
+- [x] Enchantment: Feather Falling (max 4) <!--ench:feather_falling-->
 - [ ] Enchantment: Blast Protection (max 4) <!--ench:blast_protection-->
 - [ ] Enchantment: Projectile Protection (max 4) <!--ench:projectile_protection-->
-- [ ] Enchantment: Respiration (max 3) <!--ench:respiration-->
-- [ ] Enchantment: Aqua Affinity (max 1) <!--ench:aqua_affinity-->
-- [ ] Enchantment: Thorns (max 3) <!--ench:thorns-->
-- [ ] Enchantment: Depth Strider (max 3) <!--ench:depth_strider-->
-- [ ] Enchantment: Frost Walker (max 2) [treasure] <!--ench:frost_walker-->
+- [x] Enchantment: Respiration (max 3) <!--ench:respiration-->
+- [x] Enchantment: Aqua Affinity (max 1) <!--ench:aqua_affinity-->
+- [x] Enchantment: Thorns (max 3) <!--ench:thorns-->
+- [x] Enchantment: Depth Strider (max 3) <!--ench:depth_strider-->
+- [x] Enchantment: Frost Walker (max 2) [treasure] <!--ench:frost_walker-->
 - [ ] Enchantment: Curse of Binding (max 1) [treasure] [curse] <!--ench:binding_curse-->
 - [ ] Enchantment: Soul Speed (max 3) [treasure] <!--ench:soul_speed-->
-- [ ] Enchantment: Sharpness (max 5) <!--ench:sharpness-->
-- [ ] Enchantment: Smite (max 5) <!--ench:smite-->
-- [ ] Enchantment: Bane of Arthropods (max 5) <!--ench:bane_of_arthropods-->
-- [ ] Enchantment: Knockback (max 2) <!--ench:knockback-->
-- [ ] Enchantment: Fire Aspect (max 2) <!--ench:fire_aspect-->
-- [ ] Enchantment: Looting (max 3) <!--ench:looting-->
-- [ ] Enchantment: Sweeping Edge (max 3) <!--ench:sweeping-->
-- [ ] Enchantment: Efficiency (max 5) <!--ench:efficiency-->
-- [ ] Enchantment: Silk Touch (max 1) <!--ench:silk_touch-->
-- [ ] Enchantment: Unbreaking (max 3) <!--ench:unbreaking-->
-- [ ] Enchantment: Fortune (max 3) <!--ench:fortune-->
-- [ ] Enchantment: Power (max 5) <!--ench:power-->
-- [ ] Enchantment: Punch (max 2) <!--ench:punch-->
-- [ ] Enchantment: Flame (max 1) <!--ench:flame-->
-- [ ] Enchantment: Infinity (max 1) <!--ench:infinity-->
+- [x] Enchantment: Sharpness (max 5) <!--ench:sharpness-->
+- [x] Enchantment: Smite (max 5) <!--ench:smite-->
+- [x] Enchantment: Bane of Arthropods (max 5) <!--ench:bane_of_arthropods-->
+- [x] Enchantment: Knockback (max 2) <!--ench:knockback-->
+- [x] Enchantment: Fire Aspect (max 2) <!--ench:fire_aspect-->
+- [x] Enchantment: Looting (max 3) <!--ench:looting-->
+- [x] Enchantment: Sweeping Edge (max 3) <!--ench:sweeping-->
+- [x] Enchantment: Efficiency (max 5) <!--ench:efficiency-->
+- [x] Enchantment: Silk Touch (max 1) <!--ench:silk_touch-->
+- [x] Enchantment: Unbreaking (max 3) <!--ench:unbreaking-->
+- [x] Enchantment: Fortune (max 3) <!--ench:fortune-->
+- [x] Enchantment: Power (max 5) <!--ench:power-->
+- [x] Enchantment: Punch (max 2) <!--ench:punch-->
+- [x] Enchantment: Flame (max 1) <!--ench:flame-->
+- [x] Enchantment: Infinity (max 1) <!--ench:infinity-->
 - [ ] Enchantment: Luck of the Sea (max 3) <!--ench:luck_of_the_sea-->
 - [ ] Enchantment: Lure (max 3) <!--ench:lure-->
 - [ ] Enchantment: Loyalty (max 3) <!--ench:loyalty-->
@@ -2688,18 +2688,18 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Enchantment: Multishot (max 1) <!--ench:multishot-->
 - [ ] Enchantment: Quick Charge (max 3) <!--ench:quick_charge-->
 - [ ] Enchantment: Piercing (max 4) <!--ench:piercing-->
-- [ ] Enchantment: Mending (max 1) [treasure] <!--ench:mending-->
-- [ ] Enchantment: Curse of Vanishing (max 1) [treasure] [curse] <!--ench:vanishing_curse-->
+- [x] Enchantment: Mending (max 1) [treasure] <!--ench:mending-->
+- [x] Enchantment: Curse of Vanishing (max 1) [treasure] [curse] <!--ench:vanishing_curse-->
 
 ### Brewing & effects
 
-- [ ] Brewing stand (blaze powder fuel, 400-tick brew) <!--p7:brewing_stand_blaze_powder_fuel_400_tick_brew-->
-- [ ] Every potion recipe (base, extended, enhanced, corrupted) <!--p7:every_potion_recipe_base_extended_enhanced_corrupted-->
-- [ ] Splash potions <!--p7:splash_potions-->
-- [ ] Lingering potions <!--p7:lingering_potions-->
+- [x] Brewing stand (blaze powder fuel, 400-tick brew) <!--p7:brewing_stand_blaze_powder_fuel_400_tick_brew-->
+- [x] Every potion recipe (base, extended, enhanced, corrupted) <!--p7:every_potion_recipe_base_extended_enhanced_corrupted-->
+- [x] Splash potions <!--p7:splash_potions-->
+- [x] Lingering potions <!--p7:lingering_potions-->
 - [ ] Tipped arrows <!--p7:tipped_arrows-->
-- [ ] Status effect HUD icons and inventory list <!--p7:status_effect_hud_icons_and_inventory_list-->
-- [ ] Effect particles (ambient for beacons) <!--p7:effect_particles_ambient_for_beacons-->
+- [x] Status effect HUD icons and inventory list <!--p7:status_effect_hud_icons_and_inventory_list-->
+- [x] Effect particles (ambient for beacons) <!--p7:effect_particles_ambient_for_beacons-->
 - [x] Milk clears effects <!--p7:milk_clears_effects-->
 - [ ] Beacon effects <!--p7:beacon_effects-->
 - [ ] Conduit power and attack <!--p7:conduit_power_and_attack-->
@@ -2717,7 +2717,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Effect: Resistance <!--effect:Resistance-->
 - [x] Effect: Fire Resistance <!--effect:FireResistance-->
 - [x] Effect: Water Breathing <!--effect:WaterBreathing-->
-- [ ] Effect: Invisibility <!--effect:Invisibility-->
+- [x] Effect: Invisibility <!--effect:Invisibility-->
 - [x] Effect: Blindness <!--effect:Blindness-->
 - [x] Effect: Night Vision <!--effect:NightVision-->
 - [x] Effect: Hunger <!--effect:Hunger-->
@@ -2727,12 +2727,12 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Effect: Health Boost <!--effect:HealthBoost-->
 - [x] Effect: Absorption <!--effect:Absorption-->
 - [x] Effect: Saturation <!--effect:Saturation-->
-- [ ] Effect: Glowing <!--effect:Glowing-->
+- [x] Effect: Glowing <!--effect:Glowing-->
 - [x] Effect: Levitation <!--effect:Levitation-->
 - [ ] Effect: Luck <!--effect:Luck-->
 - [ ] Effect: Bad Luck <!--effect:BadLuck-->
 - [x] Effect: Slow Falling <!--effect:SlowFalling-->
-- [ ] Effect: Conduit Power <!--effect:ConduitPower-->
+- [x] Effect: Conduit Power <!--effect:ConduitPower-->
 - [x] Effect: Dolphin's Grace <!--effect:DolphinsGrace-->
 - [ ] Effect: Bad Omen <!--effect:BadOmen-->
 - [ ] Effect: Hero of the Village <!--effect:HeroOfTheVillage-->
@@ -2833,20 +2833,20 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ## Phase 8 — Dimensions
 
-- [ ] Nether portals: any frame size (2×3 to 21×21) <!--p8:nether_portals_any_frame_size_2_3_to_21_21-->
-- [ ] Portal linking with 8:1 coordinate scaling <!--p8:portal_linking_with_8_1_coordinate_scaling-->
-- [ ] Portal search radius (128 overworld / 16 nether) <!--p8:portal_search_radius_128_overworld_16_nether-->
-- [ ] Portal creation when no link <!--p8:portal_creation_when_no_link-->
-- [ ] Portal travel delay and nausea overlay <!--p8:portal_travel_delay_and_nausea_overlay-->
+- [x] Nether portals: any frame size (2×3 to 21×21) <!--p8:nether_portals_any_frame_size_2_3_to_21_21-->
+- [x] Portal linking with 8:1 coordinate scaling <!--p8:portal_linking_with_8_1_coordinate_scaling-->
+- [x] Portal search radius (128 overworld / 16 nether) <!--p8:portal_search_radius_128_overworld_16_nether-->
+- [x] Portal creation when no link <!--p8:portal_creation_when_no_link-->
+- [x] Portal travel delay and nausea overlay <!--p8:portal_travel_delay_and_nausea_overlay-->
 - [ ] End portals in strongholds <!--p8:end_portals_in_strongholds-->
 - [ ] Eyes of Ender (flight, shatter chance) <!--p8:eyes_of_ender_flight_shatter_chance-->
 - [ ] End gateways (teleport to outer islands) <!--p8:end_gateways_teleport_to_outer_islands-->
 - [ ] End exit portal and credits <!--p8:end_exit_portal_and_credits-->
 - [ ] Credits / poem screen (original text) <!--p8:credits_poem_screen_original_text-->
-- [ ] Nether sky and fog by biome <!--p8:nether_sky_and_fog_by_biome-->
+- [x] Nether sky and fog by biome <!--p8:nether_sky_and_fog_by_biome-->
 - [ ] End sky <!--p8:end_sky-->
 - [ ] Dimension-specific music and ambience <!--p8:dimension_specific_music_and_ambience-->
-- [ ] Bed/respawn anchor dimension rules <!--p8:bed_respawn_anchor_dimension_rules-->
+- [x] Bed/respawn anchor dimension rules <!--p8:bed_respawn_anchor_dimension_rules-->
 - [ ] Compass/clock behavior per dimension <!--p8:compass_clock_behavior_per_dimension-->
 
 ## Phase 9 — Multiplayer
@@ -2863,7 +2863,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Player list (Tab) <!--p9:player_list_tab-->
 - [x] Chat <!--p9:chat-->
 - [x] Nameplates <!--p9:nameplates-->
-- [ ] Skins (defaults + upload) <!--p9:skins_defaults_upload-->
+- [x] Skins (defaults + upload) <!--p9:skins_defaults_upload-->
 - [x] PvP toggle <!--p9:pvp_toggle-->
 - [x] Ops / permissions <!--p9:ops_permissions-->
 - [x] Whitelist <!--p9:whitelist-->
@@ -2887,8 +2887,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] /difficulty <!--cmd:difficulty-->
 - [x] /seed <!--cmd:seed-->
 - [x] /kill <!--cmd:kill-->
-- [ ] /effect <!--cmd:effect-->
-- [ ] /enchant <!--cmd:enchant-->
+- [x] /effect <!--cmd:effect-->
+- [x] /enchant <!--cmd:enchant-->
 - [ ] /summon <!--cmd:summon-->
 - [x] /setblock <!--cmd:setblock-->
 - [x] /fill <!--cmd:fill-->
@@ -2952,310 +2952,310 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ## Phase 10 — Audio
 
-- [ ] Sound engine (Web Audio buffers, pooled sources) <!--p10:sound_engine_web_audio_buffers_pooled_sources-->
-- [ ] Positional 3D audio with vanilla-like linear attenuation (16 blocks default) <!--p10:positional_3d_audio_with_vanilla_like_linear_attenuation_16_blocks_default-->
-- [ ] Randomized pitch/volume variants per event <!--p10:randomized_pitch_volume_variants_per_event-->
-- [ ] Volume sliders: master, music, jukebox/note blocks, weather, blocks, hostile, friendly, players, ambient, voice <!--p10:volume_sliders_master_music_jukebox_note_blocks_weather_blocks_hostile_friendly_players_ambient_voice-->
-- [ ] Music rules: random delay between tracks <!--p10:music_rules_random_delay_between_tracks-->
-- [ ] Music sets: menu, overworld (game), creative, underwater, Nether biomes, End, boss fight, credits <!--p10:music_sets_menu_overworld_game_creative_underwater_nether_biomes_end_boss_fight_credits-->
-- [ ] Cave ambience (mood) <!--p10:cave_ambience_mood-->
-- [ ] Underwater muffling and ambience <!--p10:underwater_muffling_and_ambience-->
-- [ ] Nether biome mood loops and additions <!--p10:nether_biome_mood_loops_and_additions-->
+- [x] Sound engine (Web Audio buffers, pooled sources) <!--p10:sound_engine_web_audio_buffers_pooled_sources-->
+- [x] Positional 3D audio with vanilla-like linear attenuation (16 blocks default) <!--p10:positional_3d_audio_with_vanilla_like_linear_attenuation_16_blocks_default-->
+- [x] Randomized pitch/volume variants per event <!--p10:randomized_pitch_volume_variants_per_event-->
+- [x] Volume sliders: master, music, jukebox/note blocks, weather, blocks, hostile, friendly, players, ambient, voice <!--p10:volume_sliders_master_music_jukebox_note_blocks_weather_blocks_hostile_friendly_players_ambient_voice-->
+- [x] Music rules: random delay between tracks <!--p10:music_rules_random_delay_between_tracks-->
+- [x] Music sets: menu, overworld (game), creative, underwater, Nether biomes, End, boss fight, credits <!--p10:music_sets_menu_overworld_game_creative_underwater_nether_biomes_end_boss_fight_credits-->
+- [x] Cave ambience (mood) <!--p10:cave_ambience_mood-->
+- [x] Underwater muffling and ambience <!--p10:underwater_muffling_and_ambience-->
+- [x] Nether biome mood loops and additions <!--p10:nether_biome_mood_loops_and_additions-->
 - [ ] Subtitles <!--p10:subtitles-->
-- [ ] Block sound groups (step/place/break/hit/fall) for every group <!--p10:block_sound_groups_step_place_break_hit_fall_for_every_group-->
+- [x] Block sound groups (step/place/break/hit/fall) for every group <!--p10:block_sound_groups_step_place_break_hit_fall_for_every_group-->
 
 ### Sound events (every 1.17.1 sound event)
 
-- [ ] `ambient.cave` <!--sound:ambient.cave-->
-- [ ] `ambient.basalt_deltas.additions` <!--sound:ambient.basalt_deltas.additions-->
-- [ ] `ambient.basalt_deltas.loop` <!--sound:ambient.basalt_deltas.loop-->
-- [ ] `ambient.basalt_deltas.mood` <!--sound:ambient.basalt_deltas.mood-->
-- [ ] `ambient.crimson_forest.additions` <!--sound:ambient.crimson_forest.additions-->
-- [ ] `ambient.crimson_forest.loop` <!--sound:ambient.crimson_forest.loop-->
-- [ ] `ambient.crimson_forest.mood` <!--sound:ambient.crimson_forest.mood-->
-- [ ] `ambient.nether_wastes.additions` <!--sound:ambient.nether_wastes.additions-->
-- [ ] `ambient.nether_wastes.loop` <!--sound:ambient.nether_wastes.loop-->
-- [ ] `ambient.nether_wastes.mood` <!--sound:ambient.nether_wastes.mood-->
-- [ ] `ambient.soul_sand_valley.additions` <!--sound:ambient.soul_sand_valley.additions-->
-- [ ] `ambient.soul_sand_valley.loop` <!--sound:ambient.soul_sand_valley.loop-->
-- [ ] `ambient.soul_sand_valley.mood` <!--sound:ambient.soul_sand_valley.mood-->
-- [ ] `ambient.warped_forest.additions` <!--sound:ambient.warped_forest.additions-->
-- [ ] `ambient.warped_forest.loop` <!--sound:ambient.warped_forest.loop-->
-- [ ] `ambient.warped_forest.mood` <!--sound:ambient.warped_forest.mood-->
-- [ ] `ambient.underwater.enter` <!--sound:ambient.underwater.enter-->
-- [ ] `ambient.underwater.exit` <!--sound:ambient.underwater.exit-->
-- [ ] `ambient.underwater.loop` <!--sound:ambient.underwater.loop-->
-- [ ] `ambient.underwater.loop.additions` <!--sound:ambient.underwater.loop.additions-->
-- [ ] `ambient.underwater.loop.additions.rare` <!--sound:ambient.underwater.loop.additions.rare-->
-- [ ] `ambient.underwater.loop.additions.ultra_rare` <!--sound:ambient.underwater.loop.additions.ultra_rare-->
-- [ ] `block.amethyst_block.break` <!--sound:block.amethyst_block.break-->
-- [ ] `block.amethyst_block.chime` <!--sound:block.amethyst_block.chime-->
-- [ ] `block.amethyst_block.fall` <!--sound:block.amethyst_block.fall-->
-- [ ] `block.amethyst_block.hit` <!--sound:block.amethyst_block.hit-->
-- [ ] `block.amethyst_block.place` <!--sound:block.amethyst_block.place-->
-- [ ] `block.amethyst_block.step` <!--sound:block.amethyst_block.step-->
-- [ ] `block.amethyst_cluster.break` <!--sound:block.amethyst_cluster.break-->
-- [ ] `block.amethyst_cluster.fall` <!--sound:block.amethyst_cluster.fall-->
-- [ ] `block.amethyst_cluster.hit` <!--sound:block.amethyst_cluster.hit-->
-- [ ] `block.amethyst_cluster.place` <!--sound:block.amethyst_cluster.place-->
-- [ ] `block.amethyst_cluster.step` <!--sound:block.amethyst_cluster.step-->
-- [ ] `block.ancient_debris.break` <!--sound:block.ancient_debris.break-->
-- [ ] `block.ancient_debris.step` <!--sound:block.ancient_debris.step-->
-- [ ] `block.ancient_debris.place` <!--sound:block.ancient_debris.place-->
-- [ ] `block.ancient_debris.hit` <!--sound:block.ancient_debris.hit-->
-- [ ] `block.ancient_debris.fall` <!--sound:block.ancient_debris.fall-->
-- [ ] `block.anvil.break` <!--sound:block.anvil.break-->
-- [ ] `block.anvil.destroy` <!--sound:block.anvil.destroy-->
-- [ ] `block.anvil.fall` <!--sound:block.anvil.fall-->
-- [ ] `block.anvil.hit` <!--sound:block.anvil.hit-->
-- [ ] `block.anvil.land` <!--sound:block.anvil.land-->
-- [ ] `block.anvil.place` <!--sound:block.anvil.place-->
-- [ ] `block.anvil.step` <!--sound:block.anvil.step-->
-- [ ] `block.anvil.use` <!--sound:block.anvil.use-->
-- [ ] `item.armor.equip_chain` <!--sound:item.armor.equip_chain-->
-- [ ] `item.armor.equip_diamond` <!--sound:item.armor.equip_diamond-->
-- [ ] `item.armor.equip_elytra` <!--sound:item.armor.equip_elytra-->
-- [ ] `item.armor.equip_generic` <!--sound:item.armor.equip_generic-->
-- [ ] `item.armor.equip_gold` <!--sound:item.armor.equip_gold-->
-- [ ] `item.armor.equip_iron` <!--sound:item.armor.equip_iron-->
-- [ ] `item.armor.equip_leather` <!--sound:item.armor.equip_leather-->
-- [ ] `item.armor.equip_netherite` <!--sound:item.armor.equip_netherite-->
-- [ ] `item.armor.equip_turtle` <!--sound:item.armor.equip_turtle-->
+- [x] `ambient.cave` <!--sound:ambient.cave-->
+- [x] `ambient.basalt_deltas.additions` <!--sound:ambient.basalt_deltas.additions-->
+- [x] `ambient.basalt_deltas.loop` <!--sound:ambient.basalt_deltas.loop-->
+- [x] `ambient.basalt_deltas.mood` <!--sound:ambient.basalt_deltas.mood-->
+- [x] `ambient.crimson_forest.additions` <!--sound:ambient.crimson_forest.additions-->
+- [x] `ambient.crimson_forest.loop` <!--sound:ambient.crimson_forest.loop-->
+- [x] `ambient.crimson_forest.mood` <!--sound:ambient.crimson_forest.mood-->
+- [x] `ambient.nether_wastes.additions` <!--sound:ambient.nether_wastes.additions-->
+- [x] `ambient.nether_wastes.loop` <!--sound:ambient.nether_wastes.loop-->
+- [x] `ambient.nether_wastes.mood` <!--sound:ambient.nether_wastes.mood-->
+- [x] `ambient.soul_sand_valley.additions` <!--sound:ambient.soul_sand_valley.additions-->
+- [x] `ambient.soul_sand_valley.loop` <!--sound:ambient.soul_sand_valley.loop-->
+- [x] `ambient.soul_sand_valley.mood` <!--sound:ambient.soul_sand_valley.mood-->
+- [x] `ambient.warped_forest.additions` <!--sound:ambient.warped_forest.additions-->
+- [x] `ambient.warped_forest.loop` <!--sound:ambient.warped_forest.loop-->
+- [x] `ambient.warped_forest.mood` <!--sound:ambient.warped_forest.mood-->
+- [x] `ambient.underwater.enter` <!--sound:ambient.underwater.enter-->
+- [x] `ambient.underwater.exit` <!--sound:ambient.underwater.exit-->
+- [x] `ambient.underwater.loop` <!--sound:ambient.underwater.loop-->
+- [x] `ambient.underwater.loop.additions` <!--sound:ambient.underwater.loop.additions-->
+- [x] `ambient.underwater.loop.additions.rare` <!--sound:ambient.underwater.loop.additions.rare-->
+- [x] `ambient.underwater.loop.additions.ultra_rare` <!--sound:ambient.underwater.loop.additions.ultra_rare-->
+- [x] `block.amethyst_block.break` <!--sound:block.amethyst_block.break-->
+- [x] `block.amethyst_block.chime` <!--sound:block.amethyst_block.chime-->
+- [x] `block.amethyst_block.fall` <!--sound:block.amethyst_block.fall-->
+- [x] `block.amethyst_block.hit` <!--sound:block.amethyst_block.hit-->
+- [x] `block.amethyst_block.place` <!--sound:block.amethyst_block.place-->
+- [x] `block.amethyst_block.step` <!--sound:block.amethyst_block.step-->
+- [x] `block.amethyst_cluster.break` <!--sound:block.amethyst_cluster.break-->
+- [x] `block.amethyst_cluster.fall` <!--sound:block.amethyst_cluster.fall-->
+- [x] `block.amethyst_cluster.hit` <!--sound:block.amethyst_cluster.hit-->
+- [x] `block.amethyst_cluster.place` <!--sound:block.amethyst_cluster.place-->
+- [x] `block.amethyst_cluster.step` <!--sound:block.amethyst_cluster.step-->
+- [x] `block.ancient_debris.break` <!--sound:block.ancient_debris.break-->
+- [x] `block.ancient_debris.step` <!--sound:block.ancient_debris.step-->
+- [x] `block.ancient_debris.place` <!--sound:block.ancient_debris.place-->
+- [x] `block.ancient_debris.hit` <!--sound:block.ancient_debris.hit-->
+- [x] `block.ancient_debris.fall` <!--sound:block.ancient_debris.fall-->
+- [x] `block.anvil.break` <!--sound:block.anvil.break-->
+- [x] `block.anvil.destroy` <!--sound:block.anvil.destroy-->
+- [x] `block.anvil.fall` <!--sound:block.anvil.fall-->
+- [x] `block.anvil.hit` <!--sound:block.anvil.hit-->
+- [x] `block.anvil.land` <!--sound:block.anvil.land-->
+- [x] `block.anvil.place` <!--sound:block.anvil.place-->
+- [x] `block.anvil.step` <!--sound:block.anvil.step-->
+- [x] `block.anvil.use` <!--sound:block.anvil.use-->
+- [x] `item.armor.equip_chain` <!--sound:item.armor.equip_chain-->
+- [x] `item.armor.equip_diamond` <!--sound:item.armor.equip_diamond-->
+- [x] `item.armor.equip_elytra` <!--sound:item.armor.equip_elytra-->
+- [x] `item.armor.equip_generic` <!--sound:item.armor.equip_generic-->
+- [x] `item.armor.equip_gold` <!--sound:item.armor.equip_gold-->
+- [x] `item.armor.equip_iron` <!--sound:item.armor.equip_iron-->
+- [x] `item.armor.equip_leather` <!--sound:item.armor.equip_leather-->
+- [x] `item.armor.equip_netherite` <!--sound:item.armor.equip_netherite-->
+- [x] `item.armor.equip_turtle` <!--sound:item.armor.equip_turtle-->
 - [ ] `entity.armor_stand.break` <!--sound:entity.armor_stand.break-->
 - [ ] `entity.armor_stand.fall` <!--sound:entity.armor_stand.fall-->
 - [ ] `entity.armor_stand.hit` <!--sound:entity.armor_stand.hit-->
 - [ ] `entity.armor_stand.place` <!--sound:entity.armor_stand.place-->
-- [ ] `entity.arrow.hit` <!--sound:entity.arrow.hit-->
-- [ ] `entity.arrow.hit_player` <!--sound:entity.arrow.hit_player-->
-- [ ] `entity.arrow.shoot` <!--sound:entity.arrow.shoot-->
-- [ ] `item.axe.strip` <!--sound:item.axe.strip-->
-- [ ] `item.axe.scrape` <!--sound:item.axe.scrape-->
-- [ ] `item.axe.wax_off` <!--sound:item.axe.wax_off-->
-- [ ] `entity.axolotl.attack` <!--sound:entity.axolotl.attack-->
-- [ ] `entity.axolotl.death` <!--sound:entity.axolotl.death-->
-- [ ] `entity.axolotl.hurt` <!--sound:entity.axolotl.hurt-->
-- [ ] `entity.axolotl.idle_air` <!--sound:entity.axolotl.idle_air-->
-- [ ] `entity.axolotl.idle_water` <!--sound:entity.axolotl.idle_water-->
-- [ ] `entity.axolotl.splash` <!--sound:entity.axolotl.splash-->
-- [ ] `entity.axolotl.swim` <!--sound:entity.axolotl.swim-->
-- [ ] `block.azalea.break` <!--sound:block.azalea.break-->
-- [ ] `block.azalea.fall` <!--sound:block.azalea.fall-->
-- [ ] `block.azalea.hit` <!--sound:block.azalea.hit-->
-- [ ] `block.azalea.place` <!--sound:block.azalea.place-->
-- [ ] `block.azalea.step` <!--sound:block.azalea.step-->
-- [ ] `block.azalea_leaves.break` <!--sound:block.azalea_leaves.break-->
-- [ ] `block.azalea_leaves.fall` <!--sound:block.azalea_leaves.fall-->
-- [ ] `block.azalea_leaves.hit` <!--sound:block.azalea_leaves.hit-->
-- [ ] `block.azalea_leaves.place` <!--sound:block.azalea_leaves.place-->
-- [ ] `block.azalea_leaves.step` <!--sound:block.azalea_leaves.step-->
-- [ ] `block.bamboo.break` <!--sound:block.bamboo.break-->
-- [ ] `block.bamboo.fall` <!--sound:block.bamboo.fall-->
-- [ ] `block.bamboo.hit` <!--sound:block.bamboo.hit-->
-- [ ] `block.bamboo.place` <!--sound:block.bamboo.place-->
-- [ ] `block.bamboo.step` <!--sound:block.bamboo.step-->
-- [ ] `block.bamboo_sapling.break` <!--sound:block.bamboo_sapling.break-->
-- [ ] `block.bamboo_sapling.hit` <!--sound:block.bamboo_sapling.hit-->
-- [ ] `block.bamboo_sapling.place` <!--sound:block.bamboo_sapling.place-->
-- [ ] `block.barrel.close` <!--sound:block.barrel.close-->
-- [ ] `block.barrel.open` <!--sound:block.barrel.open-->
-- [ ] `block.basalt.break` <!--sound:block.basalt.break-->
-- [ ] `block.basalt.step` <!--sound:block.basalt.step-->
-- [ ] `block.basalt.place` <!--sound:block.basalt.place-->
-- [ ] `block.basalt.hit` <!--sound:block.basalt.hit-->
-- [ ] `block.basalt.fall` <!--sound:block.basalt.fall-->
-- [ ] `entity.bat.ambient` <!--sound:entity.bat.ambient-->
-- [ ] `entity.bat.death` <!--sound:entity.bat.death-->
-- [ ] `entity.bat.hurt` <!--sound:entity.bat.hurt-->
+- [x] `entity.arrow.hit` <!--sound:entity.arrow.hit-->
+- [x] `entity.arrow.hit_player` <!--sound:entity.arrow.hit_player-->
+- [x] `entity.arrow.shoot` <!--sound:entity.arrow.shoot-->
+- [x] `item.axe.strip` <!--sound:item.axe.strip-->
+- [x] `item.axe.scrape` <!--sound:item.axe.scrape-->
+- [x] `item.axe.wax_off` <!--sound:item.axe.wax_off-->
+- [x] `entity.axolotl.attack` <!--sound:entity.axolotl.attack-->
+- [x] `entity.axolotl.death` <!--sound:entity.axolotl.death-->
+- [x] `entity.axolotl.hurt` <!--sound:entity.axolotl.hurt-->
+- [x] `entity.axolotl.idle_air` <!--sound:entity.axolotl.idle_air-->
+- [x] `entity.axolotl.idle_water` <!--sound:entity.axolotl.idle_water-->
+- [x] `entity.axolotl.splash` <!--sound:entity.axolotl.splash-->
+- [x] `entity.axolotl.swim` <!--sound:entity.axolotl.swim-->
+- [x] `block.azalea.break` <!--sound:block.azalea.break-->
+- [x] `block.azalea.fall` <!--sound:block.azalea.fall-->
+- [x] `block.azalea.hit` <!--sound:block.azalea.hit-->
+- [x] `block.azalea.place` <!--sound:block.azalea.place-->
+- [x] `block.azalea.step` <!--sound:block.azalea.step-->
+- [x] `block.azalea_leaves.break` <!--sound:block.azalea_leaves.break-->
+- [x] `block.azalea_leaves.fall` <!--sound:block.azalea_leaves.fall-->
+- [x] `block.azalea_leaves.hit` <!--sound:block.azalea_leaves.hit-->
+- [x] `block.azalea_leaves.place` <!--sound:block.azalea_leaves.place-->
+- [x] `block.azalea_leaves.step` <!--sound:block.azalea_leaves.step-->
+- [x] `block.bamboo.break` <!--sound:block.bamboo.break-->
+- [x] `block.bamboo.fall` <!--sound:block.bamboo.fall-->
+- [x] `block.bamboo.hit` <!--sound:block.bamboo.hit-->
+- [x] `block.bamboo.place` <!--sound:block.bamboo.place-->
+- [x] `block.bamboo.step` <!--sound:block.bamboo.step-->
+- [x] `block.bamboo_sapling.break` <!--sound:block.bamboo_sapling.break-->
+- [x] `block.bamboo_sapling.hit` <!--sound:block.bamboo_sapling.hit-->
+- [x] `block.bamboo_sapling.place` <!--sound:block.bamboo_sapling.place-->
+- [x] `block.barrel.close` <!--sound:block.barrel.close-->
+- [x] `block.barrel.open` <!--sound:block.barrel.open-->
+- [x] `block.basalt.break` <!--sound:block.basalt.break-->
+- [x] `block.basalt.step` <!--sound:block.basalt.step-->
+- [x] `block.basalt.place` <!--sound:block.basalt.place-->
+- [x] `block.basalt.hit` <!--sound:block.basalt.hit-->
+- [x] `block.basalt.fall` <!--sound:block.basalt.fall-->
+- [x] `entity.bat.ambient` <!--sound:entity.bat.ambient-->
+- [x] `entity.bat.death` <!--sound:entity.bat.death-->
+- [x] `entity.bat.hurt` <!--sound:entity.bat.hurt-->
 - [ ] `entity.bat.loop` <!--sound:entity.bat.loop-->
-- [ ] `entity.bat.takeoff` <!--sound:entity.bat.takeoff-->
-- [ ] `block.beacon.activate` <!--sound:block.beacon.activate-->
-- [ ] `block.beacon.ambient` <!--sound:block.beacon.ambient-->
-- [ ] `block.beacon.deactivate` <!--sound:block.beacon.deactivate-->
-- [ ] `block.beacon.power_select` <!--sound:block.beacon.power_select-->
-- [ ] `entity.bee.death` <!--sound:entity.bee.death-->
-- [ ] `entity.bee.hurt` <!--sound:entity.bee.hurt-->
-- [ ] `entity.bee.loop_aggressive` <!--sound:entity.bee.loop_aggressive-->
-- [ ] `entity.bee.loop` <!--sound:entity.bee.loop-->
-- [ ] `entity.bee.sting` <!--sound:entity.bee.sting-->
-- [ ] `entity.bee.pollinate` <!--sound:entity.bee.pollinate-->
+- [x] `entity.bat.takeoff` <!--sound:entity.bat.takeoff-->
+- [x] `block.beacon.activate` <!--sound:block.beacon.activate-->
+- [x] `block.beacon.ambient` <!--sound:block.beacon.ambient-->
+- [x] `block.beacon.deactivate` <!--sound:block.beacon.deactivate-->
+- [x] `block.beacon.power_select` <!--sound:block.beacon.power_select-->
+- [x] `entity.bee.death` <!--sound:entity.bee.death-->
+- [x] `entity.bee.hurt` <!--sound:entity.bee.hurt-->
+- [x] `entity.bee.loop_aggressive` <!--sound:entity.bee.loop_aggressive-->
+- [x] `entity.bee.loop` <!--sound:entity.bee.loop-->
+- [x] `entity.bee.sting` <!--sound:entity.bee.sting-->
+- [x] `entity.bee.pollinate` <!--sound:entity.bee.pollinate-->
 - [ ] `block.beehive.drip` <!--sound:block.beehive.drip-->
 - [ ] `block.beehive.enter` <!--sound:block.beehive.enter-->
 - [ ] `block.beehive.exit` <!--sound:block.beehive.exit-->
 - [ ] `block.beehive.shear` <!--sound:block.beehive.shear-->
-- [ ] `block.beehive.work` <!--sound:block.beehive.work-->
-- [ ] `block.bell.use` <!--sound:block.bell.use-->
-- [ ] `block.bell.resonate` <!--sound:block.bell.resonate-->
-- [ ] `block.big_dripleaf.break` <!--sound:block.big_dripleaf.break-->
-- [ ] `block.big_dripleaf.fall` <!--sound:block.big_dripleaf.fall-->
-- [ ] `block.big_dripleaf.hit` <!--sound:block.big_dripleaf.hit-->
-- [ ] `block.big_dripleaf.place` <!--sound:block.big_dripleaf.place-->
-- [ ] `block.big_dripleaf.step` <!--sound:block.big_dripleaf.step-->
-- [ ] `entity.blaze.ambient` <!--sound:entity.blaze.ambient-->
-- [ ] `entity.blaze.burn` <!--sound:entity.blaze.burn-->
-- [ ] `entity.blaze.death` <!--sound:entity.blaze.death-->
-- [ ] `entity.blaze.hurt` <!--sound:entity.blaze.hurt-->
-- [ ] `entity.blaze.shoot` <!--sound:entity.blaze.shoot-->
+- [x] `block.beehive.work` <!--sound:block.beehive.work-->
+- [x] `block.bell.use` <!--sound:block.bell.use-->
+- [x] `block.bell.resonate` <!--sound:block.bell.resonate-->
+- [x] `block.big_dripleaf.break` <!--sound:block.big_dripleaf.break-->
+- [x] `block.big_dripleaf.fall` <!--sound:block.big_dripleaf.fall-->
+- [x] `block.big_dripleaf.hit` <!--sound:block.big_dripleaf.hit-->
+- [x] `block.big_dripleaf.place` <!--sound:block.big_dripleaf.place-->
+- [x] `block.big_dripleaf.step` <!--sound:block.big_dripleaf.step-->
+- [x] `entity.blaze.ambient` <!--sound:entity.blaze.ambient-->
+- [x] `entity.blaze.burn` <!--sound:entity.blaze.burn-->
+- [x] `entity.blaze.death` <!--sound:entity.blaze.death-->
+- [x] `entity.blaze.hurt` <!--sound:entity.blaze.hurt-->
+- [x] `entity.blaze.shoot` <!--sound:entity.blaze.shoot-->
 - [ ] `entity.boat.paddle_land` <!--sound:entity.boat.paddle_land-->
 - [ ] `entity.boat.paddle_water` <!--sound:entity.boat.paddle_water-->
-- [ ] `block.bone_block.break` <!--sound:block.bone_block.break-->
-- [ ] `block.bone_block.fall` <!--sound:block.bone_block.fall-->
-- [ ] `block.bone_block.hit` <!--sound:block.bone_block.hit-->
-- [ ] `block.bone_block.place` <!--sound:block.bone_block.place-->
-- [ ] `block.bone_block.step` <!--sound:block.bone_block.step-->
-- [ ] `item.bone_meal.use` <!--sound:item.bone_meal.use-->
-- [ ] `item.book.page_turn` <!--sound:item.book.page_turn-->
-- [ ] `item.book.put` <!--sound:item.book.put-->
-- [ ] `block.blastfurnace.fire_crackle` <!--sound:block.blastfurnace.fire_crackle-->
-- [ ] `item.bottle.empty` <!--sound:item.bottle.empty-->
-- [ ] `item.bottle.fill` <!--sound:item.bottle.fill-->
-- [ ] `item.bottle.fill_dragonbreath` <!--sound:item.bottle.fill_dragonbreath-->
-- [ ] `block.brewing_stand.brew` <!--sound:block.brewing_stand.brew-->
-- [ ] `block.bubble_column.bubble_pop` <!--sound:block.bubble_column.bubble_pop-->
-- [ ] `block.bubble_column.upwards_ambient` <!--sound:block.bubble_column.upwards_ambient-->
-- [ ] `block.bubble_column.upwards_inside` <!--sound:block.bubble_column.upwards_inside-->
-- [ ] `block.bubble_column.whirlpool_ambient` <!--sound:block.bubble_column.whirlpool_ambient-->
-- [ ] `block.bubble_column.whirlpool_inside` <!--sound:block.bubble_column.whirlpool_inside-->
-- [ ] `item.bucket.empty` <!--sound:item.bucket.empty-->
-- [ ] `item.bucket.empty_axolotl` <!--sound:item.bucket.empty_axolotl-->
-- [ ] `item.bucket.empty_fish` <!--sound:item.bucket.empty_fish-->
-- [ ] `item.bucket.empty_lava` <!--sound:item.bucket.empty_lava-->
-- [ ] `item.bucket.empty_powder_snow` <!--sound:item.bucket.empty_powder_snow-->
-- [ ] `item.bucket.fill` <!--sound:item.bucket.fill-->
-- [ ] `item.bucket.fill_axolotl` <!--sound:item.bucket.fill_axolotl-->
-- [ ] `item.bucket.fill_fish` <!--sound:item.bucket.fill_fish-->
-- [ ] `item.bucket.fill_lava` <!--sound:item.bucket.fill_lava-->
-- [ ] `item.bucket.fill_powder_snow` <!--sound:item.bucket.fill_powder_snow-->
-- [ ] `block.cake.add_candle` <!--sound:block.cake.add_candle-->
-- [ ] `block.calcite.break` <!--sound:block.calcite.break-->
-- [ ] `block.calcite.step` <!--sound:block.calcite.step-->
-- [ ] `block.calcite.place` <!--sound:block.calcite.place-->
-- [ ] `block.calcite.hit` <!--sound:block.calcite.hit-->
-- [ ] `block.calcite.fall` <!--sound:block.calcite.fall-->
-- [ ] `block.campfire.crackle` <!--sound:block.campfire.crackle-->
-- [ ] `block.candle.ambient` <!--sound:block.candle.ambient-->
-- [ ] `block.candle.break` <!--sound:block.candle.break-->
-- [ ] `block.candle.extinguish` <!--sound:block.candle.extinguish-->
-- [ ] `block.candle.fall` <!--sound:block.candle.fall-->
-- [ ] `block.candle.hit` <!--sound:block.candle.hit-->
-- [ ] `block.candle.place` <!--sound:block.candle.place-->
-- [ ] `block.candle.step` <!--sound:block.candle.step-->
-- [ ] `entity.cat.ambient` <!--sound:entity.cat.ambient-->
-- [ ] `entity.cat.stray_ambient` <!--sound:entity.cat.stray_ambient-->
-- [ ] `entity.cat.death` <!--sound:entity.cat.death-->
+- [x] `block.bone_block.break` <!--sound:block.bone_block.break-->
+- [x] `block.bone_block.fall` <!--sound:block.bone_block.fall-->
+- [x] `block.bone_block.hit` <!--sound:block.bone_block.hit-->
+- [x] `block.bone_block.place` <!--sound:block.bone_block.place-->
+- [x] `block.bone_block.step` <!--sound:block.bone_block.step-->
+- [x] `item.bone_meal.use` <!--sound:item.bone_meal.use-->
+- [x] `item.book.page_turn` <!--sound:item.book.page_turn-->
+- [x] `item.book.put` <!--sound:item.book.put-->
+- [x] `block.blastfurnace.fire_crackle` <!--sound:block.blastfurnace.fire_crackle-->
+- [x] `item.bottle.empty` <!--sound:item.bottle.empty-->
+- [x] `item.bottle.fill` <!--sound:item.bottle.fill-->
+- [x] `item.bottle.fill_dragonbreath` <!--sound:item.bottle.fill_dragonbreath-->
+- [x] `block.brewing_stand.brew` <!--sound:block.brewing_stand.brew-->
+- [x] `block.bubble_column.bubble_pop` <!--sound:block.bubble_column.bubble_pop-->
+- [x] `block.bubble_column.upwards_ambient` <!--sound:block.bubble_column.upwards_ambient-->
+- [x] `block.bubble_column.upwards_inside` <!--sound:block.bubble_column.upwards_inside-->
+- [x] `block.bubble_column.whirlpool_ambient` <!--sound:block.bubble_column.whirlpool_ambient-->
+- [x] `block.bubble_column.whirlpool_inside` <!--sound:block.bubble_column.whirlpool_inside-->
+- [x] `item.bucket.empty` <!--sound:item.bucket.empty-->
+- [x] `item.bucket.empty_axolotl` <!--sound:item.bucket.empty_axolotl-->
+- [x] `item.bucket.empty_fish` <!--sound:item.bucket.empty_fish-->
+- [x] `item.bucket.empty_lava` <!--sound:item.bucket.empty_lava-->
+- [x] `item.bucket.empty_powder_snow` <!--sound:item.bucket.empty_powder_snow-->
+- [x] `item.bucket.fill` <!--sound:item.bucket.fill-->
+- [x] `item.bucket.fill_axolotl` <!--sound:item.bucket.fill_axolotl-->
+- [x] `item.bucket.fill_fish` <!--sound:item.bucket.fill_fish-->
+- [x] `item.bucket.fill_lava` <!--sound:item.bucket.fill_lava-->
+- [x] `item.bucket.fill_powder_snow` <!--sound:item.bucket.fill_powder_snow-->
+- [x] `block.cake.add_candle` <!--sound:block.cake.add_candle-->
+- [x] `block.calcite.break` <!--sound:block.calcite.break-->
+- [x] `block.calcite.step` <!--sound:block.calcite.step-->
+- [x] `block.calcite.place` <!--sound:block.calcite.place-->
+- [x] `block.calcite.hit` <!--sound:block.calcite.hit-->
+- [x] `block.calcite.fall` <!--sound:block.calcite.fall-->
+- [x] `block.campfire.crackle` <!--sound:block.campfire.crackle-->
+- [x] `block.candle.ambient` <!--sound:block.candle.ambient-->
+- [x] `block.candle.break` <!--sound:block.candle.break-->
+- [x] `block.candle.extinguish` <!--sound:block.candle.extinguish-->
+- [x] `block.candle.fall` <!--sound:block.candle.fall-->
+- [x] `block.candle.hit` <!--sound:block.candle.hit-->
+- [x] `block.candle.place` <!--sound:block.candle.place-->
+- [x] `block.candle.step` <!--sound:block.candle.step-->
+- [x] `entity.cat.ambient` <!--sound:entity.cat.ambient-->
+- [x] `entity.cat.stray_ambient` <!--sound:entity.cat.stray_ambient-->
+- [x] `entity.cat.death` <!--sound:entity.cat.death-->
 - [ ] `entity.cat.eat` <!--sound:entity.cat.eat-->
-- [ ] `entity.cat.hiss` <!--sound:entity.cat.hiss-->
-- [ ] `entity.cat.beg_for_food` <!--sound:entity.cat.beg_for_food-->
-- [ ] `entity.cat.hurt` <!--sound:entity.cat.hurt-->
-- [ ] `entity.cat.purr` <!--sound:entity.cat.purr-->
-- [ ] `entity.cat.purreow` <!--sound:entity.cat.purreow-->
-- [ ] `block.cave_vines.break` <!--sound:block.cave_vines.break-->
-- [ ] `block.cave_vines.fall` <!--sound:block.cave_vines.fall-->
-- [ ] `block.cave_vines.hit` <!--sound:block.cave_vines.hit-->
-- [ ] `block.cave_vines.place` <!--sound:block.cave_vines.place-->
-- [ ] `block.cave_vines.step` <!--sound:block.cave_vines.step-->
-- [ ] `block.cave_vines.pick_berries` <!--sound:block.cave_vines.pick_berries-->
-- [ ] `block.chain.break` <!--sound:block.chain.break-->
-- [ ] `block.chain.fall` <!--sound:block.chain.fall-->
-- [ ] `block.chain.hit` <!--sound:block.chain.hit-->
-- [ ] `block.chain.place` <!--sound:block.chain.place-->
-- [ ] `block.chain.step` <!--sound:block.chain.step-->
-- [ ] `block.chest.close` <!--sound:block.chest.close-->
-- [ ] `block.chest.locked` <!--sound:block.chest.locked-->
-- [ ] `block.chest.open` <!--sound:block.chest.open-->
-- [ ] `entity.chicken.ambient` <!--sound:entity.chicken.ambient-->
-- [ ] `entity.chicken.death` <!--sound:entity.chicken.death-->
-- [ ] `entity.chicken.egg` <!--sound:entity.chicken.egg-->
-- [ ] `entity.chicken.hurt` <!--sound:entity.chicken.hurt-->
-- [ ] `entity.chicken.step` <!--sound:entity.chicken.step-->
+- [x] `entity.cat.hiss` <!--sound:entity.cat.hiss-->
+- [x] `entity.cat.beg_for_food` <!--sound:entity.cat.beg_for_food-->
+- [x] `entity.cat.hurt` <!--sound:entity.cat.hurt-->
+- [x] `entity.cat.purr` <!--sound:entity.cat.purr-->
+- [x] `entity.cat.purreow` <!--sound:entity.cat.purreow-->
+- [x] `block.cave_vines.break` <!--sound:block.cave_vines.break-->
+- [x] `block.cave_vines.fall` <!--sound:block.cave_vines.fall-->
+- [x] `block.cave_vines.hit` <!--sound:block.cave_vines.hit-->
+- [x] `block.cave_vines.place` <!--sound:block.cave_vines.place-->
+- [x] `block.cave_vines.step` <!--sound:block.cave_vines.step-->
+- [x] `block.cave_vines.pick_berries` <!--sound:block.cave_vines.pick_berries-->
+- [x] `block.chain.break` <!--sound:block.chain.break-->
+- [x] `block.chain.fall` <!--sound:block.chain.fall-->
+- [x] `block.chain.hit` <!--sound:block.chain.hit-->
+- [x] `block.chain.place` <!--sound:block.chain.place-->
+- [x] `block.chain.step` <!--sound:block.chain.step-->
+- [x] `block.chest.close` <!--sound:block.chest.close-->
+- [x] `block.chest.locked` <!--sound:block.chest.locked-->
+- [x] `block.chest.open` <!--sound:block.chest.open-->
+- [x] `entity.chicken.ambient` <!--sound:entity.chicken.ambient-->
+- [x] `entity.chicken.death` <!--sound:entity.chicken.death-->
+- [x] `entity.chicken.egg` <!--sound:entity.chicken.egg-->
+- [x] `entity.chicken.hurt` <!--sound:entity.chicken.hurt-->
+- [x] `entity.chicken.step` <!--sound:entity.chicken.step-->
 - [ ] `block.chorus_flower.death` <!--sound:block.chorus_flower.death-->
 - [ ] `block.chorus_flower.grow` <!--sound:block.chorus_flower.grow-->
-- [ ] `item.chorus_fruit.teleport` <!--sound:item.chorus_fruit.teleport-->
-- [ ] `entity.cod.ambient` <!--sound:entity.cod.ambient-->
-- [ ] `entity.cod.death` <!--sound:entity.cod.death-->
-- [ ] `entity.cod.flop` <!--sound:entity.cod.flop-->
-- [ ] `entity.cod.hurt` <!--sound:entity.cod.hurt-->
+- [x] `item.chorus_fruit.teleport` <!--sound:item.chorus_fruit.teleport-->
+- [x] `entity.cod.ambient` <!--sound:entity.cod.ambient-->
+- [x] `entity.cod.death` <!--sound:entity.cod.death-->
+- [x] `entity.cod.flop` <!--sound:entity.cod.flop-->
+- [x] `entity.cod.hurt` <!--sound:entity.cod.hurt-->
 - [ ] `block.comparator.click` <!--sound:block.comparator.click-->
-- [ ] `block.composter.empty` <!--sound:block.composter.empty-->
-- [ ] `block.composter.fill` <!--sound:block.composter.fill-->
-- [ ] `block.composter.fill_success` <!--sound:block.composter.fill_success-->
-- [ ] `block.composter.ready` <!--sound:block.composter.ready-->
+- [x] `block.composter.empty` <!--sound:block.composter.empty-->
+- [x] `block.composter.fill` <!--sound:block.composter.fill-->
+- [x] `block.composter.fill_success` <!--sound:block.composter.fill_success-->
+- [x] `block.composter.ready` <!--sound:block.composter.ready-->
 - [ ] `block.conduit.activate` <!--sound:block.conduit.activate-->
-- [ ] `block.conduit.ambient` <!--sound:block.conduit.ambient-->
+- [x] `block.conduit.ambient` <!--sound:block.conduit.ambient-->
 - [ ] `block.conduit.ambient.short` <!--sound:block.conduit.ambient.short-->
 - [ ] `block.conduit.attack.target` <!--sound:block.conduit.attack.target-->
 - [ ] `block.conduit.deactivate` <!--sound:block.conduit.deactivate-->
-- [ ] `block.copper.break` <!--sound:block.copper.break-->
-- [ ] `block.copper.step` <!--sound:block.copper.step-->
-- [ ] `block.copper.place` <!--sound:block.copper.place-->
-- [ ] `block.copper.hit` <!--sound:block.copper.hit-->
-- [ ] `block.copper.fall` <!--sound:block.copper.fall-->
-- [ ] `block.coral_block.break` <!--sound:block.coral_block.break-->
-- [ ] `block.coral_block.fall` <!--sound:block.coral_block.fall-->
-- [ ] `block.coral_block.hit` <!--sound:block.coral_block.hit-->
-- [ ] `block.coral_block.place` <!--sound:block.coral_block.place-->
-- [ ] `block.coral_block.step` <!--sound:block.coral_block.step-->
-- [ ] `entity.cow.ambient` <!--sound:entity.cow.ambient-->
-- [ ] `entity.cow.death` <!--sound:entity.cow.death-->
-- [ ] `entity.cow.hurt` <!--sound:entity.cow.hurt-->
-- [ ] `entity.cow.milk` <!--sound:entity.cow.milk-->
-- [ ] `entity.cow.step` <!--sound:entity.cow.step-->
-- [ ] `entity.creeper.death` <!--sound:entity.creeper.death-->
-- [ ] `entity.creeper.hurt` <!--sound:entity.creeper.hurt-->
-- [ ] `entity.creeper.primed` <!--sound:entity.creeper.primed-->
-- [ ] `block.crop.break` <!--sound:block.crop.break-->
-- [ ] `item.crop.plant` <!--sound:item.crop.plant-->
+- [x] `block.copper.break` <!--sound:block.copper.break-->
+- [x] `block.copper.step` <!--sound:block.copper.step-->
+- [x] `block.copper.place` <!--sound:block.copper.place-->
+- [x] `block.copper.hit` <!--sound:block.copper.hit-->
+- [x] `block.copper.fall` <!--sound:block.copper.fall-->
+- [x] `block.coral_block.break` <!--sound:block.coral_block.break-->
+- [x] `block.coral_block.fall` <!--sound:block.coral_block.fall-->
+- [x] `block.coral_block.hit` <!--sound:block.coral_block.hit-->
+- [x] `block.coral_block.place` <!--sound:block.coral_block.place-->
+- [x] `block.coral_block.step` <!--sound:block.coral_block.step-->
+- [x] `entity.cow.ambient` <!--sound:entity.cow.ambient-->
+- [x] `entity.cow.death` <!--sound:entity.cow.death-->
+- [x] `entity.cow.hurt` <!--sound:entity.cow.hurt-->
+- [x] `entity.cow.milk` <!--sound:entity.cow.milk-->
+- [x] `entity.cow.step` <!--sound:entity.cow.step-->
+- [x] `entity.creeper.death` <!--sound:entity.creeper.death-->
+- [x] `entity.creeper.hurt` <!--sound:entity.creeper.hurt-->
+- [x] `entity.creeper.primed` <!--sound:entity.creeper.primed-->
+- [x] `block.crop.break` <!--sound:block.crop.break-->
+- [x] `item.crop.plant` <!--sound:item.crop.plant-->
 - [ ] `item.crossbow.hit` <!--sound:item.crossbow.hit-->
-- [ ] `item.crossbow.loading_end` <!--sound:item.crossbow.loading_end-->
-- [ ] `item.crossbow.loading_middle` <!--sound:item.crossbow.loading_middle-->
-- [ ] `item.crossbow.loading_start` <!--sound:item.crossbow.loading_start-->
+- [x] `item.crossbow.loading_end` <!--sound:item.crossbow.loading_end-->
+- [x] `item.crossbow.loading_middle` <!--sound:item.crossbow.loading_middle-->
+- [x] `item.crossbow.loading_start` <!--sound:item.crossbow.loading_start-->
 - [ ] `item.crossbow.quick_charge_1` <!--sound:item.crossbow.quick_charge_1-->
 - [ ] `item.crossbow.quick_charge_2` <!--sound:item.crossbow.quick_charge_2-->
 - [ ] `item.crossbow.quick_charge_3` <!--sound:item.crossbow.quick_charge_3-->
-- [ ] `item.crossbow.shoot` <!--sound:item.crossbow.shoot-->
-- [ ] `block.deepslate_bricks.break` <!--sound:block.deepslate_bricks.break-->
-- [ ] `block.deepslate_bricks.fall` <!--sound:block.deepslate_bricks.fall-->
-- [ ] `block.deepslate_bricks.hit` <!--sound:block.deepslate_bricks.hit-->
-- [ ] `block.deepslate_bricks.place` <!--sound:block.deepslate_bricks.place-->
-- [ ] `block.deepslate_bricks.step` <!--sound:block.deepslate_bricks.step-->
-- [ ] `block.deepslate.break` <!--sound:block.deepslate.break-->
-- [ ] `block.deepslate.fall` <!--sound:block.deepslate.fall-->
-- [ ] `block.deepslate.hit` <!--sound:block.deepslate.hit-->
-- [ ] `block.deepslate.place` <!--sound:block.deepslate.place-->
-- [ ] `block.deepslate.step` <!--sound:block.deepslate.step-->
-- [ ] `block.deepslate_tiles.break` <!--sound:block.deepslate_tiles.break-->
-- [ ] `block.deepslate_tiles.fall` <!--sound:block.deepslate_tiles.fall-->
-- [ ] `block.deepslate_tiles.hit` <!--sound:block.deepslate_tiles.hit-->
-- [ ] `block.deepslate_tiles.place` <!--sound:block.deepslate_tiles.place-->
-- [ ] `block.deepslate_tiles.step` <!--sound:block.deepslate_tiles.step-->
+- [x] `item.crossbow.shoot` <!--sound:item.crossbow.shoot-->
+- [x] `block.deepslate_bricks.break` <!--sound:block.deepslate_bricks.break-->
+- [x] `block.deepslate_bricks.fall` <!--sound:block.deepslate_bricks.fall-->
+- [x] `block.deepslate_bricks.hit` <!--sound:block.deepslate_bricks.hit-->
+- [x] `block.deepslate_bricks.place` <!--sound:block.deepslate_bricks.place-->
+- [x] `block.deepslate_bricks.step` <!--sound:block.deepslate_bricks.step-->
+- [x] `block.deepslate.break` <!--sound:block.deepslate.break-->
+- [x] `block.deepslate.fall` <!--sound:block.deepslate.fall-->
+- [x] `block.deepslate.hit` <!--sound:block.deepslate.hit-->
+- [x] `block.deepslate.place` <!--sound:block.deepslate.place-->
+- [x] `block.deepslate.step` <!--sound:block.deepslate.step-->
+- [x] `block.deepslate_tiles.break` <!--sound:block.deepslate_tiles.break-->
+- [x] `block.deepslate_tiles.fall` <!--sound:block.deepslate_tiles.fall-->
+- [x] `block.deepslate_tiles.hit` <!--sound:block.deepslate_tiles.hit-->
+- [x] `block.deepslate_tiles.place` <!--sound:block.deepslate_tiles.place-->
+- [x] `block.deepslate_tiles.step` <!--sound:block.deepslate_tiles.step-->
 - [ ] `block.dispenser.dispense` <!--sound:block.dispenser.dispense-->
 - [ ] `block.dispenser.fail` <!--sound:block.dispenser.fail-->
 - [ ] `block.dispenser.launch` <!--sound:block.dispenser.launch-->
-- [ ] `entity.dolphin.ambient` <!--sound:entity.dolphin.ambient-->
-- [ ] `entity.dolphin.ambient_water` <!--sound:entity.dolphin.ambient_water-->
-- [ ] `entity.dolphin.attack` <!--sound:entity.dolphin.attack-->
-- [ ] `entity.dolphin.death` <!--sound:entity.dolphin.death-->
-- [ ] `entity.dolphin.eat` <!--sound:entity.dolphin.eat-->
-- [ ] `entity.dolphin.hurt` <!--sound:entity.dolphin.hurt-->
-- [ ] `entity.dolphin.jump` <!--sound:entity.dolphin.jump-->
-- [ ] `entity.dolphin.play` <!--sound:entity.dolphin.play-->
-- [ ] `entity.dolphin.splash` <!--sound:entity.dolphin.splash-->
-- [ ] `entity.dolphin.swim` <!--sound:entity.dolphin.swim-->
-- [ ] `entity.donkey.ambient` <!--sound:entity.donkey.ambient-->
-- [ ] `entity.donkey.angry` <!--sound:entity.donkey.angry-->
+- [x] `entity.dolphin.ambient` <!--sound:entity.dolphin.ambient-->
+- [x] `entity.dolphin.ambient_water` <!--sound:entity.dolphin.ambient_water-->
+- [x] `entity.dolphin.attack` <!--sound:entity.dolphin.attack-->
+- [x] `entity.dolphin.death` <!--sound:entity.dolphin.death-->
+- [x] `entity.dolphin.eat` <!--sound:entity.dolphin.eat-->
+- [x] `entity.dolphin.hurt` <!--sound:entity.dolphin.hurt-->
+- [x] `entity.dolphin.jump` <!--sound:entity.dolphin.jump-->
+- [x] `entity.dolphin.play` <!--sound:entity.dolphin.play-->
+- [x] `entity.dolphin.splash` <!--sound:entity.dolphin.splash-->
+- [x] `entity.dolphin.swim` <!--sound:entity.dolphin.swim-->
+- [x] `entity.donkey.ambient` <!--sound:entity.donkey.ambient-->
+- [x] `entity.donkey.angry` <!--sound:entity.donkey.angry-->
 - [ ] `entity.donkey.chest` <!--sound:entity.donkey.chest-->
-- [ ] `entity.donkey.death` <!--sound:entity.donkey.death-->
+- [x] `entity.donkey.death` <!--sound:entity.donkey.death-->
 - [ ] `entity.donkey.eat` <!--sound:entity.donkey.eat-->
-- [ ] `entity.donkey.hurt` <!--sound:entity.donkey.hurt-->
-- [ ] `block.dripstone_block.break` <!--sound:block.dripstone_block.break-->
-- [ ] `block.dripstone_block.step` <!--sound:block.dripstone_block.step-->
-- [ ] `block.dripstone_block.place` <!--sound:block.dripstone_block.place-->
-- [ ] `block.dripstone_block.hit` <!--sound:block.dripstone_block.hit-->
-- [ ] `block.dripstone_block.fall` <!--sound:block.dripstone_block.fall-->
-- [ ] `block.pointed_dripstone.break` <!--sound:block.pointed_dripstone.break-->
-- [ ] `block.pointed_dripstone.step` <!--sound:block.pointed_dripstone.step-->
-- [ ] `block.pointed_dripstone.place` <!--sound:block.pointed_dripstone.place-->
-- [ ] `block.pointed_dripstone.hit` <!--sound:block.pointed_dripstone.hit-->
-- [ ] `block.pointed_dripstone.fall` <!--sound:block.pointed_dripstone.fall-->
+- [x] `entity.donkey.hurt` <!--sound:entity.donkey.hurt-->
+- [x] `block.dripstone_block.break` <!--sound:block.dripstone_block.break-->
+- [x] `block.dripstone_block.step` <!--sound:block.dripstone_block.step-->
+- [x] `block.dripstone_block.place` <!--sound:block.dripstone_block.place-->
+- [x] `block.dripstone_block.hit` <!--sound:block.dripstone_block.hit-->
+- [x] `block.dripstone_block.fall` <!--sound:block.dripstone_block.fall-->
+- [x] `block.pointed_dripstone.break` <!--sound:block.pointed_dripstone.break-->
+- [x] `block.pointed_dripstone.step` <!--sound:block.pointed_dripstone.step-->
+- [x] `block.pointed_dripstone.place` <!--sound:block.pointed_dripstone.place-->
+- [x] `block.pointed_dripstone.hit` <!--sound:block.pointed_dripstone.hit-->
+- [x] `block.pointed_dripstone.fall` <!--sound:block.pointed_dripstone.fall-->
 - [ ] `block.pointed_dripstone.land` <!--sound:block.pointed_dripstone.land-->
 - [ ] `block.pointed_dripstone.drip_lava` <!--sound:block.pointed_dripstone.drip_lava-->
 - [ ] `block.pointed_dripstone.drip_water` <!--sound:block.pointed_dripstone.drip_water-->
@@ -3263,149 +3263,149 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] `block.pointed_dripstone.drip_water_into_cauldron` <!--sound:block.pointed_dripstone.drip_water_into_cauldron-->
 - [ ] `block.big_dripleaf.tilt_down` <!--sound:block.big_dripleaf.tilt_down-->
 - [ ] `block.big_dripleaf.tilt_up` <!--sound:block.big_dripleaf.tilt_up-->
-- [ ] `entity.drowned.ambient` <!--sound:entity.drowned.ambient-->
-- [ ] `entity.drowned.ambient_water` <!--sound:entity.drowned.ambient_water-->
-- [ ] `entity.drowned.death` <!--sound:entity.drowned.death-->
-- [ ] `entity.drowned.death_water` <!--sound:entity.drowned.death_water-->
-- [ ] `entity.drowned.hurt` <!--sound:entity.drowned.hurt-->
-- [ ] `entity.drowned.hurt_water` <!--sound:entity.drowned.hurt_water-->
+- [x] `entity.drowned.ambient` <!--sound:entity.drowned.ambient-->
+- [x] `entity.drowned.ambient_water` <!--sound:entity.drowned.ambient_water-->
+- [x] `entity.drowned.death` <!--sound:entity.drowned.death-->
+- [x] `entity.drowned.death_water` <!--sound:entity.drowned.death_water-->
+- [x] `entity.drowned.hurt` <!--sound:entity.drowned.hurt-->
+- [x] `entity.drowned.hurt_water` <!--sound:entity.drowned.hurt_water-->
 - [ ] `entity.drowned.shoot` <!--sound:entity.drowned.shoot-->
-- [ ] `entity.drowned.step` <!--sound:entity.drowned.step-->
-- [ ] `entity.drowned.swim` <!--sound:entity.drowned.swim-->
+- [x] `entity.drowned.step` <!--sound:entity.drowned.step-->
+- [x] `entity.drowned.swim` <!--sound:entity.drowned.swim-->
 - [ ] `item.dye.use` <!--sound:item.dye.use-->
-- [ ] `entity.egg.throw` <!--sound:entity.egg.throw-->
-- [ ] `entity.elder_guardian.ambient` <!--sound:entity.elder_guardian.ambient-->
-- [ ] `entity.elder_guardian.ambient_land` <!--sound:entity.elder_guardian.ambient_land-->
-- [ ] `entity.elder_guardian.curse` <!--sound:entity.elder_guardian.curse-->
-- [ ] `entity.elder_guardian.death` <!--sound:entity.elder_guardian.death-->
-- [ ] `entity.elder_guardian.death_land` <!--sound:entity.elder_guardian.death_land-->
-- [ ] `entity.elder_guardian.flop` <!--sound:entity.elder_guardian.flop-->
-- [ ] `entity.elder_guardian.hurt` <!--sound:entity.elder_guardian.hurt-->
-- [ ] `entity.elder_guardian.hurt_land` <!--sound:entity.elder_guardian.hurt_land-->
+- [x] `entity.egg.throw` <!--sound:entity.egg.throw-->
+- [x] `entity.elder_guardian.ambient` <!--sound:entity.elder_guardian.ambient-->
+- [x] `entity.elder_guardian.ambient_land` <!--sound:entity.elder_guardian.ambient_land-->
+- [x] `entity.elder_guardian.curse` <!--sound:entity.elder_guardian.curse-->
+- [x] `entity.elder_guardian.death` <!--sound:entity.elder_guardian.death-->
+- [x] `entity.elder_guardian.death_land` <!--sound:entity.elder_guardian.death_land-->
+- [x] `entity.elder_guardian.flop` <!--sound:entity.elder_guardian.flop-->
+- [x] `entity.elder_guardian.hurt` <!--sound:entity.elder_guardian.hurt-->
+- [x] `entity.elder_guardian.hurt_land` <!--sound:entity.elder_guardian.hurt_land-->
 - [ ] `item.elytra.flying` <!--sound:item.elytra.flying-->
-- [ ] `block.enchantment_table.use` <!--sound:block.enchantment_table.use-->
-- [ ] `block.ender_chest.close` <!--sound:block.ender_chest.close-->
-- [ ] `block.ender_chest.open` <!--sound:block.ender_chest.open-->
-- [ ] `entity.ender_dragon.ambient` <!--sound:entity.ender_dragon.ambient-->
-- [ ] `entity.ender_dragon.death` <!--sound:entity.ender_dragon.death-->
+- [x] `block.enchantment_table.use` <!--sound:block.enchantment_table.use-->
+- [x] `block.ender_chest.close` <!--sound:block.ender_chest.close-->
+- [x] `block.ender_chest.open` <!--sound:block.ender_chest.open-->
+- [x] `entity.ender_dragon.ambient` <!--sound:entity.ender_dragon.ambient-->
+- [x] `entity.ender_dragon.death` <!--sound:entity.ender_dragon.death-->
 - [ ] `entity.dragon_fireball.explode` <!--sound:entity.dragon_fireball.explode-->
-- [ ] `entity.ender_dragon.flap` <!--sound:entity.ender_dragon.flap-->
-- [ ] `entity.ender_dragon.growl` <!--sound:entity.ender_dragon.growl-->
-- [ ] `entity.ender_dragon.hurt` <!--sound:entity.ender_dragon.hurt-->
-- [ ] `entity.ender_dragon.shoot` <!--sound:entity.ender_dragon.shoot-->
+- [x] `entity.ender_dragon.flap` <!--sound:entity.ender_dragon.flap-->
+- [x] `entity.ender_dragon.growl` <!--sound:entity.ender_dragon.growl-->
+- [x] `entity.ender_dragon.hurt` <!--sound:entity.ender_dragon.hurt-->
+- [x] `entity.ender_dragon.shoot` <!--sound:entity.ender_dragon.shoot-->
 - [ ] `entity.ender_eye.death` <!--sound:entity.ender_eye.death-->
 - [ ] `entity.ender_eye.launch` <!--sound:entity.ender_eye.launch-->
-- [ ] `entity.enderman.ambient` <!--sound:entity.enderman.ambient-->
-- [ ] `entity.enderman.death` <!--sound:entity.enderman.death-->
-- [ ] `entity.enderman.hurt` <!--sound:entity.enderman.hurt-->
-- [ ] `entity.enderman.scream` <!--sound:entity.enderman.scream-->
-- [ ] `entity.enderman.stare` <!--sound:entity.enderman.stare-->
-- [ ] `entity.enderman.teleport` <!--sound:entity.enderman.teleport-->
-- [ ] `entity.endermite.ambient` <!--sound:entity.endermite.ambient-->
-- [ ] `entity.endermite.death` <!--sound:entity.endermite.death-->
-- [ ] `entity.endermite.hurt` <!--sound:entity.endermite.hurt-->
-- [ ] `entity.endermite.step` <!--sound:entity.endermite.step-->
-- [ ] `entity.ender_pearl.throw` <!--sound:entity.ender_pearl.throw-->
+- [x] `entity.enderman.ambient` <!--sound:entity.enderman.ambient-->
+- [x] `entity.enderman.death` <!--sound:entity.enderman.death-->
+- [x] `entity.enderman.hurt` <!--sound:entity.enderman.hurt-->
+- [x] `entity.enderman.scream` <!--sound:entity.enderman.scream-->
+- [x] `entity.enderman.stare` <!--sound:entity.enderman.stare-->
+- [x] `entity.enderman.teleport` <!--sound:entity.enderman.teleport-->
+- [x] `entity.endermite.ambient` <!--sound:entity.endermite.ambient-->
+- [x] `entity.endermite.death` <!--sound:entity.endermite.death-->
+- [x] `entity.endermite.hurt` <!--sound:entity.endermite.hurt-->
+- [x] `entity.endermite.step` <!--sound:entity.endermite.step-->
+- [x] `entity.ender_pearl.throw` <!--sound:entity.ender_pearl.throw-->
 - [ ] `block.end_gateway.spawn` <!--sound:block.end_gateway.spawn-->
 - [ ] `block.end_portal_frame.fill` <!--sound:block.end_portal_frame.fill-->
-- [ ] `block.end_portal.spawn` <!--sound:block.end_portal.spawn-->
-- [ ] `entity.evoker.ambient` <!--sound:entity.evoker.ambient-->
-- [ ] `entity.evoker.cast_spell` <!--sound:entity.evoker.cast_spell-->
-- [ ] `entity.evoker.celebrate` <!--sound:entity.evoker.celebrate-->
-- [ ] `entity.evoker.death` <!--sound:entity.evoker.death-->
+- [x] `block.end_portal.spawn` <!--sound:block.end_portal.spawn-->
+- [x] `entity.evoker.ambient` <!--sound:entity.evoker.ambient-->
+- [x] `entity.evoker.cast_spell` <!--sound:entity.evoker.cast_spell-->
+- [x] `entity.evoker.celebrate` <!--sound:entity.evoker.celebrate-->
+- [x] `entity.evoker.death` <!--sound:entity.evoker.death-->
 - [ ] `entity.evoker_fangs.attack` <!--sound:entity.evoker_fangs.attack-->
-- [ ] `entity.evoker.hurt` <!--sound:entity.evoker.hurt-->
-- [ ] `entity.evoker.prepare_attack` <!--sound:entity.evoker.prepare_attack-->
-- [ ] `entity.evoker.prepare_summon` <!--sound:entity.evoker.prepare_summon-->
-- [ ] `entity.evoker.prepare_wololo` <!--sound:entity.evoker.prepare_wololo-->
-- [ ] `entity.experience_bottle.throw` <!--sound:entity.experience_bottle.throw-->
-- [ ] `entity.experience_orb.pickup` <!--sound:entity.experience_orb.pickup-->
-- [ ] `block.fence_gate.close` <!--sound:block.fence_gate.close-->
-- [ ] `block.fence_gate.open` <!--sound:block.fence_gate.open-->
-- [ ] `item.firecharge.use` <!--sound:item.firecharge.use-->
-- [ ] `entity.firework_rocket.blast` <!--sound:entity.firework_rocket.blast-->
+- [x] `entity.evoker.hurt` <!--sound:entity.evoker.hurt-->
+- [x] `entity.evoker.prepare_attack` <!--sound:entity.evoker.prepare_attack-->
+- [x] `entity.evoker.prepare_summon` <!--sound:entity.evoker.prepare_summon-->
+- [x] `entity.evoker.prepare_wololo` <!--sound:entity.evoker.prepare_wololo-->
+- [x] `entity.experience_bottle.throw` <!--sound:entity.experience_bottle.throw-->
+- [x] `entity.experience_orb.pickup` <!--sound:entity.experience_orb.pickup-->
+- [x] `block.fence_gate.close` <!--sound:block.fence_gate.close-->
+- [x] `block.fence_gate.open` <!--sound:block.fence_gate.open-->
+- [x] `item.firecharge.use` <!--sound:item.firecharge.use-->
+- [x] `entity.firework_rocket.blast` <!--sound:entity.firework_rocket.blast-->
 - [ ] `entity.firework_rocket.blast_far` <!--sound:entity.firework_rocket.blast_far-->
-- [ ] `entity.firework_rocket.large_blast` <!--sound:entity.firework_rocket.large_blast-->
+- [x] `entity.firework_rocket.large_blast` <!--sound:entity.firework_rocket.large_blast-->
 - [ ] `entity.firework_rocket.large_blast_far` <!--sound:entity.firework_rocket.large_blast_far-->
-- [ ] `entity.firework_rocket.launch` <!--sound:entity.firework_rocket.launch-->
+- [x] `entity.firework_rocket.launch` <!--sound:entity.firework_rocket.launch-->
 - [ ] `entity.firework_rocket.shoot` <!--sound:entity.firework_rocket.shoot-->
 - [ ] `entity.firework_rocket.twinkle` <!--sound:entity.firework_rocket.twinkle-->
 - [ ] `entity.firework_rocket.twinkle_far` <!--sound:entity.firework_rocket.twinkle_far-->
-- [ ] `block.fire.ambient` <!--sound:block.fire.ambient-->
-- [ ] `block.fire.extinguish` <!--sound:block.fire.extinguish-->
+- [x] `block.fire.ambient` <!--sound:block.fire.ambient-->
+- [x] `block.fire.extinguish` <!--sound:block.fire.extinguish-->
 - [ ] `entity.fish.swim` <!--sound:entity.fish.swim-->
 - [ ] `entity.fishing_bobber.retrieve` <!--sound:entity.fishing_bobber.retrieve-->
 - [ ] `entity.fishing_bobber.splash` <!--sound:entity.fishing_bobber.splash-->
 - [ ] `entity.fishing_bobber.throw` <!--sound:entity.fishing_bobber.throw-->
-- [ ] `item.flintandsteel.use` <!--sound:item.flintandsteel.use-->
-- [ ] `block.flowering_azalea.break` <!--sound:block.flowering_azalea.break-->
-- [ ] `block.flowering_azalea.fall` <!--sound:block.flowering_azalea.fall-->
-- [ ] `block.flowering_azalea.hit` <!--sound:block.flowering_azalea.hit-->
-- [ ] `block.flowering_azalea.place` <!--sound:block.flowering_azalea.place-->
-- [ ] `block.flowering_azalea.step` <!--sound:block.flowering_azalea.step-->
+- [x] `item.flintandsteel.use` <!--sound:item.flintandsteel.use-->
+- [x] `block.flowering_azalea.break` <!--sound:block.flowering_azalea.break-->
+- [x] `block.flowering_azalea.fall` <!--sound:block.flowering_azalea.fall-->
+- [x] `block.flowering_azalea.hit` <!--sound:block.flowering_azalea.hit-->
+- [x] `block.flowering_azalea.place` <!--sound:block.flowering_azalea.place-->
+- [x] `block.flowering_azalea.step` <!--sound:block.flowering_azalea.step-->
 - [ ] `entity.fox.aggro` <!--sound:entity.fox.aggro-->
-- [ ] `entity.fox.ambient` <!--sound:entity.fox.ambient-->
-- [ ] `entity.fox.bite` <!--sound:entity.fox.bite-->
-- [ ] `entity.fox.death` <!--sound:entity.fox.death-->
-- [ ] `entity.fox.eat` <!--sound:entity.fox.eat-->
-- [ ] `entity.fox.hurt` <!--sound:entity.fox.hurt-->
-- [ ] `entity.fox.screech` <!--sound:entity.fox.screech-->
-- [ ] `entity.fox.sleep` <!--sound:entity.fox.sleep-->
-- [ ] `entity.fox.sniff` <!--sound:entity.fox.sniff-->
+- [x] `entity.fox.ambient` <!--sound:entity.fox.ambient-->
+- [x] `entity.fox.bite` <!--sound:entity.fox.bite-->
+- [x] `entity.fox.death` <!--sound:entity.fox.death-->
+- [x] `entity.fox.eat` <!--sound:entity.fox.eat-->
+- [x] `entity.fox.hurt` <!--sound:entity.fox.hurt-->
+- [x] `entity.fox.screech` <!--sound:entity.fox.screech-->
+- [x] `entity.fox.sleep` <!--sound:entity.fox.sleep-->
+- [x] `entity.fox.sniff` <!--sound:entity.fox.sniff-->
 - [ ] `entity.fox.spit` <!--sound:entity.fox.spit-->
 - [ ] `entity.fox.teleport` <!--sound:entity.fox.teleport-->
-- [ ] `block.roots.break` <!--sound:block.roots.break-->
-- [ ] `block.roots.step` <!--sound:block.roots.step-->
-- [ ] `block.roots.place` <!--sound:block.roots.place-->
-- [ ] `block.roots.hit` <!--sound:block.roots.hit-->
-- [ ] `block.roots.fall` <!--sound:block.roots.fall-->
-- [ ] `block.furnace.fire_crackle` <!--sound:block.furnace.fire_crackle-->
-- [ ] `entity.generic.big_fall` <!--sound:entity.generic.big_fall-->
-- [ ] `entity.generic.burn` <!--sound:entity.generic.burn-->
-- [ ] `entity.generic.death` <!--sound:entity.generic.death-->
-- [ ] `entity.generic.drink` <!--sound:entity.generic.drink-->
-- [ ] `entity.generic.eat` <!--sound:entity.generic.eat-->
-- [ ] `entity.generic.explode` <!--sound:entity.generic.explode-->
-- [ ] `entity.generic.extinguish_fire` <!--sound:entity.generic.extinguish_fire-->
-- [ ] `entity.generic.hurt` <!--sound:entity.generic.hurt-->
-- [ ] `entity.generic.small_fall` <!--sound:entity.generic.small_fall-->
-- [ ] `entity.generic.splash` <!--sound:entity.generic.splash-->
-- [ ] `entity.generic.swim` <!--sound:entity.generic.swim-->
-- [ ] `entity.ghast.ambient` <!--sound:entity.ghast.ambient-->
-- [ ] `entity.ghast.death` <!--sound:entity.ghast.death-->
-- [ ] `entity.ghast.hurt` <!--sound:entity.ghast.hurt-->
-- [ ] `entity.ghast.scream` <!--sound:entity.ghast.scream-->
-- [ ] `entity.ghast.shoot` <!--sound:entity.ghast.shoot-->
-- [ ] `entity.ghast.warn` <!--sound:entity.ghast.warn-->
-- [ ] `block.gilded_blackstone.break` <!--sound:block.gilded_blackstone.break-->
-- [ ] `block.gilded_blackstone.fall` <!--sound:block.gilded_blackstone.fall-->
-- [ ] `block.gilded_blackstone.hit` <!--sound:block.gilded_blackstone.hit-->
-- [ ] `block.gilded_blackstone.place` <!--sound:block.gilded_blackstone.place-->
-- [ ] `block.gilded_blackstone.step` <!--sound:block.gilded_blackstone.step-->
-- [ ] `block.glass.break` <!--sound:block.glass.break-->
-- [ ] `block.glass.fall` <!--sound:block.glass.fall-->
-- [ ] `block.glass.hit` <!--sound:block.glass.hit-->
-- [ ] `block.glass.place` <!--sound:block.glass.place-->
-- [ ] `block.glass.step` <!--sound:block.glass.step-->
+- [x] `block.roots.break` <!--sound:block.roots.break-->
+- [x] `block.roots.step` <!--sound:block.roots.step-->
+- [x] `block.roots.place` <!--sound:block.roots.place-->
+- [x] `block.roots.hit` <!--sound:block.roots.hit-->
+- [x] `block.roots.fall` <!--sound:block.roots.fall-->
+- [x] `block.furnace.fire_crackle` <!--sound:block.furnace.fire_crackle-->
+- [x] `entity.generic.big_fall` <!--sound:entity.generic.big_fall-->
+- [x] `entity.generic.burn` <!--sound:entity.generic.burn-->
+- [x] `entity.generic.death` <!--sound:entity.generic.death-->
+- [x] `entity.generic.drink` <!--sound:entity.generic.drink-->
+- [x] `entity.generic.eat` <!--sound:entity.generic.eat-->
+- [x] `entity.generic.explode` <!--sound:entity.generic.explode-->
+- [x] `entity.generic.extinguish_fire` <!--sound:entity.generic.extinguish_fire-->
+- [x] `entity.generic.hurt` <!--sound:entity.generic.hurt-->
+- [x] `entity.generic.small_fall` <!--sound:entity.generic.small_fall-->
+- [x] `entity.generic.splash` <!--sound:entity.generic.splash-->
+- [x] `entity.generic.swim` <!--sound:entity.generic.swim-->
+- [x] `entity.ghast.ambient` <!--sound:entity.ghast.ambient-->
+- [x] `entity.ghast.death` <!--sound:entity.ghast.death-->
+- [x] `entity.ghast.hurt` <!--sound:entity.ghast.hurt-->
+- [x] `entity.ghast.scream` <!--sound:entity.ghast.scream-->
+- [x] `entity.ghast.shoot` <!--sound:entity.ghast.shoot-->
+- [x] `entity.ghast.warn` <!--sound:entity.ghast.warn-->
+- [x] `block.gilded_blackstone.break` <!--sound:block.gilded_blackstone.break-->
+- [x] `block.gilded_blackstone.fall` <!--sound:block.gilded_blackstone.fall-->
+- [x] `block.gilded_blackstone.hit` <!--sound:block.gilded_blackstone.hit-->
+- [x] `block.gilded_blackstone.place` <!--sound:block.gilded_blackstone.place-->
+- [x] `block.gilded_blackstone.step` <!--sound:block.gilded_blackstone.step-->
+- [x] `block.glass.break` <!--sound:block.glass.break-->
+- [x] `block.glass.fall` <!--sound:block.glass.fall-->
+- [x] `block.glass.hit` <!--sound:block.glass.hit-->
+- [x] `block.glass.place` <!--sound:block.glass.place-->
+- [x] `block.glass.step` <!--sound:block.glass.step-->
 - [ ] `item.glow_ink_sac.use` <!--sound:item.glow_ink_sac.use-->
 - [ ] `entity.glow_item_frame.add_item` <!--sound:entity.glow_item_frame.add_item-->
 - [ ] `entity.glow_item_frame.break` <!--sound:entity.glow_item_frame.break-->
 - [ ] `entity.glow_item_frame.place` <!--sound:entity.glow_item_frame.place-->
 - [ ] `entity.glow_item_frame.remove_item` <!--sound:entity.glow_item_frame.remove_item-->
 - [ ] `entity.glow_item_frame.rotate_item` <!--sound:entity.glow_item_frame.rotate_item-->
-- [ ] `entity.glow_squid.ambient` <!--sound:entity.glow_squid.ambient-->
-- [ ] `entity.glow_squid.death` <!--sound:entity.glow_squid.death-->
-- [ ] `entity.glow_squid.hurt` <!--sound:entity.glow_squid.hurt-->
-- [ ] `entity.glow_squid.squirt` <!--sound:entity.glow_squid.squirt-->
-- [ ] `entity.goat.ambient` <!--sound:entity.goat.ambient-->
-- [ ] `entity.goat.death` <!--sound:entity.goat.death-->
+- [x] `entity.glow_squid.ambient` <!--sound:entity.glow_squid.ambient-->
+- [x] `entity.glow_squid.death` <!--sound:entity.glow_squid.death-->
+- [x] `entity.glow_squid.hurt` <!--sound:entity.glow_squid.hurt-->
+- [x] `entity.glow_squid.squirt` <!--sound:entity.glow_squid.squirt-->
+- [x] `entity.goat.ambient` <!--sound:entity.goat.ambient-->
+- [x] `entity.goat.death` <!--sound:entity.goat.death-->
 - [ ] `entity.goat.eat` <!--sound:entity.goat.eat-->
-- [ ] `entity.goat.hurt` <!--sound:entity.goat.hurt-->
+- [x] `entity.goat.hurt` <!--sound:entity.goat.hurt-->
 - [ ] `entity.goat.long_jump` <!--sound:entity.goat.long_jump-->
 - [ ] `entity.goat.milk` <!--sound:entity.goat.milk-->
 - [ ] `entity.goat.prepare_ram` <!--sound:entity.goat.prepare_ram-->
 - [ ] `entity.goat.ram_impact` <!--sound:entity.goat.ram_impact-->
-- [ ] `entity.goat.screaming.ambient` <!--sound:entity.goat.screaming.ambient-->
+- [x] `entity.goat.screaming.ambient` <!--sound:entity.goat.screaming.ambient-->
 - [ ] `entity.goat.screaming.death` <!--sound:entity.goat.screaming.death-->
 - [ ] `entity.goat.screaming.eat` <!--sound:entity.goat.screaming.eat-->
 - [ ] `entity.goat.screaming.hurt` <!--sound:entity.goat.screaming.hurt-->
@@ -3413,175 +3413,175 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] `entity.goat.screaming.milk` <!--sound:entity.goat.screaming.milk-->
 - [ ] `entity.goat.screaming.prepare_ram` <!--sound:entity.goat.screaming.prepare_ram-->
 - [ ] `entity.goat.screaming.ram_impact` <!--sound:entity.goat.screaming.ram_impact-->
-- [ ] `entity.goat.step` <!--sound:entity.goat.step-->
-- [ ] `block.grass.break` <!--sound:block.grass.break-->
-- [ ] `block.grass.fall` <!--sound:block.grass.fall-->
-- [ ] `block.grass.hit` <!--sound:block.grass.hit-->
-- [ ] `block.grass.place` <!--sound:block.grass.place-->
-- [ ] `block.grass.step` <!--sound:block.grass.step-->
-- [ ] `block.gravel.break` <!--sound:block.gravel.break-->
-- [ ] `block.gravel.fall` <!--sound:block.gravel.fall-->
-- [ ] `block.gravel.hit` <!--sound:block.gravel.hit-->
-- [ ] `block.gravel.place` <!--sound:block.gravel.place-->
-- [ ] `block.gravel.step` <!--sound:block.gravel.step-->
-- [ ] `block.grindstone.use` <!--sound:block.grindstone.use-->
-- [ ] `entity.guardian.ambient` <!--sound:entity.guardian.ambient-->
-- [ ] `entity.guardian.ambient_land` <!--sound:entity.guardian.ambient_land-->
-- [ ] `entity.guardian.attack` <!--sound:entity.guardian.attack-->
-- [ ] `entity.guardian.death` <!--sound:entity.guardian.death-->
-- [ ] `entity.guardian.death_land` <!--sound:entity.guardian.death_land-->
-- [ ] `entity.guardian.flop` <!--sound:entity.guardian.flop-->
-- [ ] `entity.guardian.hurt` <!--sound:entity.guardian.hurt-->
-- [ ] `entity.guardian.hurt_land` <!--sound:entity.guardian.hurt_land-->
-- [ ] `block.hanging_roots.break` <!--sound:block.hanging_roots.break-->
-- [ ] `block.hanging_roots.fall` <!--sound:block.hanging_roots.fall-->
-- [ ] `block.hanging_roots.hit` <!--sound:block.hanging_roots.hit-->
-- [ ] `block.hanging_roots.place` <!--sound:block.hanging_roots.place-->
-- [ ] `block.hanging_roots.step` <!--sound:block.hanging_roots.step-->
-- [ ] `item.hoe.till` <!--sound:item.hoe.till-->
-- [ ] `entity.hoglin.ambient` <!--sound:entity.hoglin.ambient-->
-- [ ] `entity.hoglin.angry` <!--sound:entity.hoglin.angry-->
+- [x] `entity.goat.step` <!--sound:entity.goat.step-->
+- [x] `block.grass.break` <!--sound:block.grass.break-->
+- [x] `block.grass.fall` <!--sound:block.grass.fall-->
+- [x] `block.grass.hit` <!--sound:block.grass.hit-->
+- [x] `block.grass.place` <!--sound:block.grass.place-->
+- [x] `block.grass.step` <!--sound:block.grass.step-->
+- [x] `block.gravel.break` <!--sound:block.gravel.break-->
+- [x] `block.gravel.fall` <!--sound:block.gravel.fall-->
+- [x] `block.gravel.hit` <!--sound:block.gravel.hit-->
+- [x] `block.gravel.place` <!--sound:block.gravel.place-->
+- [x] `block.gravel.step` <!--sound:block.gravel.step-->
+- [x] `block.grindstone.use` <!--sound:block.grindstone.use-->
+- [x] `entity.guardian.ambient` <!--sound:entity.guardian.ambient-->
+- [x] `entity.guardian.ambient_land` <!--sound:entity.guardian.ambient_land-->
+- [x] `entity.guardian.attack` <!--sound:entity.guardian.attack-->
+- [x] `entity.guardian.death` <!--sound:entity.guardian.death-->
+- [x] `entity.guardian.death_land` <!--sound:entity.guardian.death_land-->
+- [x] `entity.guardian.flop` <!--sound:entity.guardian.flop-->
+- [x] `entity.guardian.hurt` <!--sound:entity.guardian.hurt-->
+- [x] `entity.guardian.hurt_land` <!--sound:entity.guardian.hurt_land-->
+- [x] `block.hanging_roots.break` <!--sound:block.hanging_roots.break-->
+- [x] `block.hanging_roots.fall` <!--sound:block.hanging_roots.fall-->
+- [x] `block.hanging_roots.hit` <!--sound:block.hanging_roots.hit-->
+- [x] `block.hanging_roots.place` <!--sound:block.hanging_roots.place-->
+- [x] `block.hanging_roots.step` <!--sound:block.hanging_roots.step-->
+- [x] `item.hoe.till` <!--sound:item.hoe.till-->
+- [x] `entity.hoglin.ambient` <!--sound:entity.hoglin.ambient-->
+- [x] `entity.hoglin.angry` <!--sound:entity.hoglin.angry-->
 - [ ] `entity.hoglin.attack` <!--sound:entity.hoglin.attack-->
 - [ ] `entity.hoglin.converted_to_zombified` <!--sound:entity.hoglin.converted_to_zombified-->
-- [ ] `entity.hoglin.death` <!--sound:entity.hoglin.death-->
-- [ ] `entity.hoglin.hurt` <!--sound:entity.hoglin.hurt-->
+- [x] `entity.hoglin.death` <!--sound:entity.hoglin.death-->
+- [x] `entity.hoglin.hurt` <!--sound:entity.hoglin.hurt-->
 - [ ] `entity.hoglin.retreat` <!--sound:entity.hoglin.retreat-->
-- [ ] `entity.hoglin.step` <!--sound:entity.hoglin.step-->
-- [ ] `block.honey_block.break` <!--sound:block.honey_block.break-->
-- [ ] `block.honey_block.fall` <!--sound:block.honey_block.fall-->
-- [ ] `block.honey_block.hit` <!--sound:block.honey_block.hit-->
-- [ ] `block.honey_block.place` <!--sound:block.honey_block.place-->
-- [ ] `block.honey_block.slide` <!--sound:block.honey_block.slide-->
-- [ ] `block.honey_block.step` <!--sound:block.honey_block.step-->
-- [ ] `item.honeycomb.wax_on` <!--sound:item.honeycomb.wax_on-->
-- [ ] `item.honey_bottle.drink` <!--sound:item.honey_bottle.drink-->
-- [ ] `entity.horse.ambient` <!--sound:entity.horse.ambient-->
-- [ ] `entity.horse.angry` <!--sound:entity.horse.angry-->
-- [ ] `entity.horse.armor` <!--sound:entity.horse.armor-->
-- [ ] `entity.horse.breathe` <!--sound:entity.horse.breathe-->
-- [ ] `entity.horse.death` <!--sound:entity.horse.death-->
-- [ ] `entity.horse.eat` <!--sound:entity.horse.eat-->
-- [ ] `entity.horse.gallop` <!--sound:entity.horse.gallop-->
-- [ ] `entity.horse.hurt` <!--sound:entity.horse.hurt-->
-- [ ] `entity.horse.jump` <!--sound:entity.horse.jump-->
-- [ ] `entity.horse.land` <!--sound:entity.horse.land-->
-- [ ] `entity.horse.saddle` <!--sound:entity.horse.saddle-->
-- [ ] `entity.horse.step` <!--sound:entity.horse.step-->
-- [ ] `entity.horse.step_wood` <!--sound:entity.horse.step_wood-->
-- [ ] `entity.hostile.big_fall` <!--sound:entity.hostile.big_fall-->
+- [x] `entity.hoglin.step` <!--sound:entity.hoglin.step-->
+- [x] `block.honey_block.break` <!--sound:block.honey_block.break-->
+- [x] `block.honey_block.fall` <!--sound:block.honey_block.fall-->
+- [x] `block.honey_block.hit` <!--sound:block.honey_block.hit-->
+- [x] `block.honey_block.place` <!--sound:block.honey_block.place-->
+- [x] `block.honey_block.slide` <!--sound:block.honey_block.slide-->
+- [x] `block.honey_block.step` <!--sound:block.honey_block.step-->
+- [x] `item.honeycomb.wax_on` <!--sound:item.honeycomb.wax_on-->
+- [x] `item.honey_bottle.drink` <!--sound:item.honey_bottle.drink-->
+- [x] `entity.horse.ambient` <!--sound:entity.horse.ambient-->
+- [x] `entity.horse.angry` <!--sound:entity.horse.angry-->
+- [x] `entity.horse.armor` <!--sound:entity.horse.armor-->
+- [x] `entity.horse.breathe` <!--sound:entity.horse.breathe-->
+- [x] `entity.horse.death` <!--sound:entity.horse.death-->
+- [x] `entity.horse.eat` <!--sound:entity.horse.eat-->
+- [x] `entity.horse.gallop` <!--sound:entity.horse.gallop-->
+- [x] `entity.horse.hurt` <!--sound:entity.horse.hurt-->
+- [x] `entity.horse.jump` <!--sound:entity.horse.jump-->
+- [x] `entity.horse.land` <!--sound:entity.horse.land-->
+- [x] `entity.horse.saddle` <!--sound:entity.horse.saddle-->
+- [x] `entity.horse.step` <!--sound:entity.horse.step-->
+- [x] `entity.horse.step_wood` <!--sound:entity.horse.step_wood-->
+- [x] `entity.hostile.big_fall` <!--sound:entity.hostile.big_fall-->
 - [ ] `entity.hostile.death` <!--sound:entity.hostile.death-->
 - [ ] `entity.hostile.hurt` <!--sound:entity.hostile.hurt-->
-- [ ] `entity.hostile.small_fall` <!--sound:entity.hostile.small_fall-->
+- [x] `entity.hostile.small_fall` <!--sound:entity.hostile.small_fall-->
 - [ ] `entity.hostile.splash` <!--sound:entity.hostile.splash-->
 - [ ] `entity.hostile.swim` <!--sound:entity.hostile.swim-->
-- [ ] `entity.husk.ambient` <!--sound:entity.husk.ambient-->
-- [ ] `entity.husk.converted_to_zombie` <!--sound:entity.husk.converted_to_zombie-->
-- [ ] `entity.husk.death` <!--sound:entity.husk.death-->
-- [ ] `entity.husk.hurt` <!--sound:entity.husk.hurt-->
-- [ ] `entity.husk.step` <!--sound:entity.husk.step-->
-- [ ] `entity.illusioner.ambient` <!--sound:entity.illusioner.ambient-->
-- [ ] `entity.illusioner.cast_spell` <!--sound:entity.illusioner.cast_spell-->
-- [ ] `entity.illusioner.death` <!--sound:entity.illusioner.death-->
-- [ ] `entity.illusioner.hurt` <!--sound:entity.illusioner.hurt-->
+- [x] `entity.husk.ambient` <!--sound:entity.husk.ambient-->
+- [x] `entity.husk.converted_to_zombie` <!--sound:entity.husk.converted_to_zombie-->
+- [x] `entity.husk.death` <!--sound:entity.husk.death-->
+- [x] `entity.husk.hurt` <!--sound:entity.husk.hurt-->
+- [x] `entity.husk.step` <!--sound:entity.husk.step-->
+- [x] `entity.illusioner.ambient` <!--sound:entity.illusioner.ambient-->
+- [x] `entity.illusioner.cast_spell` <!--sound:entity.illusioner.cast_spell-->
+- [x] `entity.illusioner.death` <!--sound:entity.illusioner.death-->
+- [x] `entity.illusioner.hurt` <!--sound:entity.illusioner.hurt-->
 - [ ] `entity.illusioner.mirror_move` <!--sound:entity.illusioner.mirror_move-->
 - [ ] `entity.illusioner.prepare_blindness` <!--sound:entity.illusioner.prepare_blindness-->
 - [ ] `entity.illusioner.prepare_mirror` <!--sound:entity.illusioner.prepare_mirror-->
 - [ ] `item.ink_sac.use` <!--sound:item.ink_sac.use-->
-- [ ] `block.iron_door.close` <!--sound:block.iron_door.close-->
-- [ ] `block.iron_door.open` <!--sound:block.iron_door.open-->
-- [ ] `entity.iron_golem.attack` <!--sound:entity.iron_golem.attack-->
+- [x] `block.iron_door.close` <!--sound:block.iron_door.close-->
+- [x] `block.iron_door.open` <!--sound:block.iron_door.open-->
+- [x] `entity.iron_golem.attack` <!--sound:entity.iron_golem.attack-->
 - [ ] `entity.iron_golem.damage` <!--sound:entity.iron_golem.damage-->
-- [ ] `entity.iron_golem.death` <!--sound:entity.iron_golem.death-->
-- [ ] `entity.iron_golem.hurt` <!--sound:entity.iron_golem.hurt-->
-- [ ] `entity.iron_golem.repair` <!--sound:entity.iron_golem.repair-->
-- [ ] `entity.iron_golem.step` <!--sound:entity.iron_golem.step-->
-- [ ] `block.iron_trapdoor.close` <!--sound:block.iron_trapdoor.close-->
-- [ ] `block.iron_trapdoor.open` <!--sound:block.iron_trapdoor.open-->
-- [ ] `entity.item_frame.add_item` <!--sound:entity.item_frame.add_item-->
-- [ ] `entity.item_frame.break` <!--sound:entity.item_frame.break-->
-- [ ] `entity.item_frame.place` <!--sound:entity.item_frame.place-->
-- [ ] `entity.item_frame.remove_item` <!--sound:entity.item_frame.remove_item-->
-- [ ] `entity.item_frame.rotate_item` <!--sound:entity.item_frame.rotate_item-->
-- [ ] `entity.item.break` <!--sound:entity.item.break-->
-- [ ] `entity.item.pickup` <!--sound:entity.item.pickup-->
-- [ ] `block.ladder.break` <!--sound:block.ladder.break-->
-- [ ] `block.ladder.fall` <!--sound:block.ladder.fall-->
-- [ ] `block.ladder.hit` <!--sound:block.ladder.hit-->
-- [ ] `block.ladder.place` <!--sound:block.ladder.place-->
-- [ ] `block.ladder.step` <!--sound:block.ladder.step-->
-- [ ] `block.lantern.break` <!--sound:block.lantern.break-->
-- [ ] `block.lantern.fall` <!--sound:block.lantern.fall-->
-- [ ] `block.lantern.hit` <!--sound:block.lantern.hit-->
-- [ ] `block.lantern.place` <!--sound:block.lantern.place-->
-- [ ] `block.lantern.step` <!--sound:block.lantern.step-->
-- [ ] `block.large_amethyst_bud.break` <!--sound:block.large_amethyst_bud.break-->
-- [ ] `block.large_amethyst_bud.place` <!--sound:block.large_amethyst_bud.place-->
-- [ ] `block.lava.ambient` <!--sound:block.lava.ambient-->
-- [ ] `block.lava.extinguish` <!--sound:block.lava.extinguish-->
-- [ ] `block.lava.pop` <!--sound:block.lava.pop-->
+- [x] `entity.iron_golem.death` <!--sound:entity.iron_golem.death-->
+- [x] `entity.iron_golem.hurt` <!--sound:entity.iron_golem.hurt-->
+- [x] `entity.iron_golem.repair` <!--sound:entity.iron_golem.repair-->
+- [x] `entity.iron_golem.step` <!--sound:entity.iron_golem.step-->
+- [x] `block.iron_trapdoor.close` <!--sound:block.iron_trapdoor.close-->
+- [x] `block.iron_trapdoor.open` <!--sound:block.iron_trapdoor.open-->
+- [x] `entity.item_frame.add_item` <!--sound:entity.item_frame.add_item-->
+- [x] `entity.item_frame.break` <!--sound:entity.item_frame.break-->
+- [x] `entity.item_frame.place` <!--sound:entity.item_frame.place-->
+- [x] `entity.item_frame.remove_item` <!--sound:entity.item_frame.remove_item-->
+- [x] `entity.item_frame.rotate_item` <!--sound:entity.item_frame.rotate_item-->
+- [x] `entity.item.break` <!--sound:entity.item.break-->
+- [x] `entity.item.pickup` <!--sound:entity.item.pickup-->
+- [x] `block.ladder.break` <!--sound:block.ladder.break-->
+- [x] `block.ladder.fall` <!--sound:block.ladder.fall-->
+- [x] `block.ladder.hit` <!--sound:block.ladder.hit-->
+- [x] `block.ladder.place` <!--sound:block.ladder.place-->
+- [x] `block.ladder.step` <!--sound:block.ladder.step-->
+- [x] `block.lantern.break` <!--sound:block.lantern.break-->
+- [x] `block.lantern.fall` <!--sound:block.lantern.fall-->
+- [x] `block.lantern.hit` <!--sound:block.lantern.hit-->
+- [x] `block.lantern.place` <!--sound:block.lantern.place-->
+- [x] `block.lantern.step` <!--sound:block.lantern.step-->
+- [x] `block.large_amethyst_bud.break` <!--sound:block.large_amethyst_bud.break-->
+- [x] `block.large_amethyst_bud.place` <!--sound:block.large_amethyst_bud.place-->
+- [x] `block.lava.ambient` <!--sound:block.lava.ambient-->
+- [x] `block.lava.extinguish` <!--sound:block.lava.extinguish-->
+- [x] `block.lava.pop` <!--sound:block.lava.pop-->
 - [ ] `entity.leash_knot.break` <!--sound:entity.leash_knot.break-->
 - [ ] `entity.leash_knot.place` <!--sound:entity.leash_knot.place-->
-- [ ] `block.lever.click` <!--sound:block.lever.click-->
-- [ ] `entity.lightning_bolt.impact` <!--sound:entity.lightning_bolt.impact-->
-- [ ] `entity.lightning_bolt.thunder` <!--sound:entity.lightning_bolt.thunder-->
+- [x] `block.lever.click` <!--sound:block.lever.click-->
+- [x] `entity.lightning_bolt.impact` <!--sound:entity.lightning_bolt.impact-->
+- [x] `entity.lightning_bolt.thunder` <!--sound:entity.lightning_bolt.thunder-->
 - [ ] `entity.lingering_potion.throw` <!--sound:entity.lingering_potion.throw-->
-- [ ] `entity.llama.ambient` <!--sound:entity.llama.ambient-->
-- [ ] `entity.llama.angry` <!--sound:entity.llama.angry-->
+- [x] `entity.llama.ambient` <!--sound:entity.llama.ambient-->
+- [x] `entity.llama.angry` <!--sound:entity.llama.angry-->
 - [ ] `entity.llama.chest` <!--sound:entity.llama.chest-->
-- [ ] `entity.llama.death` <!--sound:entity.llama.death-->
-- [ ] `entity.llama.eat` <!--sound:entity.llama.eat-->
-- [ ] `entity.llama.hurt` <!--sound:entity.llama.hurt-->
-- [ ] `entity.llama.spit` <!--sound:entity.llama.spit-->
-- [ ] `entity.llama.step` <!--sound:entity.llama.step-->
+- [x] `entity.llama.death` <!--sound:entity.llama.death-->
+- [x] `entity.llama.eat` <!--sound:entity.llama.eat-->
+- [x] `entity.llama.hurt` <!--sound:entity.llama.hurt-->
+- [x] `entity.llama.spit` <!--sound:entity.llama.spit-->
+- [x] `entity.llama.step` <!--sound:entity.llama.step-->
 - [ ] `entity.llama.swag` <!--sound:entity.llama.swag-->
-- [ ] `entity.magma_cube.death_small` <!--sound:entity.magma_cube.death_small-->
-- [ ] `block.lodestone.break` <!--sound:block.lodestone.break-->
-- [ ] `block.lodestone.step` <!--sound:block.lodestone.step-->
-- [ ] `block.lodestone.place` <!--sound:block.lodestone.place-->
-- [ ] `block.lodestone.hit` <!--sound:block.lodestone.hit-->
-- [ ] `block.lodestone.fall` <!--sound:block.lodestone.fall-->
+- [x] `entity.magma_cube.death_small` <!--sound:entity.magma_cube.death_small-->
+- [x] `block.lodestone.break` <!--sound:block.lodestone.break-->
+- [x] `block.lodestone.step` <!--sound:block.lodestone.step-->
+- [x] `block.lodestone.place` <!--sound:block.lodestone.place-->
+- [x] `block.lodestone.hit` <!--sound:block.lodestone.hit-->
+- [x] `block.lodestone.fall` <!--sound:block.lodestone.fall-->
 - [ ] `item.lodestone_compass.lock` <!--sound:item.lodestone_compass.lock-->
-- [ ] `entity.magma_cube.death` <!--sound:entity.magma_cube.death-->
-- [ ] `entity.magma_cube.hurt` <!--sound:entity.magma_cube.hurt-->
-- [ ] `entity.magma_cube.hurt_small` <!--sound:entity.magma_cube.hurt_small-->
-- [ ] `entity.magma_cube.jump` <!--sound:entity.magma_cube.jump-->
-- [ ] `entity.magma_cube.squish` <!--sound:entity.magma_cube.squish-->
+- [x] `entity.magma_cube.death` <!--sound:entity.magma_cube.death-->
+- [x] `entity.magma_cube.hurt` <!--sound:entity.magma_cube.hurt-->
+- [x] `entity.magma_cube.hurt_small` <!--sound:entity.magma_cube.hurt_small-->
+- [x] `entity.magma_cube.jump` <!--sound:entity.magma_cube.jump-->
+- [x] `entity.magma_cube.squish` <!--sound:entity.magma_cube.squish-->
 - [ ] `entity.magma_cube.squish_small` <!--sound:entity.magma_cube.squish_small-->
-- [ ] `block.medium_amethyst_bud.break` <!--sound:block.medium_amethyst_bud.break-->
-- [ ] `block.medium_amethyst_bud.place` <!--sound:block.medium_amethyst_bud.place-->
-- [ ] `block.metal.break` <!--sound:block.metal.break-->
-- [ ] `block.metal.fall` <!--sound:block.metal.fall-->
-- [ ] `block.metal.hit` <!--sound:block.metal.hit-->
-- [ ] `block.metal.place` <!--sound:block.metal.place-->
-- [ ] `block.metal_pressure_plate.click_off` <!--sound:block.metal_pressure_plate.click_off-->
-- [ ] `block.metal_pressure_plate.click_on` <!--sound:block.metal_pressure_plate.click_on-->
-- [ ] `block.metal.step` <!--sound:block.metal.step-->
+- [x] `block.medium_amethyst_bud.break` <!--sound:block.medium_amethyst_bud.break-->
+- [x] `block.medium_amethyst_bud.place` <!--sound:block.medium_amethyst_bud.place-->
+- [x] `block.metal.break` <!--sound:block.metal.break-->
+- [x] `block.metal.fall` <!--sound:block.metal.fall-->
+- [x] `block.metal.hit` <!--sound:block.metal.hit-->
+- [x] `block.metal.place` <!--sound:block.metal.place-->
+- [x] `block.metal_pressure_plate.click_off` <!--sound:block.metal_pressure_plate.click_off-->
+- [x] `block.metal_pressure_plate.click_on` <!--sound:block.metal_pressure_plate.click_on-->
+- [x] `block.metal.step` <!--sound:block.metal.step-->
 - [ ] `entity.minecart.inside.underwater` <!--sound:entity.minecart.inside.underwater-->
 - [ ] `entity.minecart.inside` <!--sound:entity.minecart.inside-->
 - [ ] `entity.minecart.riding` <!--sound:entity.minecart.riding-->
 - [ ] `entity.mooshroom.convert` <!--sound:entity.mooshroom.convert-->
 - [ ] `entity.mooshroom.eat` <!--sound:entity.mooshroom.eat-->
-- [ ] `entity.mooshroom.milk` <!--sound:entity.mooshroom.milk-->
-- [ ] `entity.mooshroom.suspicious_milk` <!--sound:entity.mooshroom.suspicious_milk-->
-- [ ] `entity.mooshroom.shear` <!--sound:entity.mooshroom.shear-->
-- [ ] `block.moss_carpet.break` <!--sound:block.moss_carpet.break-->
-- [ ] `block.moss_carpet.fall` <!--sound:block.moss_carpet.fall-->
-- [ ] `block.moss_carpet.hit` <!--sound:block.moss_carpet.hit-->
-- [ ] `block.moss_carpet.place` <!--sound:block.moss_carpet.place-->
-- [ ] `block.moss_carpet.step` <!--sound:block.moss_carpet.step-->
-- [ ] `block.moss.break` <!--sound:block.moss.break-->
-- [ ] `block.moss.fall` <!--sound:block.moss.fall-->
-- [ ] `block.moss.hit` <!--sound:block.moss.hit-->
-- [ ] `block.moss.place` <!--sound:block.moss.place-->
-- [ ] `block.moss.step` <!--sound:block.moss.step-->
-- [ ] `entity.mule.ambient` <!--sound:entity.mule.ambient-->
+- [x] `entity.mooshroom.milk` <!--sound:entity.mooshroom.milk-->
+- [x] `entity.mooshroom.suspicious_milk` <!--sound:entity.mooshroom.suspicious_milk-->
+- [x] `entity.mooshroom.shear` <!--sound:entity.mooshroom.shear-->
+- [x] `block.moss_carpet.break` <!--sound:block.moss_carpet.break-->
+- [x] `block.moss_carpet.fall` <!--sound:block.moss_carpet.fall-->
+- [x] `block.moss_carpet.hit` <!--sound:block.moss_carpet.hit-->
+- [x] `block.moss_carpet.place` <!--sound:block.moss_carpet.place-->
+- [x] `block.moss_carpet.step` <!--sound:block.moss_carpet.step-->
+- [x] `block.moss.break` <!--sound:block.moss.break-->
+- [x] `block.moss.fall` <!--sound:block.moss.fall-->
+- [x] `block.moss.hit` <!--sound:block.moss.hit-->
+- [x] `block.moss.place` <!--sound:block.moss.place-->
+- [x] `block.moss.step` <!--sound:block.moss.step-->
+- [x] `entity.mule.ambient` <!--sound:entity.mule.ambient-->
 - [ ] `entity.mule.angry` <!--sound:entity.mule.angry-->
 - [ ] `entity.mule.chest` <!--sound:entity.mule.chest-->
-- [ ] `entity.mule.death` <!--sound:entity.mule.death-->
+- [x] `entity.mule.death` <!--sound:entity.mule.death-->
 - [ ] `entity.mule.eat` <!--sound:entity.mule.eat-->
-- [ ] `entity.mule.hurt` <!--sound:entity.mule.hurt-->
-- [ ] `music.creative` <!--sound:music.creative-->
-- [ ] `music.credits` <!--sound:music.credits-->
+- [x] `entity.mule.hurt` <!--sound:entity.mule.hurt-->
+- [x] `music.creative` <!--sound:music.creative-->
+- [x] `music.credits` <!--sound:music.credits-->
 - [ ] `music_disc.11` <!--sound:music_disc.11-->
 - [ ] `music_disc.13` <!--sound:music_disc.13-->
 - [ ] `music_disc.blocks` <!--sound:music_disc.blocks-->
@@ -3595,100 +3595,100 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] `music_disc.strad` <!--sound:music_disc.strad-->
 - [ ] `music_disc.wait` <!--sound:music_disc.wait-->
 - [ ] `music_disc.ward` <!--sound:music_disc.ward-->
-- [ ] `music.dragon` <!--sound:music.dragon-->
-- [ ] `music.end` <!--sound:music.end-->
-- [ ] `music.game` <!--sound:music.game-->
-- [ ] `music.menu` <!--sound:music.menu-->
-- [ ] `music.nether.basalt_deltas` <!--sound:music.nether.basalt_deltas-->
-- [ ] `music.nether.nether_wastes` <!--sound:music.nether.nether_wastes-->
-- [ ] `music.nether.soul_sand_valley` <!--sound:music.nether.soul_sand_valley-->
-- [ ] `music.nether.crimson_forest` <!--sound:music.nether.crimson_forest-->
-- [ ] `music.nether.warped_forest` <!--sound:music.nether.warped_forest-->
-- [ ] `music.under_water` <!--sound:music.under_water-->
-- [ ] `block.nether_bricks.break` <!--sound:block.nether_bricks.break-->
-- [ ] `block.nether_bricks.step` <!--sound:block.nether_bricks.step-->
-- [ ] `block.nether_bricks.place` <!--sound:block.nether_bricks.place-->
-- [ ] `block.nether_bricks.hit` <!--sound:block.nether_bricks.hit-->
-- [ ] `block.nether_bricks.fall` <!--sound:block.nether_bricks.fall-->
-- [ ] `block.nether_wart.break` <!--sound:block.nether_wart.break-->
-- [ ] `item.nether_wart.plant` <!--sound:item.nether_wart.plant-->
-- [ ] `block.stem.break` <!--sound:block.stem.break-->
-- [ ] `block.stem.step` <!--sound:block.stem.step-->
-- [ ] `block.stem.place` <!--sound:block.stem.place-->
-- [ ] `block.stem.hit` <!--sound:block.stem.hit-->
-- [ ] `block.stem.fall` <!--sound:block.stem.fall-->
-- [ ] `block.nylium.break` <!--sound:block.nylium.break-->
-- [ ] `block.nylium.step` <!--sound:block.nylium.step-->
-- [ ] `block.nylium.place` <!--sound:block.nylium.place-->
-- [ ] `block.nylium.hit` <!--sound:block.nylium.hit-->
-- [ ] `block.nylium.fall` <!--sound:block.nylium.fall-->
-- [ ] `block.nether_sprouts.break` <!--sound:block.nether_sprouts.break-->
-- [ ] `block.nether_sprouts.step` <!--sound:block.nether_sprouts.step-->
-- [ ] `block.nether_sprouts.place` <!--sound:block.nether_sprouts.place-->
-- [ ] `block.nether_sprouts.hit` <!--sound:block.nether_sprouts.hit-->
-- [ ] `block.nether_sprouts.fall` <!--sound:block.nether_sprouts.fall-->
-- [ ] `block.fungus.break` <!--sound:block.fungus.break-->
-- [ ] `block.fungus.step` <!--sound:block.fungus.step-->
-- [ ] `block.fungus.place` <!--sound:block.fungus.place-->
-- [ ] `block.fungus.hit` <!--sound:block.fungus.hit-->
-- [ ] `block.fungus.fall` <!--sound:block.fungus.fall-->
-- [ ] `block.weeping_vines.break` <!--sound:block.weeping_vines.break-->
-- [ ] `block.weeping_vines.step` <!--sound:block.weeping_vines.step-->
-- [ ] `block.weeping_vines.place` <!--sound:block.weeping_vines.place-->
-- [ ] `block.weeping_vines.hit` <!--sound:block.weeping_vines.hit-->
-- [ ] `block.weeping_vines.fall` <!--sound:block.weeping_vines.fall-->
-- [ ] `block.wart_block.break` <!--sound:block.wart_block.break-->
-- [ ] `block.wart_block.step` <!--sound:block.wart_block.step-->
-- [ ] `block.wart_block.place` <!--sound:block.wart_block.place-->
-- [ ] `block.wart_block.hit` <!--sound:block.wart_block.hit-->
-- [ ] `block.wart_block.fall` <!--sound:block.wart_block.fall-->
-- [ ] `block.netherite_block.break` <!--sound:block.netherite_block.break-->
-- [ ] `block.netherite_block.step` <!--sound:block.netherite_block.step-->
-- [ ] `block.netherite_block.place` <!--sound:block.netherite_block.place-->
-- [ ] `block.netherite_block.hit` <!--sound:block.netherite_block.hit-->
-- [ ] `block.netherite_block.fall` <!--sound:block.netherite_block.fall-->
-- [ ] `block.netherrack.break` <!--sound:block.netherrack.break-->
-- [ ] `block.netherrack.step` <!--sound:block.netherrack.step-->
-- [ ] `block.netherrack.place` <!--sound:block.netherrack.place-->
-- [ ] `block.netherrack.hit` <!--sound:block.netherrack.hit-->
-- [ ] `block.netherrack.fall` <!--sound:block.netherrack.fall-->
-- [ ] `block.note_block.basedrum` <!--sound:block.note_block.basedrum-->
-- [ ] `block.note_block.bass` <!--sound:block.note_block.bass-->
-- [ ] `block.note_block.bell` <!--sound:block.note_block.bell-->
-- [ ] `block.note_block.chime` <!--sound:block.note_block.chime-->
-- [ ] `block.note_block.flute` <!--sound:block.note_block.flute-->
-- [ ] `block.note_block.guitar` <!--sound:block.note_block.guitar-->
-- [ ] `block.note_block.harp` <!--sound:block.note_block.harp-->
-- [ ] `block.note_block.hat` <!--sound:block.note_block.hat-->
-- [ ] `block.note_block.pling` <!--sound:block.note_block.pling-->
-- [ ] `block.note_block.snare` <!--sound:block.note_block.snare-->
-- [ ] `block.note_block.xylophone` <!--sound:block.note_block.xylophone-->
-- [ ] `block.note_block.iron_xylophone` <!--sound:block.note_block.iron_xylophone-->
-- [ ] `block.note_block.cow_bell` <!--sound:block.note_block.cow_bell-->
-- [ ] `block.note_block.didgeridoo` <!--sound:block.note_block.didgeridoo-->
-- [ ] `block.note_block.bit` <!--sound:block.note_block.bit-->
-- [ ] `block.note_block.banjo` <!--sound:block.note_block.banjo-->
-- [ ] `entity.ocelot.hurt` <!--sound:entity.ocelot.hurt-->
-- [ ] `entity.ocelot.ambient` <!--sound:entity.ocelot.ambient-->
-- [ ] `entity.ocelot.death` <!--sound:entity.ocelot.death-->
-- [ ] `entity.painting.break` <!--sound:entity.painting.break-->
-- [ ] `entity.painting.place` <!--sound:entity.painting.place-->
+- [x] `music.dragon` <!--sound:music.dragon-->
+- [x] `music.end` <!--sound:music.end-->
+- [x] `music.game` <!--sound:music.game-->
+- [x] `music.menu` <!--sound:music.menu-->
+- [x] `music.nether.basalt_deltas` <!--sound:music.nether.basalt_deltas-->
+- [x] `music.nether.nether_wastes` <!--sound:music.nether.nether_wastes-->
+- [x] `music.nether.soul_sand_valley` <!--sound:music.nether.soul_sand_valley-->
+- [x] `music.nether.crimson_forest` <!--sound:music.nether.crimson_forest-->
+- [x] `music.nether.warped_forest` <!--sound:music.nether.warped_forest-->
+- [x] `music.under_water` <!--sound:music.under_water-->
+- [x] `block.nether_bricks.break` <!--sound:block.nether_bricks.break-->
+- [x] `block.nether_bricks.step` <!--sound:block.nether_bricks.step-->
+- [x] `block.nether_bricks.place` <!--sound:block.nether_bricks.place-->
+- [x] `block.nether_bricks.hit` <!--sound:block.nether_bricks.hit-->
+- [x] `block.nether_bricks.fall` <!--sound:block.nether_bricks.fall-->
+- [x] `block.nether_wart.break` <!--sound:block.nether_wart.break-->
+- [x] `item.nether_wart.plant` <!--sound:item.nether_wart.plant-->
+- [x] `block.stem.break` <!--sound:block.stem.break-->
+- [x] `block.stem.step` <!--sound:block.stem.step-->
+- [x] `block.stem.place` <!--sound:block.stem.place-->
+- [x] `block.stem.hit` <!--sound:block.stem.hit-->
+- [x] `block.stem.fall` <!--sound:block.stem.fall-->
+- [x] `block.nylium.break` <!--sound:block.nylium.break-->
+- [x] `block.nylium.step` <!--sound:block.nylium.step-->
+- [x] `block.nylium.place` <!--sound:block.nylium.place-->
+- [x] `block.nylium.hit` <!--sound:block.nylium.hit-->
+- [x] `block.nylium.fall` <!--sound:block.nylium.fall-->
+- [x] `block.nether_sprouts.break` <!--sound:block.nether_sprouts.break-->
+- [x] `block.nether_sprouts.step` <!--sound:block.nether_sprouts.step-->
+- [x] `block.nether_sprouts.place` <!--sound:block.nether_sprouts.place-->
+- [x] `block.nether_sprouts.hit` <!--sound:block.nether_sprouts.hit-->
+- [x] `block.nether_sprouts.fall` <!--sound:block.nether_sprouts.fall-->
+- [x] `block.fungus.break` <!--sound:block.fungus.break-->
+- [x] `block.fungus.step` <!--sound:block.fungus.step-->
+- [x] `block.fungus.place` <!--sound:block.fungus.place-->
+- [x] `block.fungus.hit` <!--sound:block.fungus.hit-->
+- [x] `block.fungus.fall` <!--sound:block.fungus.fall-->
+- [x] `block.weeping_vines.break` <!--sound:block.weeping_vines.break-->
+- [x] `block.weeping_vines.step` <!--sound:block.weeping_vines.step-->
+- [x] `block.weeping_vines.place` <!--sound:block.weeping_vines.place-->
+- [x] `block.weeping_vines.hit` <!--sound:block.weeping_vines.hit-->
+- [x] `block.weeping_vines.fall` <!--sound:block.weeping_vines.fall-->
+- [x] `block.wart_block.break` <!--sound:block.wart_block.break-->
+- [x] `block.wart_block.step` <!--sound:block.wart_block.step-->
+- [x] `block.wart_block.place` <!--sound:block.wart_block.place-->
+- [x] `block.wart_block.hit` <!--sound:block.wart_block.hit-->
+- [x] `block.wart_block.fall` <!--sound:block.wart_block.fall-->
+- [x] `block.netherite_block.break` <!--sound:block.netherite_block.break-->
+- [x] `block.netherite_block.step` <!--sound:block.netherite_block.step-->
+- [x] `block.netherite_block.place` <!--sound:block.netherite_block.place-->
+- [x] `block.netherite_block.hit` <!--sound:block.netherite_block.hit-->
+- [x] `block.netherite_block.fall` <!--sound:block.netherite_block.fall-->
+- [x] `block.netherrack.break` <!--sound:block.netherrack.break-->
+- [x] `block.netherrack.step` <!--sound:block.netherrack.step-->
+- [x] `block.netherrack.place` <!--sound:block.netherrack.place-->
+- [x] `block.netherrack.hit` <!--sound:block.netherrack.hit-->
+- [x] `block.netherrack.fall` <!--sound:block.netherrack.fall-->
+- [x] `block.note_block.basedrum` <!--sound:block.note_block.basedrum-->
+- [x] `block.note_block.bass` <!--sound:block.note_block.bass-->
+- [x] `block.note_block.bell` <!--sound:block.note_block.bell-->
+- [x] `block.note_block.chime` <!--sound:block.note_block.chime-->
+- [x] `block.note_block.flute` <!--sound:block.note_block.flute-->
+- [x] `block.note_block.guitar` <!--sound:block.note_block.guitar-->
+- [x] `block.note_block.harp` <!--sound:block.note_block.harp-->
+- [x] `block.note_block.hat` <!--sound:block.note_block.hat-->
+- [x] `block.note_block.pling` <!--sound:block.note_block.pling-->
+- [x] `block.note_block.snare` <!--sound:block.note_block.snare-->
+- [x] `block.note_block.xylophone` <!--sound:block.note_block.xylophone-->
+- [x] `block.note_block.iron_xylophone` <!--sound:block.note_block.iron_xylophone-->
+- [x] `block.note_block.cow_bell` <!--sound:block.note_block.cow_bell-->
+- [x] `block.note_block.didgeridoo` <!--sound:block.note_block.didgeridoo-->
+- [x] `block.note_block.bit` <!--sound:block.note_block.bit-->
+- [x] `block.note_block.banjo` <!--sound:block.note_block.banjo-->
+- [x] `entity.ocelot.hurt` <!--sound:entity.ocelot.hurt-->
+- [x] `entity.ocelot.ambient` <!--sound:entity.ocelot.ambient-->
+- [x] `entity.ocelot.death` <!--sound:entity.ocelot.death-->
+- [x] `entity.painting.break` <!--sound:entity.painting.break-->
+- [x] `entity.painting.place` <!--sound:entity.painting.place-->
 - [ ] `entity.panda.pre_sneeze` <!--sound:entity.panda.pre_sneeze-->
-- [ ] `entity.panda.sneeze` <!--sound:entity.panda.sneeze-->
-- [ ] `entity.panda.ambient` <!--sound:entity.panda.ambient-->
-- [ ] `entity.panda.death` <!--sound:entity.panda.death-->
-- [ ] `entity.panda.eat` <!--sound:entity.panda.eat-->
-- [ ] `entity.panda.step` <!--sound:entity.panda.step-->
+- [x] `entity.panda.sneeze` <!--sound:entity.panda.sneeze-->
+- [x] `entity.panda.ambient` <!--sound:entity.panda.ambient-->
+- [x] `entity.panda.death` <!--sound:entity.panda.death-->
+- [x] `entity.panda.eat` <!--sound:entity.panda.eat-->
+- [x] `entity.panda.step` <!--sound:entity.panda.step-->
 - [ ] `entity.panda.cant_breed` <!--sound:entity.panda.cant_breed-->
 - [ ] `entity.panda.aggressive_ambient` <!--sound:entity.panda.aggressive_ambient-->
 - [ ] `entity.panda.worried_ambient` <!--sound:entity.panda.worried_ambient-->
-- [ ] `entity.panda.hurt` <!--sound:entity.panda.hurt-->
-- [ ] `entity.panda.bite` <!--sound:entity.panda.bite-->
-- [ ] `entity.parrot.ambient` <!--sound:entity.parrot.ambient-->
-- [ ] `entity.parrot.death` <!--sound:entity.parrot.death-->
-- [ ] `entity.parrot.eat` <!--sound:entity.parrot.eat-->
-- [ ] `entity.parrot.fly` <!--sound:entity.parrot.fly-->
-- [ ] `entity.parrot.hurt` <!--sound:entity.parrot.hurt-->
+- [x] `entity.panda.hurt` <!--sound:entity.panda.hurt-->
+- [x] `entity.panda.bite` <!--sound:entity.panda.bite-->
+- [x] `entity.parrot.ambient` <!--sound:entity.parrot.ambient-->
+- [x] `entity.parrot.death` <!--sound:entity.parrot.death-->
+- [x] `entity.parrot.eat` <!--sound:entity.parrot.eat-->
+- [x] `entity.parrot.fly` <!--sound:entity.parrot.fly-->
+- [x] `entity.parrot.hurt` <!--sound:entity.parrot.hurt-->
 - [ ] `entity.parrot.imitate.blaze` <!--sound:entity.parrot.imitate.blaze-->
 - [ ] `entity.parrot.imitate.creeper` <!--sound:entity.parrot.imitate.creeper-->
 - [ ] `entity.parrot.imitate.drowned` <!--sound:entity.parrot.imitate.drowned-->
@@ -3721,79 +3721,79 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] `entity.parrot.imitate.zoglin` <!--sound:entity.parrot.imitate.zoglin-->
 - [ ] `entity.parrot.imitate.zombie` <!--sound:entity.parrot.imitate.zombie-->
 - [ ] `entity.parrot.imitate.zombie_villager` <!--sound:entity.parrot.imitate.zombie_villager-->
-- [ ] `entity.parrot.step` <!--sound:entity.parrot.step-->
-- [ ] `entity.phantom.ambient` <!--sound:entity.phantom.ambient-->
-- [ ] `entity.phantom.bite` <!--sound:entity.phantom.bite-->
-- [ ] `entity.phantom.death` <!--sound:entity.phantom.death-->
-- [ ] `entity.phantom.flap` <!--sound:entity.phantom.flap-->
-- [ ] `entity.phantom.hurt` <!--sound:entity.phantom.hurt-->
-- [ ] `entity.phantom.swoop` <!--sound:entity.phantom.swoop-->
-- [ ] `entity.pig.ambient` <!--sound:entity.pig.ambient-->
-- [ ] `entity.pig.death` <!--sound:entity.pig.death-->
-- [ ] `entity.pig.hurt` <!--sound:entity.pig.hurt-->
-- [ ] `entity.pig.saddle` <!--sound:entity.pig.saddle-->
-- [ ] `entity.pig.step` <!--sound:entity.pig.step-->
-- [ ] `entity.piglin.admiring_item` <!--sound:entity.piglin.admiring_item-->
-- [ ] `entity.piglin.ambient` <!--sound:entity.piglin.ambient-->
-- [ ] `entity.piglin.angry` <!--sound:entity.piglin.angry-->
+- [x] `entity.parrot.step` <!--sound:entity.parrot.step-->
+- [x] `entity.phantom.ambient` <!--sound:entity.phantom.ambient-->
+- [x] `entity.phantom.bite` <!--sound:entity.phantom.bite-->
+- [x] `entity.phantom.death` <!--sound:entity.phantom.death-->
+- [x] `entity.phantom.flap` <!--sound:entity.phantom.flap-->
+- [x] `entity.phantom.hurt` <!--sound:entity.phantom.hurt-->
+- [x] `entity.phantom.swoop` <!--sound:entity.phantom.swoop-->
+- [x] `entity.pig.ambient` <!--sound:entity.pig.ambient-->
+- [x] `entity.pig.death` <!--sound:entity.pig.death-->
+- [x] `entity.pig.hurt` <!--sound:entity.pig.hurt-->
+- [x] `entity.pig.saddle` <!--sound:entity.pig.saddle-->
+- [x] `entity.pig.step` <!--sound:entity.pig.step-->
+- [x] `entity.piglin.admiring_item` <!--sound:entity.piglin.admiring_item-->
+- [x] `entity.piglin.ambient` <!--sound:entity.piglin.ambient-->
+- [x] `entity.piglin.angry` <!--sound:entity.piglin.angry-->
 - [ ] `entity.piglin.celebrate` <!--sound:entity.piglin.celebrate-->
-- [ ] `entity.piglin.death` <!--sound:entity.piglin.death-->
+- [x] `entity.piglin.death` <!--sound:entity.piglin.death-->
 - [ ] `entity.piglin.jealous` <!--sound:entity.piglin.jealous-->
-- [ ] `entity.piglin.hurt` <!--sound:entity.piglin.hurt-->
+- [x] `entity.piglin.hurt` <!--sound:entity.piglin.hurt-->
 - [ ] `entity.piglin.retreat` <!--sound:entity.piglin.retreat-->
-- [ ] `entity.piglin.step` <!--sound:entity.piglin.step-->
+- [x] `entity.piglin.step` <!--sound:entity.piglin.step-->
 - [ ] `entity.piglin.converted_to_zombified` <!--sound:entity.piglin.converted_to_zombified-->
-- [ ] `entity.piglin_brute.ambient` <!--sound:entity.piglin_brute.ambient-->
-- [ ] `entity.piglin_brute.angry` <!--sound:entity.piglin_brute.angry-->
-- [ ] `entity.piglin_brute.death` <!--sound:entity.piglin_brute.death-->
-- [ ] `entity.piglin_brute.hurt` <!--sound:entity.piglin_brute.hurt-->
-- [ ] `entity.piglin_brute.step` <!--sound:entity.piglin_brute.step-->
+- [x] `entity.piglin_brute.ambient` <!--sound:entity.piglin_brute.ambient-->
+- [x] `entity.piglin_brute.angry` <!--sound:entity.piglin_brute.angry-->
+- [x] `entity.piglin_brute.death` <!--sound:entity.piglin_brute.death-->
+- [x] `entity.piglin_brute.hurt` <!--sound:entity.piglin_brute.hurt-->
+- [x] `entity.piglin_brute.step` <!--sound:entity.piglin_brute.step-->
 - [ ] `entity.piglin_brute.converted_to_zombified` <!--sound:entity.piglin_brute.converted_to_zombified-->
-- [ ] `entity.pillager.ambient` <!--sound:entity.pillager.ambient-->
-- [ ] `entity.pillager.celebrate` <!--sound:entity.pillager.celebrate-->
-- [ ] `entity.pillager.death` <!--sound:entity.pillager.death-->
-- [ ] `entity.pillager.hurt` <!--sound:entity.pillager.hurt-->
+- [x] `entity.pillager.ambient` <!--sound:entity.pillager.ambient-->
+- [x] `entity.pillager.celebrate` <!--sound:entity.pillager.celebrate-->
+- [x] `entity.pillager.death` <!--sound:entity.pillager.death-->
+- [x] `entity.pillager.hurt` <!--sound:entity.pillager.hurt-->
 - [ ] `block.piston.contract` <!--sound:block.piston.contract-->
 - [ ] `block.piston.extend` <!--sound:block.piston.extend-->
-- [ ] `entity.player.attack.crit` <!--sound:entity.player.attack.crit-->
-- [ ] `entity.player.attack.knockback` <!--sound:entity.player.attack.knockback-->
-- [ ] `entity.player.attack.nodamage` <!--sound:entity.player.attack.nodamage-->
-- [ ] `entity.player.attack.strong` <!--sound:entity.player.attack.strong-->
-- [ ] `entity.player.attack.sweep` <!--sound:entity.player.attack.sweep-->
-- [ ] `entity.player.attack.weak` <!--sound:entity.player.attack.weak-->
-- [ ] `entity.player.big_fall` <!--sound:entity.player.big_fall-->
-- [ ] `entity.player.breath` <!--sound:entity.player.breath-->
-- [ ] `entity.player.burp` <!--sound:entity.player.burp-->
-- [ ] `entity.player.death` <!--sound:entity.player.death-->
-- [ ] `entity.player.hurt` <!--sound:entity.player.hurt-->
-- [ ] `entity.player.hurt_drown` <!--sound:entity.player.hurt_drown-->
-- [ ] `entity.player.hurt_freeze` <!--sound:entity.player.hurt_freeze-->
-- [ ] `entity.player.hurt_on_fire` <!--sound:entity.player.hurt_on_fire-->
-- [ ] `entity.player.hurt_sweet_berry_bush` <!--sound:entity.player.hurt_sweet_berry_bush-->
-- [ ] `entity.player.levelup` <!--sound:entity.player.levelup-->
-- [ ] `entity.player.small_fall` <!--sound:entity.player.small_fall-->
-- [ ] `entity.player.splash` <!--sound:entity.player.splash-->
-- [ ] `entity.player.splash.high_speed` <!--sound:entity.player.splash.high_speed-->
-- [ ] `entity.player.swim` <!--sound:entity.player.swim-->
-- [ ] `entity.polar_bear.ambient` <!--sound:entity.polar_bear.ambient-->
-- [ ] `entity.polar_bear.ambient_baby` <!--sound:entity.polar_bear.ambient_baby-->
-- [ ] `entity.polar_bear.death` <!--sound:entity.polar_bear.death-->
-- [ ] `entity.polar_bear.hurt` <!--sound:entity.polar_bear.hurt-->
-- [ ] `entity.polar_bear.step` <!--sound:entity.polar_bear.step-->
-- [ ] `entity.polar_bear.warning` <!--sound:entity.polar_bear.warning-->
-- [ ] `block.polished_deepslate.break` <!--sound:block.polished_deepslate.break-->
-- [ ] `block.polished_deepslate.fall` <!--sound:block.polished_deepslate.fall-->
-- [ ] `block.polished_deepslate.hit` <!--sound:block.polished_deepslate.hit-->
-- [ ] `block.polished_deepslate.place` <!--sound:block.polished_deepslate.place-->
-- [ ] `block.polished_deepslate.step` <!--sound:block.polished_deepslate.step-->
-- [ ] `block.portal.ambient` <!--sound:block.portal.ambient-->
-- [ ] `block.portal.travel` <!--sound:block.portal.travel-->
-- [ ] `block.portal.trigger` <!--sound:block.portal.trigger-->
-- [ ] `block.powder_snow.break` <!--sound:block.powder_snow.break-->
-- [ ] `block.powder_snow.fall` <!--sound:block.powder_snow.fall-->
-- [ ] `block.powder_snow.hit` <!--sound:block.powder_snow.hit-->
-- [ ] `block.powder_snow.place` <!--sound:block.powder_snow.place-->
-- [ ] `block.powder_snow.step` <!--sound:block.powder_snow.step-->
+- [x] `entity.player.attack.crit` <!--sound:entity.player.attack.crit-->
+- [x] `entity.player.attack.knockback` <!--sound:entity.player.attack.knockback-->
+- [x] `entity.player.attack.nodamage` <!--sound:entity.player.attack.nodamage-->
+- [x] `entity.player.attack.strong` <!--sound:entity.player.attack.strong-->
+- [x] `entity.player.attack.sweep` <!--sound:entity.player.attack.sweep-->
+- [x] `entity.player.attack.weak` <!--sound:entity.player.attack.weak-->
+- [x] `entity.player.big_fall` <!--sound:entity.player.big_fall-->
+- [x] `entity.player.breath` <!--sound:entity.player.breath-->
+- [x] `entity.player.burp` <!--sound:entity.player.burp-->
+- [x] `entity.player.death` <!--sound:entity.player.death-->
+- [x] `entity.player.hurt` <!--sound:entity.player.hurt-->
+- [x] `entity.player.hurt_drown` <!--sound:entity.player.hurt_drown-->
+- [x] `entity.player.hurt_freeze` <!--sound:entity.player.hurt_freeze-->
+- [x] `entity.player.hurt_on_fire` <!--sound:entity.player.hurt_on_fire-->
+- [x] `entity.player.hurt_sweet_berry_bush` <!--sound:entity.player.hurt_sweet_berry_bush-->
+- [x] `entity.player.levelup` <!--sound:entity.player.levelup-->
+- [x] `entity.player.small_fall` <!--sound:entity.player.small_fall-->
+- [x] `entity.player.splash` <!--sound:entity.player.splash-->
+- [x] `entity.player.splash.high_speed` <!--sound:entity.player.splash.high_speed-->
+- [x] `entity.player.swim` <!--sound:entity.player.swim-->
+- [x] `entity.polar_bear.ambient` <!--sound:entity.polar_bear.ambient-->
+- [x] `entity.polar_bear.ambient_baby` <!--sound:entity.polar_bear.ambient_baby-->
+- [x] `entity.polar_bear.death` <!--sound:entity.polar_bear.death-->
+- [x] `entity.polar_bear.hurt` <!--sound:entity.polar_bear.hurt-->
+- [x] `entity.polar_bear.step` <!--sound:entity.polar_bear.step-->
+- [x] `entity.polar_bear.warning` <!--sound:entity.polar_bear.warning-->
+- [x] `block.polished_deepslate.break` <!--sound:block.polished_deepslate.break-->
+- [x] `block.polished_deepslate.fall` <!--sound:block.polished_deepslate.fall-->
+- [x] `block.polished_deepslate.hit` <!--sound:block.polished_deepslate.hit-->
+- [x] `block.polished_deepslate.place` <!--sound:block.polished_deepslate.place-->
+- [x] `block.polished_deepslate.step` <!--sound:block.polished_deepslate.step-->
+- [x] `block.portal.ambient` <!--sound:block.portal.ambient-->
+- [x] `block.portal.travel` <!--sound:block.portal.travel-->
+- [x] `block.portal.trigger` <!--sound:block.portal.trigger-->
+- [x] `block.powder_snow.break` <!--sound:block.powder_snow.break-->
+- [x] `block.powder_snow.fall` <!--sound:block.powder_snow.fall-->
+- [x] `block.powder_snow.hit` <!--sound:block.powder_snow.hit-->
+- [x] `block.powder_snow.place` <!--sound:block.powder_snow.place-->
+- [x] `block.powder_snow.step` <!--sound:block.powder_snow.step-->
 - [ ] `entity.puffer_fish.ambient` <!--sound:entity.puffer_fish.ambient-->
 - [ ] `entity.puffer_fish.blow_out` <!--sound:entity.puffer_fish.blow_out-->
 - [ ] `entity.puffer_fish.blow_up` <!--sound:entity.puffer_fish.blow_up-->
@@ -3801,248 +3801,248 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] `entity.puffer_fish.flop` <!--sound:entity.puffer_fish.flop-->
 - [ ] `entity.puffer_fish.hurt` <!--sound:entity.puffer_fish.hurt-->
 - [ ] `entity.puffer_fish.sting` <!--sound:entity.puffer_fish.sting-->
-- [ ] `block.pumpkin.carve` <!--sound:block.pumpkin.carve-->
-- [ ] `entity.rabbit.ambient` <!--sound:entity.rabbit.ambient-->
-- [ ] `entity.rabbit.attack` <!--sound:entity.rabbit.attack-->
-- [ ] `entity.rabbit.death` <!--sound:entity.rabbit.death-->
-- [ ] `entity.rabbit.hurt` <!--sound:entity.rabbit.hurt-->
-- [ ] `entity.rabbit.jump` <!--sound:entity.rabbit.jump-->
+- [x] `block.pumpkin.carve` <!--sound:block.pumpkin.carve-->
+- [x] `entity.rabbit.ambient` <!--sound:entity.rabbit.ambient-->
+- [x] `entity.rabbit.attack` <!--sound:entity.rabbit.attack-->
+- [x] `entity.rabbit.death` <!--sound:entity.rabbit.death-->
+- [x] `entity.rabbit.hurt` <!--sound:entity.rabbit.hurt-->
+- [x] `entity.rabbit.jump` <!--sound:entity.rabbit.jump-->
 - [ ] `event.raid.horn` <!--sound:event.raid.horn-->
-- [ ] `entity.ravager.ambient` <!--sound:entity.ravager.ambient-->
-- [ ] `entity.ravager.attack` <!--sound:entity.ravager.attack-->
+- [x] `entity.ravager.ambient` <!--sound:entity.ravager.ambient-->
+- [x] `entity.ravager.attack` <!--sound:entity.ravager.attack-->
 - [ ] `entity.ravager.celebrate` <!--sound:entity.ravager.celebrate-->
-- [ ] `entity.ravager.death` <!--sound:entity.ravager.death-->
-- [ ] `entity.ravager.hurt` <!--sound:entity.ravager.hurt-->
-- [ ] `entity.ravager.step` <!--sound:entity.ravager.step-->
+- [x] `entity.ravager.death` <!--sound:entity.ravager.death-->
+- [x] `entity.ravager.hurt` <!--sound:entity.ravager.hurt-->
+- [x] `entity.ravager.step` <!--sound:entity.ravager.step-->
 - [ ] `entity.ravager.stunned` <!--sound:entity.ravager.stunned-->
-- [ ] `entity.ravager.roar` <!--sound:entity.ravager.roar-->
-- [ ] `block.nether_gold_ore.break` <!--sound:block.nether_gold_ore.break-->
-- [ ] `block.nether_gold_ore.fall` <!--sound:block.nether_gold_ore.fall-->
-- [ ] `block.nether_gold_ore.hit` <!--sound:block.nether_gold_ore.hit-->
-- [ ] `block.nether_gold_ore.place` <!--sound:block.nether_gold_ore.place-->
-- [ ] `block.nether_gold_ore.step` <!--sound:block.nether_gold_ore.step-->
-- [ ] `block.nether_ore.break` <!--sound:block.nether_ore.break-->
-- [ ] `block.nether_ore.fall` <!--sound:block.nether_ore.fall-->
-- [ ] `block.nether_ore.hit` <!--sound:block.nether_ore.hit-->
-- [ ] `block.nether_ore.place` <!--sound:block.nether_ore.place-->
-- [ ] `block.nether_ore.step` <!--sound:block.nether_ore.step-->
+- [x] `entity.ravager.roar` <!--sound:entity.ravager.roar-->
+- [x] `block.nether_gold_ore.break` <!--sound:block.nether_gold_ore.break-->
+- [x] `block.nether_gold_ore.fall` <!--sound:block.nether_gold_ore.fall-->
+- [x] `block.nether_gold_ore.hit` <!--sound:block.nether_gold_ore.hit-->
+- [x] `block.nether_gold_ore.place` <!--sound:block.nether_gold_ore.place-->
+- [x] `block.nether_gold_ore.step` <!--sound:block.nether_gold_ore.step-->
+- [x] `block.nether_ore.break` <!--sound:block.nether_ore.break-->
+- [x] `block.nether_ore.fall` <!--sound:block.nether_ore.fall-->
+- [x] `block.nether_ore.hit` <!--sound:block.nether_ore.hit-->
+- [x] `block.nether_ore.place` <!--sound:block.nether_ore.place-->
+- [x] `block.nether_ore.step` <!--sound:block.nether_ore.step-->
 - [ ] `block.redstone_torch.burnout` <!--sound:block.redstone_torch.burnout-->
-- [ ] `block.respawn_anchor.ambient` <!--sound:block.respawn_anchor.ambient-->
-- [ ] `block.respawn_anchor.charge` <!--sound:block.respawn_anchor.charge-->
-- [ ] `block.respawn_anchor.deplete` <!--sound:block.respawn_anchor.deplete-->
-- [ ] `block.respawn_anchor.set_spawn` <!--sound:block.respawn_anchor.set_spawn-->
-- [ ] `block.rooted_dirt.break` <!--sound:block.rooted_dirt.break-->
-- [ ] `block.rooted_dirt.fall` <!--sound:block.rooted_dirt.fall-->
-- [ ] `block.rooted_dirt.hit` <!--sound:block.rooted_dirt.hit-->
-- [ ] `block.rooted_dirt.place` <!--sound:block.rooted_dirt.place-->
-- [ ] `block.rooted_dirt.step` <!--sound:block.rooted_dirt.step-->
-- [ ] `entity.salmon.ambient` <!--sound:entity.salmon.ambient-->
-- [ ] `entity.salmon.death` <!--sound:entity.salmon.death-->
-- [ ] `entity.salmon.flop` <!--sound:entity.salmon.flop-->
-- [ ] `entity.salmon.hurt` <!--sound:entity.salmon.hurt-->
-- [ ] `block.sand.break` <!--sound:block.sand.break-->
-- [ ] `block.sand.fall` <!--sound:block.sand.fall-->
-- [ ] `block.sand.hit` <!--sound:block.sand.hit-->
-- [ ] `block.sand.place` <!--sound:block.sand.place-->
-- [ ] `block.sand.step` <!--sound:block.sand.step-->
-- [ ] `block.scaffolding.break` <!--sound:block.scaffolding.break-->
-- [ ] `block.scaffolding.fall` <!--sound:block.scaffolding.fall-->
-- [ ] `block.scaffolding.hit` <!--sound:block.scaffolding.hit-->
-- [ ] `block.scaffolding.place` <!--sound:block.scaffolding.place-->
-- [ ] `block.scaffolding.step` <!--sound:block.scaffolding.step-->
-- [ ] `block.sculk_sensor.clicking` <!--sound:block.sculk_sensor.clicking-->
+- [x] `block.respawn_anchor.ambient` <!--sound:block.respawn_anchor.ambient-->
+- [x] `block.respawn_anchor.charge` <!--sound:block.respawn_anchor.charge-->
+- [x] `block.respawn_anchor.deplete` <!--sound:block.respawn_anchor.deplete-->
+- [x] `block.respawn_anchor.set_spawn` <!--sound:block.respawn_anchor.set_spawn-->
+- [x] `block.rooted_dirt.break` <!--sound:block.rooted_dirt.break-->
+- [x] `block.rooted_dirt.fall` <!--sound:block.rooted_dirt.fall-->
+- [x] `block.rooted_dirt.hit` <!--sound:block.rooted_dirt.hit-->
+- [x] `block.rooted_dirt.place` <!--sound:block.rooted_dirt.place-->
+- [x] `block.rooted_dirt.step` <!--sound:block.rooted_dirt.step-->
+- [x] `entity.salmon.ambient` <!--sound:entity.salmon.ambient-->
+- [x] `entity.salmon.death` <!--sound:entity.salmon.death-->
+- [x] `entity.salmon.flop` <!--sound:entity.salmon.flop-->
+- [x] `entity.salmon.hurt` <!--sound:entity.salmon.hurt-->
+- [x] `block.sand.break` <!--sound:block.sand.break-->
+- [x] `block.sand.fall` <!--sound:block.sand.fall-->
+- [x] `block.sand.hit` <!--sound:block.sand.hit-->
+- [x] `block.sand.place` <!--sound:block.sand.place-->
+- [x] `block.sand.step` <!--sound:block.sand.step-->
+- [x] `block.scaffolding.break` <!--sound:block.scaffolding.break-->
+- [x] `block.scaffolding.fall` <!--sound:block.scaffolding.fall-->
+- [x] `block.scaffolding.hit` <!--sound:block.scaffolding.hit-->
+- [x] `block.scaffolding.place` <!--sound:block.scaffolding.place-->
+- [x] `block.scaffolding.step` <!--sound:block.scaffolding.step-->
+- [x] `block.sculk_sensor.clicking` <!--sound:block.sculk_sensor.clicking-->
 - [ ] `block.sculk_sensor.clicking_stop` <!--sound:block.sculk_sensor.clicking_stop-->
-- [ ] `block.sculk_sensor.break` <!--sound:block.sculk_sensor.break-->
-- [ ] `block.sculk_sensor.fall` <!--sound:block.sculk_sensor.fall-->
-- [ ] `block.sculk_sensor.hit` <!--sound:block.sculk_sensor.hit-->
-- [ ] `block.sculk_sensor.place` <!--sound:block.sculk_sensor.place-->
-- [ ] `block.sculk_sensor.step` <!--sound:block.sculk_sensor.step-->
-- [ ] `entity.sheep.ambient` <!--sound:entity.sheep.ambient-->
-- [ ] `entity.sheep.death` <!--sound:entity.sheep.death-->
-- [ ] `entity.sheep.hurt` <!--sound:entity.sheep.hurt-->
-- [ ] `entity.sheep.shear` <!--sound:entity.sheep.shear-->
-- [ ] `entity.sheep.step` <!--sound:entity.sheep.step-->
-- [ ] `item.shield.block` <!--sound:item.shield.block-->
-- [ ] `item.shield.break` <!--sound:item.shield.break-->
-- [ ] `block.shroomlight.break` <!--sound:block.shroomlight.break-->
-- [ ] `block.shroomlight.step` <!--sound:block.shroomlight.step-->
-- [ ] `block.shroomlight.place` <!--sound:block.shroomlight.place-->
-- [ ] `block.shroomlight.hit` <!--sound:block.shroomlight.hit-->
-- [ ] `block.shroomlight.fall` <!--sound:block.shroomlight.fall-->
-- [ ] `item.shovel.flatten` <!--sound:item.shovel.flatten-->
-- [ ] `entity.shulker.ambient` <!--sound:entity.shulker.ambient-->
-- [ ] `block.shulker_box.close` <!--sound:block.shulker_box.close-->
-- [ ] `block.shulker_box.open` <!--sound:block.shulker_box.open-->
+- [x] `block.sculk_sensor.break` <!--sound:block.sculk_sensor.break-->
+- [x] `block.sculk_sensor.fall` <!--sound:block.sculk_sensor.fall-->
+- [x] `block.sculk_sensor.hit` <!--sound:block.sculk_sensor.hit-->
+- [x] `block.sculk_sensor.place` <!--sound:block.sculk_sensor.place-->
+- [x] `block.sculk_sensor.step` <!--sound:block.sculk_sensor.step-->
+- [x] `entity.sheep.ambient` <!--sound:entity.sheep.ambient-->
+- [x] `entity.sheep.death` <!--sound:entity.sheep.death-->
+- [x] `entity.sheep.hurt` <!--sound:entity.sheep.hurt-->
+- [x] `entity.sheep.shear` <!--sound:entity.sheep.shear-->
+- [x] `entity.sheep.step` <!--sound:entity.sheep.step-->
+- [x] `item.shield.block` <!--sound:item.shield.block-->
+- [x] `item.shield.break` <!--sound:item.shield.break-->
+- [x] `block.shroomlight.break` <!--sound:block.shroomlight.break-->
+- [x] `block.shroomlight.step` <!--sound:block.shroomlight.step-->
+- [x] `block.shroomlight.place` <!--sound:block.shroomlight.place-->
+- [x] `block.shroomlight.hit` <!--sound:block.shroomlight.hit-->
+- [x] `block.shroomlight.fall` <!--sound:block.shroomlight.fall-->
+- [x] `item.shovel.flatten` <!--sound:item.shovel.flatten-->
+- [x] `entity.shulker.ambient` <!--sound:entity.shulker.ambient-->
+- [x] `block.shulker_box.close` <!--sound:block.shulker_box.close-->
+- [x] `block.shulker_box.open` <!--sound:block.shulker_box.open-->
 - [ ] `entity.shulker_bullet.hit` <!--sound:entity.shulker_bullet.hit-->
 - [ ] `entity.shulker_bullet.hurt` <!--sound:entity.shulker_bullet.hurt-->
-- [ ] `entity.shulker.close` <!--sound:entity.shulker.close-->
-- [ ] `entity.shulker.death` <!--sound:entity.shulker.death-->
-- [ ] `entity.shulker.hurt` <!--sound:entity.shulker.hurt-->
+- [x] `entity.shulker.close` <!--sound:entity.shulker.close-->
+- [x] `entity.shulker.death` <!--sound:entity.shulker.death-->
+- [x] `entity.shulker.hurt` <!--sound:entity.shulker.hurt-->
 - [ ] `entity.shulker.hurt_closed` <!--sound:entity.shulker.hurt_closed-->
-- [ ] `entity.shulker.open` <!--sound:entity.shulker.open-->
-- [ ] `entity.shulker.shoot` <!--sound:entity.shulker.shoot-->
-- [ ] `entity.shulker.teleport` <!--sound:entity.shulker.teleport-->
-- [ ] `entity.silverfish.ambient` <!--sound:entity.silverfish.ambient-->
-- [ ] `entity.silverfish.death` <!--sound:entity.silverfish.death-->
-- [ ] `entity.silverfish.hurt` <!--sound:entity.silverfish.hurt-->
-- [ ] `entity.silverfish.step` <!--sound:entity.silverfish.step-->
-- [ ] `entity.skeleton.ambient` <!--sound:entity.skeleton.ambient-->
+- [x] `entity.shulker.open` <!--sound:entity.shulker.open-->
+- [x] `entity.shulker.shoot` <!--sound:entity.shulker.shoot-->
+- [x] `entity.shulker.teleport` <!--sound:entity.shulker.teleport-->
+- [x] `entity.silverfish.ambient` <!--sound:entity.silverfish.ambient-->
+- [x] `entity.silverfish.death` <!--sound:entity.silverfish.death-->
+- [x] `entity.silverfish.hurt` <!--sound:entity.silverfish.hurt-->
+- [x] `entity.silverfish.step` <!--sound:entity.silverfish.step-->
+- [x] `entity.skeleton.ambient` <!--sound:entity.skeleton.ambient-->
 - [ ] `entity.skeleton.converted_to_stray` <!--sound:entity.skeleton.converted_to_stray-->
-- [ ] `entity.skeleton.death` <!--sound:entity.skeleton.death-->
-- [ ] `entity.skeleton_horse.ambient` <!--sound:entity.skeleton_horse.ambient-->
-- [ ] `entity.skeleton_horse.death` <!--sound:entity.skeleton_horse.death-->
-- [ ] `entity.skeleton_horse.hurt` <!--sound:entity.skeleton_horse.hurt-->
+- [x] `entity.skeleton.death` <!--sound:entity.skeleton.death-->
+- [x] `entity.skeleton_horse.ambient` <!--sound:entity.skeleton_horse.ambient-->
+- [x] `entity.skeleton_horse.death` <!--sound:entity.skeleton_horse.death-->
+- [x] `entity.skeleton_horse.hurt` <!--sound:entity.skeleton_horse.hurt-->
 - [ ] `entity.skeleton_horse.swim` <!--sound:entity.skeleton_horse.swim-->
 - [ ] `entity.skeleton_horse.ambient_water` <!--sound:entity.skeleton_horse.ambient_water-->
 - [ ] `entity.skeleton_horse.gallop_water` <!--sound:entity.skeleton_horse.gallop_water-->
 - [ ] `entity.skeleton_horse.jump_water` <!--sound:entity.skeleton_horse.jump_water-->
 - [ ] `entity.skeleton_horse.step_water` <!--sound:entity.skeleton_horse.step_water-->
-- [ ] `entity.skeleton.hurt` <!--sound:entity.skeleton.hurt-->
-- [ ] `entity.skeleton.shoot` <!--sound:entity.skeleton.shoot-->
-- [ ] `entity.skeleton.step` <!--sound:entity.skeleton.step-->
-- [ ] `entity.slime.attack` <!--sound:entity.slime.attack-->
-- [ ] `entity.slime.death` <!--sound:entity.slime.death-->
-- [ ] `entity.slime.hurt` <!--sound:entity.slime.hurt-->
-- [ ] `entity.slime.jump` <!--sound:entity.slime.jump-->
-- [ ] `entity.slime.squish` <!--sound:entity.slime.squish-->
-- [ ] `block.slime_block.break` <!--sound:block.slime_block.break-->
-- [ ] `block.slime_block.fall` <!--sound:block.slime_block.fall-->
-- [ ] `block.slime_block.hit` <!--sound:block.slime_block.hit-->
-- [ ] `block.slime_block.place` <!--sound:block.slime_block.place-->
-- [ ] `block.slime_block.step` <!--sound:block.slime_block.step-->
-- [ ] `block.small_amethyst_bud.break` <!--sound:block.small_amethyst_bud.break-->
-- [ ] `block.small_amethyst_bud.place` <!--sound:block.small_amethyst_bud.place-->
-- [ ] `block.small_dripleaf.break` <!--sound:block.small_dripleaf.break-->
-- [ ] `block.small_dripleaf.fall` <!--sound:block.small_dripleaf.fall-->
-- [ ] `block.small_dripleaf.hit` <!--sound:block.small_dripleaf.hit-->
-- [ ] `block.small_dripleaf.place` <!--sound:block.small_dripleaf.place-->
-- [ ] `block.small_dripleaf.step` <!--sound:block.small_dripleaf.step-->
-- [ ] `block.soul_sand.break` <!--sound:block.soul_sand.break-->
-- [ ] `block.soul_sand.step` <!--sound:block.soul_sand.step-->
-- [ ] `block.soul_sand.place` <!--sound:block.soul_sand.place-->
-- [ ] `block.soul_sand.hit` <!--sound:block.soul_sand.hit-->
-- [ ] `block.soul_sand.fall` <!--sound:block.soul_sand.fall-->
-- [ ] `block.soul_soil.break` <!--sound:block.soul_soil.break-->
-- [ ] `block.soul_soil.step` <!--sound:block.soul_soil.step-->
-- [ ] `block.soul_soil.place` <!--sound:block.soul_soil.place-->
-- [ ] `block.soul_soil.hit` <!--sound:block.soul_soil.hit-->
-- [ ] `block.soul_soil.fall` <!--sound:block.soul_soil.fall-->
+- [x] `entity.skeleton.hurt` <!--sound:entity.skeleton.hurt-->
+- [x] `entity.skeleton.shoot` <!--sound:entity.skeleton.shoot-->
+- [x] `entity.skeleton.step` <!--sound:entity.skeleton.step-->
+- [x] `entity.slime.attack` <!--sound:entity.slime.attack-->
+- [x] `entity.slime.death` <!--sound:entity.slime.death-->
+- [x] `entity.slime.hurt` <!--sound:entity.slime.hurt-->
+- [x] `entity.slime.jump` <!--sound:entity.slime.jump-->
+- [x] `entity.slime.squish` <!--sound:entity.slime.squish-->
+- [x] `block.slime_block.break` <!--sound:block.slime_block.break-->
+- [x] `block.slime_block.fall` <!--sound:block.slime_block.fall-->
+- [x] `block.slime_block.hit` <!--sound:block.slime_block.hit-->
+- [x] `block.slime_block.place` <!--sound:block.slime_block.place-->
+- [x] `block.slime_block.step` <!--sound:block.slime_block.step-->
+- [x] `block.small_amethyst_bud.break` <!--sound:block.small_amethyst_bud.break-->
+- [x] `block.small_amethyst_bud.place` <!--sound:block.small_amethyst_bud.place-->
+- [x] `block.small_dripleaf.break` <!--sound:block.small_dripleaf.break-->
+- [x] `block.small_dripleaf.fall` <!--sound:block.small_dripleaf.fall-->
+- [x] `block.small_dripleaf.hit` <!--sound:block.small_dripleaf.hit-->
+- [x] `block.small_dripleaf.place` <!--sound:block.small_dripleaf.place-->
+- [x] `block.small_dripleaf.step` <!--sound:block.small_dripleaf.step-->
+- [x] `block.soul_sand.break` <!--sound:block.soul_sand.break-->
+- [x] `block.soul_sand.step` <!--sound:block.soul_sand.step-->
+- [x] `block.soul_sand.place` <!--sound:block.soul_sand.place-->
+- [x] `block.soul_sand.hit` <!--sound:block.soul_sand.hit-->
+- [x] `block.soul_sand.fall` <!--sound:block.soul_sand.fall-->
+- [x] `block.soul_soil.break` <!--sound:block.soul_soil.break-->
+- [x] `block.soul_soil.step` <!--sound:block.soul_soil.step-->
+- [x] `block.soul_soil.place` <!--sound:block.soul_soil.place-->
+- [x] `block.soul_soil.hit` <!--sound:block.soul_soil.hit-->
+- [x] `block.soul_soil.fall` <!--sound:block.soul_soil.fall-->
 - [ ] `particle.soul_escape` <!--sound:particle.soul_escape-->
-- [ ] `block.spore_blossom.break` <!--sound:block.spore_blossom.break-->
-- [ ] `block.spore_blossom.fall` <!--sound:block.spore_blossom.fall-->
-- [ ] `block.spore_blossom.hit` <!--sound:block.spore_blossom.hit-->
-- [ ] `block.spore_blossom.place` <!--sound:block.spore_blossom.place-->
-- [ ] `block.spore_blossom.step` <!--sound:block.spore_blossom.step-->
-- [ ] `entity.strider.ambient` <!--sound:entity.strider.ambient-->
-- [ ] `entity.strider.happy` <!--sound:entity.strider.happy-->
-- [ ] `entity.strider.retreat` <!--sound:entity.strider.retreat-->
-- [ ] `entity.strider.death` <!--sound:entity.strider.death-->
-- [ ] `entity.strider.hurt` <!--sound:entity.strider.hurt-->
-- [ ] `entity.strider.step` <!--sound:entity.strider.step-->
-- [ ] `entity.strider.step_lava` <!--sound:entity.strider.step_lava-->
-- [ ] `entity.strider.eat` <!--sound:entity.strider.eat-->
-- [ ] `entity.strider.saddle` <!--sound:entity.strider.saddle-->
-- [ ] `entity.slime.death_small` <!--sound:entity.slime.death_small-->
-- [ ] `entity.slime.hurt_small` <!--sound:entity.slime.hurt_small-->
-- [ ] `entity.slime.jump_small` <!--sound:entity.slime.jump_small-->
-- [ ] `entity.slime.squish_small` <!--sound:entity.slime.squish_small-->
-- [ ] `block.smithing_table.use` <!--sound:block.smithing_table.use-->
-- [ ] `block.smoker.smoke` <!--sound:block.smoker.smoke-->
-- [ ] `entity.snowball.throw` <!--sound:entity.snowball.throw-->
-- [ ] `block.snow.break` <!--sound:block.snow.break-->
-- [ ] `block.snow.fall` <!--sound:block.snow.fall-->
-- [ ] `entity.snow_golem.ambient` <!--sound:entity.snow_golem.ambient-->
-- [ ] `entity.snow_golem.death` <!--sound:entity.snow_golem.death-->
-- [ ] `entity.snow_golem.hurt` <!--sound:entity.snow_golem.hurt-->
-- [ ] `entity.snow_golem.shoot` <!--sound:entity.snow_golem.shoot-->
-- [ ] `entity.snow_golem.shear` <!--sound:entity.snow_golem.shear-->
-- [ ] `block.snow.hit` <!--sound:block.snow.hit-->
-- [ ] `block.snow.place` <!--sound:block.snow.place-->
-- [ ] `block.snow.step` <!--sound:block.snow.step-->
-- [ ] `entity.spider.ambient` <!--sound:entity.spider.ambient-->
-- [ ] `entity.spider.death` <!--sound:entity.spider.death-->
-- [ ] `entity.spider.hurt` <!--sound:entity.spider.hurt-->
-- [ ] `entity.spider.step` <!--sound:entity.spider.step-->
+- [x] `block.spore_blossom.break` <!--sound:block.spore_blossom.break-->
+- [x] `block.spore_blossom.fall` <!--sound:block.spore_blossom.fall-->
+- [x] `block.spore_blossom.hit` <!--sound:block.spore_blossom.hit-->
+- [x] `block.spore_blossom.place` <!--sound:block.spore_blossom.place-->
+- [x] `block.spore_blossom.step` <!--sound:block.spore_blossom.step-->
+- [x] `entity.strider.ambient` <!--sound:entity.strider.ambient-->
+- [x] `entity.strider.happy` <!--sound:entity.strider.happy-->
+- [x] `entity.strider.retreat` <!--sound:entity.strider.retreat-->
+- [x] `entity.strider.death` <!--sound:entity.strider.death-->
+- [x] `entity.strider.hurt` <!--sound:entity.strider.hurt-->
+- [x] `entity.strider.step` <!--sound:entity.strider.step-->
+- [x] `entity.strider.step_lava` <!--sound:entity.strider.step_lava-->
+- [x] `entity.strider.eat` <!--sound:entity.strider.eat-->
+- [x] `entity.strider.saddle` <!--sound:entity.strider.saddle-->
+- [x] `entity.slime.death_small` <!--sound:entity.slime.death_small-->
+- [x] `entity.slime.hurt_small` <!--sound:entity.slime.hurt_small-->
+- [x] `entity.slime.jump_small` <!--sound:entity.slime.jump_small-->
+- [x] `entity.slime.squish_small` <!--sound:entity.slime.squish_small-->
+- [x] `block.smithing_table.use` <!--sound:block.smithing_table.use-->
+- [x] `block.smoker.smoke` <!--sound:block.smoker.smoke-->
+- [x] `entity.snowball.throw` <!--sound:entity.snowball.throw-->
+- [x] `block.snow.break` <!--sound:block.snow.break-->
+- [x] `block.snow.fall` <!--sound:block.snow.fall-->
+- [x] `entity.snow_golem.ambient` <!--sound:entity.snow_golem.ambient-->
+- [x] `entity.snow_golem.death` <!--sound:entity.snow_golem.death-->
+- [x] `entity.snow_golem.hurt` <!--sound:entity.snow_golem.hurt-->
+- [x] `entity.snow_golem.shoot` <!--sound:entity.snow_golem.shoot-->
+- [x] `entity.snow_golem.shear` <!--sound:entity.snow_golem.shear-->
+- [x] `block.snow.hit` <!--sound:block.snow.hit-->
+- [x] `block.snow.place` <!--sound:block.snow.place-->
+- [x] `block.snow.step` <!--sound:block.snow.step-->
+- [x] `entity.spider.ambient` <!--sound:entity.spider.ambient-->
+- [x] `entity.spider.death` <!--sound:entity.spider.death-->
+- [x] `entity.spider.hurt` <!--sound:entity.spider.hurt-->
+- [x] `entity.spider.step` <!--sound:entity.spider.step-->
 - [ ] `entity.splash_potion.break` <!--sound:entity.splash_potion.break-->
 - [ ] `entity.splash_potion.throw` <!--sound:entity.splash_potion.throw-->
 - [ ] `item.spyglass.use` <!--sound:item.spyglass.use-->
 - [ ] `item.spyglass.stop_using` <!--sound:item.spyglass.stop_using-->
-- [ ] `entity.squid.ambient` <!--sound:entity.squid.ambient-->
-- [ ] `entity.squid.death` <!--sound:entity.squid.death-->
-- [ ] `entity.squid.hurt` <!--sound:entity.squid.hurt-->
-- [ ] `entity.squid.squirt` <!--sound:entity.squid.squirt-->
-- [ ] `block.stone.break` <!--sound:block.stone.break-->
-- [ ] `block.stone_button.click_off` <!--sound:block.stone_button.click_off-->
-- [ ] `block.stone_button.click_on` <!--sound:block.stone_button.click_on-->
-- [ ] `block.stone.fall` <!--sound:block.stone.fall-->
-- [ ] `block.stone.hit` <!--sound:block.stone.hit-->
-- [ ] `block.stone.place` <!--sound:block.stone.place-->
-- [ ] `block.stone_pressure_plate.click_off` <!--sound:block.stone_pressure_plate.click_off-->
-- [ ] `block.stone_pressure_plate.click_on` <!--sound:block.stone_pressure_plate.click_on-->
-- [ ] `block.stone.step` <!--sound:block.stone.step-->
-- [ ] `entity.stray.ambient` <!--sound:entity.stray.ambient-->
-- [ ] `entity.stray.death` <!--sound:entity.stray.death-->
-- [ ] `entity.stray.hurt` <!--sound:entity.stray.hurt-->
-- [ ] `entity.stray.step` <!--sound:entity.stray.step-->
-- [ ] `block.sweet_berry_bush.break` <!--sound:block.sweet_berry_bush.break-->
-- [ ] `block.sweet_berry_bush.place` <!--sound:block.sweet_berry_bush.place-->
-- [ ] `block.sweet_berry_bush.pick_berries` <!--sound:block.sweet_berry_bush.pick_berries-->
+- [x] `entity.squid.ambient` <!--sound:entity.squid.ambient-->
+- [x] `entity.squid.death` <!--sound:entity.squid.death-->
+- [x] `entity.squid.hurt` <!--sound:entity.squid.hurt-->
+- [x] `entity.squid.squirt` <!--sound:entity.squid.squirt-->
+- [x] `block.stone.break` <!--sound:block.stone.break-->
+- [x] `block.stone_button.click_off` <!--sound:block.stone_button.click_off-->
+- [x] `block.stone_button.click_on` <!--sound:block.stone_button.click_on-->
+- [x] `block.stone.fall` <!--sound:block.stone.fall-->
+- [x] `block.stone.hit` <!--sound:block.stone.hit-->
+- [x] `block.stone.place` <!--sound:block.stone.place-->
+- [x] `block.stone_pressure_plate.click_off` <!--sound:block.stone_pressure_plate.click_off-->
+- [x] `block.stone_pressure_plate.click_on` <!--sound:block.stone_pressure_plate.click_on-->
+- [x] `block.stone.step` <!--sound:block.stone.step-->
+- [x] `entity.stray.ambient` <!--sound:entity.stray.ambient-->
+- [x] `entity.stray.death` <!--sound:entity.stray.death-->
+- [x] `entity.stray.hurt` <!--sound:entity.stray.hurt-->
+- [x] `entity.stray.step` <!--sound:entity.stray.step-->
+- [x] `block.sweet_berry_bush.break` <!--sound:block.sweet_berry_bush.break-->
+- [x] `block.sweet_berry_bush.place` <!--sound:block.sweet_berry_bush.place-->
+- [x] `block.sweet_berry_bush.pick_berries` <!--sound:block.sweet_berry_bush.pick_berries-->
 - [ ] `enchant.thorns.hit` <!--sound:enchant.thorns.hit-->
-- [ ] `entity.tnt.primed` <!--sound:entity.tnt.primed-->
-- [ ] `item.totem.use` <!--sound:item.totem.use-->
-- [ ] `item.trident.hit` <!--sound:item.trident.hit-->
-- [ ] `item.trident.hit_ground` <!--sound:item.trident.hit_ground-->
+- [x] `entity.tnt.primed` <!--sound:entity.tnt.primed-->
+- [x] `item.totem.use` <!--sound:item.totem.use-->
+- [x] `item.trident.hit` <!--sound:item.trident.hit-->
+- [x] `item.trident.hit_ground` <!--sound:item.trident.hit_ground-->
 - [ ] `item.trident.return` <!--sound:item.trident.return-->
 - [ ] `item.trident.riptide_1` <!--sound:item.trident.riptide_1-->
 - [ ] `item.trident.riptide_2` <!--sound:item.trident.riptide_2-->
 - [ ] `item.trident.riptide_3` <!--sound:item.trident.riptide_3-->
-- [ ] `item.trident.throw` <!--sound:item.trident.throw-->
+- [x] `item.trident.throw` <!--sound:item.trident.throw-->
 - [ ] `item.trident.thunder` <!--sound:item.trident.thunder-->
-- [ ] `block.tripwire.attach` <!--sound:block.tripwire.attach-->
-- [ ] `block.tripwire.click_off` <!--sound:block.tripwire.click_off-->
-- [ ] `block.tripwire.click_on` <!--sound:block.tripwire.click_on-->
-- [ ] `block.tripwire.detach` <!--sound:block.tripwire.detach-->
-- [ ] `entity.tropical_fish.ambient` <!--sound:entity.tropical_fish.ambient-->
-- [ ] `entity.tropical_fish.death` <!--sound:entity.tropical_fish.death-->
-- [ ] `entity.tropical_fish.flop` <!--sound:entity.tropical_fish.flop-->
-- [ ] `entity.tropical_fish.hurt` <!--sound:entity.tropical_fish.hurt-->
-- [ ] `block.tuff.break` <!--sound:block.tuff.break-->
-- [ ] `block.tuff.step` <!--sound:block.tuff.step-->
-- [ ] `block.tuff.place` <!--sound:block.tuff.place-->
-- [ ] `block.tuff.hit` <!--sound:block.tuff.hit-->
-- [ ] `block.tuff.fall` <!--sound:block.tuff.fall-->
-- [ ] `entity.turtle.ambient_land` <!--sound:entity.turtle.ambient_land-->
-- [ ] `entity.turtle.death` <!--sound:entity.turtle.death-->
+- [x] `block.tripwire.attach` <!--sound:block.tripwire.attach-->
+- [x] `block.tripwire.click_off` <!--sound:block.tripwire.click_off-->
+- [x] `block.tripwire.click_on` <!--sound:block.tripwire.click_on-->
+- [x] `block.tripwire.detach` <!--sound:block.tripwire.detach-->
+- [x] `entity.tropical_fish.ambient` <!--sound:entity.tropical_fish.ambient-->
+- [x] `entity.tropical_fish.death` <!--sound:entity.tropical_fish.death-->
+- [x] `entity.tropical_fish.flop` <!--sound:entity.tropical_fish.flop-->
+- [x] `entity.tropical_fish.hurt` <!--sound:entity.tropical_fish.hurt-->
+- [x] `block.tuff.break` <!--sound:block.tuff.break-->
+- [x] `block.tuff.step` <!--sound:block.tuff.step-->
+- [x] `block.tuff.place` <!--sound:block.tuff.place-->
+- [x] `block.tuff.hit` <!--sound:block.tuff.hit-->
+- [x] `block.tuff.fall` <!--sound:block.tuff.fall-->
+- [x] `entity.turtle.ambient_land` <!--sound:entity.turtle.ambient_land-->
+- [x] `entity.turtle.death` <!--sound:entity.turtle.death-->
 - [ ] `entity.turtle.death_baby` <!--sound:entity.turtle.death_baby-->
-- [ ] `entity.turtle.egg_break` <!--sound:entity.turtle.egg_break-->
-- [ ] `entity.turtle.egg_crack` <!--sound:entity.turtle.egg_crack-->
+- [x] `entity.turtle.egg_break` <!--sound:entity.turtle.egg_break-->
+- [x] `entity.turtle.egg_crack` <!--sound:entity.turtle.egg_crack-->
 - [ ] `entity.turtle.egg_hatch` <!--sound:entity.turtle.egg_hatch-->
-- [ ] `entity.turtle.hurt` <!--sound:entity.turtle.hurt-->
+- [x] `entity.turtle.hurt` <!--sound:entity.turtle.hurt-->
 - [ ] `entity.turtle.hurt_baby` <!--sound:entity.turtle.hurt_baby-->
-- [ ] `entity.turtle.lay_egg` <!--sound:entity.turtle.lay_egg-->
-- [ ] `entity.turtle.shamble` <!--sound:entity.turtle.shamble-->
+- [x] `entity.turtle.lay_egg` <!--sound:entity.turtle.lay_egg-->
+- [x] `entity.turtle.shamble` <!--sound:entity.turtle.shamble-->
 - [ ] `entity.turtle.shamble_baby` <!--sound:entity.turtle.shamble_baby-->
-- [ ] `entity.turtle.swim` <!--sound:entity.turtle.swim-->
-- [ ] `ui.button.click` <!--sound:ui.button.click-->
-- [ ] `ui.loom.select_pattern` <!--sound:ui.loom.select_pattern-->
-- [ ] `ui.loom.take_result` <!--sound:ui.loom.take_result-->
-- [ ] `ui.cartography_table.take_result` <!--sound:ui.cartography_table.take_result-->
-- [ ] `ui.stonecutter.take_result` <!--sound:ui.stonecutter.take_result-->
-- [ ] `ui.stonecutter.select_recipe` <!--sound:ui.stonecutter.select_recipe-->
-- [ ] `ui.toast.challenge_complete` <!--sound:ui.toast.challenge_complete-->
-- [ ] `ui.toast.in` <!--sound:ui.toast.in-->
-- [ ] `ui.toast.out` <!--sound:ui.toast.out-->
-- [ ] `entity.vex.ambient` <!--sound:entity.vex.ambient-->
-- [ ] `entity.vex.charge` <!--sound:entity.vex.charge-->
-- [ ] `entity.vex.death` <!--sound:entity.vex.death-->
-- [ ] `entity.vex.hurt` <!--sound:entity.vex.hurt-->
-- [ ] `entity.villager.ambient` <!--sound:entity.villager.ambient-->
-- [ ] `entity.villager.celebrate` <!--sound:entity.villager.celebrate-->
-- [ ] `entity.villager.death` <!--sound:entity.villager.death-->
-- [ ] `entity.villager.hurt` <!--sound:entity.villager.hurt-->
-- [ ] `entity.villager.no` <!--sound:entity.villager.no-->
-- [ ] `entity.villager.trade` <!--sound:entity.villager.trade-->
-- [ ] `entity.villager.yes` <!--sound:entity.villager.yes-->
+- [x] `entity.turtle.swim` <!--sound:entity.turtle.swim-->
+- [x] `ui.button.click` <!--sound:ui.button.click-->
+- [x] `ui.loom.select_pattern` <!--sound:ui.loom.select_pattern-->
+- [x] `ui.loom.take_result` <!--sound:ui.loom.take_result-->
+- [x] `ui.cartography_table.take_result` <!--sound:ui.cartography_table.take_result-->
+- [x] `ui.stonecutter.take_result` <!--sound:ui.stonecutter.take_result-->
+- [x] `ui.stonecutter.select_recipe` <!--sound:ui.stonecutter.select_recipe-->
+- [x] `ui.toast.challenge_complete` <!--sound:ui.toast.challenge_complete-->
+- [x] `ui.toast.in` <!--sound:ui.toast.in-->
+- [x] `ui.toast.out` <!--sound:ui.toast.out-->
+- [x] `entity.vex.ambient` <!--sound:entity.vex.ambient-->
+- [x] `entity.vex.charge` <!--sound:entity.vex.charge-->
+- [x] `entity.vex.death` <!--sound:entity.vex.death-->
+- [x] `entity.vex.hurt` <!--sound:entity.vex.hurt-->
+- [x] `entity.villager.ambient` <!--sound:entity.villager.ambient-->
+- [x] `entity.villager.celebrate` <!--sound:entity.villager.celebrate-->
+- [x] `entity.villager.death` <!--sound:entity.villager.death-->
+- [x] `entity.villager.hurt` <!--sound:entity.villager.hurt-->
+- [x] `entity.villager.no` <!--sound:entity.villager.no-->
+- [x] `entity.villager.trade` <!--sound:entity.villager.trade-->
+- [x] `entity.villager.yes` <!--sound:entity.villager.yes-->
 - [ ] `entity.villager.work_armorer` <!--sound:entity.villager.work_armorer-->
 - [ ] `entity.villager.work_butcher` <!--sound:entity.villager.work_butcher-->
 - [ ] `entity.villager.work_cartographer` <!--sound:entity.villager.work_cartographer-->
@@ -4056,106 +4056,106 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] `entity.villager.work_shepherd` <!--sound:entity.villager.work_shepherd-->
 - [ ] `entity.villager.work_toolsmith` <!--sound:entity.villager.work_toolsmith-->
 - [ ] `entity.villager.work_weaponsmith` <!--sound:entity.villager.work_weaponsmith-->
-- [ ] `entity.vindicator.ambient` <!--sound:entity.vindicator.ambient-->
-- [ ] `entity.vindicator.celebrate` <!--sound:entity.vindicator.celebrate-->
-- [ ] `entity.vindicator.death` <!--sound:entity.vindicator.death-->
-- [ ] `entity.vindicator.hurt` <!--sound:entity.vindicator.hurt-->
-- [ ] `block.vine.break` <!--sound:block.vine.break-->
-- [ ] `block.vine.fall` <!--sound:block.vine.fall-->
-- [ ] `block.vine.hit` <!--sound:block.vine.hit-->
-- [ ] `block.vine.place` <!--sound:block.vine.place-->
-- [ ] `block.vine.step` <!--sound:block.vine.step-->
-- [ ] `block.lily_pad.place` <!--sound:block.lily_pad.place-->
-- [ ] `entity.wandering_trader.ambient` <!--sound:entity.wandering_trader.ambient-->
-- [ ] `entity.wandering_trader.death` <!--sound:entity.wandering_trader.death-->
+- [x] `entity.vindicator.ambient` <!--sound:entity.vindicator.ambient-->
+- [x] `entity.vindicator.celebrate` <!--sound:entity.vindicator.celebrate-->
+- [x] `entity.vindicator.death` <!--sound:entity.vindicator.death-->
+- [x] `entity.vindicator.hurt` <!--sound:entity.vindicator.hurt-->
+- [x] `block.vine.break` <!--sound:block.vine.break-->
+- [x] `block.vine.fall` <!--sound:block.vine.fall-->
+- [x] `block.vine.hit` <!--sound:block.vine.hit-->
+- [x] `block.vine.place` <!--sound:block.vine.place-->
+- [x] `block.vine.step` <!--sound:block.vine.step-->
+- [x] `block.lily_pad.place` <!--sound:block.lily_pad.place-->
+- [x] `entity.wandering_trader.ambient` <!--sound:entity.wandering_trader.ambient-->
+- [x] `entity.wandering_trader.death` <!--sound:entity.wandering_trader.death-->
 - [ ] `entity.wandering_trader.disappeared` <!--sound:entity.wandering_trader.disappeared-->
 - [ ] `entity.wandering_trader.drink_milk` <!--sound:entity.wandering_trader.drink_milk-->
 - [ ] `entity.wandering_trader.drink_potion` <!--sound:entity.wandering_trader.drink_potion-->
-- [ ] `entity.wandering_trader.hurt` <!--sound:entity.wandering_trader.hurt-->
-- [ ] `entity.wandering_trader.no` <!--sound:entity.wandering_trader.no-->
+- [x] `entity.wandering_trader.hurt` <!--sound:entity.wandering_trader.hurt-->
+- [x] `entity.wandering_trader.no` <!--sound:entity.wandering_trader.no-->
 - [ ] `entity.wandering_trader.reappeared` <!--sound:entity.wandering_trader.reappeared-->
-- [ ] `entity.wandering_trader.trade` <!--sound:entity.wandering_trader.trade-->
-- [ ] `entity.wandering_trader.yes` <!--sound:entity.wandering_trader.yes-->
-- [ ] `block.water.ambient` <!--sound:block.water.ambient-->
-- [ ] `weather.rain` <!--sound:weather.rain-->
-- [ ] `weather.rain.above` <!--sound:weather.rain.above-->
-- [ ] `block.wet_grass.break` <!--sound:block.wet_grass.break-->
-- [ ] `block.wet_grass.fall` <!--sound:block.wet_grass.fall-->
-- [ ] `block.wet_grass.hit` <!--sound:block.wet_grass.hit-->
-- [ ] `block.wet_grass.place` <!--sound:block.wet_grass.place-->
-- [ ] `block.wet_grass.step` <!--sound:block.wet_grass.step-->
-- [ ] `entity.witch.ambient` <!--sound:entity.witch.ambient-->
-- [ ] `entity.witch.celebrate` <!--sound:entity.witch.celebrate-->
-- [ ] `entity.witch.death` <!--sound:entity.witch.death-->
-- [ ] `entity.witch.drink` <!--sound:entity.witch.drink-->
-- [ ] `entity.witch.hurt` <!--sound:entity.witch.hurt-->
-- [ ] `entity.witch.throw` <!--sound:entity.witch.throw-->
-- [ ] `entity.wither.ambient` <!--sound:entity.wither.ambient-->
-- [ ] `entity.wither.break_block` <!--sound:entity.wither.break_block-->
-- [ ] `entity.wither.death` <!--sound:entity.wither.death-->
-- [ ] `entity.wither.hurt` <!--sound:entity.wither.hurt-->
-- [ ] `entity.wither.shoot` <!--sound:entity.wither.shoot-->
-- [ ] `entity.wither_skeleton.ambient` <!--sound:entity.wither_skeleton.ambient-->
-- [ ] `entity.wither_skeleton.death` <!--sound:entity.wither_skeleton.death-->
-- [ ] `entity.wither_skeleton.hurt` <!--sound:entity.wither_skeleton.hurt-->
-- [ ] `entity.wither_skeleton.step` <!--sound:entity.wither_skeleton.step-->
-- [ ] `entity.wither.spawn` <!--sound:entity.wither.spawn-->
-- [ ] `entity.wolf.ambient` <!--sound:entity.wolf.ambient-->
-- [ ] `entity.wolf.death` <!--sound:entity.wolf.death-->
-- [ ] `entity.wolf.growl` <!--sound:entity.wolf.growl-->
+- [x] `entity.wandering_trader.trade` <!--sound:entity.wandering_trader.trade-->
+- [x] `entity.wandering_trader.yes` <!--sound:entity.wandering_trader.yes-->
+- [x] `block.water.ambient` <!--sound:block.water.ambient-->
+- [x] `weather.rain` <!--sound:weather.rain-->
+- [x] `weather.rain.above` <!--sound:weather.rain.above-->
+- [x] `block.wet_grass.break` <!--sound:block.wet_grass.break-->
+- [x] `block.wet_grass.fall` <!--sound:block.wet_grass.fall-->
+- [x] `block.wet_grass.hit` <!--sound:block.wet_grass.hit-->
+- [x] `block.wet_grass.place` <!--sound:block.wet_grass.place-->
+- [x] `block.wet_grass.step` <!--sound:block.wet_grass.step-->
+- [x] `entity.witch.ambient` <!--sound:entity.witch.ambient-->
+- [x] `entity.witch.celebrate` <!--sound:entity.witch.celebrate-->
+- [x] `entity.witch.death` <!--sound:entity.witch.death-->
+- [x] `entity.witch.drink` <!--sound:entity.witch.drink-->
+- [x] `entity.witch.hurt` <!--sound:entity.witch.hurt-->
+- [x] `entity.witch.throw` <!--sound:entity.witch.throw-->
+- [x] `entity.wither.ambient` <!--sound:entity.wither.ambient-->
+- [x] `entity.wither.break_block` <!--sound:entity.wither.break_block-->
+- [x] `entity.wither.death` <!--sound:entity.wither.death-->
+- [x] `entity.wither.hurt` <!--sound:entity.wither.hurt-->
+- [x] `entity.wither.shoot` <!--sound:entity.wither.shoot-->
+- [x] `entity.wither_skeleton.ambient` <!--sound:entity.wither_skeleton.ambient-->
+- [x] `entity.wither_skeleton.death` <!--sound:entity.wither_skeleton.death-->
+- [x] `entity.wither_skeleton.hurt` <!--sound:entity.wither_skeleton.hurt-->
+- [x] `entity.wither_skeleton.step` <!--sound:entity.wither_skeleton.step-->
+- [x] `entity.wither.spawn` <!--sound:entity.wither.spawn-->
+- [x] `entity.wolf.ambient` <!--sound:entity.wolf.ambient-->
+- [x] `entity.wolf.death` <!--sound:entity.wolf.death-->
+- [x] `entity.wolf.growl` <!--sound:entity.wolf.growl-->
 - [ ] `entity.wolf.howl` <!--sound:entity.wolf.howl-->
-- [ ] `entity.wolf.hurt` <!--sound:entity.wolf.hurt-->
-- [ ] `entity.wolf.pant` <!--sound:entity.wolf.pant-->
-- [ ] `entity.wolf.shake` <!--sound:entity.wolf.shake-->
-- [ ] `entity.wolf.step` <!--sound:entity.wolf.step-->
-- [ ] `entity.wolf.whine` <!--sound:entity.wolf.whine-->
-- [ ] `block.wooden_door.close` <!--sound:block.wooden_door.close-->
-- [ ] `block.wooden_door.open` <!--sound:block.wooden_door.open-->
-- [ ] `block.wooden_trapdoor.close` <!--sound:block.wooden_trapdoor.close-->
-- [ ] `block.wooden_trapdoor.open` <!--sound:block.wooden_trapdoor.open-->
-- [ ] `block.wood.break` <!--sound:block.wood.break-->
-- [ ] `block.wooden_button.click_off` <!--sound:block.wooden_button.click_off-->
-- [ ] `block.wooden_button.click_on` <!--sound:block.wooden_button.click_on-->
-- [ ] `block.wood.fall` <!--sound:block.wood.fall-->
-- [ ] `block.wood.hit` <!--sound:block.wood.hit-->
-- [ ] `block.wood.place` <!--sound:block.wood.place-->
-- [ ] `block.wooden_pressure_plate.click_off` <!--sound:block.wooden_pressure_plate.click_off-->
-- [ ] `block.wooden_pressure_plate.click_on` <!--sound:block.wooden_pressure_plate.click_on-->
-- [ ] `block.wood.step` <!--sound:block.wood.step-->
-- [ ] `block.wool.break` <!--sound:block.wool.break-->
-- [ ] `block.wool.fall` <!--sound:block.wool.fall-->
-- [ ] `block.wool.hit` <!--sound:block.wool.hit-->
-- [ ] `block.wool.place` <!--sound:block.wool.place-->
-- [ ] `block.wool.step` <!--sound:block.wool.step-->
-- [ ] `entity.zoglin.ambient` <!--sound:entity.zoglin.ambient-->
-- [ ] `entity.zoglin.angry` <!--sound:entity.zoglin.angry-->
-- [ ] `entity.zoglin.attack` <!--sound:entity.zoglin.attack-->
-- [ ] `entity.zoglin.death` <!--sound:entity.zoglin.death-->
-- [ ] `entity.zoglin.hurt` <!--sound:entity.zoglin.hurt-->
-- [ ] `entity.zoglin.step` <!--sound:entity.zoglin.step-->
-- [ ] `entity.zombie.ambient` <!--sound:entity.zombie.ambient-->
-- [ ] `entity.zombie.attack_wooden_door` <!--sound:entity.zombie.attack_wooden_door-->
-- [ ] `entity.zombie.attack_iron_door` <!--sound:entity.zombie.attack_iron_door-->
-- [ ] `entity.zombie.break_wooden_door` <!--sound:entity.zombie.break_wooden_door-->
-- [ ] `entity.zombie.converted_to_drowned` <!--sound:entity.zombie.converted_to_drowned-->
-- [ ] `entity.zombie.death` <!--sound:entity.zombie.death-->
-- [ ] `entity.zombie.destroy_egg` <!--sound:entity.zombie.destroy_egg-->
-- [ ] `entity.zombie_horse.ambient` <!--sound:entity.zombie_horse.ambient-->
-- [ ] `entity.zombie_horse.death` <!--sound:entity.zombie_horse.death-->
-- [ ] `entity.zombie_horse.hurt` <!--sound:entity.zombie_horse.hurt-->
-- [ ] `entity.zombie.hurt` <!--sound:entity.zombie.hurt-->
-- [ ] `entity.zombie.infect` <!--sound:entity.zombie.infect-->
-- [ ] `entity.zombified_piglin.ambient` <!--sound:entity.zombified_piglin.ambient-->
-- [ ] `entity.zombified_piglin.angry` <!--sound:entity.zombified_piglin.angry-->
-- [ ] `entity.zombified_piglin.death` <!--sound:entity.zombified_piglin.death-->
-- [ ] `entity.zombified_piglin.hurt` <!--sound:entity.zombified_piglin.hurt-->
-- [ ] `entity.zombie.step` <!--sound:entity.zombie.step-->
-- [ ] `entity.zombie_villager.ambient` <!--sound:entity.zombie_villager.ambient-->
+- [x] `entity.wolf.hurt` <!--sound:entity.wolf.hurt-->
+- [x] `entity.wolf.pant` <!--sound:entity.wolf.pant-->
+- [x] `entity.wolf.shake` <!--sound:entity.wolf.shake-->
+- [x] `entity.wolf.step` <!--sound:entity.wolf.step-->
+- [x] `entity.wolf.whine` <!--sound:entity.wolf.whine-->
+- [x] `block.wooden_door.close` <!--sound:block.wooden_door.close-->
+- [x] `block.wooden_door.open` <!--sound:block.wooden_door.open-->
+- [x] `block.wooden_trapdoor.close` <!--sound:block.wooden_trapdoor.close-->
+- [x] `block.wooden_trapdoor.open` <!--sound:block.wooden_trapdoor.open-->
+- [x] `block.wood.break` <!--sound:block.wood.break-->
+- [x] `block.wooden_button.click_off` <!--sound:block.wooden_button.click_off-->
+- [x] `block.wooden_button.click_on` <!--sound:block.wooden_button.click_on-->
+- [x] `block.wood.fall` <!--sound:block.wood.fall-->
+- [x] `block.wood.hit` <!--sound:block.wood.hit-->
+- [x] `block.wood.place` <!--sound:block.wood.place-->
+- [x] `block.wooden_pressure_plate.click_off` <!--sound:block.wooden_pressure_plate.click_off-->
+- [x] `block.wooden_pressure_plate.click_on` <!--sound:block.wooden_pressure_plate.click_on-->
+- [x] `block.wood.step` <!--sound:block.wood.step-->
+- [x] `block.wool.break` <!--sound:block.wool.break-->
+- [x] `block.wool.fall` <!--sound:block.wool.fall-->
+- [x] `block.wool.hit` <!--sound:block.wool.hit-->
+- [x] `block.wool.place` <!--sound:block.wool.place-->
+- [x] `block.wool.step` <!--sound:block.wool.step-->
+- [x] `entity.zoglin.ambient` <!--sound:entity.zoglin.ambient-->
+- [x] `entity.zoglin.angry` <!--sound:entity.zoglin.angry-->
+- [x] `entity.zoglin.attack` <!--sound:entity.zoglin.attack-->
+- [x] `entity.zoglin.death` <!--sound:entity.zoglin.death-->
+- [x] `entity.zoglin.hurt` <!--sound:entity.zoglin.hurt-->
+- [x] `entity.zoglin.step` <!--sound:entity.zoglin.step-->
+- [x] `entity.zombie.ambient` <!--sound:entity.zombie.ambient-->
+- [x] `entity.zombie.attack_wooden_door` <!--sound:entity.zombie.attack_wooden_door-->
+- [x] `entity.zombie.attack_iron_door` <!--sound:entity.zombie.attack_iron_door-->
+- [x] `entity.zombie.break_wooden_door` <!--sound:entity.zombie.break_wooden_door-->
+- [x] `entity.zombie.converted_to_drowned` <!--sound:entity.zombie.converted_to_drowned-->
+- [x] `entity.zombie.death` <!--sound:entity.zombie.death-->
+- [x] `entity.zombie.destroy_egg` <!--sound:entity.zombie.destroy_egg-->
+- [x] `entity.zombie_horse.ambient` <!--sound:entity.zombie_horse.ambient-->
+- [x] `entity.zombie_horse.death` <!--sound:entity.zombie_horse.death-->
+- [x] `entity.zombie_horse.hurt` <!--sound:entity.zombie_horse.hurt-->
+- [x] `entity.zombie.hurt` <!--sound:entity.zombie.hurt-->
+- [x] `entity.zombie.infect` <!--sound:entity.zombie.infect-->
+- [x] `entity.zombified_piglin.ambient` <!--sound:entity.zombified_piglin.ambient-->
+- [x] `entity.zombified_piglin.angry` <!--sound:entity.zombified_piglin.angry-->
+- [x] `entity.zombified_piglin.death` <!--sound:entity.zombified_piglin.death-->
+- [x] `entity.zombified_piglin.hurt` <!--sound:entity.zombified_piglin.hurt-->
+- [x] `entity.zombie.step` <!--sound:entity.zombie.step-->
+- [x] `entity.zombie_villager.ambient` <!--sound:entity.zombie_villager.ambient-->
 - [ ] `entity.zombie_villager.converted` <!--sound:entity.zombie_villager.converted-->
 - [ ] `entity.zombie_villager.cure` <!--sound:entity.zombie_villager.cure-->
-- [ ] `entity.zombie_villager.death` <!--sound:entity.zombie_villager.death-->
-- [ ] `entity.zombie_villager.hurt` <!--sound:entity.zombie_villager.hurt-->
-- [ ] `entity.zombie_villager.step` <!--sound:entity.zombie_villager.step-->
+- [x] `entity.zombie_villager.death` <!--sound:entity.zombie_villager.death-->
+- [x] `entity.zombie_villager.hurt` <!--sound:entity.zombie_villager.hurt-->
+- [x] `entity.zombie_villager.step` <!--sound:entity.zombie_villager.step-->
 
 ### Particles (every 1.17.1 particle type)
 
@@ -4257,26 +4257,26 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Create world: name, seed, game mode, difficulty, world type (default/superflat/large biomes/amplified), cheats toggle <!--p11:create_world_name_seed_game_mode_difficulty_world_type_default_superflat_large_biomes_amplified_cheats_toggle-->
 - [ ] Edit/delete/re-create world <!--p11:edit_delete_re_create_world-->
 - [ ] Multiplayer server list (add/edit/remove, ping) <!--p11:multiplayer_server_list_add_edit_remove_ping-->
-- [ ] Options screen <!--p11:options_screen-->
-- [ ] Video settings screen <!--p11:video_settings_screen-->
+- [x] Options screen <!--p11:options_screen-->
+- [x] Video settings screen <!--p11:video_settings_screen-->
 - [ ] Controls screen with rebinding <!--p11:controls_screen_with_rebinding-->
 - [ ] Mouse settings <!--p11:mouse_settings-->
 - [ ] Sound settings screen <!--p11:sound_settings_screen-->
 - [ ] Accessibility settings <!--p11:accessibility_settings-->
-- [ ] Chat settings <!--p11:chat_settings-->
+- [x] Chat settings <!--p11:chat_settings-->
 - [ ] Skin customization screen (skin layers, main hand) <!--p11:skin_customization_screen_skin_layers_main_hand-->
 - [ ] Language file system (English first) <!--p11:language_file_system_english_first-->
 - [ ] Pause menu <!--p11:pause_menu-->
 - [ ] Statistics screen (general, items, mobs) <!--p11:statistics_screen_general_items_mobs-->
 - [ ] Advancements screen <!--p11:advancements_screen-->
-- [ ] Loading / generating world screen <!--p11:loading_generating_world_screen-->
+- [x] Loading / generating world screen <!--p11:loading_generating_world_screen-->
 - [ ] Saving screen <!--p11:saving_screen-->
 - [ ] Toasts (advancements, recipes, tutorial) <!--p11:toasts_advancements_recipes_tutorial-->
 - [ ] Subtitles option <!--p11:subtitles_option-->
 - [ ] Screenshots (F2) <!--p11:screenshots_f2-->
 - [ ] Original pixel font <!--p11:original_pixel_font-->
 - [ ] Player skins: original default skins <!--p11:player_skins_original_default_skins-->
-- [ ] Player skin upload <!--p11:player_skin_upload-->
+- [x] Player skin upload <!--p11:player_skin_upload-->
 
 ## Final feel pass (§7)
 

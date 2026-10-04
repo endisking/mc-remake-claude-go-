@@ -10,6 +10,7 @@ import {
   itemId, sameItemSameTags, splitStack, type Container,
 } from './container';
 import { craftingRemainder, craftingResult } from './recipes';
+import { grindstoneOutput } from '../game/enchantments';
 import { isFuel, cookingRecipe } from './smelting';
 import { stonecutterRecipes, type StonecutterRecipe } from './stonecutting';
 import { COOKING_TYPE, type FurnaceKind } from './furnace';
@@ -28,7 +29,7 @@ export const enum ClickType {
 /** The clicked slot id for "outside the window" (drop the carried stack). */
 export const SLOT_OUTSIDE = -999;
 
-export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter' | 'smithing' | 'grindstone' | 'merchant';
+export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter' | 'smithing' | 'grindstone' | 'enchantment' | 'brewing_stand' | 'anvil' | 'merchant';
 
 export interface MenuPlayer {
   readonly inventory: Inventory;
@@ -1003,17 +1004,14 @@ export class SmithingMenu extends Menu {
  * yet): two of the same damageable item combine with a 5% bonus; one item alone gives nothing.
  */
 export function grindstoneResult(a: ItemStack | null, b: ItemStack | null): ItemStack | null {
-  if (isEmpty(a) || isEmpty(b) || a.count > 1 || b.count > 1 || a.id !== b.id) return null;
-  const max = ITEMS_BY_ID[a.id]?.maxDurability ?? 0;
-  if (max <= 0) return null;
-  const k = max - a.damage, l = max - b.damage;
-  return { id: a.id, count: 1, damage: Math.max(max - (k + l + Math.floor((max * 5) / 100)), 0) };
+  // GrindstoneMenu.createResult: repair, strip non-curse enchantments (Phase 7: enchantments.ts)
+  return grindstoneOutput(a, b);
 }
 
 class GrindstoneInputSlot extends Slot {
   override mayPlace(s: ItemStack): boolean {
     // isDamageableItem || enchanted book || enchanted
-    return (ITEMS_BY_ID[s.id]?.maxDurability ?? 0) > 0 || ITEMS_BY_ID[s.id]?.name === 'enchanted_book';
+    return (ITEMS_BY_ID[s.id]?.maxDurability ?? 0) > 0 || ITEMS_BY_ID[s.id]?.name === 'enchanted_book' || (s.tag?.Enchantments?.length ?? 0) > 0;
   }
 }
 
@@ -1022,6 +1020,8 @@ export class GrindstoneMenu extends Menu {
   readonly inputs = new SimpleContainer(2);
   readonly result = new ResultContainer();
   onUse: (() => void) | null = null;
+  /** GrindstoneMenu result taken: XP from the inputs' enchantments (set by the server) */
+  onExperience: ((a: ItemStack | null, b: ItemStack | null) => void) | null = null;
   constructor(id: number, inv: Container, private readonly valid: () => boolean = () => true) {
     super('grindstone', id);
     this.inputs.onChange = () => (this.result.items[0] = grindstoneResult(this.inputs.getItem(0), this.inputs.getItem(1)));
@@ -1034,6 +1034,7 @@ export class GrindstoneMenu extends Menu {
           return false;
         }
         override onTake(p: MenuPlayer, st: ItemStack): void {
+          menu.onExperience?.(menu.inputs.getItem(0), menu.inputs.getItem(1));
           menu.inputs.setItem(0, null);
           menu.inputs.setItem(1, null);
           menu.onUse?.();
@@ -1245,7 +1246,12 @@ export class MerchantMenu extends Menu {
 }
 
 /** Menu with mirror containers (client prediction for server-opened windows). */
+/** Client mirrors for menus defined in other modules (enchanting, brewing): registered at import. */
+export const CLIENT_MENU_FACTORIES = new Map<string, (id: number, inv: Container) => Menu>();
+
 export function createClientMenu(type: MenuType, id: number, inv: Container): Menu {
+  const extra = CLIENT_MENU_FACTORIES.get(type);
+  if (extra) return extra(id, inv);
   switch (type) {
     case 'inventory':
       return new InventoryMenu(inv);
@@ -1271,6 +1277,10 @@ export function createClientMenu(type: MenuType, id: number, inv: Container): Me
       return new GrindstoneMenu(id, inv);
     case 'merchant':
       return new MerchantMenu(id, inv);
+    case 'enchantment':
+    case 'brewing_stand':
+    case 'anvil':
+      throw new Error(`menu module for ${type} not loaded`);
   }
 }
 

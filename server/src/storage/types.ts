@@ -43,6 +43,7 @@ export interface LevelMeta {
 
 /** Per-player save (playerdata/<name>.dat equivalent). */
 export interface PlayerData {
+  xpSeed?: number;
   version: number;
   name: string;
   /** dimension id (overworld, the_nether, the_end); absent in older saves = overworld */

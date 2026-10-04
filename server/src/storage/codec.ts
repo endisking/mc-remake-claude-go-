@@ -128,6 +128,7 @@ export function capturePlayer(p: ServerPlayer): PlayerData {
     selected: p.inventory.selected,
     respawn: p.respawn ? { ...p.respawn } : null,
     effects: [...l.effects.active.values()].map((e) => ({ ...e })),
+    xpSeed: p.enchantmentSeed,
   };
 }
 
@@ -183,4 +184,5 @@ export function applyPlayer(p: ServerPlayer, d: PlayerData): void {
       if (EFFECT_NAME[e.id] === 'health_boost') l.maxHealth = 20 + 4 * (e.amplifier + 1);
     }
   }
+  if (typeof d.xpSeed === 'number') p.enchantmentSeed = d.xpSeed | 0;
 }
