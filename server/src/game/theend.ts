@@ -8,7 +8,7 @@
  */
 import type { GameServer } from './server';
 import type { ServerPlayer } from './player';
-import { ServerEntity } from './entity';
+import { ServerEntity, ItemEntity, ExperienceOrb } from './entity';
 import type { BlockWorld } from '@shared/world/world';
 import { stateOf, blockNameOf, getProp, withProp } from '@shared/world/blockstate';
 import { IS_AIR } from '@shared/world/blockinfo';
@@ -238,6 +238,55 @@ export class TheEnd {
     });
     // Entity.findDimensionEntryPoint: END_SPAWN_POINT + (0.5, 0, 0.5), keeping the player's rotation
     s.changeDimension(p, 'the_end', ex + 0.5, ey, ez + 0.5, p.yaw, p.pitch);
+  }
+
+  /**
+   * Items and experience orbs touching an end portal (EndPortalBlock.entityInside →
+   * Entity.changeDimension): into the End at END_SPAWN_POINT after ServerLevel.makeObsidianPlatform
+   * (obsidian at y 48), out of it to the top of the world spawn column. Runs in the current level.
+   */
+  tickEntities(): void {
+    const s = this.s, from = s.level;
+    for (const e of [...from.entities.values()]) {
+      if (e.removed || !(e instanceof ItemEntity || e instanceof ExperienceOrb)) continue;
+      const b = e.bb();
+      let hit = false;
+      for (let x = Math.floor(b.minX); x <= Math.floor(b.maxX) && !hit; x++)
+        for (let y = Math.floor(b.minY); y <= Math.floor(b.maxY) && !hit; y++)
+          for (let z = Math.floor(b.minZ); z <= Math.floor(b.maxZ) && !hit; z++)
+            hit = from.world.getState(x, y, z) === END_PORTAL && b.minY < y + 0.75 && b.maxY > y + 0.375;
+      if (!hit) continue;
+      const toId = from.id === 'the_end' ? 'overworld' : 'the_end';
+      const to = s.levels.get(toId);
+      if (!to) continue;
+      let tx: number, ty: number, tz: number;
+      if (toId === 'the_end') {
+        const [ex, ey, ez] = END_SPAWN_POINT;
+        s.inLevel(to, () => {
+          for (let cx = (ex - 2) >> 4; cx <= (ex + 2) >> 4; cx++) for (let cz = (ez - 2) >> 4; cz <= (ez + 2) >> 4; cz++) s.ensureStage(cx, cz, 3);
+          for (let x = ex - 2; x <= ex + 2; x++)
+            for (let z = ez - 2; z <= ez + 2; z++) {
+              for (let y = ey - 1; y <= ey + 1; y++) s.setBlock(x, y, z, 0);
+              s.setBlock(x, ey - 2, z, stateOf('obsidian'));
+            }
+        });
+        [tx, ty, tz] = [ex + 0.5, ey, ez + 0.5];
+      } else {
+        const [sx, , sz] = s.worldSpawn;
+        const top = s.inLevel(to, () => {
+          s.ensureStage(sx >> 4, sz >> 4, 3);
+          return to.world.getChunk(sx >> 4, sz >> 4)?.motionBlocking[((sz & 15) << 4) | (sx & 15)] ?? 64;
+        });
+        [tx, ty, tz] = [sx + 0.5, top, sz + 0.5];
+      }
+      from.entities.delete(e.id);
+      for (const p of from.players) if (p.tracking.delete(e.id)) s.send(p, { t: 'removeEntities', ids: [e.id] });
+      e.x = tx;
+      e.y = ty;
+      e.z = tz;
+      e.sentX = e.sentY = e.sentZ = NaN;
+      to.entities.set(e.id, e);
+    }
   }
 
   /**

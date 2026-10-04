@@ -118,6 +118,24 @@ describe('the End on the server', () => {
   });
 });
 
+describe('items through end portals', () => {
+  it('an item in an end portal lands on the 5×5 obsidian platform at y 48 in the End', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true });
+    client(server, 'A');
+    for (let i = 0; i < 3; i++) server.tick();
+    const p = server.players[0]!;
+    const x = Math.floor(p.x) + 3, y = Math.floor(p.y) + 3, z = Math.floor(p.z);
+    server.setBlock(x, y, z, stateOf('end_portal'));
+    server.spawnItem(x + 0.5, y + 0.5, z + 0.5, { id: 1, count: 1, damage: 0 }, 0, 0, 0);
+    server.tick();
+    const end = server.levels.get('the_end')!;
+    const items = [...end.entities.values()];
+    expect(items.length).toBe(1);
+    expect([items[0]!.x, items[0]!.z]).toEqual([100.5, 0.5]);
+    for (let bx = 98; bx <= 102; bx++) for (let bz = -2; bz <= 2; bz++) expect(blockNameOf(end.world.getState(bx, 48, bz))).toBe('obsidian');
+  });
+});
+
 describe('eye of ender', () => {
   it('heads 12 blocks toward a far target, rising, then dies after 80 ticks', () => {
     const e = new EyeOfEnder(1, 0);

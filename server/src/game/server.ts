@@ -1869,6 +1869,7 @@ export class GameServer {
       this.tickEntities();
       this.items.tickClouds(); // Phase 7: lingering potion clouds of this dimension
       this.portals.tickEntities();
+      this.theEnd.tickEntities();
       this.containers.tick();
       this.updateChunks();
       this.updateTracking();
