@@ -122,6 +122,13 @@ describe('nether features', () => {
     expect(c.get('magma_block') ?? 0).toBeGreaterThan(5);
   });
 
+  it('nether wastes have quartz and gold ores, magma, gravel and blackstone blobs, glowstone and fire', () => {
+    const c = decorated(12345n, B.nether_wastes);
+    expect(c.get('nether_quartz_ore') ?? 0).toBeGreaterThan(10);
+    expect(c.get('nether_gold_ore') ?? 0).toBeGreaterThan(5);
+    expect((c.get('magma_block') ?? 0) + (c.get('gravel') ?? 0) + (c.get('blackstone') ?? 0)).toBeGreaterThan(10);
+  });
+
   it('soul sand valleys have soul sand, soul soil and basalt pillars', () => {
     const c = decorated(12345n, B.soul_sand_valley);
     expect((c.get('soul_sand') ?? 0) + (c.get('soul_soil') ?? 0)).toBeGreaterThan(100);
