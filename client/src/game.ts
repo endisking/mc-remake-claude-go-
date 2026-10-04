@@ -1766,6 +1766,7 @@ export class Game implements ScreenHost {
       off: side(1, off, offName, this.offHandHeight, this.oOffHandHeight, this.handOff),
       renderMain: which.main,
       renderOff: which.off,
+      leftHanded: this.settings.mainHand === 'left',
       partial,
       autoSpin: this.autoSpinAttack,
       scoping: this.scoping,
@@ -1956,6 +1957,18 @@ export class Game implements ScreenHost {
     const gl = this.gl;
     this.resize();
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    if (this.screen instanceof LoadingTerrainScreen) {
+      // the loading screen covers the world: don't draw it, and upload meshes as fast as they come
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      const budget = this.chunks.uploadBudgetMs;
+      this.chunks.uploadBudgetMs = 25;
+      this.chunks.update(this.x, this.y + 1.62, this.z);
+      this.chunks.uploadBudgetMs = budget;
+      this.gui.begin(this.settings.guiScale);
+      this.screen.render();
+      return;
+    }
     const s = this.settings;
     // eye position (raycasts) and camera position/rotation (detached in third person, vanilla Camera.setup)
     let ex = this.prevX + (this.x - this.prevX) * partial;

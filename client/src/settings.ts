@@ -154,6 +154,7 @@ export function applyQueryOverrides(s: Settings, q: URLSearchParams): Settings {
     out.vsync = n('fps')! < 0;
   }
   if (q.has('cave')) out.caveCulling = q.get('cave') !== '0';
+  if (q.get('mainhand') === 'left' || q.get('mainhand') === 'right') out.mainHand = q.get('mainhand') as 'left' | 'right';
   if (n('scale') !== undefined) out.renderScale = Math.max(0.25, Math.min(1, n('scale')!));
   return out;
 }
