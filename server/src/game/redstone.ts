@@ -13,7 +13,7 @@ import { ITEMS_BY_ID } from '@shared/data';
 import { primeTnt } from './explosion';
 import { Mob } from './mobs/mob';
 import { Arrow } from './arrow';
-import type { ItemStack } from '@shared/item/stack';
+import { copyStack, sameItem, type ItemStack } from '@shared/item/stack';
 
 const DIRS = ['down', 'up', 'north', 'south', 'west', 'east'];
 const DX = [0, 0, 0, 0, -1, 1];
@@ -254,8 +254,8 @@ export class ServerRedstone {
           const t = target[i];
           const max = Math.min(64, ITEMS_BY_ID[stack.id]?.stackSize ?? 64);
           if (!t || t.count <= 0) {
-            target[i] = { ...stack, count: 1 };
-          } else if (t.id === stack.id && t.count < max && t.damage === stack.damage) {
+            target[i] = { ...copyStack(stack), count: 1 };
+          } else if (t.count < max && sameItem(t, stack)) {
             t.count++;
           } else continue;
           stack.count--;
@@ -268,7 +268,7 @@ export class ServerRedstone {
       }
     }
     // DefaultDispenseItemBehavior: one item flies out of the face
-    const one: ItemStack = { ...stack, count: 1 };
+    const one: ItemStack = { ...copyStack(stack), count: 1 };
     stack.count--;
     if (stack.count <= 0) items[slot] = null;
     const px = x + 0.5 + 0.7 * DX[d]!, pz = z + 0.5 + 0.7 * DZ[d]!;

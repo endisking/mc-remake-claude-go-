@@ -42,6 +42,8 @@ export interface ArrowHost {
   /** PvP check for player-on-player hits */
   canHarm(ownerId: number, target: ArrowTarget): boolean;
   rand: { nextFloat(): number; nextInt(n: number): number; nextGaussian(): number };
+  /** Block.onProjectileHit (target blocks, …) */
+  onHitBlock?(x: number, y: number, z: number, px: number, py: number, pz: number, face: number): void;
 }
 
 export class Arrow extends ServerEntity {
@@ -159,6 +161,7 @@ export class Arrow extends ServerEntity {
       this.z -= (this.vz / l) * 0.05;
       const r = this.host.rand;
       this.host.playSound('entity.arrow.hit', this.x, this.y, this.z, 1, 1.2 / (r.nextFloat() * 0.2 + 0.9));
+      this.host.onHitBlock?.(blockHit.x, blockHit.y, blockHit.z, blockHit.px, blockHit.py, blockHit.pz, blockHit.face);
       this.inGround = true;
       this.shakeTime = 7;
       this.crit = false;

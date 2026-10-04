@@ -75,6 +75,8 @@ export class ItemUse {
         return e && !e.removed ? e.bb() : null;
       },
       playSound: (ev, x, y, z, v, pi) => srv.playSound(null, ev, 'neutral', x, y, z, v, pi),
+      // redstone: TargetBlock.onProjectileHit
+      onHitBlock: (x, y, z, px, py, pz, face) => void srv.redstone.rs.targetHit(x, y, z, px, py, pz, face, true),
       dropItem: (x, y, z, st) => {
         const e = new ItemEntity(srv.newEntityId(), st);
         e.x = x;

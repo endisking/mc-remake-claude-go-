@@ -373,3 +373,20 @@ describe('lamps, TNT, doors, observers, buttons, plates', () => {
     expect(l.dispensed).toBe(1);
   });
 });
+
+describe('target block', () => {
+  it('outputs by distance from the centre and resets after 20 ticks for arrows', () => {
+    const l = new TestLevel();
+    l.place(1, 1, 0, 'target');
+    l.place(2, 1, 0, 'redstone_wire');
+    // dead centre of the west face → 15
+    expect(l.rs.targetHit(1, 1, 0, 1, 1.5, 0.5, 4, true)).toBe(15);
+    expect(l.prop(2, 1, 0, 'power')).toBe(15);
+    l.step(19);
+    expect(l.prop(1, 1, 0, 'power')).toBe(15);
+    l.step(1);
+    expect(l.prop(1, 1, 0, 'power')).toBe(0);
+    // near the edge → 1
+    expect(l.rs.targetHit(1, 1, 0, 1, 1.02, 0.5, 4, true)).toBe(1);
+  });
+});
