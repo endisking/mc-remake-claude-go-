@@ -59,6 +59,7 @@ import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
+import { ChatScreen, componentToLegacy, renderPlayerList, type SuggestionReply } from './gui/chat';
 
 export class Game implements ScreenHost {
   readonly gl: WebGL2RenderingContext;
@@ -81,6 +82,10 @@ export class Game implements ScreenHost {
   private readonly hud = new Hud();
   /** online players (vanilla PlayerInfo list) */
   readonly playerInfo = new Map<number, PlayerInfoEntry>();
+  /** ping per player id (vanilla PlayerInfo latency) */
+  readonly playerLatency = new Map<number, number>();
+  /** camera position of the last frame (nameplates project from it) */
+  private readonly camPos = [0, 0, 0];
   /** entity the camera looks through while spectating (null = ourselves) */
   cameraEntity: number | null = null;
   /** game mode before the last change (F3+N returns to it) */
@@ -705,17 +710,18 @@ export class Game implements ScreenHost {
         if (p.stage < 0) this.otherCracks.delete(p.id);
         else this.otherCracks.set(p.id, { x: p.x, y: p.y, z: p.z, stage: p.stage });
         break;
-      case 'chat': {
-        let text = p.json;
-        try {
-          const j = JSON.parse(p.json) as { text?: string };
-          if (typeof j.text === 'string') text = j.text;
-        } catch {
-          /* plain text */
-        }
-        this.hud.addChat(text);
+      case 'chat':
+        this.hud.addChat(componentToLegacy(p.json));
         break;
-      }
+      case 'commandSuggestions':
+        if (this.screen instanceof ChatScreen) this.screen.receiveSuggestions(p.id, JSON.parse(p.json) as SuggestionReply);
+        break;
+      case 'keepAlive':
+        this.send({ t: 'keepAlive', id: p.id });
+        break;
+      case 'playerLatency':
+        this.playerLatency.set(p.id, p.latency);
+        break;
       case 'digAck':
       case 'disconnect':
         break;
@@ -892,6 +898,9 @@ export class Game implements ScreenHost {
       }
       // vanilla: Ctrl (Screen.hasControlDown) + drop throws the whole stack
       if (b.consume('swapOffhand')) ia.swapOffhand();
+      // vanilla handleKeybinds: T opens chat, / opens it with the slash typed
+      if (b.consume('chat')) this.openChat('');
+      else if (b.consume('command')) this.openChat('/');
       if (b.consume('drop')) ia.drop(i.isDown('ControlLeft') || i.isDown('ControlRight') || i.isDown('MetaLeft'));
     }
     if (this.loggedIn) {
@@ -1807,6 +1816,9 @@ export class Game implements ScreenHost {
     this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
 
     multiply(this.viewProj, this.proj, this.view);
+    this.camPos[0] = cx;
+    this.camPos[1] = cy;
+    this.camPos[2] = cz;
     frustumPlanes(this.planes, this.viewProj);
     this.chunks.renderDistance = s.renderDistance;
     this.chunks.update(cx, cy, cz);
@@ -1876,6 +1888,8 @@ export class Game implements ScreenHost {
   private renderGui(x: number, y: number, z: number): void {
     const g = this.gui;
     g.begin(this.settings.guiScale);
+    this.hud.chatOpen = this.screen instanceof ChatScreen;
+    if (!this.hideHud) this.renderNameplates();
     if (!this.hideHud) {
       if (this.showDebug) this.renderDebug(x, y, z);
       else if (this.cameraType === 0 && (this.gameMode !== 3 || this.spectatorCrosshair())) {
@@ -1899,6 +1913,10 @@ export class Game implements ScreenHost {
         g.ctx.restore();
       }
       this.hud.render(g, this.hudState(), (id, c, x, y) => this.renderGuiItem(id, c, x, y));
+      // PlayerTabOverlay: while the key is held, in multiplayer or with company
+      if (!this.screen && this.binds.down('playerlist') && (this.playerInfo.size > 1 || this.players.size > 0)) {
+        renderPlayerList(g, [...this.playerInfo.values()], (id) => this.playerLatency.get(id) ?? 0, (pi) => this.skinFace(pi));
+      }
       if (this.gameMode === 3) {
         this.spectatorGui.renderHotbar(g);
         this.spectatorGui.renderTooltip(g);
@@ -1911,6 +1929,67 @@ export class Game implements ScreenHost {
       }
     }
     if (this.screen) this.screen.render(this.mouseGX, this.mouseGY);
+  }
+
+  // ------------------------------------------------------------------ chat (Phase 9)
+  private skinFace(pi: PlayerInfoEntry): ImageBitmap | null {
+    const file = this.entityRenderer.skinFor(pi.name, pi.skin);
+    if (!this.skinImages.has(file)) {
+      this.skinImages.set(file, null);
+      void fetch(`./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
+    }
+    return this.skinImages.get(file) ?? null;
+  }
+
+  openChat(initial: string): void {
+    this.setScreen(new ChatScreen({
+      gui: this.gui,
+      setScreen: (sc) => {
+        this.setScreen(sc);
+        this.input.clearPresses();
+      },
+      sendChat: (m) => this.send({ t: 'chat', message: m }),
+      requestSuggestions: (id, text) => this.send({ t: 'commandSuggest', id, text }),
+      history: this.hud.sentHistory,
+      renderChatFocused: (g) => this.hud.renderChat(g, true),
+      scrollChat: (n) => this.hud.scrollChat(n),
+    }, initial));
+  }
+
+  /**
+   * Name tags above other players (vanilla EntityRenderer.renderNameTag, drawn on the GUI layer):
+   * 0.025 blocks per pixel, 0.5 above the hitbox, within 64 blocks, faint when sneaking or
+   * behind blocks, hidden for invisible players.
+   */
+  private renderNameplates(): void {
+    const g = this.gui, m = this.viewProj;
+    const [cx, cy, cz] = this.camPos as [number, number, number];
+    const camEnt = this.cameraEntity;
+    for (const p of this.players.values()) {
+      if (p.id === camEnt || (p.flags & 32) !== 0) continue;
+      const h = p.pose === 'crouching' ? 1.5 : p.pose === 'swimming' || p.pose === 'fall_flying' ? 0.6 : p.pose === 'sleeping' ? 0.2 : 1.8;
+      const x = p.x - cx, y = p.y + h + 0.5 - cy, z = p.z - cz;
+      if (x * x + y * y + z * z > 4096) continue;
+      const w = m[3]! * x + m[7]! * y + m[11]! * z + m[15]!;
+      if (w <= 0.05) continue;
+      const sx = (m[0]! * x + m[4]! * y + m[8]! * z + m[12]!) / w;
+      const sy = (m[1]! * x + m[5]! * y + m[9]! * z + m[13]!) / w;
+      if (sx < -1.2 || sx > 1.2 || sy < -1.2 || sy > 1.2) continue;
+      const scale = (0.025 * m[5]! * this.canvas.height) / 2 / w / g.scale;
+      if (scale < 0.05) continue;
+      const gx = ((sx + 1) / 2) * g.width, gy = ((1 - sy) / 2) * g.height;
+      const blocked = !!raycastBlocks(this.world, cx, cy, cz, x, y, z, Math.hypot(x, y, z) - 0.3);
+      const sneaking = p.pose === 'crouching';
+      const tw = g.font.width(p.name);
+      const ctx = g.ctx;
+      ctx.save();
+      ctx.translate(gx, gy);
+      ctx.scale(scale, scale);
+      g.fill(-tw / 2 - 1, -1, tw + 2, 9, 0x40000000);
+      ctx.globalAlpha = sneaking || blocked ? 0.125 : 1;
+      g.text(p.name, -tw / 2, 0, 0xffffff, false);
+      ctx.restore();
+    }
   }
 
   /** A 16×16 item in the GUI with its stack count (vanilla ItemRenderer.renderGuiItem + decorations). */

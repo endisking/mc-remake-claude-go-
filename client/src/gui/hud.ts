@@ -70,18 +70,32 @@ export class Hud {
     this.chatLines.length = 0;
   }
 
+  /** sent messages (ChatComponent.recentChat) for the chat screen's up/down history */
+  readonly sentHistory: string[] = [];
+
   addChat(text: string): void {
     for (const line of text.split('\n')) this.chatLines.unshift({ text: line, tick: this.tickCount });
+    if (this.chatScroll > 0) this.chatScroll++;
     if (this.chatLines.length > 100) this.chatLines.length = 100;
   }
 
-  renderChat(g: Gui): void {
+  /** lines scrolled up while the chat is open (ChatComponent.chatScrollbarPos) */
+  chatScroll = 0;
+  scrollChat(lines: number): void {
+    this.chatScroll = Math.max(0, Math.min(this.chatLines.length - 20, this.chatScroll + lines));
+  }
+
+  /** ChatComponent.render: closed = last 10 lines fading after 10 s; focused (chat open) = 20 lines, opaque. */
+  renderChat(g: Gui, focused = false): void {
+    if (!focused) this.chatScroll = 0;
     const bottom = g.height - 40;
+    const max = focused ? 20 : 10;
     let n = 0;
-    for (const l of this.chatLines) {
+    for (let i = focused ? this.chatScroll : 0; i < this.chatLines.length; i++) {
+      const l = this.chatLines[i]!;
       const age = this.tickCount - l.tick;
-      if (age >= 200 || n >= 10) break;
-      let o = 1 - age / 200;
+      if (n >= max || (!focused && age >= 200)) break;
+      let o = focused ? 1 : 1 - age / 200;
       o = Math.max(0, Math.min(1, o * 10));
       o *= o;
       const alpha = o * 0.9 + 0.1;
@@ -115,8 +129,11 @@ export class Hud {
     this.lastHighlight = key;
   }
 
+  /** the chat screen draws the chat itself (focused) */
+  chatOpen = false;
+
   render(g: Gui, p: HudPlayer, item: (id: number, count: number, x: number, y: number) => void): void {
-    this.renderChat(g);
+    if (!this.chatOpen) this.renderChat(g);
     const mid = Math.floor(g.width / 2);
     const spectator = p.gameMode === 3;
     // hotbar (spectators get the spectator menu instead, drawn by SpectatorGui)
