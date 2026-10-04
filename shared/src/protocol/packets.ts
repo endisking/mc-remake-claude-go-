@@ -121,6 +121,8 @@ const S2C_SCHEMA = {
   mobData: [['id', 'i32'], ['key', 'str'], ['value', 'i32']],
   /** A mob's custom name (name tag); empty clears it. Shown when looked at, or always with mobData name_visible = 1. */
   mobName: [['id', 'i32'], ['name', 'str']],
+  /** Explosion at a point (vanilla ClientboundExplodePacket without the block list): particles; power ≥ 2 and destroy = big emitter. */
+  explode: [['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['power', 'f32'], ['destroy', 'bool']],
 } as const satisfies Schema;
 
 /** Keys of the mobData packet (client: client/src/world/mobs.ts). */
@@ -172,6 +174,9 @@ const C2S_SCHEMA = {
   commandSuggest: [['id', 'varint'], ['text', 'str']],
   /** Reply to the server's keepAlive. */
   keepAlive: [['id', 'f64']],
+  // ---- mobs
+  /** Right-click an entity (vanilla Interact INTERACT): breeding food, shears, buckets, saddles, flint and steel, bones. */
+  interactEntity: [['id', 'i32'], ['hand', 'u8']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;

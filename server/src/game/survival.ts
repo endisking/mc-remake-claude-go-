@@ -23,9 +23,14 @@ export interface DamageSource extends CombatSource {
   bypassInvul?: boolean;
   fire?: boolean;
   fall?: boolean;
+  /** mob attacks scale with difficulty against players (DamageSource.scalesWithDifficulty) */
+  scalesWithDifficulty?: boolean;
+  explosion?: boolean;
+  projectile?: boolean;
+  /** entity to be knocked away from (the attacker or shooter) */
+  knockbackFrom?: { x: number; z: number } | null;
   /** DamageSource.getSourcePosition (the direct entity: arrow or attacker) for shield blocking */
   pos?: { x: number; y: number; z: number };
-  projectile?: boolean;
 }
 
 /** Vanilla DamageSource constants used by the environment. */
@@ -59,6 +64,9 @@ export interface GameRules {
   freezeDamage: boolean;
   doImmediateRespawn: boolean;
   showDeathMessages: boolean;
+  doMobSpawning: boolean;
+  mobGriefing: boolean;
+  doMobLoot: boolean;
 }
 
 export const DEFAULT_GAME_RULES: GameRules = {
@@ -70,6 +78,9 @@ export const DEFAULT_GAME_RULES: GameRules = {
   freezeDamage: true,
   doImmediateRespawn: false,
   showDeathMessages: true,
+  doMobSpawning: true,
+  mobGriefing: true,
+  doMobLoot: true,
 };
 
 /** Survival state carried by a ServerPlayer. */
@@ -141,6 +152,13 @@ export class Survival {
       l.lastHurtByPlayerTime = 100;
     }
     if (l.spawnInvulnerableTime > 0 && src.id !== 'outOfWorld') return false;
+    // Player.hurt: mob attacks scale with difficulty
+    if (src.scalesWithDifficulty) {
+      const d = this.s.difficulty;
+      if (d === Difficulty.Peaceful) amount = 0;
+      else if (d === Difficulty.Easy) amount = Math.min(amount / 2 + 1, amount);
+      else if (d === Difficulty.Hard) amount = (amount * 3) / 2;
+    }
     if (amount <= 0) return false;
     // LivingEntity.isDamageSourceBlocked: a raised shield facing the source stops the hit
     const srcPos = src.pos ?? (attacker ? { x: attacker.x, y: attacker.y, z: attacker.z } : null);
@@ -160,8 +178,9 @@ export class Survival {
       this.actuallyHurt(p, src, amount);
       l.hurtTime = 10;
       // LivingEntity.hurt: knock the victim away from the attacker
-      if (attacker) {
-        let dx = attacker.x - p.x, dz = attacker.z - p.z;
+      const kb = attacker ?? src.knockbackFrom;
+      if (kb && !src.explosion) {
+        let dx = kb.x - p.x, dz = kb.z - p.z;
         while (dx * dx + dz * dz < 1e-4) {
           dx = (Math.random() - Math.random()) * 0.01;
           dz = (Math.random() - Math.random()) * 0.01;

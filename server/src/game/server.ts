@@ -5,7 +5,7 @@
 import { BlockWorld } from '@shared/world/world';
 import { LightEngine } from '@shared/world/light';
 import { Chunk, chunkKey, chunkKeyX, chunkKeyZ } from '@shared/world/chunk';
-import { serializeChunk, deserializeChunk, packRecord, unpackRecord, capturePlayer, applyPlayer } from '../storage/codec';
+import { serializeChunk, deserializeChunk, packRecord, unpackRecord, capturePlayer, applyPlayer, chunkEntities } from '../storage/codec';
 import { SAVE_FORMAT_VERSION, type WorldStorage, type LevelMeta, type PlayerData } from '../storage/types';
 import { DevGenerator } from '@shared/worldgen/devgen';
 import { OverworldGenerator } from '@shared/worldgen/overworld/generator';
@@ -35,6 +35,9 @@ import { soundId, sourceId, type SoundSource } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
+import { MobManager, MOB_TYPES } from './mobs/manager';
+import { Mob } from './mobs/mob';
+import type { MobSave } from './mobs/persist';
 // --- block behaviours (Phase 4: ticks, gravity, farming, doors)
 import { BlockBehaviors } from './blocks';
 import { FallingBlockEntity } from './fallingblock';
@@ -72,6 +75,8 @@ export interface ServerOptions {
   defaultGameMode?: number;
   /** Seed for the level's random source (tests); defaults to the clock like vanilla. */
   randomSeed?: bigint;
+  /** Natural/chunk-generation mob spawning (default: on, except on the flat dev terrain used by tests). */
+  spawnMobs?: boolean;
   /** Persistent world storage; without it the world lives only in memory. Call load() before start(). */
   storage?: WorldStorage;
   /** World name written to the level data. */
@@ -117,6 +122,8 @@ export class GameServer {
   /** server.properties pvp */
   pvp = true;
   readonly sleep = new Sleep(this);
+  /** mob spawning, combat, interactions and sync */
+  readonly mobs = new MobManager(this);
   /** Block behaviours: scheduled + random ticks, gravity blocks, farming, doors (blocks.ts). */
   readonly blocks = new BlockBehaviors(this);
   /** container menus, block entities and furnaces */
@@ -350,6 +357,7 @@ export class GameServer {
     if (!b.visualOnly && b.fire === 4 && (this.difficulty === Difficulty.Normal || this.difficulty === Difficulty.Hard)) this.blocks.lightningFire(b.x, b.y, b.z, 4);
     else if (!b.visualOnly && b.fire === 0) this.blocks.lightningFire(b.x, b.y, b.z, 0);
     if (!b.striking) return;
+    this.mobs.thunderHit(b.x, b.y, b.z);
     for (const p of this.players) {
       if (Math.abs(p.x - b.x) > 3 + 0.3 || Math.abs(p.z - b.z) > 3 + 0.3 || p.y + 1.8 < b.y - 3 || p.y > b.y + 9) continue;
       // Entity.thunderHit
@@ -667,6 +675,10 @@ export class GameServer {
     this.entities.set(e.id, e);
   }
 
+  allocateEntityId(): number {
+    return this.nextEntityId++;
+  }
+
   /** Vanilla Block.popResource: item at the block centre ± 0.25 with a small upward toss. */
   popResource(x: number, y: number, z: number, stack: ItemStack): void {
     // gamerule doTileDrops (vanilla Block.popResource)
@@ -865,8 +877,9 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId : e instanceof Thrown ? e.item : 0 });
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId :  e instanceof Thrown ? e.item : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
+          this.mobs.onStartTracking(p, e);
         } else if (!visible && p.tracking.has(e.id)) {
           p.tracking.delete(e.id);
           this.send(p, { t: 'removeEntities', ids: [e.id] });
@@ -874,7 +887,7 @@ export class GameServer {
       }
     }
     for (const e of this.entities.values()) {
-      if (e.removed) continue;
+      if (e.removed || e instanceof Mob) continue;
       if (e.x === e.sentX && e.y === e.sentY && e.z === e.sentZ) continue;
       e.sentX = e.x;
       e.sentY = e.y;
@@ -987,6 +1000,11 @@ export class GameServer {
   /** ServerGamePacketListenerImpl.handleInteract (attack) → Player.attack. */
   private handleAttack(p: ServerPlayer, targetId: number): void {
     const t = this.players.find((o) => o.id === targetId);
+    const mob = t ? null : this.entities.get(targetId);
+    if (mob instanceof Mob) {
+      if (p.gameMode !== 3) this.mobs.playerAttack(p, mob);
+      return;
+    }
     // ServerPlayer.attack: a spectator's attack spectates the target instead
     if (p.gameMode === 3) {
       if (t && t !== p && t.gameMode !== 3 && !t.living.dead && (t.x - p.x) ** 2 + (t.y - p.y) ** 2 + (t.z - p.z) ** 2 < 36) this.setCamera(p, t);
@@ -1113,6 +1131,9 @@ export class GameServer {
       case 'attack':
         this.handleAttack(p, m.target);
         break;
+      case 'interactEntity':
+        this.mobs.interact(p, m.id, m.hand);
+        break;
       case 'stopSleeping':
         this.sleep.wake(p, false);
         break;
@@ -1224,6 +1245,9 @@ export class GameServer {
       if (saved) {
         c = deserializeChunk(saved.raw);
         this.stored.delete(key);
+        // mobs saved with the chunk come back with it
+        const ents = chunkEntities.get(c);
+        if (ents?.length) this.mobs.load(ents as MobSave[]);
       } else {
         c = this.generator.generate(cx, cz);
         if (this.generator instanceof OverworldGenerator) c.stage = 1;
@@ -1241,8 +1265,10 @@ export class GameServer {
       if (this.generator instanceof OverworldGenerator) {
         // springs schedule their fluid tick (delay 0); it runs once the chunk is full and ticking
         for (const [x, y, z] of this.generator.decorate(this.world, cx, cz)) this.fluids.scheduleFluidAt(x, y, z, 0);
-        // chests placed by features (dungeons) get their loot table
-        this.containers.attachGenerated(takeGenBlockEntities(this.world));
+        // chests placed by features (dungeons) get their loot table, spawners their mob
+        const gen = takeGenBlockEntities(this.world);
+        this.containers.attachGenerated(gen);
+        this.mobs.spawners.attachGenerated(gen);
         // mobs placed by structures (villagers, witch, elder guardians…), once their mob type exists
         for (const g of takeGenEntities(this.world)) {
           const hook = commandHooks.summon.get(g.type);
@@ -1294,7 +1320,12 @@ export class GameServer {
   private prepareChunk(cx: number, cz: number): Chunk {
     const c = this.ensureStage(cx, cz, 3);
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) this.ensureStage(cx + dx, cz + dz, 1);
-    if (!c.lit) this.light.lightChunk(c);
+    if (!c.lit) {
+      this.light.lightChunk(c);
+      // NaturalSpawner.spawnMobsForChunkGeneration for freshly generated chunks
+      if (c.stage === 3 && this.gameRules.doMobSpawning && this.mobs.naturalSpawning) this.mobs.spawnForChunkGeneration(c);
+    }
+    this.mobs.spawners.scanChunk(c);
     return c;
   }
 
@@ -1359,6 +1390,8 @@ export class GameServer {
     if (this.shadowed.has(key)) return false;
     if (this.saveDirty.has(key) || this.savedSig.get(key) !== chunkSig(c)) return true;
     if (!blockEntities) return false;
+    // mobs move without changing blocks: chunks that hold (or held) mobs are rewritten
+    if (this.mobs.chunkNeedsSave(c.x, c.z)) return true;
     // block entities (containers) can change without a block change
     const be = (c as unknown as { blockEntities?: { size?: number; length?: number } }).blockEntities;
     return !!be && (be.size ?? be.length ?? 0) > 0;
@@ -1370,20 +1403,32 @@ export class GameServer {
     this.savedKeys.add(key);
   }
 
-  /** Keep an unloaded chunk (blocks, light, stage) so coming back finds it as it was. */
+  /** Serialize a loaded chunk with the mobs inside it (they stay in the world). */
+  private chunkRecord(c: Chunk): Uint8Array {
+    const mobs = this.mobs.save(c.x, c.z);
+    this.mobs.noteSaved(c.x, c.z, mobs.length);
+    return serializeChunk(c, mobs);
+  }
+
+  /** Keep an unloaded chunk (blocks, light, stage, mobs) so coming back finds it as it was. */
   private storeChunk(c: Chunk): void {
     const key = chunkKey(c.x, c.z);
+    // its mobs leave with it, saved inside the chunk record
+    const dirtyMobs = this.mobs.chunkNeedsSave(c.x, c.z);
+    const mobs = this.mobs.unloadChunk(c.x, c.z);
+    this.mobs.spawners.dropChunk(c.x, c.z);
+    this.mobs.noteSaved(c.x, c.z, mobs.length);
     if (this.shadowed.delete(key)) {
       // the save has the real chunk; forget the temporary copy
       this.savedSig.delete(key);
       this.saveDirty.delete(key);
       return;
     }
-    const dirty = this.needsSave(c, key);
+    const dirty = dirtyMobs || this.needsSave(c, key);
     this.savedSig.delete(key);
     this.saveDirty.delete(key);
     if (this.opts.storage && !dirty && this.savedKeys.has(key)) return; // unchanged since saved
-    this.stored.set(key, { raw: serializeChunk(c), unsaved: true });
+    this.stored.set(key, { raw: serializeChunk(c, mobs), unsaved: true });
   }
 
   /** Write chunks unloaded since the last flush to storage. */
@@ -1435,7 +1480,7 @@ export class GameServer {
     for (const pass of [0, 1]) {
       for (const [key, c] of this.world.chunks) {
         if ((pass === 0 && (c.stage < 3 || !c.lit)) || !this.needsSave(c, key, false)) continue;
-        raws.push({ key, raw: serializeChunk(c) });
+        raws.push({ key, raw: this.chunkRecord(c) });
         this.markSaved(c, key);
         if (raws.length >= 16 || performance.now() > deadline) break;
       }
@@ -1550,7 +1595,7 @@ export class GameServer {
     const raws: { key: number; raw: Uint8Array }[] = [];
     for (const [key, c] of this.world.chunks) {
       if (!this.needsSave(c, key)) continue;
-      raws.push({ key, raw: serializeChunk(c) });
+      raws.push({ key, raw: this.chunkRecord(c) });
       this.markSaved(c, key);
     }
     for (const p of this.players) this.playerData.set(this.playerKey(p), capturePlayer(p));
@@ -1643,12 +1688,14 @@ export class GameServer {
       }
       p.vx = p.vy = p.vz = 0;
     }
+    this.mobs.tick();
     this.blocks.tick();
     this.tickEntities();
     this.containers.tick();
     this.updateChunks();
     this.updateTracking();
     this.trackEntities();
+    this.mobs.sync();
     this.flushLight();
     this.mspt = this.mspt * 0.9 + (performance.now() - t0) * 0.1;
   }

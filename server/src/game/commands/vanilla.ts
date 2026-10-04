@@ -391,6 +391,8 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
   const kill = (c: Ctx, targets: Target[]): number => {
     for (const t of targets) {
       if (isPlayer(t)) c.source.server.survival.hurt(t, { ...DAMAGE.outOfWorld, bypassInvul: true } as typeof DAMAGE.outOfWorld, 3.4028235e38);
+      // mobs die properly (death animation, loot); other entities just vanish
+      else if ('hurt' in t && typeof (t as { hurt?: unknown }).hurt === 'function') (t as unknown as { hurt(src: object, n: number): boolean }).hurt({ id: 'outOfWorld', bypassArmor: true, bypassInvul: true }, 3.4028235e38);
       else t.removed = true;
     }
     if (targets.length === 1) c.source.sendSuccess(`Killed ${nameOf(targets[0]!)}`, true);

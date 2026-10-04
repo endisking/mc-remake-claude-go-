@@ -1321,7 +1321,7 @@ export class Game implements ScreenHost, ContainerHost {
         // Minecraft.handleKeybinds while using an item: clicks are swallowed
         b.consume('use');
         b.consume('attack');
-      } else ia.use(b.consume('use'), b.down('use'), this.target);
+      } else ia.use(b.consume('use'), b.down('use'), this.target, this.targetEntity !== null && this.mobs.get(this.targetEntity) ? this.targetEntity : null);
       if (this.gameMode === 3) {
         // MouseHandler: the middle button opens/uses the spectator menu; hotbar keys pick its slots
         const middle = i.consumePress('Mouse1');

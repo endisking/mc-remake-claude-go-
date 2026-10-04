@@ -66,7 +66,8 @@ export class Sleep {
     if (this.bedBlocked(x, y, z, facing)) return MSG.obstructed;
     this.setRespawn(p, x, y, z, p.yaw, true);
     if (isDay(this.s.dayTime, this.s.rainLevel, this.s.thunderLevel * this.s.rainLevel)) return MSG.noSleep;
-    // (monsters within 8×5×8 block rest; they arrive with Phase 6)
+    // monsters within 8×5×8 of the bed prevent rest (Monster.isPreventingPlayerRest)
+    if (p.gameMode !== 1 && this.s.mobs.monstersNear(x + 0.5, y, z + 0.5)) return MSG.notSafe;
     // LivingEntity.startSleeping
     this.setOccupied(x, y, z, facing, true);
     p.sleepingPos = [x, y, z];
