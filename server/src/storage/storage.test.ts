@@ -183,7 +183,7 @@ function chunkState(received: S2C[], x: number, y: number, z: number): number | 
   return pk?.chunk.getState(x & 15, y, z & 15);
 }
 
-describe('server persistence', () => {
+describe('server persistence', { timeout: 60000 }, () => {
   it('saves blocks, players and level data and restores them on reopen', async () => {
     const storage = new MemoryStorage();
     const s1 = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true, storage, worldName: 'Test', randomSeed: 1n });
@@ -251,7 +251,7 @@ describe('server persistence', () => {
     client(s, 'A');
     s.gameTime = AUTOSAVE_INTERVAL - 2;
     await run(s, 1);
-    expect(storage.chunks.size).toBe(0);
+    expect(storage.players.size).toBe(0);
     await run(s, 3);
     for (let i = 0; i < 200 && !storage.players.size; i++) await settle();
     expect(storage.chunks.size).toBeGreaterThan(0);

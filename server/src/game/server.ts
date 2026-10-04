@@ -1132,7 +1132,9 @@ export class GameServer {
    * Chunks not in the world but held in memory, serialized (serializeChunk): unloaded this session
    * and not yet written to storage (`unsaved`), or read back from storage ahead of use.
    */
-  private readonly stored = new Map<number, { raw: Uint8Array; unsaved: boolean }>();
+  private readonly stored = new Map<number, { raw: Uint8Array; unsaved: boolean; writing?: boolean }>();
+  /** Chunk writes, chained so they land in the order they were snapshotted. */
+  private writeChain: Promise<void> = Promise.resolve();
   /** Chunks present in the save (storage). */
   private readonly savedKeys = new Set<number>();
   /** Chunks being read from storage. */
@@ -1258,9 +1260,10 @@ export class GameServer {
     this.saveDirty.add(chunkKey(cx, cz));
   }
 
-  private needsSave(c: Chunk, key: number): boolean {
+  private needsSave(c: Chunk, key: number, blockEntities = true): boolean {
     if (this.shadowed.has(key)) return false;
     if (this.saveDirty.has(key) || this.savedSig.get(key) !== chunkSig(c)) return true;
+    if (!blockEntities) return false;
     // block entities (containers) can change without a block change
     const be = (c as unknown as { blockEntities?: { size?: number; length?: number } }).blockEntities;
     return !!be && (be.size ?? be.length ?? 0) > 0;
@@ -1290,17 +1293,67 @@ export class GameServer {
 
   /** Write chunks unloaded since the last flush to storage. */
   private async flushStored(): Promise<void> {
-    const storage = this.opts.storage;
-    if (!storage) return;
+    if (!this.opts.storage) return;
     const entries = [...this.stored].filter(([, e]) => e.unsaved);
     if (!entries.length) return;
-    const records = await Promise.all(entries.map(async ([key, e]) => ({ cx: chunkKeyX(key), cz: chunkKeyZ(key), data: await packRecord(e.raw) })));
-    for (let i = 0; i < records.length; i += 256) await storage.putChunks(records.slice(i, i + 256));
-    for (const [key, e] of entries) {
-      this.savedKeys.add(key);
-      // drop it from memory unless it was reloaded or replaced meanwhile
-      if (this.stored.get(key) === e) this.stored.delete(key);
+    for (const [, e] of entries) {
+      e.unsaved = false;
+      e.writing = true;
     }
+    try {
+      await this.writeChunks(entries.map(([key, e]) => ({ key, raw: e.raw })));
+    } catch (err) {
+      for (const [, e] of entries) e.unsaved = true;
+      throw err;
+    } finally {
+      for (const [key, e] of entries) {
+        e.writing = false;
+        // written: drop it from memory unless it was reloaded or replaced meanwhile
+        if (!e.unsaved && this.stored.get(key) === e) this.stored.delete(key);
+      }
+    }
+  }
+
+  /** Compress and write serialized chunks, after every write queued before. */
+  private writeChunks(raws: { key: number; raw: Uint8Array }[]): Promise<void> {
+    const storage = this.opts.storage!;
+    const packed = Promise.all(raws.map(async ({ key, raw }) => ({ cx: chunkKeyX(key), cz: chunkKeyZ(key), data: await packRecord(raw) })));
+    const w = this.writeChain.then(async () => {
+      const records = await packed;
+      for (let i = 0; i < records.length; i += 256) await storage.putChunks(records.slice(i, i + 256));
+      for (const { key } of raws) this.savedKeys.add(key);
+    });
+    this.writeChain = w.catch(() => {});
+    return w;
+  }
+
+  private trickling = false;
+  /**
+   * Save changed chunks in the background (about 2 ms of each tick), so autosaves and
+   * "Save and Quit" have little left to write. Finished chunks first; the not-yet-full ring
+   * at the edge only when nothing else is waiting.
+   */
+  private trickleSave(): void {
+    if (this.trickling || this.saving) return;
+    const raws: { key: number; raw: Uint8Array }[] = [];
+    const deadline = performance.now() + 2;
+    for (const pass of [0, 1]) {
+      for (const [key, c] of this.world.chunks) {
+        if ((pass === 0 && (c.stage < 3 || !c.lit)) || !this.needsSave(c, key, false)) continue;
+        raws.push({ key, raw: serializeChunk(c) });
+        this.markSaved(c, key);
+        if (raws.length >= 16 || performance.now() > deadline) break;
+      }
+      if (raws.length) break;
+    }
+    if (!raws.length) return;
+    this.trickling = true;
+    this.writeChunks(raws)
+      .catch((e) => {
+        for (const { key } of raws) this.saveDirty.add(key);
+        console.error('[server] background chunk save failed', e);
+      })
+      .finally(() => (this.trickling = false));
   }
 
   // ---------------------------------------------------------------- persistence
@@ -1409,9 +1462,7 @@ export class GameServer {
     const players = [...this.playerData];
     const meta = this.captureMeta();
     try {
-      const records = await Promise.all(raws.map(async ({ key, raw }) => ({ cx: chunkKeyX(key), cz: chunkKeyZ(key), data: await packRecord(raw) })));
-      for (let i = 0; i < records.length; i += 256) await storage.putChunks(records.slice(i, i + 256));
-      await this.flushStored();
+      await Promise.all([this.writeChunks(raws), this.flushStored()]);
       for (const [id, d] of players) await storage.putPlayer(id, d);
       await storage.putMeta(meta);
     } catch (e) {
@@ -1446,6 +1497,7 @@ export class GameServer {
     if (this.doDaylightCycle) this.dayTime++;
     // MinecraftServer.tickServer: autosave every 6000 ticks
     if (this.opts.storage && this.gameTime % AUTOSAVE_INTERVAL === 0) this.save().catch(() => {});
+    else if (this.opts.storage) this.trickleSave();
     if (this.gameTime % 20 === 0) {
       for (const p of this.players) this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     }
@@ -1586,7 +1638,7 @@ export class GameServer {
       if (this.opts.storage) {
         // chunks read ahead but no longer needed: storage still has them
         for (const [key, e] of this.stored) {
-          if (e.unsaved) continue;
+          if (e.unsaved || e.writing) continue;
           const cx = chunkKeyX(key), cz = chunkKeyZ(key);
           const needed = this.players.some((p) => Math.abs(cx - (Math.floor(p.x) >> 4)) <= p.viewDistance + 3 && Math.abs(cz - (Math.floor(p.z) >> 4)) <= p.viewDistance + 3);
           if (!needed) this.stored.delete(key);
