@@ -23,6 +23,9 @@ export interface DamageSource extends CombatSource {
   bypassInvul?: boolean;
   fire?: boolean;
   fall?: boolean;
+  /** DamageSource.getSourcePosition (the direct entity: arrow or attacker) for shield blocking */
+  pos?: { x: number; y: number; z: number };
+  projectile?: boolean;
 }
 
 /** Vanilla DamageSource constants used by the environment. */
@@ -139,6 +142,12 @@ export class Survival {
     }
     if (l.spawnInvulnerableTime > 0 && src.id !== 'outOfWorld') return false;
     if (amount <= 0) return false;
+    // LivingEntity.isDamageSourceBlocked: a raised shield facing the source stops the hit
+    const srcPos = src.pos ?? (attacker ? { x: attacker.x, y: attacker.y, z: attacker.z } : null);
+    if (srcPos && !src.bypassArmor && this.s.items.blocksFrom(p, srcPos)) {
+      this.s.items.shieldBlocked(p, amount, src.projectile ? null : attacker);
+      return false;
+    }
     let fresh = true;
     if (l.invulnerableTime > 10) {
       if (amount <= l.lastHurt) return false;

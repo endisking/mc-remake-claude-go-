@@ -290,6 +290,7 @@ export function useDuration(id: number): number {
 export function canStartUsing(id: number, ctx: { foodLevel: number; creative: boolean; hasArrows: boolean }): boolean {
   const n = nameOf(id);
   if (n === 'bow') return ctx.creative || ctx.hasArrows;
+  if (n === 'shield') return true;
   if (n === 'milk_bucket' || n === 'honey_bottle') return true;
   const f = foodProps(id);
   // Player.canEat: invulnerable (creative) players can always eat

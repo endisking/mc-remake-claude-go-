@@ -238,6 +238,7 @@ export class EntityRenderer {
         attackArm: p.swingingArm,
         swimAmount: 0,
         bowPose: p.usingItem !== 0 && nameOf(p.usingItem) === 'bow',
+        blockArm: p.usingItem !== 0 && nameOf(p.usingItem) === 'shield' && p.useTicks >= 5 ? (p.usingItem === p.offHand && p.usingItem !== p.mainHand ? 'left' : 'right') : undefined,
       });
       // entity base transform: translate, rotate by body yaw (yaw 0 faces +Z), scale px → blocks
       const m = this.m;

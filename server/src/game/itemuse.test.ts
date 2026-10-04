@@ -254,6 +254,33 @@ describe('thrown items', { timeout: 60000 }, () => {
   });
 });
 
+describe('shields', { timeout: 60000 }, () => {
+  it('a raised shield blocks a frontal hit after 5 ticks; an axe disables it', () => {
+    const { server, clients } = setup(2);
+    const [a, b] = server.players as [typeof server.players[0], typeof server.players[0]];
+    // b stands 2 blocks south of a, facing north toward a
+    b.x = a.x; b.y = a.y; b.z = a.z + 2;
+    b.yaw = 180; b.pitch = 0;
+    b.inventory.set(40, { id: id('shield'), count: 1, damage: 0 });
+    clients[1]!.send({ t: 'useItem', hand: 1 });
+    for (let i = 0; i < 5; i++) server.tick();
+    expect(server.items.isBlocking(b)).toBe(true);
+    a.inventory.set(0, { id: id('iron_sword'), count: 1, damage: 0 });
+    a.attackStrengthTicker = 100;
+    clients[0]!.send({ t: 'attack', target: b.id, sneaking: false });
+    expect(b.living.health).toBe(20);
+    expect(b.inventory.get(40)?.damage).toBe(7); // 1 + floor(6)
+    a.inventory.set(0, { id: id('iron_axe'), count: 1, damage: 0 });
+    a.attackStrengthTicker = 100;
+    server.tick();
+    a.attackStrengthTicker = 100;
+    clients[0]!.send({ t: 'attack', target: b.id, sneaking: false });
+    expect(server.items.isUsing(b)).toBe(false);
+    clients[1]!.send({ t: 'useItem', hand: 1 });
+    expect(server.items.isUsing(b)).toBe(false); // cooldown
+  });
+});
+
 describe('totem of undying', { timeout: 60000 }, () => {
   it('saves a dying player from the off hand, not from the void', () => {
     const { server, p } = setup();

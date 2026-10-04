@@ -308,6 +308,59 @@ export class ItemUse {
     this.s.broadcastToTrackers(p, { t: 'animate', id: p.id, action: hand === 1 ? 3 : 0 });
   }
 
+  // ---------------------------------------------------------------- shields
+
+  /** LivingEntity.isBlocking: a shield raised for at least 5 ticks. */
+  isBlocking(p: ServerPlayer): boolean {
+    const u = this.using.get(p.id);
+    return !!u && nameOf(u.item) === 'shield' && useDuration(u.item) - u.remaining >= 5;
+  }
+
+  /** isDamageSourceBlocked: blocking and the source is in front (horizontal direction · view < 0). */
+  blocksFrom(p: ServerPlayer, src: { x: number; y: number; z: number }): boolean {
+    if (!this.isBlocking(p)) return false;
+    const D = Math.PI / 180;
+    const vx = -Math.sin(p.yaw * D) * Math.cos(p.pitch * D), vz = Math.cos(p.yaw * D) * Math.cos(p.pitch * D);
+    let dx = p.x - src.x, dy = p.y - src.y, dz = p.z - src.z;
+    const len = Math.hypot(dx, dy, dz) || 1;
+    dx /= len;
+    dy /= len;
+    dz /= len;
+    void dy;
+    return dx * vx + dz * vz < 0;
+  }
+
+  /**
+   * A hit stopped by the shield: Player.hurtCurrentlyUsedShield (1 + damage durability for hits of
+   * 3 or more), the attacker knocked back 0.5, axes disable the shield for 5 s, event 29 / 30 sounds.
+   */
+  shieldBlocked(p: ServerPlayer, amount: number, attacker: ServerPlayer | null): void {
+    const u = this.using.get(p.id)!;
+    const slot = this.handSlot(p, u.hand);
+    if (amount >= 3 && p.gameMode !== 1) {
+      this.damageSlot(p, slot, 1 + Math.floor(amount), u.hand === 1 ? BREAK_EVENT.offHand : BREAK_EVENT.mainHand);
+      if (!p.inventory.get(slot)) {
+        this.stop(p);
+        this.s.playSound(null, 'item.shield.break', 'player', p.x, p.y, p.z, 0.8, 0.8 + this.s.rand.nextFloat() * 0.4);
+      }
+    }
+    this.s.broadcastToTrackers(p, { t: 'entityEvent', id: p.id, event: 29 }, true);
+    this.s.playSound(null, 'item.shield.block', 'player', p.x, p.y, p.z, 1, 0.8 + this.s.rand.nextFloat() * 0.4);
+    if (!attacker) return;
+    // LivingEntity.blockedByShield: the attacker bounces off
+    this.s.knockback(attacker, 0.5, p.x - attacker.x, p.z - attacker.z);
+    const held = attacker.inventory.selectedStack;
+    if (held && nameOf(held.id).endsWith('_axe') && this.using.has(p.id)) {
+      // Player.disableShield: 100 ticks of cooldown
+      let m = this.cooldowns.get(p.id);
+      if (!m) this.cooldowns.set(p.id, (m = new Map()));
+      m.set(id('shield'), this.s.gameTime + 100);
+      this.stop(p);
+      this.s.broadcastToTrackers(p, { t: 'entityEvent', id: p.id, event: 30 }, true);
+      this.s.playSound(null, 'item.shield.break', 'player', p.x, p.y, p.z, 0.8, 0.8 + this.s.rand.nextFloat() * 0.4);
+    }
+  }
+
   // ---------------------------------------------------------------- totem
 
   /**
@@ -612,7 +665,7 @@ export class ItemUse {
         bb: () => AABB.ofSize(p.x, p.y, p.z, 0.6, p.pose === 'crouching' ? 1.5 : p.pose === 'swimming' || p.pose === 'sleeping' ? 0.6 : 1.8),
         hurtByArrow: (arrow, dmg) => {
           const owner = self.s.players.find((o) => o.id === arrow.ownerId) ?? null;
-          const src: DamageSource = { id: 'arrow', ...(owner ? {} : { entity: { name: 'Arrow', player: false } }) };
+          const src: DamageSource = { id: 'arrow', pos: { x: arrow.x, y: arrow.y, z: arrow.z }, projectile: true, ...(owner ? {} : { entity: { name: 'Arrow', player: false } }) };
           const ok = self.s.survival.hurt(p, src, dmg, owner && owner !== p ? owner : null);
           if (ok && owner && owner !== p) self.s.send(owner, { t: 'sound', event: soundIdSafe('entity.arrow.hit_player'), category: 7, x: owner.x, y: owner.y, z: owner.z, volume: 0.18, pitch: 0.45 });
           return ok;

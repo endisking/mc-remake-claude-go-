@@ -68,6 +68,8 @@ export interface HumanoidAnim {
   swimAmount: number;
   /** HumanoidModel.ArmPose.BOW_AND_ARROW: both arms raised along the look direction */
   bowPose?: boolean;
+  /** HumanoidModel.ArmPose.BLOCK on this arm (raised shield) */
+  blockArm?: 'right' | 'left';
 }
 
 export function animateHumanoid(p: Record<string, PartPose>, a: HumanoidAnim): void {
@@ -113,6 +115,14 @@ export function animateHumanoid(p: Record<string, PartPose>, a: HumanoidAnim): v
     leftArm.yRot = -0.5 + head.yRot;
     rightArm.xRot = -Math.PI / 2 + head.xRot;
     leftArm.xRot = -Math.PI / 2 + head.xRot;
+  }
+  // HumanoidModel.poseRightArm / poseLeftArm BLOCK (yRot mirrored like the rest of this model)
+  if (a.blockArm === 'right') {
+    rightArm.xRot = rightArm.xRot * 0.5 - 0.9424779;
+    rightArm.yRot = Math.PI / 6;
+  } else if (a.blockArm === 'left') {
+    leftArm.xRot = leftArm.xRot * 0.5 - 0.9424779;
+    leftArm.yRot = -Math.PI / 6;
   }
   // crouching: lean forward, lower the head, pull the legs back
   if (a.crouching) {
