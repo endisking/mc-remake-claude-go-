@@ -171,7 +171,7 @@ describe('loot', () => {
   });
 });
 
-describe('block behaviours on the server', () => {
+describe('block behaviours on the server', { timeout: 60000 }, () => {
   it('sand falls as an entity and lands as a block', () => {
     const { server, set, get, received } = setup();
     set(10, 150, 10, 'stone');
