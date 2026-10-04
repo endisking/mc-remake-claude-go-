@@ -12,7 +12,8 @@ import type { ServerPlayer } from './player';
 import { ItemEntity } from './entity';
 import { FallingBlockEntity } from './fallingblock';
 import { TickScheduler } from './ticks';
-import { tickFire, fireStateAt, fireCanSurvive, fireTickDelay, type FireLevel } from './fire';
+import { tickFire, fireStateAt, fireCanSurvive, fireTickDelay, igniteOdds, type FireLevel } from './fire';
+import { MATERIAL_BLOCKS_MOTION } from '@shared/world/blockprops';
 import { BLOCK_STATE_COUNT, BIOMES, ITEMS_BY_ID } from '@shared/data';
 import { blockIdOf, blockNameOf, getProp, withProp, defaultState, stateOf, propsOf } from '@shared/world/blockstate';
 import { FLUID, FLUID_LEVEL, FULL_COLLISION, IS_AIR, LIGHT_FILTER } from '@shared/world/blockinfo';
@@ -91,6 +92,7 @@ for (let s = 0; s < BLOCK_STATE_COUNT; s++) {
   else if (n === 'bamboo') t = getProp(s, 'stage') === 0;
   else if (n === 'bamboo_sapling' || n === 'brown_mushroom' || n === 'red_mushroom' || n === 'budding_amethyst') t = true;
   else if (COPPER_NEXT[n]) t = true;
+  else if (n === 'lava') t = true;
   RANDOM_TICKING[s] = t ? 1 : 0;
 }
 
@@ -289,6 +291,7 @@ export class BlockBehaviors {
     }
     if (n === 'brown_mushroom' || n === 'red_mushroom') return this.spreadMushroom(x, y, z, st, n);
     if (n === 'budding_amethyst') return this.growAmethyst(x, y, z);
+    if (n === 'lava') return this.lavaFire(x, y, z);
     if (COPPER_NEXT[n]) {
       // WeatheringCopper.onRandomTick
       if (r.nextFloat() < 0.05688889) this.weatherCopper(x, y, z, st, n);
@@ -429,6 +432,38 @@ export class BlockBehaviors {
       get doFireTick() { return self.s.gameRules.doFireTick; },
     };
   })();
+
+  /** LavaFluid.randomTick: sets fire to flammable blocks above and around it. */
+  private lavaFire(x: number, y: number, z: number): void {
+    if (!this.s.gameRules.doFireTick) return;
+    const w = this.w, r = this.s.rand;
+    const flammable = (px: number, py: number, pz: number) => py >= 0 && py < 256 && igniteOdds(w.getState(px, py, pz)) > 0;
+    const i = r.nextInt(3);
+    if (i > 0) {
+      let px = x, py = y, pz = z;
+      for (let j = 0; j < i; j++) {
+        px += r.nextInt(3) - 1;
+        py += 1;
+        pz += r.nextInt(3) - 1;
+        if (!w.isLoaded(px, pz)) return;
+        const s0 = w.getState(px, py, pz);
+        if (IS_AIR[s0]) {
+          let near = false;
+          for (let d = 0; d < 6; d++) if (flammable(px + DX[d]!, py + DY[d]!, pz + DZ[d]!)) near = true;
+          if (near) {
+            this.s.setBlock(px, py, pz, fireStateAt(w, px, py, pz));
+            return;
+          }
+        } else if (MATERIAL_BLOCKS_MOTION[s0]) return;
+      }
+    } else {
+      for (let k = 0; k < 3; k++) {
+        const px = x + r.nextInt(3) - 1, pz = z + r.nextInt(3) - 1;
+        if (!w.isLoaded(px, pz)) return;
+        if (IS_AIR[w.getState(px, y + 1, pz)] && flammable(px, y, pz)) this.s.setBlock(px, y + 1, pz, fireStateAt(w, px, y + 1, pz));
+      }
+    }
+  }
 
   /** LightningBolt.spawnFire: fire where it struck (and `extra` random spots around it). */
   lightningFire(bx: number, by: number, bz: number, extra: number): void {

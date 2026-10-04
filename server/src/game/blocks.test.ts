@@ -647,4 +647,18 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     for (let x = 10; x <= 14; x++) for (let z = 10; z <= 14; z++) if (get(x, 150, z) === 'oak_planks') planks++;
     expect(planks).toBeLessThan(25);
   });
+
+  it('lava sets nearby wood on fire', () => {
+    const { server, set, get } = setup();
+    server.blocks.randomTickSpeed = 0;
+    for (let x = 15; x <= 21; x++) for (let z = 15; z <= 21; z++) set(x, 149, z, 'stone');
+    set(18, 150, 18, 'lava');
+    for (const [x, z] of [[17, 18], [19, 18], [18, 17], [18, 19]] as const) set(x, 150, z, 'oak_planks');
+    let fire = false;
+    for (let i = 0; i < 400 && !fire; i++) {
+      server.blocks.randomTick(18, 150, 18, server.world.getState(18, 150, 18));
+      for (let x = 16; x <= 20; x++) for (let z = 16; z <= 20; z++) for (let y = 150; y <= 152; y++) if (get(x, y, z) === 'fire') fire = true;
+    }
+    expect(fire).toBe(true);
+  });
 });
