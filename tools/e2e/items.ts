@@ -140,5 +140,8 @@ await page.evaluate(() => {
 await cmd(page, '/effect give @s nausea 20');
 await page.waitForTimeout(4000);
 console.log('nausea', await page.evaluate(() => (window as any).game.portalTime));
+await cmd(page, '/effect give @s speed 30 1');
+await cmd(page, '/effect give @s poison 8');
+await page.waitForTimeout(500);
 await shot('nausea');
 await browser.close();

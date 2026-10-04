@@ -19,6 +19,7 @@ import { grassColormap, foliageColormap } from './colormap';
 import { widgets, optionsBackground, icons, spectatorWidgets } from './gui';
 import { allSkins } from './skins';
 import { allArmorTextures } from './armor';
+import { mobEffects } from './effects';
 import { sun, moonPhases, clouds, rain, snowflakes, destroyStages, underwater, experienceOrbs, powderSnowOutline } from './environment';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -86,6 +87,7 @@ function main(): void {
   writePng(join(outDir, 'gui', 'options_background.png'), optionsBackground());
   writePng(join(outDir, 'gui', 'icons.png'), icons());
   writePng(join(outDir, 'gui', 'spectator_widgets.png'), spectatorWidgets());
+  writePng(join(outDir, 'gui', 'mob_effects.png'), mobEffects());
   mkdirSync(join(outDir, 'skins'), { recursive: true });
   const skins = allSkins();
   for (const sk of skins) writePng(join(outDir, 'skins', `${sk.name}.png`), sk.tex);

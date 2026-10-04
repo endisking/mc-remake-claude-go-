@@ -60,6 +60,7 @@ import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
 import { ClientItemUse } from './itemuse';
+import { renderEffects } from './gui/effects';
 import { maxDamage } from '@shared/game/items';
 
 /** Mth.hsvToRgb → 0xRRGGBB. */
@@ -2042,6 +2043,7 @@ export class Game implements ScreenHost {
         g.ctx.restore();
       }
       this.hud.render(g, this.hudState(), (id, c, x, y, d) => this.renderGuiItem(id, c, x, y, d));
+      renderEffects(g, this.itemUse.effects.values());
       if (this.gameMode === 3) {
         this.spectatorGui.renderHotbar(g);
         this.spectatorGui.renderTooltip(g);
