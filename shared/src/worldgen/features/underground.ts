@@ -253,7 +253,16 @@ export class NormalNoise {
       }
     });
     this.valueFactor = 0.16666666666666666 / (0.1 * (1 + 1 / (hi - lo + 1)));
+    // a safe bound on |getValue| (improved noise stays within ±1.04 per octave)
+    const n = amplitudes.length;
+    let octaves = 0, vf = Math.pow(2, n - 1) / (Math.pow(2, n) - 1);
+    for (const a of amplitudes) {
+      octaves += Math.abs(a) * vf;
+      vf /= 2;
+    }
+    this.maxAbs = 2 * 1.2 * octaves * this.valueFactor;
   }
+  readonly maxAbs: number;
   getValue(x: number, y: number, z: number): number {
     const k = 1.0181268882175227;
     return (this.first.noise(x, y, z) + this.second.noise(x * k, y * k, z * k)) * this.valueFactor;
@@ -311,17 +320,22 @@ export function geode(c: J): Placer {
     }
     const crackOffset = crack.crack_point_offset as number;
     const potential: number[] = [];
+    const inv = new Float64Array(k), noiseBound = Math.abs(noiseMul) * noise.maxAbs;
     // BlockPos.betweenClosed: x fastest, then y, then z
     for (let z = oz + minOff; z <= oz + maxOff; z++)
       for (let y = oy + minOff; y <= oy + maxOff; y++)
         for (let x = ox + minOff; x <= ox + maxOff; x++) {
+          // Vec3i.distSqr(Vec3i) in 1.17 measures from this block's centre (+0.5) to the other's corner
+          let s0 = 0;
+          for (let i = 0, j = 0; i < pts.length; i += 4, j++) {
+            const dx = x + 0.5 - pts[i]!, dy = y + 0.5 - pts[i + 1]!, dz = z + 0.5 - pts[i + 2]!;
+            s0 += inv[j] = fastInvSqrt(dx * dx + dy * dy + dz * dz + pts[i + 3]!);
+          }
+          // outside the shell whatever the noise: skip the noise (nothing is drawn or placed there)
+          if (s0 + k * noiseBound < h) continue;
           const rn = noise.getValue(x, y, z) * noiseMul;
           let s = 0, t = 0;
-          // Vec3i.distSqr(Vec3i) in 1.17 measures from this block's centre (+0.5) to the other's corner
-          for (let i = 0; i < pts.length; i += 4) {
-            const dx = x + 0.5 - pts[i]!, dy = y + 0.5 - pts[i + 1]!, dz = z + 0.5 - pts[i + 2]!;
-            s += fastInvSqrt(dx * dx + dy * dy + dz * dz + pts[i + 3]!) + rn;
-          }
+          for (let j = 0; j < k; j++) s += inv[j]! + rn;
           for (let i = 0; i < crackPts.length; i += 3) {
             const dx = x + 0.5 - crackPts[i]!, dy = y + 0.5 - crackPts[i + 1]!, dz = z + 0.5 - crackPts[i + 2]!;
             t += fastInvSqrt(dx * dx + dy * dy + dz * dz + crackOffset) + rn;
