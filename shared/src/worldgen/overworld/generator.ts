@@ -12,6 +12,7 @@ import { SurfaceBuilders, placeBedrock, type ProtoBlocks } from './surface';
 import { seeded, terrainSeed } from '../rand';
 import { Carvers } from './carvers';
 import { decorateChunk } from './features';
+import { B } from '../biome/biomeids';
 import type { BlockWorld } from '../../world/world';
 
 const STONE = stateOf('stone');
@@ -49,6 +50,11 @@ export class OverworldGenerator {
   blockBiome(x: number, z: number): number {
     zoomToQuart(this.biomeSeed, x, z, this.q);
     return this.layers.quart.get(this.q[0], this.q[1]);
+  }
+
+  /** The biome's surface builder puts mycelium on top (lakes regrow it instead of grass). */
+  topMaterialIsMycelium(biome: number): boolean {
+    return biome === B.mushroom_fields || biome === B.mushroom_field_shore;
   }
 
   /**

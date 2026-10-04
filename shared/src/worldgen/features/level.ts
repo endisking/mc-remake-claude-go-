@@ -77,6 +77,12 @@ export class GenLevel {
     return 0;
   }
 
+  /** Fluid ticks scheduled by features (springs); fluids don't flow yet, so nothing consumes them. */
+  readonly fluidTicks: [number, number, number][] = [];
+  scheduleFluidTick(x: number, y: number, z: number): void {
+    this.fluidTicks.push([x, y, z]);
+  }
+
   /** Biome at a block (BiomeManager with the fuzzy zoom). */
   biome(x: number, z: number): number {
     return this.gen.blockBiome(x, z);
