@@ -38,6 +38,9 @@ import { StepTracker } from '@shared/entity/steps';
 // --- block behaviours (Phase 4: ticks, gravity, farming, doors)
 import { BlockBehaviors } from './blocks';
 import { FallingBlockEntity } from './fallingblock';
+import { ItemUse } from './itemuse';
+import { Arrow } from './arrow';
+import { Thrown } from './throwable';
 import { Containers } from './containers';
 import { takeGenBlockEntities } from '@shared/worldgen/features/underground';
 import { Commands, type AccessStore } from './commands';
@@ -102,6 +105,8 @@ export class GameServer {
   readonly commands = new Commands(this);
   difficulty: Difficulty = Difficulty.Normal;
   readonly survival = new Survival(this);
+  /** item use, durability, armour, effects sync (itemuse.ts) */
+  readonly items = new ItemUse(this);
   /** server.properties pvp */
   pvp = true;
   readonly sleep = new Sleep(this);
@@ -193,6 +198,7 @@ export class GameServer {
     const i = this.players.findIndex((p) => p.conn === conn);
     if (i < 0) return;
     const [gone] = this.players.splice(i, 1);
+    this.items.forget(gone!);
     this.containers.closeAll(gone!);
     if (this.opts.storage) {
       const key = this.playerKey(gone!);
@@ -232,6 +238,7 @@ export class GameServer {
     }
     p.prevTickX = p.x;
     p.prevTickZ = p.z;
+    p.living.effects.onChange = (e, removed) => this.items.sendEffect(p, e, removed);
     this.players.push(p);
     this.send(p, {
       t: 'login', entityId: p.id, gameMode: p.gameMode, dimension: 'overworld', seed: this.world.biomeZoomSeed!,
@@ -243,6 +250,8 @@ export class GameServer {
     }
     this.sendAbilities(p);
     this.survival.sync(p);
+    // effects restored from the save
+    for (const e of p.living.effects.active.values()) this.items.sendEffect(p, e, false);
     this.send(p, { t: 'difficulty', difficulty: this.difficulty });
     this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     this.send(p, { t: 'weather', rain: this.rainLevel, thunder: this.thunderLevel * this.rainLevel });
@@ -499,7 +508,8 @@ export class GameServer {
   private minerState(p: ServerPlayer) {
     const held = p.inventory.selectedStack;
     const eyeState = this.world.getState(Math.floor(p.x), Math.floor(p.y + 1.62), Math.floor(p.z));
-    return { item: held?.id ?? 0, efficiency: 0, haste: 0, miningFatigue: 0, underwater: FLUID[eyeState] === 1, aquaAffinity: false, onGround: p.onGround || p.flying };
+    const fx = p.living.effects;
+    return { item: held?.id ?? 0, efficiency: 0, haste: Math.max(fx.amplifier('haste'), fx.amplifier('conduit_power')) + 1, miningFatigue: fx.amplifier('mining_fatigue') + 1, underwater: FLUID[eyeState] === 1, aquaAffinity: false, onGround: p.onGround || p.flying };
   }
 
   private broadcastBreakProgress(p: ServerPlayer, x: number, y: number, z: number, stage: number): void {
@@ -534,6 +544,8 @@ export class GameServer {
       // Block.popExperience: only with doTileDrops
       if (xp > 0 && this.gameRules.doTileDrops) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
     }
+    // Item.mineBlock: tools lose durability (survival/adventure breakers)
+    if (drops && breaker && breaker.gameMode !== 1) this.items.onBlockMined(breaker, state);
     // beds: the other half goes too (BedBlock.updateShape → destroyBlock), dropping its loot
     // (the bed item comes from the head) unless the breaker is in creative
     if (name.endsWith('_bed')) {
@@ -589,8 +601,10 @@ export class GameServer {
     const slot = m.hand === 1 ? 40 : p.inventory.selected;
     const held = p.inventory.get(slot);
     const block = held ? blockForItem(held.id) : null;
-    // hoes, shovels, axes, bone meal (blocks.ts)
+    // hoes, shovels, axes, bone meal, flint and steel on blocks/TNT (blocks.ts)
     if (held && !block && p.gameMode !== 2 && this.blocks.useItemOn(p, slot, held, x, y, z, face)) return;
+    // other non-block items (buckets, flint and steel fire): Item.useOn (itemuse.ts)
+    if (held && !block && this.items.useOn(p, m.hand === 1 ? 1 : 0, x, y, z, face)) return;
     if (!held || !block || p.gameMode === 2) return;
     const clicked = this.world.getState(x, y, z);
     let px = x, py = y, pz = z;
@@ -633,12 +647,12 @@ export class GameServer {
   }
 
   // ------------------------------------------------------------------ item entities
-  spawnEntity(e: ServerEntity): void {
-    this.entities.set(e.id, e);
-  }
-
   newEntityId(): number {
     return this.nextEntityId++;
+  }
+
+  spawnEntity(e: ServerEntity): void {
+    this.entities.set(e.id, e);
   }
 
   /** Vanilla Block.popResource: item at the block centre ± 0.25 with a small upward toss. */
@@ -705,7 +719,10 @@ export class GameServer {
       e.tick(this.world);
       if (e instanceof LightningBolt) this.tickBolt(e);
       if (e instanceof ItemEntity && !e.removed) {
-        if ((this.gameTime + e.id) % 2 === 0) this.tryMerge(e);
+        this.items.itemHazards(e);
+        // ItemEntity.tick: merge every 2 ticks while moving between blocks, else every 40
+        const moved = Math.floor(e.x) !== Math.floor(e.prevX) || Math.floor(e.y) !== Math.floor(e.prevY) || Math.floor(e.z) !== Math.floor(e.prevZ);
+        if (!e.removed && e.age % (moved ? 2 : 40) === 0) this.tryMerge(e);
       }
       if (e instanceof ExperienceOrb && !e.removed && e.age % 20 === 1) this.scanOrb(e);
     }
@@ -836,7 +853,7 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : 0 });
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId : e instanceof Thrown ? e.item : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
         } else if (!visible && p.tracking.has(e.id)) {
           p.tracking.delete(e.id);
@@ -942,7 +959,8 @@ export class GameServer {
       if (p.fallDistance > 0) this.survival.land(p, p.fallDistance);
       p.fallDistance = 0;
     } else if (dy < 0) p.fallDistance -= dy;
-    if (p.flying) p.fallDistance = 0;
+    // flying, Slow Falling and Levitation never build up a fall (LivingEntity.travel)
+    if (p.flying || p.living.effects.has('slow_falling') || p.living.effects.has('levitation')) p.fallDistance = 0;
   }
 
   /** BlockState.use for interactive blocks; returns true when the click was consumed. */
@@ -975,6 +993,8 @@ export class GameServer {
     const res = computeAttack({
       item, attackStrengthTicker: p.attackStrengthTicker, sprinting: p.sprinting, fallDistance: p.fallDistance, onGround: p.onGround,
       onClimbable: ph.onClimbable(), inWater: ph.isInWater, walked: p.walkDist - p.walkDistO, speed: 0.1,
+      damageBonus: 3 * (p.living.effects.amplifier('strength') + 1) - 4 * (p.living.effects.amplifier('weakness') + 1),
+      speedMul: (1 + 0.1 * (p.living.effects.amplifier('haste') + 1)) * (1 - 0.1 * (p.living.effects.amplifier('mining_fatigue') + 1)),
     });
     p.attackStrengthTicker = 0;
     if (!this.pvp) return;
@@ -993,6 +1013,8 @@ export class GameServer {
       if (res.sweep) this.playSound(null, 'entity.player.attack.sweep', 'player', sx, sy, sz, 1, 1);
       else if (!res.critical) this.playSound(null, res.charged ? 'entity.player.attack.strong' : 'entity.player.attack.weak', 'player', sx, sy, sz, 1, 1);
       if (res.critical) this.broadcastToTrackers(t, { t: 'animate', id: t.id, action: 4 }, true);
+      // ItemStack.hurtEnemy: swords lose 1 durability per hit, tools 2
+      this.items.onAttackHit(p);
       p.living.food.addExhaustion(EXHAUSTION.attack);
     } else {
       this.playSound(null, 'entity.player.attack.nodamage', 'player', sx, sy, sz, 1, 1);
@@ -1002,6 +1024,8 @@ export class GameServer {
 
   /** LivingEntity.knockback, sent to the victim's client as a velocity (SetEntityMotion). */
   knockback(t: ServerPlayer, strength: number, x: number, z: number): void {
+    // KNOCKBACK_RESISTANCE (netherite armour)
+    strength *= 1 - this.items.armorOf(t).knockbackResistance;
     if (strength <= 0) return;
     const len = Math.hypot(x, z) || 1;
     const kx = (x / len) * strength, kz = (z / len) * strength;
@@ -1117,6 +1141,12 @@ export class GameServer {
         break;
       case 'dropItem':
         this.dropFromHand(p, m.all);
+        break;
+      case 'useItem':
+        this.items.useItem(p, m.hand === 1 ? 1 : 0);
+        break;
+      case 'releaseUseItem':
+        this.items.release(p);
         break;
       case 'swing':
         for (const o of this.players) if (o.tracking.has(p.id)) this.send(o, { t: 'animate', id: p.id, action: m.hand === 1 ? 3 : 0 });
@@ -1497,6 +1527,7 @@ export class GameServer {
   /** Stop ticking and save; resolves once everything is written. */
   async shutdown(): Promise<void> {
     this.stop();
+    this.items.dispose();
     await this.save();
     await this.opts.storage?.close();
   }
@@ -1546,6 +1577,8 @@ export class GameServer {
       }
       p.updatePose();
       this.survival.tick(p);
+      this.items.tick(p);
+      this.items.touchArrows(p);
       // Player.tick: attack strength recharges; switching to a different item restarts it
       p.attackStrengthTicker++;
       const main = p.inventory.selectedStack?.id ?? 0;
@@ -1693,6 +1726,7 @@ export class GameServer {
           this.send(p, { t: 'addPlayer', id: o.id, name: o.name, skin: o.skin, x: o.x, y: o.y, z: o.z, yaw: o.yaw, pitch: o.pitch, headYaw: o.headYaw });
           this.send(p, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose, frozen: o.living.ticksFrozen });
           this.send(p, { t: 'equipment', id: o.id, mainHand: o.inventory.selectedStack?.id ?? 0, offHand: o.inventory.get(40)?.id ?? 0 });
+          this.items.sendStateTo(p, o);
         } else if (!visible && p.tracking.has(o.id)) {
           p.tracking.delete(o.id);
           this.send(p, { t: 'removeEntities', ids: [o.id] });
