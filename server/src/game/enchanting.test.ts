@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { GameServer, type Connection } from './server';
 import { encodeC2S, decodeS2C, decodeStacks, PROTOCOL_VERSION, type S2C } from '@shared/protocol/packets';
-import { stateOf } from '@shared/world/blockstate';
+import { stateOf, blockNameOf } from '@shared/world/blockstate';
 import { stack, itemName } from '@shared/item/stack';
 import { capturePlayer, applyPlayer } from '../storage/codec';
 import { DAMAGE } from './survival';
@@ -131,5 +131,23 @@ describe('brewing stand and potions (server)', () => {
     for (let i = 0; i < 40; i++) server.tick();
     expect(p.living.effects.amplifier('speed')).toBe(0);
     expect(itemName(p.inventory.get(0)?.id ?? 0)).toBe('glass_bottle');
+  });
+});
+
+describe('frost walker', () => {
+  it('freezes still water around the player into frosted ice that later melts', () => {
+    const { server, a, p } = setup();
+    const x0 = Math.floor(p.x), y0 = Math.floor(p.y) - 1, z0 = Math.floor(p.z);
+    for (let dx = 1; dx <= 6; dx++) for (let dz = -3; dz <= 3; dz++) {
+      server.setBlock(x0 + dx, y0, z0 + dz, stateOf('water'));
+      for (let dy = 1; dy <= 3; dy++) server.setBlock(x0 + dx, y0 + dy, z0 + dz, 0);
+    }
+    const boots = stack('diamond_boots');
+    boots.tag = { Enchantments: [{ id: 'frost_walker', lvl: 2 }] };
+    p.inventory.set(36, boots);
+    a.send({ t: 'move', x: x0 + 2.5, y: p.y, z: z0 + 0.5, yaw: 0, pitch: 0, onGround: true });
+    let frosted = 0;
+    for (let dx = 1; dx <= 6; dx++) for (let dz = -3; dz <= 3; dz++) if (blockNameOf(server.world.getState(x0 + dx, y0, z0 + dz)) === 'frosted_ice') frosted++;
+    expect(frosted).toBeGreaterThan(10);
   });
 });

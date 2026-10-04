@@ -20,6 +20,7 @@ import { Sleep } from './sleep';
 import { minerStateOf, toolLoot, mending, installEnchantCommand, setEnchantResync, attackExtras, thorns } from './enchanthooks';
 import { damageBonus } from '@shared/game/enchantments';
 import { resendSwirl } from './effectswirl';
+import { frostWalk } from './frostwalker';
 import { FluidTicks } from './fluidticks';
 import { legacyBlock, FLUID_OF } from '@shared/game/fluids';
 import { isRainingAt } from '@shared/world/weather';
@@ -959,10 +960,13 @@ export class GameServer {
     // the client's onGround, like ServerGamePacketListenerImpl.handleMovePlayer)
     this.survival.movementExhaustion(p, dx, dy, dz, p.onGround, m.onGround);
     p.walkDist += Math.hypot(dx, dz) * 0.6;
+    const movedBlock = Math.floor(m.x) !== Math.floor(p.x) || Math.floor(m.y) !== Math.floor(p.y) || Math.floor(m.z) !== Math.floor(p.z);
     p.x = m.x;
     p.y = m.y;
     p.z = m.z;
     p.onGround = m.onGround;
+    // LivingEntity.onChangedBlock: Frost Walker (Phase 7)
+    if (movedBlock) frostWalk(this, p);
     this.movementSounds(p, dx, dy, dz);
     if (m.onGround) {
       if (p.fallDistance > 0) this.blocks.fallOn(p, p.fallDistance);
