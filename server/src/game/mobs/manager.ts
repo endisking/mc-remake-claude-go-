@@ -32,6 +32,7 @@ import { Slime, isSlimeChunk, moonBrightness } from './slime';
 import { Enderman } from './enderman';
 import { Bat, Squid } from './ambient';
 import { saveMob, applyMobSave, type MobSave } from './persist';
+import { commandHooks } from '../commands/hooks';
 import { itemForBlock } from '@shared/game/loot';
 
 type MobCtor = new (id: number, s: GameServer) => Mob;
@@ -175,6 +176,18 @@ export class MobManager {
     return this.mobs().filter((m) => !m.dead && (cx === undefined || ((Math.floor(m.x) >> 4) === cx && (Math.floor(m.z) >> 4) === cz))).map(saveMob);
   }
 
+  /** Mobs of unloaded chunks, by chunk (session memory; world saves can persist them via save()/load()). */
+  readonly unloaded = new Map<string, MobSave[]>();
+
+  /** A chunk came back: recreate the mobs that left with it. */
+  restoreChunk(cx: number, cz: number): void {
+    const k = cx + ',' + cz;
+    const list = this.unloaded.get(k);
+    if (!list) return;
+    this.unloaded.delete(k);
+    this.load(list);
+  }
+
   /** A chunk is unloading: save its mobs and take them out of the world (they return with the chunk). */
   unloadChunk(cx: number, cz: number): MobSave[] {
     const out: MobSave[] = [];
@@ -182,6 +195,10 @@ export class MobManager {
       if (m.dead || m.removed || Math.floor(m.x) >> 4 !== cx || Math.floor(m.z) >> 4 !== cz) continue;
       out.push(saveMob(m));
       m.removed = true;
+    }
+    if (out.length) {
+      const k = cx + ',' + cz;
+      this.unloaded.set(k, [...(this.unloaded.get(k) ?? []), ...out]);
     }
     return out;
   }
@@ -863,4 +880,29 @@ export function isValidEmptySpawnBlock(state: number): boolean {
 function itemIdOf(name: string): number {
   for (const it of ITEMS_BY_ID) if (it?.name === name) return it.id;
   return 0;
+}
+
+/** /summon <mob> [pos] [nbt]: the common entity NBT tags (IsBaby, Age, Size, Color, Sheared, powered, Saddle, PersistenceRequired). */
+for (const type of Object.keys(MOB_TYPES)) {
+  commandHooks.summon.set(type, (server, x, y, z, nbt) => {
+    const m = server.mobs.spawn(type, x, y, z, 'command');
+    if (!m || !nbt) return m;
+    const num = (tag: string): number | null => {
+      const r = new RegExp(`\\b${tag}\\s*:\\s*(-?\\d+)`).exec(nbt);
+      return r ? Number(r[1]) : null;
+    };
+    const baby = num('IsBaby'), age = num('Age'), size = num('Size'), color = num('Color'), sheared = num('Sheared'), powered = num('powered'), saddle = num('Saddle'), persist = num('PersistenceRequired');
+    if (m instanceof Zombie && baby !== null) m.baby = baby !== 0;
+    if (m instanceof Animal && age !== null) m.setAge(age);
+    if (m instanceof Slime && size !== null) m.setSize(Math.max(1, size + 1));
+    if (m instanceof Sheep) {
+      if (color !== null) m.color = color & 15;
+      if (sheared !== null) m.sheared = sheared !== 0;
+    }
+    if (m instanceof Creeper && powered !== null) m.powered = powered !== 0;
+    if (m instanceof Pig && saddle !== null) m.saddled = saddle !== 0;
+    if (persist !== null) m.persistenceRequired = persist !== 0;
+    m.flagsDirty = true;
+    return m;
+  });
 }

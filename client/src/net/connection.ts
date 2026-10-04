@@ -31,11 +31,22 @@ export class IntegratedServer {
   private readonly transports = new Map<number, LocalTransport>();
   private readonly remotes = new Map<number, (data: ArrayBuffer) => void>();
   private readonly remoteClosers = new Map<number, (reason: string) => void>();
+  private nextRequest = 1;
+  private readonly pendingSaves = new Map<number, { resolve: () => void; reject: (e: Error) => void }>();
 
-  private constructor(readonly worker: Worker) {
+  private constructor(
+    readonly worker: Worker,
+    /** IndexedDB world id when the world is saved, null for a transient world. */
+    readonly worldId: string | null,
+  ) {
     worker.onmessage = (e: MessageEvent) => {
       const m = e.data;
-      if (m.type === 'packet') {
+      if (m.type === 'saved') {
+        const p = this.pendingSaves.get(m.id);
+        this.pendingSaves.delete(m.id);
+        if (m.error) p?.reject(new Error(m.error));
+        else p?.resolve();
+      } else if (m.type === 'packet') {
         this.transports.get(m.conn)?.onMessage?.(m.data);
         this.remotes.get(m.conn)?.(m.data);
       } else if (m.type === 'kick') {
@@ -45,15 +56,34 @@ export class IntegratedServer {
     };
   }
 
-  static async start(seed: bigint, scene = '', gameMode = 0): Promise<IntegratedServer> {
+  static async start(seed: bigint, scene = '', gameMode = 0, world: string | null = null): Promise<IntegratedServer> {
     const worker = new Worker(new URL('../server.worker.ts', import.meta.url), { type: 'module' });
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
       worker.onmessage = (e: MessageEvent) => {
         if (e.data.type === 'started') resolve();
+        else if (e.data.type === 'error') reject(new Error(e.data.message));
       };
-      worker.postMessage({ type: 'start', seed: seed.toString(), scene, gameMode });
+      worker.postMessage({ type: 'start', seed: seed.toString(), scene, gameMode, world: world ?? undefined });
     });
-    return new IntegratedServer(worker);
+    return new IntegratedServer(worker, world);
+  }
+
+  private request(type: 'save' | 'stop'): Promise<void> {
+    const id = this.nextRequest++;
+    return new Promise<void>((resolve, reject) => {
+      this.pendingSaves.set(id, { resolve, reject });
+      this.worker.postMessage({ type, id });
+    });
+  }
+
+  /** Save the world now (no-op for a transient world). */
+  save(): Promise<void> {
+    return this.request('save');
+  }
+
+  /** Stop the server and save; resolves when the world is written. */
+  saveAndStop(): Promise<void> {
+    return this.request('stop');
   }
 
   /** Connection for the player on this machine. */
@@ -85,7 +115,7 @@ export class IntegratedServer {
 }
 
 /** Starts the integrated server worker and returns a transport for the local player. */
-export async function startIntegratedServer(seed: bigint, scene = '', gameMode = 0): Promise<{ server: IntegratedServer; transport: LocalTransport }> {
-  const server = await IntegratedServer.start(seed, scene, gameMode);
+export async function startIntegratedServer(seed: bigint, scene = '', gameMode = 0, world: string | null = null): Promise<{ server: IntegratedServer; transport: LocalTransport }> {
+  const server = await IntegratedServer.start(seed, scene, gameMode, world);
   return { server, transport: server.local() };
 }

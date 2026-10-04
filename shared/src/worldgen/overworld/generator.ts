@@ -61,8 +61,8 @@ export class OverworldGenerator {
    * ChunkStatus.FEATURES for chunk (cx, cz): runs once its 8 neighbours are carved; features may
    * write into those neighbours through `world`.
    */
-  decorate(world: BlockWorld, cx: number, cz: number): void {
-    decorateChunk(this, world, cx, cz);
+  decorate(world: BlockWorld, cx: number, cz: number): [number, number, number][] {
+    return decorateChunk(this, world, cx, cz);
   }
 
   /** Terrain + surface + bedrock for one chunk, as a fresh Chunk (sections and heightmaps filled). */
@@ -92,7 +92,10 @@ export class OverworldGenerator {
       }
     placeBedrock(blocks, rand);
     // carvers (ChunkStatus.CARVERS, LIQUID_CARVERS): the carver list comes from this chunk's corner biome
-    this.carvers.carve({ blocks, cx, cz, biomeAt: (x, z) => this.blockBiome(x, z) }, this.quartBiome(cx << 2, cz << 2));
+    const masks: (Uint8Array | null)[] = [];
+    this.carvers.carve({ blocks, cx, cz, biomeAt: (x, z) => this.blockBiome(x, z) }, this.quartBiome(cx << 2, cz << 2), masks);
+    // kept until the chunk is decorated (the carving_mask decorator reads them)
+    chunk.carvingMasks = masks;
     for (let s = 0; s < 16; s++) {
       const sec = chunk.sections[s]!;
       const part = blocks.subarray(s * 4096, (s + 1) * 4096);
