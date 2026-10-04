@@ -13,7 +13,7 @@ import { ItemEntity } from './entity';
 import { FallingBlockEntity } from './fallingblock';
 import { TickScheduler } from './ticks';
 import { BLOCK_STATE_COUNT, BIOMES, ITEMS_BY_ID } from '@shared/data';
-import { blockIdOf, blockNameOf, getProp, withProp, defaultState, stateOf } from '@shared/world/blockstate';
+import { blockIdOf, blockNameOf, getProp, withProp, defaultState, stateOf, propsOf } from '@shared/world/blockstate';
 import { FLUID, FLUID_LEVEL, FULL_COLLISION, IS_AIR, LIGHT_FILTER } from '@shared/world/blockinfo';
 import { sectionIndex } from '@shared/world/chunk';
 import { skyDarkenLevel } from '@shared/world/daylight';
@@ -59,6 +59,21 @@ const GROWING_HEADS: Record<string, { dir: number; chance: number; body: string 
 const GROWING_BODIES: Record<string, string> = { kelp_plant: 'kelp', weeping_vines_plant: 'weeping_vines', twisting_vines_plant: 'twisting_vines', cave_vines_plant: 'cave_vines' };
 const FLATTENABLE = new Set(['grass_block', 'dirt', 'podzol', 'coarse_dirt', 'mycelium', 'rooted_dirt']);
 
+// copper weathering chains (WeatheringCopper.NEXT_BY_BLOCK)
+const COPPER_NEXT: Record<string, string> = {};
+const COPPER_PREV: Record<string, string> = {};
+const COPPER_AGE: Record<string, number> = {};
+for (const chain of [
+  ['copper_block', 'exposed_copper', 'weathered_copper', 'oxidized_copper'],
+  ...['cut_copper', 'cut_copper_stairs', 'cut_copper_slab'].map((b) => [b, `exposed_${b}`, `weathered_${b}`, `oxidized_${b}`]),
+]) {
+  chain.forEach((b, i) => {
+    COPPER_AGE[b] = i;
+    if (i < 3) COPPER_NEXT[b] = chain[i + 1]!;
+    if (i > 0) COPPER_PREV[b] = chain[i - 1]!;
+  });
+}
+
 /** BlockState.isRandomlyTicking for the behaviours implemented here. */
 const RANDOM_TICKING = new Uint8Array(BLOCK_STATE_COUNT);
 for (let s = 0; s < BLOCK_STATE_COUNT; s++) {
@@ -73,7 +88,8 @@ for (let s = 0; s < BLOCK_STATE_COUNT; s++) {
   else if (n === 'cocoa') t = (getProp(s, 'age') as number) < 2;
   else if (n in GROWING_HEADS) t = (getProp(s, 'age') as number) < 25;
   else if (n === 'bamboo') t = getProp(s, 'stage') === 0;
-  else if (n === 'bamboo_sapling' || n === 'brown_mushroom' || n === 'red_mushroom') t = true;
+  else if (n === 'bamboo_sapling' || n === 'brown_mushroom' || n === 'red_mushroom' || n === 'budding_amethyst') t = true;
+  else if (COPPER_NEXT[n]) t = true;
   RANDOM_TICKING[s] = t ? 1 : 0;
 }
 
@@ -271,6 +287,11 @@ export class BlockBehaviors {
       return;
     }
     if (n === 'brown_mushroom' || n === 'red_mushroom') return this.spreadMushroom(x, y, z, st, n);
+    if (n === 'budding_amethyst') return this.growAmethyst(x, y, z);
+    if (COPPER_NEXT[n]) {
+      // WeatheringCopper.onRandomTick
+      if (r.nextFloat() < 0.05688889) this.weatherCopper(x, y, z, st, n);
+    }
     if (n === 'snow') {
       // SnowLayerBlock: melts under block light > 11
       if ((this.w.getLight(x, y, z) & 15) > 11) this.breakNaturally(x, y, z, false);
@@ -634,6 +655,46 @@ export class BlockBehaviors {
       tz = pz + r.nextInt(3) - 1;
     }
     if (ok(tx, ty, tz)) this.s.setBlock(tx, ty, tz, st);
+  }
+
+  /** BuddingAmethystBlock.randomTick: a bud on a random side, or the bud there grows one stage. */
+  private growAmethyst(x: number, y: number, z: number): void {
+    const r = this.s.rand;
+    if (r.nextInt(5) !== 0) return;
+    const d = r.nextInt(6);
+    const dir = DIRS[d]!;
+    const px = x + DX[d]!, py = y + DY[d]!, pz = z + DZ[d]!;
+    const s0 = this.w.getState(px, py, pz);
+    const n0 = blockNameOf(s0);
+    const water = blockNameOf(s0) === 'water' && getProp(s0, 'level') === 0;
+    let next: string | null = null;
+    if (IS_AIR[s0] || water) next = 'small_amethyst_bud';
+    else if (getProp(s0, 'facing') === dir) next = { small_amethyst_bud: 'medium_amethyst_bud', medium_amethyst_bud: 'large_amethyst_bud', large_amethyst_bud: 'amethyst_cluster' }[n0] ?? null;
+    if (!next) return;
+    const wl = water || getProp(s0, 'waterlogged') === true;
+    this.s.setBlock(px, py, pz, stateOf(next, { facing: dir, waterlogged: wl }));
+    this.s.updateNeighbors(px, py, pz);
+  }
+
+  /** ChangeOverTimeBlock.applyChangeOverTime: slower next to less weathered copper, faster next to more. */
+  private weatherCopper(x: number, y: number, z: number, st: number, n: string): void {
+    const age = copperAge(n);
+    let j = 0, k = 0;
+    for (let dx = -4; dx <= 4; dx++)
+      for (let dy = -4; dy <= 4; dy++)
+        for (let dz = -4; dz <= 4; dz++) {
+          const dist = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
+          if (dist > 4 || dist === 0) continue;
+          const on = blockNameOf(this.w.getState(x + dx, y + dy, z + dz));
+          if (!(on in COPPER_AGE)) continue;
+          const m = copperAge(on);
+          if (m < age) return;
+          if (m > age) k++;
+          else j++;
+        }
+    const f = Math.fround((k + 1) / (k + j + 1));
+    const g = Math.fround(f * f * (age === 0 ? 0.75 : 1));
+    if (this.s.rand.nextFloat() < g) this.s.setBlock(x, y, z, copyProps(st, COPPER_NEXT[n]!));
   }
 
   /** VineBlock.randomTick: spread sideways, up and down (1 in 4 ticks, at most 5 vines nearby). */
@@ -1088,11 +1149,28 @@ export class BlockBehaviors {
       return true;
     }
     if (item.endsWith('_axe')) {
+      // AxeItem.useOn: strip a log, else scrape one weathering stage off copper, else remove wax
       const to = STRIPPABLE[n];
-      if (!to) return false;
-      this.s.playSound(null, 'item.axe.strip', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
-      this.s.setBlock(x, y, z, stateOf(to, { axis: getProp(st, 'axis') as string }));
+      if (to) {
+        this.s.playSound(null, 'item.axe.strip', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+        this.s.setBlock(x, y, z, stateOf(to, { axis: getProp(st, 'axis') as string }));
+      } else if (COPPER_PREV[n]) {
+        this.s.playSound(null, 'item.axe.scrape', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+        this.s.setBlock(x, y, z, copyProps(st, COPPER_PREV[n]!));
+      } else if (unwaxedOf(n)) {
+        this.s.playSound(null, 'item.axe.wax_off', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+        this.s.setBlock(x, y, z, copyProps(st, unwaxedOf(n)!));
+      } else return false;
       this.hurtTool(p, slot, held);
+      return true;
+    }
+    if (item === 'honeycomb') {
+      // HoneycombItem.useOn: wax copper so it stops weathering
+      const to = waxedOf(n);
+      if (!to) return false;
+      this.s.setBlock(x, y, z, copyProps(st, to));
+      this.s.playSound(null, 'item.honeycomb.wax_on', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+      if (p.gameMode !== 1) this.shrink(p, slot, held);
       return true;
     }
     return false;
@@ -1184,4 +1262,23 @@ const CORALS = ['tube', 'brain', 'bubble', 'fire', 'horn'];
 const LIVE_CORAL = new Set(CORALS.flatMap((c) => [`${c}_coral_block`, `${c}_coral`, `${c}_coral_fan`, `${c}_coral_wall_fan`]));
 function isLiveCoral(n: string): boolean {
   return LIVE_CORAL.has(n);
+}
+function copperAge(n: string): number {
+  return COPPER_AGE[n] ?? 0;
+}
+/** HoneycombItem.WAXABLES: copper → waxed copper */
+function waxedOf(n: string): string | null {
+  if (!(n in COPPER_AGE)) return null;
+  return n === 'copper_block' ? 'waxed_copper_block' : `waxed_${n}`;
+}
+function unwaxedOf(n: string): string | null {
+  if (!n.startsWith('waxed_')) return null;
+  const b = n === 'waxed_copper_block' ? 'copper_block' : n.slice(6);
+  return b in COPPER_AGE ? b : null;
+}
+/** The same properties on another block (stairs/slab shape, facing, waterlogged...). */
+function copyProps(from: number, to: string): number {
+  let s = defaultState(to);
+  for (const [k, v] of Object.entries(propsOf(from))) s = withProp(s, k, v);
+  return s;
 }

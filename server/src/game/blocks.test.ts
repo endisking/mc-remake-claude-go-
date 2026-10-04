@@ -606,4 +606,28 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     for (let x = 0; x <= 10; x++) for (let z = 0; z <= 10; z++) if (get(x, 150, z) === 'water') water++;
     expect(water).toBeLessThan(120 - 60);
   });
+
+  it('budding amethyst grows buds to clusters; copper weathers, waxes and scrapes', () => {
+    const { server, set, get, give, use, p } = setup();
+    set(4, 152, 4, 'budding_amethyst');
+    for (let i = 0; i < 3000; i++) server.blocks.randomTick(4, 152, 4, server.world.getState(4, 152, 4));
+    let clusters = 0;
+    for (let d = 0; d < 6; d++) {
+      const [dx, dy, dz] = [[0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0]][d]!;
+      if (get(4 + dx!, 152 + dy!, 4 + dz!) === 'amethyst_cluster') clusters++;
+    }
+    expect(clusters).toBeGreaterThan(3);
+    set(8, 150, 6, 'copper_block');
+    for (let i = 0; i < 2000 && get(8, 150, 6) === 'copper_block'; i++) server.blocks.randomTick(8, 150, 6, server.world.getState(8, 150, 6));
+    expect(get(8, 150, 6)).toBe('exposed_copper');
+    give('honeycomb', 2);
+    use(8, 150, 6);
+    expect(get(8, 150, 6)).toBe('waxed_exposed_copper');
+    give('iron_axe');
+    use(8, 150, 6);
+    expect(get(8, 150, 6)).toBe('exposed_copper');
+    use(8, 150, 6);
+    expect(get(8, 150, 6)).toBe('copper_block');
+    expect(p.inventory.get(0)!.damage).toBe(2);
+  });
 });

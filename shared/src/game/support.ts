@@ -75,6 +75,11 @@ export function canSurvive(world: StateGetter, x: number, y: number, z: number, 
     return belowName === 'cactus' || belowName === 'sand' || belowName === 'red_sand';
   }
   if (name === 'nether_wart') return belowName === 'soul_sand';
+  if (name === 'amethyst_cluster' || name.endsWith('_amethyst_bud')) {
+    // AmethystClusterBlock.canSurvive: the block it grows from has a sturdy face
+    const f = DIRS.indexOf(getProp(state, 'facing') as (typeof DIRS)[number]);
+    return sturdy(world.getState(x - DX[f]!, y - DY[f]!, z - DZ[f]!));
+  }
   if (name === 'bamboo' || name === 'bamboo_sapling') return BAMBOO_PLANTABLE_ON.has(belowName);
   if (name === 'sweet_berry_bush') return ['grass_block', 'dirt', 'coarse_dirt', 'podzol', 'rooted_dirt', 'moss_block', 'mycelium', 'farmland'].includes(belowName);
   if (name === 'cocoa') {

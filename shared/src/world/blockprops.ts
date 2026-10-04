@@ -37,7 +37,7 @@ export function isOpenableByHand(state: number): boolean {
 
 /** Items whose use acts on the clicked block (Item.useOn): tools that till/flatten/strip, bone meal. */
 export function usesOnBlock(itemName: string): boolean {
-  return itemName === 'bone_meal' || itemName.endsWith('_hoe') || itemName.endsWith('_shovel') || itemName.endsWith('_axe');
+  return itemName === 'bone_meal' || itemName === 'honeycomb' || itemName.endsWith('_hoe') || itemName.endsWith('_shovel') || itemName.endsWith('_axe');
 }
 
 const MENU_PROVIDERS = new Set([

@@ -282,6 +282,12 @@ export function stateForPlacement(block: string, ctx: PlaceContext, existing: nu
     if (blockNameOf(above) === 'bamboo') return withProp(s, 'age', getProp(above, 'age') as number);
     return BLOCKS_BY_NAME.get('bamboo_sapling')!.defaultState;
   }
+  if (block === 'amethyst_cluster' || block.endsWith('_amethyst_bud')) {
+    // AmethystClusterBlock: grows out of the clicked face
+    s = withProp(s, 'facing', face);
+    setWater();
+    return s;
+  }
   if (block === 'cocoa') {
     // CocoaBlock: faces the log it hangs on
     if (face === 'up' || face === 'down') return null;
