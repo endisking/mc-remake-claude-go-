@@ -26,7 +26,7 @@ function toInt(x: number): number {
   if (x !== x) return 0;
   if (x >= 2147483647) return 2147483647;
   if (x <= -2147483648) return -2147483648;
-  return Math.trunc(x);
+  return Math.trunc(x) | 0; // no -0: a radius of -0 would flip a division's infinity
 }
 /** Mth.ceil(float) */
 function ceilF(x: number): number {
