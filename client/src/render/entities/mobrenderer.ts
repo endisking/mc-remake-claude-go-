@@ -321,6 +321,12 @@ export class MobRenderer {
       const hanging = (m.data.get('hanging') ?? 0) !== 0;
       mulTranslate(E, 0, hanging ? -0.1 : Math.cos((m.tickCount + partial) * 0.3) * 0.1, 0);
     }
+    if (m.type === 'squid') {
+      // SquidRenderer.setupRotations: pivot about the mantle, tilted by the swim angle
+      mulTranslate(E, 0, 0.5, 0);
+      mulRotX(E, (-(m.xBodyRotO + (m.xBodyRot - m.xBodyRotO) * partial) * Math.PI) / 180);
+      mulTranslate(E, 0, -1.2, 0);
+    }
     let sx = 1, sy = 1, sz = 1;
     const base = rdef.scale ?? 1;
     sx = sy = sz = base;

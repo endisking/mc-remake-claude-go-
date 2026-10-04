@@ -124,6 +124,9 @@ export class ClientMob {
   tentacleAngle = 0;
   tentacleAngleO = 0;
   private tentacleMovement = 0;
+  /** Squid body tilt (degrees, Squid.xBodyRot): leans toward its swim direction */
+  xBodyRot = 0;
+  xBodyRotO = 0;
   private tentacleSpeed = 0;
   /** ambient sound timer (Mob.ambientSoundTime) */
   ambientSoundTime = 0;
@@ -336,6 +339,11 @@ export class ClientMob {
           this.tentacleMovement = this.tentacleMovement > Math.PI * 2 ? this.tentacleMovement - Math.PI * 2 : 0;
           this.tentacleSpeed = (1 / (Math.random() + 1)) * 0.2;
         }
+        // Squid.aiStep: the mantle tilts toward the direction of motion
+        this.xBodyRotO = this.xBodyRot;
+        const hd = Math.hypot(this.x - this.xo, this.z - this.zo), vd = this.y - this.yo;
+        const target = hd * hd + vd * vd > 1e-6 ? (-Math.atan2(hd, vd) * 180) / Math.PI : 0;
+        this.xBodyRot += (target - this.xBodyRot) * 0.1;
         if (this.tentacleMovement < Math.PI) {
           const f = this.tentacleMovement / Math.PI;
           this.tentacleAngle = Math.sin(f * f * Math.PI) * Math.PI * 0.25;

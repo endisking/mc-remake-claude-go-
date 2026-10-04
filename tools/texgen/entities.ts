@@ -257,8 +257,8 @@ export function strayOverlay(): Tex {
   const cloth = blotches(C, CD, 51, 2.5, 0.6, 0.08);
   // hood: top, sides and back only (face open)
   const head = box(t, 0, 0, 8, 8, 8, cloth);
-  rect(t, head.front[0], head.front[1], 8, 8, (x, y) => (y < 2 || x === 0 || x === 7 ? cloth(x, y, 8, 8) : null));
-  rect(t, head.bottom[0], head.bottom[1], 8, 8, () => null);
+  rect(t, head.front[0], head.front[1], 8, 8, (x, y) => (y < 2 || x === 0 || x === 7 ? cloth(x, y, 8, 8) : CLEAR));
+  rect(t, head.bottom[0], head.bottom[1], 8, 8, () => CLEAR);
   // body: cloak with tattered hem and a rope belt
   const body = box(t, 16, 16, 8, 12, 4, cloth);
   for (const k of ['right', 'front', 'left', 'back'] as const) {
@@ -271,10 +271,10 @@ export function strayOverlay(): Tex {
     const l = box(t, u, v, 4, 12, 4, cloth);
     for (const k of ['right', 'front', 'left', 'back'] as const) {
       const [x, y, w, h] = l[k];
-      rect(t, x, y + n, w, h - n, () => null);
+      rect(t, x, y + n, w, h - n, () => CLEAR);
       for (let i = 0; i < w; i++) if ((i + k.length) % 3 === 0) px(t, x + i, y + n, CLEAR);
     }
-    rect(t, l.bottom[0], l.bottom[1], 4, 4, () => null);
+    rect(t, l.bottom[0], l.bottom[1], 4, 4, () => CLEAR);
   }
   return t;
 }
@@ -295,16 +295,15 @@ export function creeper(): Tex {
   };
   const head = box(t, 0, 0, 8, 8, 8, hide);
   const [fx, fy] = head.front;
-  // tall slanted slit eyes with a pale glint, set wide
-  for (const [ex, dir] of [[fx + 1, 1], [fx + 5, -1]] as const) {
-    vline(t, ex, fy + 2, 3, K);
-    vline(t, ex + 1, fy + 2, 3, K);
-    px(t, ex + (dir > 0 ? 1 : 0), fy + 1, K);
-    px(t, ex + (dir > 0 ? 0 : 1), fy + 2, hex('#c8f070'));
-  }
-  // jagged zigzag grimace across the lower face
-  const mouth: [number, number][] = [[1, 6], [2, 5], [3, 6], [4, 5], [5, 6], [6, 5], [1, 7], [3, 7], [5, 7], [6, 6]];
-  for (const [mx, my] of mouth) px(t, fx + mx, fy + my, K);
+  // angry slanted eyes (inner corners low) with a pale glint, under a lighter brow plate
+  hline(t, fx + 1, fy + 1, 6, shade(GL, 1.05));
+  for (const [x, y] of [[1, 2], [2, 2], [1, 3], [2, 3], [3, 3], [6, 2], [5, 2], [6, 3], [5, 3], [4, 3]] as const) px(t, fx + x, fy + y, K);
+  px(t, fx + 2, fy + 3, hex('#d8f080'));
+  px(t, fx + 5, fy + 3, hex('#d8f080'));
+  // a stitched jaw line with interlocking teeth
+  hline(t, fx + 1, fy + 6, 6, K);
+  for (const x of [2, 4, 6]) px(t, fx + x, fy + 5, K);
+  for (const x of [1, 3, 5]) px(t, fx + x, fy + 7, K);
   // body: darker belly stripe
   const body = box(t, 16, 16, 8, 12, 4, hide);
   rect(t, body.front[0] + 2, body.front[1] + 1, 4, 10, (x, y) => shade(GD, 1.05 + ((x + y) % 2) * 0.08));
@@ -526,7 +525,7 @@ export function chicken(): Tex {
   for (const k of ['right', 'left'] as const) hline(t, wing[k][0], wing[k][1] + 3, 6, WD);
   // legs: orange with toes
   const leg = box(t, 26, 0, 3, 5, 3, (_x, y) => (y > 3 ? shade(O, 0.85) : O));
-  rect(t, leg.top[0], leg.top[1], 3, 3, () => null);
+  
   return t;
 }
 
