@@ -593,4 +593,17 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     expect(get(3, 151, 3)).toBe('dead_tube_coral_block');
     expect(get(5, 151, 3)).toBe('brain_coral_block');
   });
+
+  it('a sponge soaks up nearby water and turns wet', () => {
+    const { server, set, get } = setup();
+    for (let x = 0; x <= 10; x++) for (let z = 0; z <= 10; z++) {
+      set(x, 149, z, 'stone');
+      set(x, 150, z, 'water');
+    }
+    set(5, 150, 5, 'sponge');
+    expect(get(5, 150, 5)).toBe('wet_sponge');
+    let water = 0;
+    for (let x = 0; x <= 10; x++) for (let z = 0; z <= 10; z++) if (get(x, 150, z) === 'water') water++;
+    expect(water).toBeLessThan(120 - 60);
+  });
 });

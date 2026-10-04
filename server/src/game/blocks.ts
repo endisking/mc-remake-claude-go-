@@ -337,6 +337,7 @@ export class BlockBehaviors {
         if (n.endsWith('_concrete_powder') && touchesWater(w, x, y, z)) return this.s.setBlock(x, y, z, defaultState(concreteOf(n)));
         if ((n === 'cactus' || n === 'sugar_cane') && !canSurvive(w, x, y, z, st)) this.scheduleTick(x, y, z, st, 1);
         if (isLiveCoral(n)) this.coralCheck(x, y, z, st);
+        if (n === 'sponge') this.tryAbsorbWater(x, y, z);
       }
       for (let d = 0; d < 6; d++) {
         const nx = x + DX[d]!, ny = y + DY[d]!, nz = z + DZ[d]!;
@@ -359,6 +360,8 @@ export class BlockBehaviors {
           // DoorBlock / DoublePlantBlock.updateShape: a half whose partner is gone disappears
           const partnerHere = (d === 0) === (getProp(ns, 'half') === 'lower');
           if (partnerHere && n !== nn) this.s.setBlock(nx, ny, nz, getProp(ns, 'waterlogged') === true ? defaultState('water') : 0);
+        } else if (nn === 'sponge') {
+          this.tryAbsorbWater(nx, ny, nz);
         } else if (isLiveCoral(nn)) {
           this.coralCheck(nx, ny, nz, ns);
         } else if (nn in ATTACHED_STEM) {
@@ -371,6 +374,42 @@ export class BlockBehaviors {
       }
     } finally {
       this.hookDepth--;
+    }
+  }
+
+  private absorbing = false;
+  /** SpongeBlock.tryAbsorbWater: breadth-first up to 6 steps / 65 blocks, then the sponge is wet. */
+  private tryAbsorbWater(x: number, y: number, z: number): void {
+    if (this.absorbing) return;
+    this.absorbing = true;
+    try {
+      const w = this.w;
+      const queue: [number, number, number, number][] = [[x, y, z, 0]];
+      let i = 0;
+      while (queue.length) {
+        const [px, py, pz, j] = queue.shift()!;
+        for (let d = 0; d < 6; d++) {
+          const qx = px + DX[d]!, qy = py + DY[d]!, qz = pz + DZ[d]!;
+          const s0 = w.getState(qx, qy, qz);
+          if (FLUID[s0] !== 1) continue;
+          const name = blockNameOf(s0);
+          if (getProp(s0, 'waterlogged') === true) this.s.setBlock(qx, qy, qz, withProp(s0, 'waterlogged', false));
+          else if (name === 'water' || name === 'bubble_column') this.s.setBlock(qx, qy, qz, 0);
+          else if (name === 'kelp' || name === 'kelp_plant' || name === 'seagrass' || name === 'tall_seagrass') {
+            for (const it of blockDrops(s0, { silkTouch: false, canHarvest: true, random: () => this.s.rand.nextFloat() })) this.s.popResource(qx, qy, qz, it);
+            this.s.setBlock(qx, qy, qz, 0);
+          } else continue;
+          i++;
+          if (j < 6) queue.push([qx, qy, qz, j + 1]);
+        }
+        if (i > 64) break;
+      }
+      if (i > 0) {
+        this.s.setBlock(x, y, z, defaultState('wet_sponge'));
+        for (const o of this.s.players) this.s.send(o, { t: 'levelEvent', event: 2001, x, y, z, data: defaultState('water') });
+      }
+    } finally {
+      this.absorbing = false;
     }
   }
 
