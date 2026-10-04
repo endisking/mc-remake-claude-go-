@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Redstone, containerSignal, type RedstoneHost, UPDATE_ALL } from '@shared/game/redstone';
 import { TickScheduler } from './ticks';
-import { blockIdOf, defaultState, getProp, stateOf, withProp } from '@shared/world/blockstate';
+import { blockIdOf, blockNameOf as blockNameOfState, defaultState, getProp, stateOf, withProp } from '@shared/world/blockstate';
 
 /** A tiny level: a map of states, a block tick list and the redstone engine wired like GameServer. */
 class TestLevel {
@@ -51,6 +51,7 @@ class TestLevel {
         const st = this.get(t.x, t.y, t.z);
         if (blockIdOf(st) === t.type) this.rs.tick(t.x, t.y, t.z, st);
       });
+      this.rs.runBlockEvents();
     }
   }
   prop(x: number, y: number, z: number, p: string) {
@@ -371,6 +372,76 @@ describe('lamps, TNT, doors, observers, buttons, plates', () => {
     expect(l.dispensed).toBe(1);
     l.step(10);
     expect(l.dispensed).toBe(1);
+  });
+});
+
+describe('pistons', () => {
+  const name = (l: TestLevel, x: number, y: number, z: number) => blockNameOfState(l.get(x, y, z));
+  it('pushes up to 12 blocks, not 13, and never obsidian', () => {
+    for (const [n, ok] of [[12, true], [13, false]] as const) {
+      const l = new TestLevel();
+      l.place(0, 1, 0, 'piston', { facing: 'east' });
+      for (let i = 1; i <= n; i++) l.place(i, 1, 0, 'stone');
+      l.place(-1, 1, 0, 'redstone_block');
+      l.step(1);
+      expect(l.prop(0, 1, 0, 'extended')).toBe(ok);
+      expect(name(l, 1, 1, 0)).toBe(ok ? 'piston_head' : 'stone');
+      if (ok) expect(name(l, 13, 1, 0)).toBe('stone');
+    }
+    const o = new TestLevel();
+    o.place(0, 1, 0, 'piston', { facing: 'east' });
+    o.place(1, 1, 0, 'obsidian');
+    o.place(-1, 1, 0, 'redstone_block');
+    o.step(1);
+    expect(o.prop(0, 1, 0, 'extended')).toBe(false);
+  });
+
+  it('destroys fragile blocks in the way and retracts without pulling (normal piston)', () => {
+    const l = new TestLevel();
+    l.place(0, 1, 0, 'piston', { facing: 'east' });
+    l.place(1, 1, 0, 'stone');
+    l.place(2, 1, 0, 'oak_door', { half: 'lower' });
+    l.place(-1, 1, 0, 'redstone_block');
+    l.step(1);
+    expect(name(l, 2, 1, 0)).toBe('stone');
+    l.set(-1, 1, 0, 0);
+    l.step(1);
+    expect(l.prop(0, 1, 0, 'extended')).toBe(false);
+    expect(name(l, 1, 1, 0)).toBe('air');
+    expect(name(l, 2, 1, 0)).toBe('stone');
+  });
+
+  it('sticky pistons pull the block back; slime drags its neighbours', () => {
+    const l = new TestLevel();
+    l.place(0, 2, 0, 'sticky_piston', { facing: 'east' });
+    l.place(1, 2, 0, 'slime_block');
+    l.place(1, 3, 0, 'stone');
+    l.place(1, 2, 1, 'oak_planks');
+    l.place(-1, 2, 0, 'redstone_block');
+    l.step(1);
+    expect(name(l, 2, 2, 0)).toBe('slime_block');
+    expect(name(l, 2, 3, 0)).toBe('stone');
+    expect(name(l, 2, 2, 1)).toBe('oak_planks');
+    l.set(-1, 2, 0, 0);
+    l.step(1);
+    expect(name(l, 1, 2, 0)).toBe('slime_block');
+    expect(name(l, 1, 3, 0)).toBe('stone');
+    expect(name(l, 1, 2, 1)).toBe('oak_planks');
+    expect(name(l, 2, 2, 0)).toBe('air');
+  });
+
+  it('is quasi-connected: powered from the block above its own position', () => {
+    const l = new TestLevel();
+    l.place(0, 1, 0, 'piston', { facing: 'east' });
+    // a redstone block diagonally above (next to the space above the piston) powers it
+    l.place(-1, 2, 0, 'redstone_block');
+    l.step(1);
+    // placing the block was a neighbour update of the space above only: no update reached the piston
+    expect(l.prop(0, 1, 0, 'extended')).toBe(false);
+    // any update to the piston now makes it notice
+    l.place(0, 1, 1, 'stone');
+    l.step(1);
+    expect(l.prop(0, 1, 0, 'extended')).toBe(true);
   });
 });
 

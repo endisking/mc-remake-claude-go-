@@ -68,6 +68,8 @@ export interface RedstoneHost {
   primeTnt?(x: number, y: number, z: number): void;
   /** DispenserBlock.dispenseFrom */
   dispense?(x: number, y: number, z: number, state: number): void;
+  /** whether the block at pos has a block entity (immovable for pistons) */
+  hasBlockEntity?(x: number, y: number, z: number, state: number): boolean;
   /** entities touching the box (pressure plates / wooden buttons): mobs only, all, or arrows */
   countEntities?(minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number, kind: 'living' | 'all' | 'arrow'): number;
   /** sky light at pos (0–15), sky darkening and the sun angle (daylight detector) */
@@ -98,6 +100,7 @@ const enum K {
   FENCE_GATE,
   NOTE_BLOCK,
   DISPENSER,
+  PISTON,
 }
 
 const BLOCK_COUNT = BLOCKS.length;
@@ -154,6 +157,7 @@ for (const b of BLOCKS) {
   else if (n.endsWith('_fence_gate')) k = K.FENCE_GATE;
   else if (n === 'note_block') k = K.NOTE_BLOCK;
   else if (n === 'dispenser' || n === 'dropper') k = K.DISPENSER;
+  else if (n === 'piston' || n === 'sticky_piston') k = K.PISTON;
   KIND[b.id] = k;
   if (n === 'cake' || n.endsWith('candle_cake') || n === 'composter' || n === 'water_cauldron' || n === 'lava_cauldron' || n === 'powder_snow_cauldron' || n === 'cauldron' ||
     n === 'end_portal_frame' || n === 'respawn_anchor' || n === 'beehive' || n === 'bee_nest') STATE_ANALOG[b.id] = 1;
@@ -176,6 +180,66 @@ for (let s = 0; s < BLOCK_STATE_COUNT; s++) {
   else if (n === 'soul_sand' || n === 'farmland' || n === 'dirt_path' || n === 'honey_block') top = true;
   STURDY_TOP[s] = top ? 1 : 0;
 }
+
+// ------------------------------------------------------------------ piston push reactions
+const enum Push {
+  NORMAL = 0,
+  DESTROY,
+  BLOCK,
+  PUSH_ONLY,
+}
+/** BlockState.getPistonPushReaction per block id (Material defaults + Block overrides, 1.17.1) */
+const PUSH = new Uint8Array(BLOCK_COUNT + 1);
+/** hardness -1 (bedrock, barrier, end portal frame...) */
+const UNBREAKABLE = new Uint8Array(BLOCK_COUNT + 1);
+/** blocks with a block entity in vanilla (never pushed; DESTROY ones are still destroyed) */
+const HAS_BE = new Uint8Array(BLOCK_COUNT + 1);
+/** obsidian, crying obsidian, respawn anchor: isPushable false before anything else */
+const NEVER_PUSHED = new Uint8Array(BLOCK_COUNT + 1);
+for (const b of BLOCKS) {
+  const n = b.name;
+  if (b.hardness === -1) UNBREAKABLE[b.id] = 1;
+  if (n === 'obsidian' || n === 'crying_obsidian' || n === 'respawn_anchor') NEVER_PUSHED[b.id] = 1;
+  if (n === 'chest' || n === 'trapped_chest' || n === 'ender_chest' || n === 'barrel' || n === 'furnace' || n === 'blast_furnace' || n === 'smoker' || n === 'hopper' ||
+    n === 'dispenser' || n === 'dropper' || n === 'brewing_stand' || n.endsWith('shulker_box') || n === 'jukebox' || n === 'lectern' || n === 'beacon' || n === 'spawner' ||
+    n === 'enchanting_table' || n.endsWith('_sign') || n.endsWith('_banner') || n.endsWith('_bed') || n === 'bell' || n.endsWith('campfire') || n === 'daylight_detector' ||
+    n === 'comparator' || n === 'conduit' || n.endsWith('_skull') || n.endsWith('_head') || n === 'beehive' || n === 'bee_nest' || n === 'end_gateway' || n === 'end_portal' ||
+    n === 'moving_piston' || n === 'sculk_sensor' || n.endsWith('command_block') || n === 'structure_block' || n === 'jigsaw') HAS_BE[b.id] = 1;
+  let r = Push.NORMAL;
+  if (n === 'obsidian' || n === 'crying_obsidian' || n === 'respawn_anchor' || n === 'piston_head' || n === 'moving_piston' || n === 'barrier' || n === 'grindstone' ||
+    n === 'lodestone' || n === 'nether_portal' || n === 'end_portal' || n === 'end_gateway') r = Push.BLOCK;
+  else if (n.endsWith('_glazed_terracotta')) r = Push.PUSH_ONLY;
+  else if (b.boundingBox === 'empty' && n !== 'air' && n !== 'cave_air' && n !== 'void_air') r = Push.DESTROY;
+  else if (n.endsWith('_door') || n.endsWith('_bed') || n === 'cactus' || n === 'cake' || n.endsWith('candle_cake') || n === 'dragon_egg' || n === 'turtle_egg' ||
+    n === 'pumpkin' || n === 'carved_pumpkin' || n === 'jack_o_lantern' || n === 'melon' || n.endsWith('_pressure_plate') || n === 'cocoa' || n === 'scaffolding' ||
+    n === 'lantern' || n === 'soul_lantern' || n === 'flower_pot' || n.startsWith('potted_') || n === 'sea_pickle' || n.endsWith('candle') ||
+    n === 'bamboo' || n === 'lily_pad' || n === 'snow' || n === 'ladder' || n === 'end_rod' || n.endsWith('_skull') || n.endsWith('_head') || n === 'repeater' ||
+    n === 'comparator' || n === 'chorus_plant' || n === 'chorus_flower' || n.endsWith('shulker_box') || n === 'conduit' || n.endsWith('_carpet') ||
+    n === 'big_dripleaf' || n === 'small_dripleaf' || n === 'pointed_dripstone' || n.endsWith('amethyst_bud') || n === 'amethyst_cluster' || n === 'azalea' || n === 'flowering_azalea' ||
+    n === 'cobweb' || n === 'daylight_detector' || n === 'redstone_wire' || n.endsWith('torch') || n === 'lever' || n.endsWith('_button') || n.endsWith('rail') ||
+    n === 'tripwire' || n === 'tripwire_hook' || n === 'hanging_roots' || n === 'glow_lichen' || n === 'vine') r = Push.DESTROY;
+  PUSH[b.id] = r;
+}
+const PISTON_ID = id('piston');
+const STICKY_PISTON_ID = id('sticky_piston');
+const PISTON_HEAD_ID = id('piston_head');
+const SLIME_ID = id('slime_block');
+const HONEY_ID = id('honey_block');
+const isStickyBlock = (s: number) => {
+  const b = blockIdOf(s);
+  return b === SLIME_ID || b === HONEY_ID;
+};
+/** PistonStructureResolver.canStickToEachOther */
+function canStickToEachOther(a: number, b: number): boolean {
+  const x = blockIdOf(a), y = blockIdOf(b);
+  if ((x === HONEY_ID && y === SLIME_ID) || (x === SLIME_ID && y === HONEY_ID)) return false;
+  return isStickyBlock(a) || isStickyBlock(b);
+}
+const isAirState = (s: number) => {
+  const n = blockNameOf(s);
+  return n === 'air' || n === 'cave_air' || n === 'void_air';
+};
+type Resolver = { px: number; py: number; pz: number; f: number; pushDir: number };
 
 /** isFaceSturdy for a horizontal face: full blocks only (stairs/slab sides are approximated as not). */
 const sturdySide = (s: number) => FULL_COLLISION[s] === 1;
@@ -460,6 +524,9 @@ export class Redstone {
       case K.TNT:
         if (!sameBlock && this.hasNeighborSignal(x, y, z)) this.explodeTnt(x, y, z);
         return;
+      case K.PISTON:
+        if (!sameBlock) this.pistonCheckIfExtend(x, y, z, s);
+        return;
       case K.REDSTONE_BLOCK:
         // PoweredBlock has no onPlace; Level.setBlock's own neighbour update powers the surroundings
         return;
@@ -499,6 +566,14 @@ export class Redstone {
         return;
       case K.OBSERVER:
         if (bool(s, 'powered') && this.h.hasScheduledTick(x, y, z, s)) this.updateNeighborsInFront(x, y, z, withProp(s, 'powered', false));
+        return;
+      case K.PISTON:
+        // PistonHeadBlock.canSurvive: an extended piston's head goes with its base
+        if (bool(s, 'extended')) {
+          const f = facing(s);
+          const hs = this.st(x + DX[f]!, y + DY[f]!, z + DZ[f]!);
+          if (blockIdOf(hs) === PISTON_HEAD_ID && getProp(hs, 'facing') === DIR_NAMES[f]) this.h.setBlock(x + DX[f]!, y + DY[f]!, z + DZ[f]!, 0, UPDATE_ALL);
+        }
         return;
       default:
         return;
@@ -586,6 +661,9 @@ export class Redstone {
         }
         return;
       }
+      case K.PISTON:
+        this.pistonCheckIfExtend(x, y, z, s);
+        return;
       case K.DISPENSER: {
         const flag = this.hasNeighborSignal(x, y, z) || this.hasNeighborSignal(x, y + 1, z);
         const triggered = bool(s, 'triggered');
@@ -1150,6 +1228,237 @@ export class Redstone {
       this.h.scheduleTick(x, y, z, s, wait, PRIO.NORMAL);
     }
     return power;
+  }
+
+  // ======================================================================= pistons
+  /** block events queued this tick (Level.blockEvent), run by {@link runBlockEvents} */
+  readonly blockEvents: { x: number; y: number; z: number; block: number; id: number; param: number }[] = [];
+
+  /** PistonBaseBlock.getNeighborSignal: any side but the front... and quasi-connectivity from above. */
+  private pistonNeighborSignal(x: number, y: number, z: number, facingDir: number): boolean {
+    for (let d = 0; d < 6; d++) if (d !== facingDir && this.hasSignal(x + DX[d]!, y + DY[d]!, z + DZ[d]!, d)) return true;
+    if (this.hasSignal(x, y, z, D.DOWN)) return true;
+    for (let d = 0; d < 6; d++) if (d !== D.DOWN && this.hasSignal(x + DX[d]!, y + 1 + DY[d]!, z + DZ[d]!, d)) return true;
+    return false;
+  }
+
+  /** PistonBaseBlock.checkIfExtend */
+  private pistonCheckIfExtend(x: number, y: number, z: number, s: number): void {
+    const f = facing(s);
+    const flag = this.pistonNeighborSignal(x, y, z, f);
+    const extended = bool(s, 'extended');
+    if (flag && !extended) {
+      if (this.resolveStructure(x, y, z, f, true)) this.queueBlockEvent(x, y, z, blockIdOf(s), 0, f);
+    } else if (!flag && extended) {
+      // blocks move instantly here, so there is never a moving piston to cut short: always id 1
+      this.queueBlockEvent(x, y, z, blockIdOf(s), 1, f);
+    }
+  }
+
+  private queueBlockEvent(x: number, y: number, z: number, block: number, eid: number, param: number): void {
+    // ServerLevel.blockEvent: identical pending events are not queued twice
+    if (this.blockEvents.some((e) => e.x === x && e.y === y && e.z === z && e.block === block && e.id === eid && e.param === param)) return;
+    this.blockEvents.push({ x, y, z, block, id: eid, param });
+  }
+
+  /** ServerLevel.runBlockEvents: events whose block is still there run (and may queue more). */
+  runBlockEvents(): void {
+    let guard = 0;
+    while (this.blockEvents.length && guard++ < 65536) {
+      const e = this.blockEvents.shift()!;
+      const s = this.st(e.x, e.y, e.z);
+      if (blockIdOf(s) === e.block) this.pistonTriggerEvent(e.x, e.y, e.z, s, e.id, e.param);
+    }
+  }
+
+  /** PistonBaseBlock.triggerEvent (extension and retraction complete at once). */
+  private pistonTriggerEvent(x: number, y: number, z: number, s: number, eid: number, f: number): void {
+    const flag = this.pistonNeighborSignal(x, y, z, f);
+    if (flag && eid === 1) {
+      this.h.setBlock(x, y, z, withProp(s, 'extended', true), UPDATE_CLIENTS);
+      return;
+    }
+    if (!flag && eid === 0) return;
+    const sticky = blockIdOf(s) === STICKY_PISTON_ID;
+    if (eid === 0) {
+      if (!this.moveBlocks(x, y, z, f, true, sticky)) return;
+      this.h.setBlock(x, y, z, withProp(s, 'extended', true), 67);
+      this.h.playSound?.('block.piston.extend', x + 0.5, y + 0.5, z + 0.5, 0.5, 0.6 + Math.random() * 0.25);
+    } else {
+      const hx = x + DX[f]!, hy = y + DY[f]!, hz = z + DZ[f]!;
+      this.h.setBlock(x, y, z, withProp(s, 'extended', false), UPDATE_ALL);
+      let pulled = false;
+      if (sticky) {
+        const px = x + 2 * DX[f]!, py = y + 2 * DY[f]!, pz = z + 2 * DZ[f]!;
+        const ps = this.st(px, py, pz);
+        const pb = blockIdOf(ps);
+        const pushable = this.isPushable(ps, px, py, pz, OPP[f]!, false, f);
+        if (!(isAirState(ps) || !pushable || (PUSH[pb] !== Push.NORMAL && pb !== PISTON_ID && pb !== STICKY_PISTON_ID))) {
+          pulled = this.moveBlocks(x, y, z, f, false, true);
+        }
+      }
+      if (!pulled && blockIdOf(this.st(hx, hy, hz)) === PISTON_HEAD_ID) this.h.setBlock(hx, hy, hz, 0, UPDATE_ALL);
+      this.h.playSound?.('block.piston.contract', x + 0.5, y + 0.5, z + 0.5, 0.5, 0.6 + Math.random() * 0.15);
+    }
+  }
+
+  /** PistonBaseBlock.isPushable */
+  isPushable(s: number, x: number, y: number, z: number, moveDir: number, allowDestroy: boolean, pistonFacing: number): boolean {
+    if (y < 0 || y > 255) return false;
+    if (isAirState(s)) return true;
+    const b = blockIdOf(s);
+    if (NEVER_PUSHED[b]) return false;
+    if (moveDir === D.DOWN && y === 0) return false;
+    if (moveDir === D.UP && y === 255) return false;
+    if (b !== PISTON_ID && b !== STICKY_PISTON_ID) {
+      if (UNBREAKABLE[b]) return false;
+      switch (PUSH[b]) {
+        case Push.BLOCK:
+          return false;
+        case Push.DESTROY:
+          return allowDestroy;
+        case Push.PUSH_ONLY:
+          return moveDir === pistonFacing;
+      }
+    } else if (bool(s, 'extended')) return false;
+    return !(HAS_BE[b] || this.h.hasBlockEntity?.(x, y, z, s));
+  }
+
+  private toPush: [number, number, number][] = [];
+  private toDestroy: [number, number, number][] = [];
+
+  /** PistonStructureResolver.resolve; fills the push and destroy lists. */
+  resolveStructure(x: number, y: number, z: number, f: number, extending: boolean): boolean {
+    const pushDir = extending ? f : OPP[f]!;
+    const k = extending ? 1 : 2;
+    const sx = x + k * DX[f]!, sy = y + k * DY[f]!, sz = z + k * DZ[f]!;
+    const R: Resolver = { px: x, py: y, pz: z, f, pushDir };
+    this.toPush = [];
+    this.toDestroy = [];
+    const s = this.st(sx, sy, sz);
+    if (!this.isPushable(s, sx, sy, sz, pushDir, false, f)) {
+      if (extending && PUSH[blockIdOf(s)] === Push.DESTROY) {
+        this.toDestroy.push([sx, sy, sz]);
+        return true;
+      }
+      return false;
+    }
+    if (!this.addBlockLine(R, sx, sy, sz, pushDir)) return false;
+    for (let i = 0; i < this.toPush.length; i++) {
+      const p = this.toPush[i]!;
+      if (isStickyBlock(this.st(p[0], p[1], p[2])) && !this.addBranchingBlocks(R, p[0], p[1], p[2])) return false;
+    }
+    return true;
+  }
+
+  private pushIndex(x: number, y: number, z: number): number {
+    return this.toPush.findIndex((p) => p[0] === x && p[1] === y && p[2] === z);
+  }
+
+  private addBlockLine(R: Resolver, fx: number, fy: number, fz: number, dir: number): boolean {
+    let s = this.st(fx, fy, fz);
+    const pd = R.pushDir, od = OPP[pd]!;
+    if (isAirState(s)) return true;
+    if (!this.isPushable(s, fx, fy, fz, pd, false, dir)) return true;
+    if (fx === R.px && fy === R.py && fz === R.pz) return true;
+    if (this.pushIndex(fx, fy, fz) >= 0) return true;
+    let i = 1;
+    if (i + this.toPush.length > 12) return false;
+    while (isStickyBlock(s)) {
+      const px = fx + DX[od]! * i, py = fy + DY[od]! * i, pz = fz + DZ[od]! * i;
+      const s1 = s;
+      s = this.st(px, py, pz);
+      if (isAirState(s) || !canStickToEachOther(s1, s) || !this.isPushable(s, px, py, pz, pd, false, od) || (px === R.px && py === R.py && pz === R.pz)) break;
+      i++;
+      if (i + this.toPush.length > 12) return false;
+    }
+    let l = 0;
+    for (let j = i - 1; j >= 0; j--) {
+      this.toPush.push([fx + DX[od]! * j, fy + DY[od]! * j, fz + DZ[od]! * j]);
+      l++;
+    }
+    let i1 = 1;
+    for (;;) {
+      const px = fx + DX[pd]! * i1, py = fy + DY[pd]! * i1, pz = fz + DZ[pd]! * i1;
+      const j1 = this.pushIndex(px, py, pz);
+      if (j1 > -1) {
+        // reorderListAtCollision
+        const a = this.toPush.slice(0, j1), b = this.toPush.slice(this.toPush.length - l), c = this.toPush.slice(j1, this.toPush.length - l);
+        this.toPush = [...a, ...b, ...c];
+        for (let k = 0; k <= j1 + l; k++) {
+          const p = this.toPush[k]!;
+          if (isStickyBlock(this.st(p[0], p[1], p[2])) && !this.addBranchingBlocks(R, p[0], p[1], p[2])) return false;
+        }
+        return true;
+      }
+      s = this.st(px, py, pz);
+      if (isAirState(s)) return true;
+      if (!this.isPushable(s, px, py, pz, pd, true, pd) || (px === R.px && py === R.py && pz === R.pz)) return false;
+      if (PUSH[blockIdOf(s)] === Push.DESTROY) {
+        this.toDestroy.push([px, py, pz]);
+        return true;
+      }
+      if (this.toPush.length >= 12) return false;
+      this.toPush.push([px, py, pz]);
+      l++;
+      i1++;
+    }
+  }
+
+  private addBranchingBlocks(R: Resolver, x: number, y: number, z: number): boolean {
+    const s = this.st(x, y, z);
+    const axis = (d: number) => (d < 2 ? 0 : d < 4 ? 2 : 1);
+    for (let d = 0; d < 6; d++) {
+      if (axis(d) === axis(R.pushDir)) continue;
+      const px = x + DX[d]!, py = y + DY[d]!, pz = z + DZ[d]!;
+      const s1 = this.st(px, py, pz);
+      if (canStickToEachOther(s1, s) && !this.addBlockLine(R, px, py, pz, d)) return false;
+    }
+    return true;
+  }
+
+  /** PistonBaseBlock.moveBlocks, with the moving blocks arriving at once (no moving_piston phase). */
+  private moveBlocks(x: number, y: number, z: number, f: number, extending: boolean, sticky: boolean): boolean {
+    const hx = x + DX[f]!, hy = y + DY[f]!, hz = z + DZ[f]!;
+    if (!extending && blockIdOf(this.st(hx, hy, hz)) === PISTON_HEAD_ID) this.h.setBlock(hx, hy, hz, 0, 20);
+    if (!this.resolveStructure(x, y, z, f, extending)) return false;
+    const toPush = this.toPush, toDestroy = this.toDestroy;
+    const states = toPush.map((p) => this.st(p[0], p[1], p[2]));
+    const md = extending ? f : OPP[f]!;
+    const vacated = new Map<string, [number, number, number]>();
+    for (const p of toPush) vacated.set(`${p[0]},${p[1]},${p[2]}`, p);
+    for (let k = toDestroy.length - 1; k >= 0; k--) {
+      const p = toDestroy[k]!;
+      if (this.h.dropAndRemove) this.h.dropAndRemove(p[0], p[1], p[2]);
+      else this.h.setBlock(p[0], p[1], p[2], 0, 18);
+    }
+    // clear the old positions first, then place every block one step along
+    for (const p of toPush) this.h.setBlock(p[0], p[1], p[2], 0, 82);
+    for (let k = toPush.length - 1; k >= 0; k--) {
+      const p = toPush[k]!;
+      const nx = p[0] + DX[md]!, ny = p[1] + DY[md]!, nz = p[2] + DZ[md]!;
+      vacated.delete(`${nx},${ny},${nz}`);
+      this.h.setBlock(nx, ny, nz, states[k]!, 82);
+    }
+    if (extending) {
+      vacated.delete(`${hx},${hy},${hz}`);
+      let head = BLOCKS_BY_NAME.get('piston_head')!.defaultState;
+      head = withProp(withProp(withProp(head, 'facing', DIR_NAMES[f]!), 'type', sticky ? 'sticky' : 'normal'), 'short', false);
+      this.h.setBlock(hx, hy, hz, head, 82);
+    }
+    // neighbour updates: destroyed, vacated, moved, head
+    for (let k = toDestroy.length - 1; k >= 0; k--) {
+      const p = toDestroy[k]!;
+      this.updateNeighborsAt(p[0], p[1], p[2], 0);
+    }
+    for (const p of vacated.values()) this.updateNeighborsAt(p[0], p[1], p[2], 0);
+    for (let k = toPush.length - 1; k >= 0; k--) {
+      const p = toPush[k]!;
+      const nx = p[0] + DX[md]!, ny = p[1] + DY[md]!, nz = p[2] + DZ[md]!;
+      this.updateNeighborsAt(nx, ny, nz, blockIdOf(states[k]!));
+    }
+    if (extending) this.updateNeighborsAt(hx, hy, hz, PISTON_HEAD_ID);
+    return true;
   }
 
   // ======================================================================= misc

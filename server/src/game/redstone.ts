@@ -86,6 +86,7 @@ export class ServerRedstone {
       dropAndRemove: (x, y, z) => s.blocks.breakNaturally(x, y, z, false),
       primeTnt: (x, y, z) => void primeTnt(s, x, y, z),
       dispense: (x, y, z, st) => self.dispense(x, y, z, st),
+      hasBlockEntity: (x, y, z) => !!s.containers.blockEntity(x, y, z),
       countEntities: (x0, y0, z0, x1, y1, z1, kind) => self.countEntities(x0, y0, z0, x1, y1, z1, kind),
       daylight: (x, y, z) => {
         if (!s.level?.type.hasSkyLight) return null;
@@ -174,6 +175,8 @@ export class ServerRedstone {
         this.rs.daylightUpdate(x, y, z, st);
       }
     }
+    // ServerLevel.runBlockEvents: piston pushes and pulls
+    this.rs.runBlockEvents();
   }
 
   // ------------------------------------------------------------------ host helpers
