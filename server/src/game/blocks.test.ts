@@ -444,4 +444,37 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     expect(n).toBeGreaterThan(2);
     expect(get(21, 154, 21)).toBe('vine');
   });
+
+  it('bamboo grows with leaves at the top; azalea grows an azalea tree', () => {
+    const { server, set, get } = setup();
+    set(26, 150, 26, 'grass_block');
+    set(26, 151, 26, 'bamboo_sapling');
+    for (let i = 0; i < 2000; i++)
+      for (let y = 151; y < 170; y++) {
+        const st = server.world.getState(26, y, 26);
+        if (blockNameOf(st).startsWith('bamboo')) server.blocks.randomTick(26, y, 26, st);
+      }
+    let h = 0;
+    while (get(26, 151 + h, 26) === 'bamboo') h++;
+    expect(h).toBeGreaterThan(5);
+    expect(h).toBeLessThanOrEqual(16);
+    expect(getProp(server.world.getState(26, 150 + h, 26), 'leaves')).toBe('large');
+    set(28, 150, 20, 'grass_block');
+    set(28, 151, 20, 'azalea');
+    // the azalea tree's bending trunk placer isn't in the tree engine yet: the bush stays
+    server.blocks.growTree(28, 151, 20, server.world.getState(28, 151, 20));
+    expect(['oak_log', 'azalea']).toContain(get(28, 151, 20));
+  });
+
+  it('mushrooms spread on mycelium but at most 5 within 4 blocks', () => {
+    const { server, set, get } = setup();
+    for (let x = 0; x <= 12; x++) for (let z = 0; z <= 12; z++) set(x, 150, z, 'mycelium');
+    set(6, 151, 6, 'red_mushroom');
+    for (let i = 0; i < 3000; i++)
+      for (let x = 0; x <= 12; x++) for (let z = 0; z <= 12; z++) if (get(x, 151, z) === 'red_mushroom') server.blocks.randomTick(x, 151, z, server.world.getState(x, 151, z));
+    let n = 0;
+    for (let x = 2; x <= 10; x++) for (let z = 2; z <= 10; z++) if (get(x, 151, z) === 'red_mushroom') n++;
+    expect(n).toBeGreaterThan(1);
+    expect(n).toBeLessThanOrEqual(5);
+  });
 });

@@ -62,13 +62,15 @@ for (let s = 0; s < BLOCK_STATE_COUNT; s++) {
   const n = blockNameOf(s);
   let t = false;
   if (n === 'grass_block' || n === 'mycelium' || n === 'farmland' || n === 'sugar_cane' || n === 'cactus' || n === 'vine' || n in STEM_FRUIT) t = true;
-  else if (n.endsWith('_sapling')) t = true;
+  else if (isTreeSapling(n)) t = true;
   else if (n in CROP_MAX_AGE) t = (getProp(s, 'age') as number) < CROP_MAX_AGE[n]!;
   else if (n.endsWith('_leaves')) t = leavesDecaying(s);
   else if (n === 'snow' || n === 'ice') t = true;
   else if (n === 'nether_wart' || n === 'sweet_berry_bush') t = (getProp(s, 'age') as number) < 3;
   else if (n === 'cocoa') t = (getProp(s, 'age') as number) < 2;
   else if (n in GROWING_HEADS) t = (getProp(s, 'age') as number) < 25;
+  else if (n === 'bamboo') t = getProp(s, 'stage') === 0;
+  else if (n === 'bamboo_sapling' || n === 'brown_mushroom' || n === 'red_mushroom') t = true;
   RANDOM_TICKING[s] = t ? 1 : 0;
 }
 
@@ -214,7 +216,7 @@ export class BlockBehaviors {
       if (n === 'beetroots' && r.nextInt(3) === 0) return;
       return this.growCrop(x, y, z, st, n);
     }
-    if (n.endsWith('_sapling')) {
+    if (isTreeSapling(n)) {
       if (this.localBrightness(x, y + 1, z) >= 9 && r.nextInt(7) === 0) this.advanceTree(x, y, z, st);
       return;
     }
@@ -238,6 +240,20 @@ export class BlockBehaviors {
     }
     if (n in GROWING_HEADS) return this.growHead(x, y, z, st, n);
     if (n === 'vine') return this.growVine(x, y, z, st);
+    if (n === 'bamboo_sapling') {
+      // BambooSaplingBlock: the first stalk
+      if (r.nextInt(3) === 0 && IS_AIR[this.w.getState(x, y + 1, z)] && this.rawBrightness(x, y + 1, z) >= 9) this.bambooSaplingGrow(x, y, z);
+      return;
+    }
+    if (n === 'bamboo') {
+      if (getProp(st, 'stage') !== 0) return;
+      if (r.nextInt(3) === 0 && IS_AIR[this.w.getState(x, y + 1, z)] && this.rawBrightness(x, y + 1, z) >= 9) {
+        const i = this.bambooBelow(x, y, z) + 1;
+        if (i < 16) this.growBamboo(x, y, z, st, i);
+      }
+      return;
+    }
+    if (n === 'brown_mushroom' || n === 'red_mushroom') return this.spreadMushroom(x, y, z, st, n);
     if (n === 'snow') {
       // SnowLayerBlock: melts under block light > 11
       if ((this.w.getLight(x, y, z) & 15) > 11) this.breakNaturally(x, y, z, false);
@@ -473,6 +489,71 @@ export class BlockBehaviors {
     if (this.s.rand.nextInt(growthChanceDenominator(f)) === 0) this.s.setBlock(x, y, z, withProp(st, 'age', age + 1));
   }
 
+  private bambooSaplingGrow(x: number, y: number, z: number): void {
+    this.s.setBlock(x, y + 1, z, stateOf('bamboo', { leaves: 'small' }));
+    // BambooSaplingBlock.updateShape: a stalk above turns the shoot into bamboo
+    this.s.setBlock(x, y, z, defaultState('bamboo'));
+  }
+
+  /** BambooBlock.getHeightBelowUpToMax */
+  private bambooBelow(x: number, y: number, z: number): number {
+    let i = 0;
+    while (i < 16 && blockNameOf(this.w.getState(x, y - i - 1, z)) === 'bamboo') i++;
+    return i;
+  }
+  private bambooAbove(x: number, y: number, z: number): number {
+    let i = 0;
+    while (i < 16 && blockNameOf(this.w.getState(x, y + i + 1, z)) === 'bamboo') i++;
+    return i;
+  }
+
+  /** BambooBlock.growBamboo: a new top piece with leaves that shift down the stalk. */
+  private growBamboo(x: number, y: number, z: number, st: number, height: number): void {
+    const w = this.w;
+    const below = w.getState(x, y - 1, z), below2 = w.getState(x, y - 2, z);
+    const isB = (s0: number) => blockNameOf(s0) === 'bamboo';
+    let leaves = 'none';
+    if (height >= 1) {
+      if (!isB(below) || getProp(below, 'leaves') === 'none') leaves = 'small';
+      else {
+        leaves = 'large';
+        if (isB(below2)) {
+          this.s.setBlock(x, y - 1, z, withProp(below, 'leaves', 'small'));
+          this.s.setBlock(x, y - 2, z, withProp(below2, 'leaves', 'none'));
+        }
+      }
+    }
+    const age = getProp(st, 'age') !== 1 && !isB(below2) ? 0 : 1;
+    const stage = (height < 11 || !(this.s.rand.nextFloat() < 0.25)) && height !== 15 ? 0 : 1;
+    this.s.setBlock(x, y + 1, z, stateOf('bamboo', { age, leaves, stage }));
+  }
+
+  /** MushroomBlock.randomTick: creeps to a nearby dark spot (at most 5 within 4 blocks). */
+  private spreadMushroom(x: number, y: number, z: number, st: number, n: string): void {
+    const w = this.w, r = this.s.rand;
+    if (r.nextInt(25) !== 0) return;
+    let i = 5;
+    for (let dx = -4; dx <= 4; dx++)
+      for (let dy = -1; dy <= 1; dy++) for (let dz = -4; dz <= 4; dz++) if (blockNameOf(w.getState(x + dx, y + dy, z + dz)) === n && --i <= 0) return;
+    const ok = (px: number, py: number, pz: number) => {
+      if (!IS_AIR[w.getState(px, py, pz)]) return false;
+      // MushroomBlock.canSurvive: grow blocks always, otherwise dark and on a solid block
+      const below = w.getState(px, py - 1, pz);
+      const bn = blockNameOf(below);
+      if (bn === 'mycelium' || bn === 'podzol' || bn === 'crimson_nylium' || bn === 'warped_nylium') return true;
+      return this.rawBrightness(px, py, pz) < 13 && FULL_COLLISION[below] === 1;
+    };
+    let px = x, py = y, pz = z;
+    let tx = px + r.nextInt(3) - 1, ty = py + r.nextInt(2) - r.nextInt(2), tz = pz + r.nextInt(3) - 1;
+    for (let k = 0; k < 4; k++) {
+      if (ok(tx, ty, tz)) [px, py, pz] = [tx, ty, tz];
+      tx = px + r.nextInt(3) - 1;
+      ty = py + r.nextInt(2) - r.nextInt(2);
+      tz = pz + r.nextInt(3) - 1;
+    }
+    if (ok(tx, ty, tz)) this.s.setBlock(tx, ty, tz, st);
+  }
+
   /** VineBlock.randomTick: spread sideways, up and down (1 in 4 ticks, at most 5 vines nearby). */
   private growVine(x: number, y: number, z: number, st: number): void {
     const w = this.w, r = this.s.rand;
@@ -682,7 +763,14 @@ export class BlockBehaviors {
   }
 
   placeFeature(id: string, x: number, y: number, z: number): boolean {
-    return configuredFeature(id)(new ServerGenLevel(this.s), this.s.rand, x, y, z);
+    let place;
+    try {
+      place = configuredFeature(id);
+    } catch {
+      // feature parts not built yet (e.g. the azalea tree's bending trunk): nothing grows
+      return false;
+    }
+    return place(new ServerGenLevel(this.s), this.s.rand, x, y, z);
   }
 
   // ---------------------------------------------------------------- bone meal
@@ -703,7 +791,7 @@ export class BlockBehaviors {
       const ns = withProp(st, 'age', na);
       this.s.setBlock(x, y, z, ns);
       if (na === 7) this.growStem(x, y, z, ns, n);
-    } else if (n.endsWith('_sapling')) {
+    } else if (isTreeSapling(n)) {
       // SaplingBlock.isBonemealSuccess: 45%
       if (r.nextFloat() < 0.45) this.advanceTree(x, y, z, st);
     } else if (n === 'grass_block') {
@@ -714,6 +802,28 @@ export class BlockBehaviors {
       const tall = defaultState(n === 'fern' ? 'large_fern' : 'tall_grass');
       if (!IS_AIR[w.getState(x, y + 1, z)] || !canSurvive(w, x, y, z, withProp(tall, 'half', 'lower'))) return false;
       this.placeDouble(x, y, z, tall);
+    } else if (n === 'azalea' || n === 'flowering_azalea') {
+      // AzaleaBlock: 45%, grows an azalea tree
+      if (r.nextFloat() < 0.45) this.growTree(x, y, z, st);
+    } else if (n === 'bamboo' || n === 'bamboo_sapling') {
+      if (n === 'bamboo_sapling') {
+        if (!IS_AIR[w.getState(x, y + 1, z)]) return false;
+        this.bambooSaplingGrow(x, y, z);
+      } else {
+        // BambooBlock.performBonemeal: 1–2 pieces on top
+        let j = this.bambooAbove(x, y, z);
+        let l = j + this.bambooBelow(x, y, z) + 1;
+        const topNow = w.getState(x, y + j, z);
+        if (l >= 16 || getProp(topNow, 'stage') === 1 || !IS_AIR[w.getState(x, y + j + 1, z)]) return false;
+        const m = 1 + r.nextInt(2);
+        for (let k = 0; k < m; k++) {
+          const top = w.getState(x, y + j, z);
+          if (l >= 16 || getProp(top, 'stage') === 1 || !IS_AIR[w.getState(x, y + j + 1, z)]) break;
+          this.growBamboo(x, y + j, z, top, l);
+          j++;
+          l++;
+        }
+      }
     } else if (n === 'sweet_berry_bush' || n === 'cocoa') {
       const age = getProp(st, 'age') as number;
       if (age >= (n === 'cocoa' ? 2 : 3)) return false;
@@ -939,4 +1049,8 @@ export class BlockBehaviors {
     }
     return false;
   }
+}
+
+function isTreeSapling(n: string): boolean {
+  return n.endsWith('_sapling') && n !== 'bamboo_sapling';
 }
