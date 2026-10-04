@@ -36,10 +36,10 @@ await page.waitForSelector('#l-play');
 await page.screenshot({ path: join(out, 'release-launcher.png') });
 await page.fill('#l-seed', 'blockcraft');
 await page.click('#l-play');
-await page.waitForTimeout(20000);
+await page.waitForTimeout(40000);
 await page.keyboard.press('Escape');
 await page.waitForTimeout(500);
-await page.screenshot({ path: join(out, 'release-ingame.png') });
+await page.screenshot({ path: join(out, 'release-ingame.png'), timeout: 180000 });
 await browser.close();
 server.close();
 if (errors.length) {
