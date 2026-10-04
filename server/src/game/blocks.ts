@@ -114,7 +114,14 @@ class ServerGenLevel extends GenLevel {
 
 export class BlockBehaviors {
   /** Scheduled block ticks (type = block id). */
-  readonly blockTicks = new TickScheduler<number>();
+  /** scheduled block ticks, one list per dimension (ServerLevel.getBlockTicks) */
+  private readonly tickLists = new Map<string, TickScheduler<number>>();
+  get blockTicks(): TickScheduler<number> {
+    const id = this.s.level?.id ?? 'overworld';
+    let t = this.tickLists.get(id);
+    if (!t) this.tickLists.set(id, (t = new TickScheduler<number>()));
+    return t;
+  }
   /** gamerule randomTickSpeed */
   get randomTickSpeed(): number {
     return this.s.gameRules.randomTickSpeed;

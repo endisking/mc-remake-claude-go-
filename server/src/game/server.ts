@@ -1702,8 +1702,7 @@ export class GameServer {
         // nether portals (Entity.handleNetherPortal); may move the player to another dimension
         this.portals.tickPlayer(p);
       }
-      // block ticks keep one schedule for now: only the overworld runs scheduled and random block ticks
-      if (lv.id === 'overworld') this.blocks.tick();
+      this.blocks.tick();
       this.tickEntities();
       this.containers.tick();
       this.updateChunks();
