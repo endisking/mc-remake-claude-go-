@@ -19,6 +19,7 @@ import { anchorTop, blockState, intProvider, floatProvider, heightProvider, rule
 import { treeFeature } from './trees';
 import { geode, monsterRoom, glowLichen, dripstoneCluster, smallDripstone, largeDripstone, replaceSingleBlock, fossil, carvingMaskDecorator } from './underground';
 import * as surface from './surface';
+import * as nether from './nether';
 
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const f = Math.fround;
@@ -135,6 +136,7 @@ function decorator(j: J): Decorator {
       };
     }
     case 'minecraft:carving_mask': return carvingMaskDecorator(c);
+    case 'minecraft:count_multilayer': return nether.countMultilayer(c);
     default:
       // count_multilayer and end_gateway (other dimensions)
       MISSING_FEATURES.add(`decorator ${j.type}`);
@@ -301,6 +303,10 @@ function feature(j: J): Placer {
     case 'minecraft:desert_well': return surface.desertWell;
     case 'minecraft:forest_rock': return surface.forestRock(c);
     case 'minecraft:void_start_platform': return surface.voidStartPlatform;
+    case 'minecraft:huge_fungus': case 'minecraft:nether_forest_vegetation': case 'minecraft:weeping_vines': case 'minecraft:twisting_vines':
+    case 'minecraft:basalt_columns': case 'minecraft:basalt_pillar': case 'minecraft:delta_feature': case 'minecraft:netherrack_replace_blobs':
+    case 'minecraft:glowstone_blob':
+      return nether.netherFeature(j.type, c)!;
     default:
       MISSING_FEATURES.add(j.type);
       return () => false;

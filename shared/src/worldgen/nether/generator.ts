@@ -27,6 +27,7 @@ export class NetherGenerator {
   readonly surface: NetherSurfaceBuilders;
   readonly carver: NetherCarver;
   readonly seaLevel = NETHER_SEA_LEVEL;
+  readonly genDepth = NETHER_NOISE_HEIGHT;
   private readonly density = new Float64Array(65536);
   private readonly q: [number, number] = [0, 0];
 

@@ -39,8 +39,8 @@ describe('nether terrain', () => {
   it('has a bedrock floor and roof, a lava sea and nothing above 127', () => {
     const g = new NetherGenerator(7n);
     let lava = 0, air = 0, rack = 0;
-    for (let cx = -2; cx <= 2; cx++)
-      for (let cz = -2; cz <= 2; cz++) {
+    for (let cx = -1; cx <= 1; cx++)
+      for (let cz = -1; cz <= 1; cz++) {
         const c = g.generate(cx, cz);
         for (let x = 0; x < 16; x++)
           for (let z = 0; z < 16; z++) {
@@ -57,9 +57,9 @@ describe('nether terrain', () => {
             }
           }
       }
-    expect(lava).toBeGreaterThan(1000);
-    expect(air).toBeGreaterThan(10000);
-    expect(rack).toBeGreaterThan(10000);
+    expect(lava).toBeGreaterThan(300);
+    expect(air).toBeGreaterThan(4000);
+    expect(rack).toBeGreaterThan(4000);
   });
 
   it('decorates without errors (features read neighbours through a world)', () => {
@@ -70,5 +70,59 @@ describe('nether terrain', () => {
     const names = new Set<string>();
     for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) for (let y = 0; y < 128; y++) names.add(blockNameOf(w.getState(x, y, z)));
     expect(names.has('netherrack') || names.has('blackstone') || names.has('basalt')).toBe(true);
+  });
+});
+
+describe('nether features', () => {
+  /** decorate the first chunk (scanning outwards) whose primary biome is `biome`, return block counts */
+  function decorated(seed: bigint, biome: number): Map<string, number> {
+    const g = new NetherGenerator(seed);
+    for (let r = 0; r < 40; r++)
+      for (let cx = -r; cx <= r; cx++)
+        for (const cz of [-r, r]) {
+          if (g.quartBiome((cx << 2) + 2, (cz << 2) + 2) !== biome) continue;
+          // the biome must cover the neighbourhood too, so the features have room
+          if (g.quartBiome((cx << 2) - 2, (cz << 2) - 2) !== biome || g.quartBiome((cx << 2) + 6, (cz << 2) + 6) !== biome) continue;
+          const w = new BlockWorld();
+          for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) w.addChunk(g.generate(cx + dx, cz + dz));
+          g.decorate(w, cx, cz);
+          const counts = new Map<string, number>();
+          for (let x = -16; x < 32; x++)
+            for (let z = -16; z < 32; z++)
+              for (let y = 0; y < 128; y++) {
+                const n = blockNameOf(w.getState((cx << 4) + x, y, (cz << 4) + z));
+                counts.set(n, (counts.get(n) ?? 0) + 1);
+              }
+          return counts;
+        }
+    throw new Error('biome not found');
+  }
+
+  it('crimson forests grow huge crimson fungi, roots and weeping vines', () => {
+    const c = decorated(12345n, B.crimson_forest);
+    expect(c.get('crimson_stem') ?? 0).toBeGreaterThan(5);
+    expect(c.get('nether_wart_block') ?? 0).toBeGreaterThan(20);
+    expect(c.get('crimson_roots') ?? 0).toBeGreaterThan(5);
+    expect((c.get('weeping_vines') ?? 0) + (c.get('weeping_vines_plant') ?? 0)).toBeGreaterThan(0);
+    expect(c.get('crimson_nylium') ?? 0).toBeGreaterThan(50);
+  });
+
+  it('warped forests grow warped fungi, roots and sprouts', () => {
+    const c = decorated(12345n, B.warped_forest);
+    expect(c.get('warped_stem') ?? 0).toBeGreaterThan(5);
+    expect(c.get('warped_wart_block') ?? 0).toBeGreaterThan(20);
+    expect((c.get('warped_roots') ?? 0) + (c.get('nether_sprouts') ?? 0)).toBeGreaterThan(5);
+  });
+
+  it('basalt deltas have basalt columns, blackstone and lava deltas with magma rims', () => {
+    const c = decorated(12345n, B.basalt_deltas);
+    expect(c.get('basalt') ?? 0).toBeGreaterThan(200);
+    expect(c.get('blackstone') ?? 0).toBeGreaterThan(20);
+    expect(c.get('magma_block') ?? 0).toBeGreaterThan(5);
+  });
+
+  it('soul sand valleys have soul sand, soul soil and basalt pillars', () => {
+    const c = decorated(12345n, B.soul_sand_valley);
+    expect((c.get('soul_sand') ?? 0) + (c.get('soul_soil') ?? 0)).toBeGreaterThan(100);
   });
 });

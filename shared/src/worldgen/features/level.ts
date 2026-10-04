@@ -17,6 +17,8 @@ export interface GenSource {
   topMaterialIsMycelium(biome: number): boolean;
   /** the dimension's sea level (63 when absent) */
   readonly seaLevel?: number;
+  /** ChunkGenerator.getGenDepth (256 when absent; the Nether's is 128) */
+  readonly genDepth?: number;
 }
 
 export type HeightmapType = 'WORLD_SURFACE_WG' | 'WORLD_SURFACE' | 'OCEAN_FLOOR_WG' | 'OCEAN_FLOOR' | 'MOTION_BLOCKING' | 'MOTION_BLOCKING_NO_LEAVES';
@@ -41,6 +43,10 @@ export class GenLevel {
   readonly height = 256;
   get seaLevel(): number {
     return this.gen.seaLevel ?? 63;
+  }
+
+  get genDepth(): number {
+    return this.gen.genDepth ?? 256;
   }
 
   constructor(
