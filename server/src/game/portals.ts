@@ -8,12 +8,7 @@
 import type { GameServer } from './server';
 import type { ServerPlayer } from './player';
 import type { ServerLevel } from './level';
-import type { C2S } from '@shared/protocol/packets';
 import { blockNameOf } from '@shared/world/blockstate';
-import { IS_AIR } from '@shared/world/blockinfo';
-import { MATERIAL_SOLID } from '@shared/world/blockprops';
-import { stateOf } from '@shared/world/blockstate';
-import { ITEMS_BY_NAME } from '@shared/data';
 import { DX, DY, DZ } from '@shared/game/placement';
 import {
   findEmptyPortalShape, shapeBlocks, portalState, isPortal, portalAxis, portalSurvives, scaledTarget, portalSearchRadius,
@@ -27,9 +22,6 @@ interface PortalState {
   entrance: [number, number, number] | null;
 }
 
-const FIRE = stateOf('fire');
-const FLINT_AND_STEEL = ITEMS_BY_NAME.get('flint_and_steel')?.id ?? -1;
-const FIRE_CHARGE = ITEMS_BY_NAME.get('fire_charge')?.id ?? -1;
 /** Player.getDimensionChangingDelay (players; other entities use 300) */
 export const PLAYER_PORTAL_COOLDOWN = 10;
 /** Player.getPortalWaitTime: 80 ticks, 1 when abilities.invulnerable (creative, spectator) */
@@ -102,37 +94,6 @@ export class Portals {
       const dir = DX[f] ? 'x' : DY[f] ? 'y' : 'z';
       if (!portalSurvives(w, nx, ny, nz, ns, dir, state)) this.s.setBlock(nx, ny, nz, 0);
     }
-  }
-
-  /**
-   * Flint and steel / fire charge on a block (FlintAndSteelItem.useOn / FireChargeItem.useOn):
-   * fire at the clicked face if it can be placed there (BaseFireBlock.canBePlacedAt, including in
-   * a portal frame). Returns true when handled.
-   */
-  useItemOn(p: ServerPlayer, m: Extract<C2S, { t: 'useOn' }>): boolean {
-    const slot = m.hand === 1 ? 40 : p.inventory.selected;
-    const held = p.inventory.get(slot);
-    if (!held || (held.id !== FLINT_AND_STEEL && held.id !== FIRE_CHARGE)) return false;
-    if (p.gameMode === 2 || p.gameMode === 3) return false;
-    const w = this.s.world;
-    const x = m.x + DX[m.face]!, y = m.y + DY[m.face]!, z = m.z + DZ[m.face]!;
-    if (y < 0 || y > 255 || IS_AIR[w.getState(x, y, z)] !== 1) return false;
-    // fire survives on a sturdy block below (simplified FireBlock.canSurvive), or the spot is in a portal frame
-    const below = w.getState(x, y - 1, z);
-    const inFrame = this.inPortalDimension() && findEmptyPortalShape(w, x, y, z, m.face >= 2 ? (m.face <= 3 ? 'x' : 'z') : 'x') !== null;
-    if (!inFrame && MATERIAL_SOLID[below] !== 1) return false;
-    const flint = held.id === FLINT_AND_STEEL;
-    this.s.playSound(null, flint ? 'item.flintandsteel.use' : 'item.firecharge.use', 'block', x + 0.5, y + 0.5, z + 0.5, 1, flint ? this.s.rand.nextFloat() * 0.4 + 0.8 : (this.s.rand.nextFloat() - this.s.rand.nextFloat()) * 0.2 + 1);
-    this.s.setBlock(x, y, z, FIRE);
-    if (p.gameMode !== 1) {
-      if (flint) {
-        held.damage = (held.damage ?? 0) + 1;
-        const max = ITEMS_BY_NAME.get('flint_and_steel')?.maxDurability ?? 64;
-        if (held.damage >= max) p.inventory.set(slot, null);
-      } else if (--held.count <= 0) p.inventory.set(slot, null);
-      this.s.syncSlot(p, slot);
-    }
-    return true;
   }
 
   // ------------------------------------------------------------------ travel

@@ -9,7 +9,8 @@ import type { ServerPlayer } from '../game/player';
 import { SAVE_FORMAT_VERSION, type PlayerData } from './types';
 
 /** 1: stage, lit, chunk; 2: + carving masks (kept until the chunk is decorated). */
-const CHUNK_FORMAT = 2;
+/** 1 blocks+light, 2 + carving masks, 3 + block entities (in the chunk body) */
+const CHUNK_FORMAT = 3;
 const COMP_NONE = 0;
 const COMP_DEFLATE = 1;
 
@@ -45,10 +46,10 @@ export function serializeChunk(c: Chunk): Uint8Array {
 export function deserializeChunk(raw: Uint8Array): Chunk {
   const r = new ByteReader(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer);
   const format = r.u8();
-  if (format !== 1 && format !== 2) throw new Error(`unknown chunk format ${format}`);
+  if (format !== 1 && format !== 2 && format !== 3) throw new Error(`unknown chunk format ${format}`);
   const stage = r.u8();
   const lit = r.u8() === 1;
-  const c = readChunk(r, true);
+  const c = readChunk(r, true, format >= 3);
   if (format >= 2) {
     const n = r.u8();
     if (n) {
@@ -89,6 +90,8 @@ export async function decodeChunkRecord(rec: Uint8Array): Promise<Chunk> {
 }
 
 // ------------------------------------------------------------------ players
+import { EFFECT_NAME } from '@shared/game/effects';
+
 export function capturePlayer(p: ServerPlayer): PlayerData {
   const l = p.living;
   return {
@@ -112,8 +115,10 @@ export function capturePlayer(p: ServerPlayer): PlayerData {
     xpTotal: l.totalExperience,
     score: l.score,
     inventory: p.inventory.slots.map((s) => (s && s.count > 0 ? { ...s } : null)),
+    enderItems: p.enderChest.map((s) => (s && s.count > 0 ? { ...s } : null)),
     selected: p.inventory.selected,
     respawn: p.respawn ? { ...p.respawn } : null,
+    effects: [...l.effects.active.values()].map((e) => ({ ...e })),
   };
 }
 
@@ -145,6 +150,12 @@ export function applyPlayer(p: ServerPlayer, d: PlayerData): void {
   l.experienceProgress = num(d.xpProgress, 0);
   l.totalExperience = num(d.xpTotal, 0);
   l.score = num(d.score, 0);
+  if (Array.isArray(d.enderItems)) {
+    for (let i = 0; i < p.enderChest.length; i++) {
+      const s = d.enderItems[i];
+      p.enderChest[i] = s && typeof s.id === 'number' && s.count > 0 ? { ...s } : null;
+    }
+  }
   if (Array.isArray(d.inventory)) {
     for (let i = 0; i < p.inventory.slots.length; i++) {
       const s = d.inventory[i];
@@ -153,4 +164,14 @@ export function applyPlayer(p: ServerPlayer, d: PlayerData): void {
   }
   p.inventory.selected = Math.max(0, Math.min(8, num(d.selected, 0) | 0));
   p.respawn = d.respawn ? { ...d.respawn } : null;
+  // effects come back as they were (absorption hearts are saved separately above)
+  l.effects.active.clear();
+  if (Array.isArray(d.effects)) {
+    for (const e of d.effects) {
+      if (!e || typeof e.id !== 'number' || !(e.duration > 0)) continue;
+      l.effects.active.set(e.id, { ...e });
+      // Health Boost's MAX_HEALTH modifier comes back with it
+      if (EFFECT_NAME[e.id] === 'health_boost') l.maxHealth = 20 + 4 * (e.amplifier + 1);
+    }
+  }
 }

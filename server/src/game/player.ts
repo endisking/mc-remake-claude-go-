@@ -2,7 +2,7 @@
 import { PlayerPhysics, type Pose } from '@shared/entity/playerphysics';
 import type { BlockWorld } from '@shared/world/world';
 import type { Connection } from './server';
-import { Inventory } from '@shared/item/stack';
+import { Inventory, type ItemStack } from '@shared/item/stack';
 import { LivingState } from './survival';
 import { StepTracker } from '@shared/entity/steps';
 
@@ -69,6 +69,8 @@ export class ServerPlayer {
   walkDistO = 0;
   sentOffHand = -1;
   readonly inventory = new Inventory();
+  /** PlayerEnderChestContainer: 27 slots, saved with the player */
+  readonly enderChest: (ItemStack | null)[] = new Array(27).fill(null);
   /** Block being dug in survival: position and start tick. */
   digging: { x: number; y: number; z: number; start: number } | null = null;
   /** Number of move packets rejected recently (for diagnostics/tests). */

@@ -29,7 +29,7 @@ import { destroyProgress, hardness, canHarvest } from '@shared/game/mining';
 import { blockDrops, blockForItem, itemForBlock } from '@shared/game/loot';
 import { isEmpty, maxStackSize, itemName, type ItemStack } from '@shared/item/stack';
 import { collisionBoxes } from '@shared/world/shapes';
-import { getProp, blockNameOf } from '@shared/world/blockstate';
+import { getProp, blockNameOf, parseState } from '@shared/world/blockstate';
 import { FLUID } from '@shared/world/blockinfo';
 import { BLOCKS_BY_NAME, ITEMS_BY_NAME } from '@shared/data';
 import { Survival, DEFAULT_GAME_RULES, DAMAGE, type GameRules } from './survival';
@@ -38,6 +38,14 @@ import { soundId, sourceId, type SoundSource } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
+// --- block behaviours (Phase 4: ticks, gravity, farming, doors)
+import { BlockBehaviors } from './blocks';
+import { FallingBlockEntity } from './fallingblock';
+import { ItemUse } from './itemuse';
+import { Arrow } from './arrow';
+import { Thrown } from './throwable';
+import { Containers } from './containers';
+import { takeGenBlockEntities } from '@shared/worldgen/features/underground';
 import { Commands, type AccessStore } from './commands';
 import { DEFAULT_ALL_GAME_RULES, type AllGameRules } from './commands/gamerules';
 
@@ -83,7 +91,7 @@ export class GameServer {
   /** The dimension being ticked or whose player's packet is being handled; world/light/entities/players below are its. */
   level!: ServerLevel;
   /** Every connected player, in any dimension (vanilla PlayerList). */
-  readonly players: ServerPlayer[] = [];
+  readonly allPlayers: ServerPlayer[] = [];
   get world(): BlockWorld {
     return this.level.world;
   }
@@ -93,8 +101,8 @@ export class GameServer {
   get generator(): LevelGenerator {
     return this.level.generator;
   }
-  /** Players in the current dimension. */
-  get levelPlayers(): ServerPlayer[] {
+  /** Players in the current dimension (ServerLevel.players); allPlayers has everyone. */
+  get players(): ServerPlayer[] {
     return this.level.players;
   }
   get entities(): Map<number, ServerEntity> {
@@ -129,7 +137,7 @@ export class GameServer {
   changeDimension(p: ServerPlayer, dim: string, x: number, y: number, z: number, yaw: number, pitch: number): void {
     const from = this.levelOf(p), to = this.levels.get(dim);
     if (!to) return;
-    for (const o of this.players) if (o !== p && o.tracking.delete(p.id)) this.send(o, { t: 'removeEntities', ids: [p.id] });
+    for (const o of this.allPlayers) if (o !== p && o.tracking.delete(p.id)) this.send(o, { t: 'removeEntities', ids: [p.id] });
     if (p.tracking.size) this.send(p, { t: 'removeEntities', ids: [...p.tracking] });
     this.portals.arrived(p, x, y, z);
     const i = from.players.indexOf(p);
@@ -175,9 +183,15 @@ export class GameServer {
   readonly commands = new Commands(this);
   difficulty: Difficulty = Difficulty.Normal;
   readonly survival = new Survival(this);
+  /** item use, durability, armour, effects sync (itemuse.ts) */
+  readonly items = new ItemUse(this);
   /** server.properties pvp */
   pvp = true;
   readonly sleep = new Sleep(this);
+  /** Block behaviours: scheduled + random ticks, gravity blocks, farming, doors (blocks.ts). */
+  readonly blocks = new BlockBehaviors(this);
+  /** container menus, block entities and furnaces */
+  readonly containers = new Containers(this);
   // ---- fluids (FlowingFluid ticks; see fluidticks.ts) ----
   private readonly makeFluids = (): FluidTicks => new FluidTicks({
     getState: (x, y, z) => this.world.getState(x, y, z),
@@ -190,7 +204,7 @@ export class GameServer {
     },
     fizz: (x, y, z) => {
       const key = chunkKey(x >> 4, z >> 4);
-      for (const p of this.levelPlayers) if (p.sent.has(key)) this.send(p, { t: 'levelEvent', event: 1501, x, y, z, data: 0 });
+      for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'levelEvent', event: 1501, x, y, z, data: 0 });
     },
     nextInt: (n) => this.rand.nextInt(n),
     isTickingChunk: (cx, cz) => {
@@ -268,11 +282,13 @@ export class GameServer {
   }
 
   disconnect(conn: Connection): void {
-    const i = this.players.findIndex((p) => p.conn === conn);
+    const i = this.allPlayers.findIndex((p) => p.conn === conn);
     if (i < 0) return;
-    const [gone] = this.players.splice(i, 1);
+    const [gone] = this.allPlayers.splice(i, 1);
     const gl = this.levelOf(gone!).players;
     if (gl.includes(gone!)) gl.splice(gl.indexOf(gone!), 1);
+    this.items.forget(gone!);
+    this.containers.closeAll(gone!);
     if (this.opts.storage) {
       const key = this.playerKey(gone!);
       const data = capturePlayer(gone!);
@@ -280,7 +296,7 @@ export class GameServer {
       this.opts.storage.putPlayer(key, data).catch((e) => console.error('[server] saving player failed', e));
     }
     this.commands.left(gone!);
-    for (const o of this.players) {
+    for (const o of this.allPlayers) {
       if (o.tracking.delete(gone!.id)) this.send(o, { t: 'removeEntities', ids: [gone!.id] });
       this.send(o, { t: 'playerInfo', action: 4, id: gone!.id, name: gone!.name, skin: '', gameMode: 0 });
       if (o.camera === gone) this.setCamera(o, null);
@@ -316,8 +332,9 @@ export class GameServer {
     if (!this.levels.has(p.dimension)) p.dimension = 'overworld';
     this.level = this.levelOf(p);
     (p.phys as unknown as { world: BlockWorld }).world = this.world;
+    p.living.effects.onChange = (e, removed) => this.items.sendEffect(p, e, removed);
+    this.allPlayers.push(p);
     this.players.push(p);
-    this.levelPlayers.push(p);
     this.send(p, {
       t: 'login', entityId: p.id, gameMode: p.gameMode, dimension: this.level.id, seed: this.world.biomeZoomSeed!,
       x: p.x, y: p.y, z: p.z, yaw: p.yaw, pitch: p.pitch, simulationDistance: 10,
@@ -328,11 +345,13 @@ export class GameServer {
     }
     this.sendAbilities(p);
     this.survival.sync(p);
+    // effects restored from the save
+    for (const e of p.living.effects.active.values()) this.items.sendEffect(p, e, false);
     this.send(p, { t: 'difficulty', difficulty: this.difficulty });
     this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     this.send(p, { t: 'weather', rain: this.rainLevel, thunder: this.thunderLevel * this.rainLevel });
     // PlayerList.placeNewPlayer: everyone's PlayerInfo to the newcomer, theirs to everyone
-    for (const o of this.players) {
+    for (const o of this.allPlayers) {
       this.send(p, { t: 'playerInfo', action: 0, id: o.id, name: o.name, skin: o.skin, gameMode: o.gameMode });
       if (o !== p) this.send(o, { t: 'playerInfo', action: 0, id: p.id, name: p.name, skin: p.skin, gameMode: p.gameMode });
     }
@@ -349,7 +368,7 @@ export class GameServer {
 
   /** Chunks that tick (random ticks, lightning, entities): within simulation distance of a player. */
   isTickingChunk(cx: number, cz: number): boolean {
-    for (const p of this.levelPlayers) {
+    for (const p of this.players) {
       const d = this.simulationDistanceFor();
       if (Math.max(Math.abs((Math.floor(p.x) >> 4) - cx), Math.abs((Math.floor(p.z) >> 4) - cz)) <= d) return true;
     }
@@ -358,7 +377,7 @@ export class GameServer {
 
   /** Simulation distance: the host's setting in single-player/LAN, the server's otherwise. */
   simulationDistanceFor(): number {
-    const owner = this.players.find((p) => p.isOwner);
+    const owner = this.allPlayers.find((p) => p.isOwner);
     return owner?.simulationDistance ?? this.simulationDistance;
   }
 
@@ -366,7 +385,7 @@ export class GameServer {
   private tickLightning(): void {
     if (!(this.isRaining() && this.isThundering())) return;
     const seen = new Set<number>();
-    for (const p of this.levelPlayers) {
+    for (const p of this.players) {
       const pcx = Math.floor(p.x) >> 4, pcz = Math.floor(p.z) >> 4;
       const d = Math.min(this.simulationDistanceFor(), 8);
       for (let cx = pcx - d; cx <= pcx + d; cx++)
@@ -388,7 +407,7 @@ export class GameServer {
   private lightningTarget(x: number, z: number): [number, number, number] {
     const c = this.world.getChunk(x >> 4, z >> 4)!;
     const y = c.motionBlocking[(z & 15) * 16 + (x & 15)]!;
-    const targets = this.levelPlayers.filter((p) => {
+    const targets = this.players.filter((p) => {
       if (p.living.dead || Math.abs(p.x - (x + 0.5)) > 3.5 || Math.abs(p.z - (z + 0.5)) > 3.5 || p.y < y - 3) return false;
       const pc = this.world.getChunk(Math.floor(p.x) >> 4, Math.floor(p.z) >> 4);
       return !!pc && pc.motionBlocking[(Math.floor(p.z) & 15) * 16 + (Math.floor(p.x) & 15)]! <= Math.floor(p.y);
@@ -410,8 +429,11 @@ export class GameServer {
 
   /** LightningBolt.tick server side: strike entities, light fires (needs fire spread, Phase 4). */
   private tickBolt(b: LightningBolt): void {
+    // LightningBolt.spawnFire: 4 extra on the first tick (normal/hard), none on re-flashes
+    if (!b.visualOnly && b.fire === 4 && (this.difficulty === Difficulty.Normal || this.difficulty === Difficulty.Hard)) this.blocks.lightningFire(b.x, b.y, b.z, 4);
+    else if (!b.visualOnly && b.fire === 0) this.blocks.lightningFire(b.x, b.y, b.z, 0);
     if (!b.striking) return;
-    for (const p of this.levelPlayers) {
+    for (const p of this.players) {
       if (Math.abs(p.x - b.x) > 3 + 0.3 || Math.abs(p.z - b.z) > 3 + 0.3 || p.y + 1.8 < b.y - 3 || p.y > b.y + 9) continue;
       // Entity.thunderHit
       const l = p.living;
@@ -439,7 +461,7 @@ export class GameServer {
 
   setDayTime(t: number): void {
     this.dayTime = t;
-    for (const pl of this.players) this.send(pl, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
+    for (const pl of this.allPlayers) this.send(pl, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
   }
 
   /** ServerLevel.resetWeatherCycle (after sleeping through the night). */
@@ -457,7 +479,7 @@ export class GameServer {
   playSound(except: ServerPlayer | null, event: string, source: SoundSource, x: number, y: number, z: number, volume: number, pitch: number): void {
     const range = volume > 1 ? 16 * volume : 16;
     const id = soundId(event);
-    for (const o of this.levelPlayers) {
+    for (const o of this.players) {
       if (o === except) continue;
       const dx = o.x - x, dy = o.y - y, dz = o.z - z;
       if (dx * dx + dy * dy + dz * dz > range * range) continue;
@@ -467,7 +489,7 @@ export class GameServer {
 
   /** Send to every player tracking `p` (and `p` itself if asked). */
   broadcastToTrackers(p: ServerPlayer, packet: S2C, self = false): void {
-    for (const o of this.levelPlayers) if (o.tracking.has(p.id) || (self && o === p)) this.send(o, packet);
+    for (const o of this.players) if (o.tracking.has(p.id) || (self && o === p)) this.send(o, packet);
   }
 
   /** Player.drop(stack, dropAround = true): flung in a random horizontal direction (death drops). */
@@ -553,6 +575,7 @@ export class GameServer {
     }
     if (action === 0) {
       if (hardness(state) < 0) return this.resendBlock(p, x, y, z);
+      if (this.blocks.attack(x, y, z)) return this.resendBlock(p, x, y, z);
       p.digging = { x, y, z, start: this.gameTime };
       if (destroyProgress(this.minerState(p), state) >= 1) {
         this.destroyBlock(x, y, z, p, true);
@@ -580,11 +603,12 @@ export class GameServer {
   private minerState(p: ServerPlayer) {
     const held = p.inventory.selectedStack;
     const eyeState = this.world.getState(Math.floor(p.x), Math.floor(p.y + 1.62), Math.floor(p.z));
-    return { item: held?.id ?? 0, efficiency: 0, haste: 0, miningFatigue: 0, underwater: FLUID[eyeState] === 1, aquaAffinity: false, onGround: p.onGround || p.flying };
+    const fx = p.living.effects;
+    return { item: held?.id ?? 0, efficiency: 0, haste: Math.max(fx.amplifier('haste'), fx.amplifier('conduit_power')) + 1, miningFatigue: fx.amplifier('mining_fatigue') + 1, underwater: FLUID[eyeState] === 1, aquaAffinity: false, onGround: p.onGround || p.flying };
   }
 
   private broadcastBreakProgress(p: ServerPlayer, x: number, y: number, z: number, stage: number): void {
-    for (const o of this.levelPlayers) if (o !== p) this.send(o, { t: 'blockBreakProgress', id: p.id, x, y, z, stage });
+    for (const o of this.players) if (o !== p) this.send(o, { t: 'blockBreakProgress', id: p.id, x, y, z, stage });
   }
 
   private resendBlock(p: ServerPlayer, x: number, y: number, z: number): void {
@@ -596,21 +620,27 @@ export class GameServer {
     const state = this.world.getState(x, y, z);
     if (state === 0) return;
     const name = blockNameOf(state);
+    // doors and tall plants drop from their lower half (vanilla destroys it with drops via updateShape)
+    const below = this.world.getState(x, y - 1, z);
+    const lootState = getProp(state, 'half') === 'upper' && blockNameOf(below) === name ? below : state;
     // Level.destroyBlock leaves the block's fluid behind (waterlogged blocks, kelp, seagrass)
     this.setBlock(x, y, z, legacyBlock(FLUID_OF[state]!));
     // particles + sound for everyone else (the breaker plays them locally)
-    for (const o of this.levelPlayers) if (o !== breaker) this.send(o, { t: 'levelEvent', event: 2001, x, y, z, data: state });
+    for (const o of this.players) if (o !== breaker) this.send(o, { t: 'levelEvent', event: 2001, x, y, z, data: state });
     if (breaker && (breaker.gameMode === 0 || breaker.gameMode === 2)) breaker.living.food.addExhaustion(EXHAUSTION.breakBlock);
     if (drops && breaker && breaker.gameMode !== 1) {
       const held = breaker.inventory.selectedStack;
       const harvest = canHarvest(held?.id ?? 0, state);
-      const items = blockDrops(state, { silkTouch: false, canHarvest: harvest, random: () => this.rand.nextFloat() });
+      const shears = held ? itemNameOf(held.id) === 'shears' : false;
+      const items = blockDrops(lootState, { silkTouch: false, shears, canHarvest: harvest, random: () => this.rand.nextFloat() });
       for (const it of items) this.popResource(x, y, z, it);
       // Block.spawnAfterBreak → popExperience (OreBlock / RedStoneOreBlock / SpawnerBlock)
       const xp = harvest ? oreExperience(name, this.rand) : 0;
       // Block.popExperience: only with doTileDrops
       if (xp > 0 && this.gameRules.doTileDrops) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
     }
+    // Item.mineBlock: tools lose durability (survival/adventure breakers)
+    if (drops && breaker && breaker.gameMode !== 1) this.items.onBlockMined(breaker, state);
     // beds: the other half goes too (BedBlock.updateShape → destroyBlock), dropping its loot
     // (the bed item comes from the head) unless the breaker is in creative
     if (name.endsWith('_bed')) {
@@ -620,7 +650,7 @@ export class GameServer {
       const other = this.world.getState(ox, y, oz);
       if (blockNameOf(other) === name && getProp(other, 'part') !== getProp(state, 'part')) {
         this.setBlock(ox, y, oz, 0);
-        for (const o of this.levelPlayers) if (o !== breaker) this.send(o, { t: 'levelEvent', event: 2001, x: ox, y, z: oz, data: other });
+        for (const o of this.players) if (o !== breaker) this.send(o, { t: 'levelEvent', event: 2001, x: ox, y, z: oz, data: other });
         if (drops && (!breaker || breaker.gameMode !== 1)) {
           for (const it of blockDrops(other, { silkTouch: false, canHarvest: true, random: () => this.rand.nextFloat() })) this.popResource(ox, y, oz, it);
         }
@@ -646,7 +676,7 @@ export class GameServer {
       if (st === 0) continue;
       if (!canSurvive(this.world, nx, ny, nz, st)) {
         this.setBlock(nx, ny, nz, 0);
-        for (const o of this.levelPlayers) this.send(o, { t: 'levelEvent', event: 2001, x: nx, y: ny, z: nz, data: st });
+        for (const o of this.players) this.send(o, { t: 'levelEvent', event: 2001, x: nx, y: ny, z: nz, data: st });
         for (const it of blockDrops(st, { silkTouch: false, canHarvest: true, random: () => this.rand.nextFloat() })) this.popResource(nx, ny, nz, it);
         this.updateNeighbors(nx, ny, nz, depth + 1);
         continue;
@@ -663,10 +693,13 @@ export class GameServer {
     // block interaction first unless sneaking with something in hand (secondary use)
     const holding = !!p.inventory.selectedStack || !!p.inventory.get(40);
     if (!(p.sneaking && holding) && this.useBlock(p, x, y, z)) return;
-    if (this.portals.useItemOn(p, m)) return;
     const slot = m.hand === 1 ? 40 : p.inventory.selected;
     const held = p.inventory.get(slot);
     const block = held ? blockForItem(held.id) : null;
+    // hoes, shovels, axes, bone meal, flint and steel on blocks/TNT (blocks.ts)
+    if (held && !block && p.gameMode !== 2 && this.blocks.useItemOn(p, slot, held, x, y, z, face)) return;
+    // other non-block items (buckets, flint and steel fire): Item.useOn (itemuse.ts)
+    if (held && !block && this.items.useOn(p, m.hand === 1 ? 1 : 0, x, y, z, face)) return;
     if (!held || !block || p.gameMode === 2) return;
     const clicked = this.world.getState(x, y, z);
     let px = x, py = y, pz = z;
@@ -689,7 +722,7 @@ export class GameServer {
     // don't place a block inside a player
     for (const b of collisionBoxes(state)) {
       const box = new AABB(px + b[0], py + b[1], pz + b[2], px + b[3], py + b[4], pz + b[5]);
-      for (const o of this.levelPlayers) {
+      for (const o of this.players) {
         if (o.gameMode === 3) continue;
         const pb = AABB.ofSize(o.x, o.y, o.z, 0.6, o.pose === 'crouching' ? 1.5 : o.pose === 'swimming' ? 0.6 : 1.8);
         if (box.intersects(pb)) return this.resendBlock(p, px, py, pz);
@@ -709,6 +742,10 @@ export class GameServer {
   }
 
   // ------------------------------------------------------------------ item entities
+  newEntityId(): number {
+    return this.nextEntityId++;
+  }
+
   spawnEntity(e: ServerEntity): void {
     this.entities.set(e.id, e);
   }
@@ -725,6 +762,18 @@ export class GameServer {
     e.vx = r.nextDouble() * 0.2 - 0.1;
     e.vy = 0.2;
     e.vz = r.nextDouble() * 0.2 - 0.1;
+    this.spawnEntity(e);
+  }
+
+  /** Spawn an item entity with a given motion (Containers.dropItemStack and friends). */
+  spawnItem(x: number, y: number, z: number, stack: ItemStack, vx: number, vy: number, vz: number): void {
+    const e = new ItemEntity(this.nextEntityId++, stack);
+    e.x = x;
+    e.y = y;
+    e.z = z;
+    e.vx = vx;
+    e.vy = vy;
+    e.vz = vz;
     this.spawnEntity(e);
   }
 
@@ -765,12 +814,15 @@ export class GameServer {
       e.tick(this.world);
       if (e instanceof LightningBolt) this.tickBolt(e);
       if (e instanceof ItemEntity && !e.removed) {
-        if ((this.gameTime + e.id) % 2 === 0) this.tryMerge(e);
+        this.items.itemHazards(e);
+        // ItemEntity.tick: merge every 2 ticks while moving between blocks, else every 40
+        const moved = Math.floor(e.x) !== Math.floor(e.prevX) || Math.floor(e.y) !== Math.floor(e.prevY) || Math.floor(e.z) !== Math.floor(e.prevZ);
+        if (!e.removed && e.age % (moved ? 2 : 40) === 0) this.tryMerge(e);
       }
       if (e instanceof ExperienceOrb && !e.removed && e.age % 20 === 1) this.scanOrb(e);
     }
     // experience orbs (Player.touch → ExperienceOrb.playerTouch: one orb every 2 ticks)
-    for (const p of this.levelPlayers) {
+    for (const p of this.players) {
       if (p.takeXpDelay > 0) p.takeXpDelay--;
       if (p.gameMode === 3 || p.living.dead) continue;
       const bb = AABB.ofSize(p.x, p.y, p.z, 0.6, 1.8).inflate(1, 0.5, 1);
@@ -778,7 +830,7 @@ export class GameServer {
         if (!(e instanceof ExperienceOrb) || e.removed || p.takeXpDelay !== 0) continue;
         if (!e.bb().intersects(bb)) continue;
         p.takeXpDelay = 2;
-        for (const o of this.levelPlayers) if (o === p || o.tracking.has(e.id)) this.send(o, { t: 'takeItem', itemId: e.id, collectorId: p.id, count: 1 });
+        for (const o of this.players) if (o === p || o.tracking.has(e.id)) this.send(o, { t: 'takeItem', itemId: e.id, collectorId: p.id, count: 1 });
         const before = p.living.experienceLevel;
         this.survival.giveExperience(p, e.value, false);
         this.levelUpSound(p, before);
@@ -786,7 +838,7 @@ export class GameServer {
       }
     }
     // pickups (Player.touch → ItemEntity.playerTouch)
-    for (const p of this.levelPlayers) {
+    for (const p of this.players) {
       if (p.gameMode === 3) continue;
       const bb = AABB.ofSize(p.x, p.y, p.z, 0.6, 1.8).inflate(1, 0.5, 1);
       for (const e of this.entities.values()) {
@@ -796,7 +848,7 @@ export class GameServer {
         const left = p.inventory.add(e.stack);
         const taken = before - left;
         if (taken <= 0) continue;
-        for (const o of this.levelPlayers) if (o === p || o.tracking.has(e.id)) this.send(o, { t: 'takeItem', itemId: e.id, collectorId: p.id, count: taken });
+        for (const o of this.players) if (o === p || o.tracking.has(e.id)) this.send(o, { t: 'takeItem', itemId: e.id, collectorId: p.id, count: taken });
         e.stack.count = left;
         if (left <= 0) e.removed = true;
         for (let i = 0; i < 36; i++) this.syncSlot(p, i);
@@ -805,14 +857,14 @@ export class GameServer {
     for (const [id, e] of this.entities) {
       if (!e.removed) continue;
       this.entities.delete(id);
-      for (const p of this.levelPlayers) if (p.tracking.delete(id)) this.send(p, { t: 'removeEntities', ids: [id] });
+      for (const p of this.players) if (p.tracking.delete(id)) this.send(p, { t: 'removeEntities', ids: [id] });
     }
   }
 
   /** ExperienceOrb.scanForEntities: follow the nearest player within 8 blocks, merge with equal orbs. */
   private scanOrb(e: ExperienceOrb): void {
     let best: ServerPlayer | null = null, bd = 64;
-    for (const p of this.levelPlayers) {
+    for (const p of this.players) {
       if (p.gameMode === 3 || p.living.dead) continue;
       const d = (p.x - e.x) ** 2 + (p.y - e.y) ** 2 + (p.z - e.z) ** 2;
       if (d < bd) {
@@ -882,13 +934,13 @@ export class GameServer {
       big.pickupDelay = Math.max(big.pickupDelay, small.pickupDelay);
       big.age = Math.min(big.age, small.age);
       small.removed = true;
-      for (const p of this.levelPlayers) if (p.tracking.has(big.id)) this.send(p, { t: 'itemStack', id: big.id, item: big.stack.id, count: big.stack.count });
+      for (const p of this.players) if (p.tracking.has(big.id)) this.send(p, { t: 'itemStack', id: big.id, item: big.stack.id, count: big.stack.count });
       if (small === a) return;
     }
   }
 
   private trackEntities(): void {
-    for (const p of this.levelPlayers) {
+    for (const p of this.players) {
       for (const e of this.entities.values()) {
         if (e.removed) continue;
         const dx = e.x - p.x, dz = e.z - p.z;
@@ -896,7 +948,7 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : 0 });
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId : e instanceof Thrown ? e.item : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
         } else if (!visible && p.tracking.has(e.id)) {
           p.tracking.delete(e.id);
@@ -910,7 +962,7 @@ export class GameServer {
       e.sentX = e.x;
       e.sentY = e.y;
       e.sentZ = e.z;
-      for (const p of this.levelPlayers) if (p.tracking.has(e.id)) this.send(p, { t: 'entityMove', id: e.id, x: e.x, y: e.y, z: e.z, yaw: e.yaw, pitch: e.pitch, headYaw: e.yaw, onGround: e.onGround });
+      for (const p of this.players) if (p.tracking.has(e.id)) this.send(p, { t: 'entityMove', id: e.id, x: e.x, y: e.y, z: e.z, yaw: e.yaw, pitch: e.pitch, headYaw: e.yaw, onGround: e.onGround });
     }
   }
 
@@ -924,10 +976,12 @@ export class GameServer {
     if (mode === 3) p.flying = true;
     // leaving spectator stops looking through another entity
     if (mode !== 3) this.setCamera(p, null);
+    // spectators can't keep a container open
+    else this.containers.closeContainer(p, true);
     p.stateDirty = true;
     this.send(p, { t: 'gameMode', mode });
     this.sendAbilities(p);
-    for (const o of this.players) this.send(o, { t: 'playerInfo', action: 1, id: p.id, name: p.name, skin: '', gameMode: mode });
+    for (const o of this.allPlayers) this.send(o, { t: 'playerInfo', action: 1, id: p.id, name: p.name, skin: '', gameMode: mode });
   }
 
   /** ServerPlayer.setCamera: look through `target` (null = yourself), landing where it is. */
@@ -998,22 +1052,26 @@ export class GameServer {
     p.onGround = m.onGround;
     this.movementSounds(p, dx, dy, dz);
     if (m.onGround) {
+      if (p.fallDistance > 0) this.blocks.fallOn(p, p.fallDistance);
       if (p.fallDistance > 0) this.survival.land(p, p.fallDistance);
       p.fallDistance = 0;
     } else if (dy < 0) p.fallDistance -= dy;
-    if (p.flying) p.fallDistance = 0;
+    // flying, Slow Falling and Levitation never build up a fall (LivingEntity.travel)
+    if (p.flying || p.living.effects.has('slow_falling') || p.living.effects.has('levitation')) p.fallDistance = 0;
   }
 
   /** BlockState.use for interactive blocks; returns true when the click was consumed. */
   private useBlock(p: ServerPlayer, x: number, y: number, z: number): boolean {
     const st = this.world.getState(x, y, z);
     if (blockNameOf(st).endsWith('_bed')) return this.sleep.useBed(p, x, y, z);
+    if (this.blocks.use(p, x, y, z)) return true;
+    if (this.containers.useBlock(p, x, y, z)) return true;
     return false;
   }
 
   /** ServerGamePacketListenerImpl.handleInteract (attack) → Player.attack. */
   private handleAttack(p: ServerPlayer, targetId: number): void {
-    const t = this.levelPlayers.find((o) => o.id === targetId);
+    const t = this.players.find((o) => o.id === targetId);
     // ServerPlayer.attack: a spectator's attack spectates the target instead
     if (p.gameMode === 3) {
       if (t && t !== p && t.gameMode !== 3 && !t.living.dead && (t.x - p.x) ** 2 + (t.y - p.y) ** 2 + (t.z - p.z) ** 2 < 36) this.setCamera(p, t);
@@ -1032,6 +1090,8 @@ export class GameServer {
     const res = computeAttack({
       item, attackStrengthTicker: p.attackStrengthTicker, sprinting: p.sprinting, fallDistance: p.fallDistance, onGround: p.onGround,
       onClimbable: ph.onClimbable(), inWater: ph.isInWater, walked: p.walkDist - p.walkDistO, speed: 0.1,
+      damageBonus: 3 * (p.living.effects.amplifier('strength') + 1) - 4 * (p.living.effects.amplifier('weakness') + 1),
+      speedMul: (1 + 0.1 * (p.living.effects.amplifier('haste') + 1)) * (1 - 0.1 * (p.living.effects.amplifier('mining_fatigue') + 1)),
     });
     p.attackStrengthTicker = 0;
     if (!this.pvp) return;
@@ -1050,6 +1110,8 @@ export class GameServer {
       if (res.sweep) this.playSound(null, 'entity.player.attack.sweep', 'player', sx, sy, sz, 1, 1);
       else if (!res.critical) this.playSound(null, res.charged ? 'entity.player.attack.strong' : 'entity.player.attack.weak', 'player', sx, sy, sz, 1, 1);
       if (res.critical) this.broadcastToTrackers(t, { t: 'animate', id: t.id, action: 4 }, true);
+      // ItemStack.hurtEnemy: swords lose 1 durability per hit, tools 2
+      this.items.onAttackHit(p);
       p.living.food.addExhaustion(EXHAUSTION.attack);
     } else {
       this.playSound(null, 'entity.player.attack.nodamage', 'player', sx, sy, sz, 1, 1);
@@ -1059,6 +1121,8 @@ export class GameServer {
 
   /** LivingEntity.knockback, sent to the victim's client as a velocity (SetEntityMotion). */
   knockback(t: ServerPlayer, strength: number, x: number, z: number): void {
+    // KNOCKBACK_RESISTANCE (netherite armour)
+    strength *= 1 - this.items.armorOf(t).knockbackResistance;
     if (strength <= 0) return;
     const len = Math.hypot(x, z) || 1;
     const kx = (x / len) * strength, kz = (z / len) * strength;
@@ -1110,7 +1174,7 @@ export class GameServer {
         break;
       case 'spectate': {
         // TeleportToEntity: spectators only
-        const t = this.players.find((o) => o.id === m.target);
+        const t = this.allPlayers.find((o) => o.id === m.target);
         if (p.gameMode === 3 && t) {
           this.setCamera(p, null);
           p.x = t.x;
@@ -1147,9 +1211,20 @@ export class GameServer {
         this.syncSlot(p, 40);
         break;
       }
+      case 'clickWindow':
+        this.containers.handleClick(p, m);
+        break;
+      case 'closeWindow':
+        this.containers.handleClose(p, m.windowId);
+        break;
+      case 'menuButton':
+        this.containers.handleButton(p, m.windowId, m.button);
+        break;
       case 'creativeSlot':
+        // slot −1: the creative inventory throws the stack out of the window
+        if (p.gameMode === 1 && m.slot === -1 && m.item > 0 && m.count > 0) this.tossItem(p, { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) });
         if (p.gameMode === 1 && m.slot >= 0 && m.slot < 41) {
-          p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: 0 } : null);
+          p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) } : null);
         }
         break;
       case 'pickBlock':
@@ -1164,8 +1239,14 @@ export class GameServer {
       case 'dropItem':
         this.dropFromHand(p, m.all);
         break;
+      case 'useItem':
+        this.items.useItem(p, m.hand === 1 ? 1 : 0);
+        break;
+      case 'releaseUseItem':
+        this.items.release(p);
+        break;
       case 'swing':
-        for (const o of this.levelPlayers) if (o.tracking.has(p.id)) this.send(o, { t: 'animate', id: p.id, action: m.hand === 1 ? 3 : 0 });
+        for (const o of this.players) if (o.tracking.has(p.id)) this.send(o, { t: 'animate', id: p.id, action: m.hand === 1 ? 3 : 0 });
         break;
       case 'settings':
         p.viewDistance = clampViewDistance(m.viewDistance);
@@ -1255,6 +1336,8 @@ export class GameServer {
       if (!(this.generator instanceof DevGenerator)) {
         // springs schedule their fluid tick (delay 0); it runs once the chunk is full and ticking
         for (const [x, y, z] of this.generator.decorate(this.world, cx, cz)) this.fluids.scheduleFluidAt(x, y, z, 0);
+        // chests placed by features (dungeons) get their loot table
+        this.containers.attachGenerated(takeGenBlockEntities(this.world));
       }
       c.stage = 2;
     }
@@ -1552,7 +1635,7 @@ export class GameServer {
       chunkCount += raws.length;
       perLevel.push({ lv, raws });
     }
-    for (const p of this.players) this.playerData.set(this.playerKey(p), capturePlayer(p));
+    for (const p of this.allPlayers) this.playerData.set(this.playerKey(p), capturePlayer(p));
     const players = [...this.playerData];
     const meta = this.captureMeta();
     try {
@@ -1571,6 +1654,7 @@ export class GameServer {
   /** Stop ticking and save; resolves once everything is written. */
   async shutdown(): Promise<void> {
     this.stop();
+    this.items.dispose();
     await this.save();
     await this.opts.storage?.close();
   }
@@ -1579,9 +1663,11 @@ export class GameServer {
     if (y < 0 || y > 255) return;
     const old = this.world.setStateRaw(x, y, z, state);
     if (old === state) return;
+    this.containers.onBlockChanged(x, y, z, old, state);
     this.light.onBlockChanged(x, y, z, old, state);
     const key = chunkKey(x >> 4, z >> 4);
-    for (const p of this.levelPlayers) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
+    for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
+    this.blocks.afterSetBlock(x, y, z, old, state);
     this.portals.onBlockChanged(x, y, z, old, state);
     // after the packet: fluid updates may replace this block again (lava hardening) and must arrive later
     this.fluids.blockChanged(x, y, z, old, state);
@@ -1598,7 +1684,7 @@ export class GameServer {
     if (this.opts.storage && this.gameTime % AUTOSAVE_INTERVAL === 0) this.save().catch(() => {});
     else if (this.opts.storage) for (const lv of this.levels.values()) this.inLevel(lv, () => this.trickleSave());
     if (this.gameTime % 20 === 0) {
-      for (const p of this.players) this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
+      for (const p of this.allPlayers) this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     }
     this.advanceWeather();
     this.tickLightning();
@@ -1609,14 +1695,17 @@ export class GameServer {
     for (const lv of this.levels.values()) {
       this.level = lv;
       this.fluids.tick();
-      for (const p of [...this.levelPlayers]) {
+      for (const p of [...this.players]) {
         if (ticked.has(p)) continue;
         ticked.add(p);
         this.tickPlayer(p);
         // nether portals (Entity.handleNetherPortal); may move the player to another dimension
         this.portals.tickPlayer(p);
       }
+      // block ticks keep one schedule for now: only the overworld runs scheduled and random block ticks
+      if (lv.id === 'overworld') this.blocks.tick();
       this.tickEntities();
+      this.containers.tick();
       this.updateChunks();
       this.updateTracking();
       this.trackEntities();
@@ -1632,7 +1721,7 @@ export class GameServer {
       // ServerPlayer.tick: a spectator rides along with its camera entity until it sneaks
       const cam = p.camera;
       if (cam) {
-        if (!this.players.includes(cam) || cam.living.dead) this.setCamera(p, null);
+        if (!this.allPlayers.includes(cam) || cam.living.dead) this.setCamera(p, null);
         else {
           p.x = cam.x;
           p.y = cam.y;
@@ -1644,6 +1733,8 @@ export class GameServer {
       }
       p.updatePose();
       this.survival.tick(p);
+      this.items.tick(p);
+      this.items.touchArrows(p);
       // Player.tick: attack strength recharges; switching to a different item restarts it
       p.attackStrengthTicker++;
       const main = p.inventory.selectedStack?.id ?? 0;
@@ -1689,7 +1780,7 @@ export class GameServer {
     this.thunderLevel = Math.max(0, Math.min(1, this.thunderLevel + (this.thundering ? 0.01 : -0.01)));
     this.rainLevel = Math.max(0, Math.min(1, this.rainLevel + (this.raining ? 0.01 : -0.01)));
     if (this.rainLevel !== prevRain || this.thunderLevel !== prevThunder) {
-      for (const p of this.levelPlayers) this.send(p, { t: 'weather', rain: this.rainLevel, thunder: this.thunderLevel * this.rainLevel });
+      for (const p of this.players) this.send(p, { t: 'weather', rain: this.rainLevel, thunder: this.thunderLevel * this.rainLevel });
     }
   }
 
@@ -1713,7 +1804,7 @@ export class GameServer {
 
   private updateChunks(): void {
     let budget = this.chunkGenBudget;
-    for (const p of this.levelPlayers) {
+    for (const p of this.players) {
       const pcx = Math.floor(p.x) >> 4, pcz = Math.floor(p.z) >> 4;
       // vanilla ChunkMap sends one ring beyond the client's view distance so edge chunks have neighbours
       const r = p.viewDistance + 1;
@@ -1745,7 +1836,7 @@ export class GameServer {
     // drop chunks nobody can see (keep a margin of 2 for lighting neighbors)
     if (this.gameTime % 40 === 0) {
       for (const c of [...this.world.chunks.values()]) {
-        const needed = this.levelPlayers.some((p) => {
+        const needed = this.players.some((p) => {
           const pcx = Math.floor(p.x) >> 4, pcz = Math.floor(p.z) >> 4;
           return Math.abs(c.x - pcx) <= p.viewDistance + 3 && Math.abs(c.z - pcz) <= p.viewDistance + 3;
         });
@@ -1759,7 +1850,7 @@ export class GameServer {
         for (const [key, e] of this.stored) {
           if (e.unsaved || e.writing) continue;
           const cx = chunkKeyX(key), cz = chunkKeyZ(key);
-          const needed = this.levelPlayers.some((p) => Math.abs(cx - (Math.floor(p.x) >> 4)) <= p.viewDistance + 3 && Math.abs(cz - (Math.floor(p.z) >> 4)) <= p.viewDistance + 3);
+          const needed = this.players.some((p) => Math.abs(cx - (Math.floor(p.x) >> 4)) <= p.viewDistance + 3 && Math.abs(cz - (Math.floor(p.z) >> 4)) <= p.viewDistance + 3);
           if (!needed) this.stored.delete(key);
         }
         // write unloaded chunks out in the background (not while a full save is running)
@@ -1772,9 +1863,9 @@ export class GameServer {
 
   /** Show/hide players to each other within view distance and broadcast their movement. */
   private updateTracking(): void {
-    for (const p of this.levelPlayers) {
+    for (const p of this.players) {
       const pcx = Math.floor(p.x) >> 4, pcz = Math.floor(p.z) >> 4;
-      for (const o of this.levelPlayers) {
+      for (const o of this.players) {
         if (o === p) continue;
         const ocx = Math.floor(o.x) >> 4, ocz = Math.floor(o.z) >> 4;
         const visible = Math.abs(ocx - pcx) <= p.viewDistance && Math.abs(ocz - pcz) <= p.viewDistance && o.broadcastTo(p);
@@ -1783,6 +1874,7 @@ export class GameServer {
           this.send(p, { t: 'addPlayer', id: o.id, name: o.name, skin: o.skin, x: o.x, y: o.y, z: o.z, yaw: o.yaw, pitch: o.pitch, headYaw: o.headYaw });
           this.send(p, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose, frozen: o.living.ticksFrozen });
           this.send(p, { t: 'equipment', id: o.id, mainHand: o.inventory.selectedStack?.id ?? 0, offHand: o.inventory.get(40)?.id ?? 0 });
+          this.items.sendStateTo(p, o);
         } else if (!visible && p.tracking.has(o.id)) {
           p.tracking.delete(o.id);
           this.send(p, { t: 'removeEntities', ids: [o.id] });
@@ -1790,7 +1882,7 @@ export class GameServer {
       }
     }
     // movement and state updates (players: every tick when changed)
-    for (const o of this.levelPlayers) {
+    for (const o of this.players) {
       const moved = o.x !== o.lastSentX || o.y !== o.lastSentY || o.z !== o.lastSentZ || o.yaw !== o.lastSentYaw || o.pitch !== o.lastSentPitch;
       if (moved) {
         o.lastSentX = o.x;
@@ -1799,7 +1891,7 @@ export class GameServer {
         o.lastSentYaw = o.yaw;
         o.lastSentPitch = o.pitch;
       }
-      for (const p of this.levelPlayers) {
+      for (const p of this.players) {
         if (!p.tracking.has(o.id)) continue;
         if (moved) this.send(p, { t: 'entityMove', id: o.id, x: o.x, y: o.y, z: o.z, yaw: o.yaw, pitch: o.pitch, headYaw: o.headYaw, onGround: o.onGround });
         if (o.stateDirty) this.send(p, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose, frozen: o.living.ticksFrozen });
@@ -1809,7 +1901,7 @@ export class GameServer {
       if (main !== o.sentMainHand || off !== o.sentOffHand) {
         o.sentMainHand = main;
         o.sentOffHand = off;
-        for (const p of this.levelPlayers) if (p.tracking.has(o.id)) this.send(p, { t: 'equipment', id: o.id, mainHand: main, offHand: off });
+        for (const p of this.players) if (p.tracking.has(o.id)) this.send(p, { t: 'equipment', id: o.id, mainHand: main, offHand: off });
       }
       // entity data also goes to the player itself (on-fire overlay)
       if (o.stateDirty) this.send(o, { t: 'entityState', id: o.id, flags: o.flags(), pose: o.pose, frozen: o.living.ticksFrozen });
@@ -1823,7 +1915,7 @@ export class GameServer {
       const key = chunkKey(cx, cz);
       const c = this.world.getChunk(cx, cz);
       if (!c) continue;
-      for (const p of this.levelPlayers) {
+      for (const p of this.players) {
         if (p.sent.has(key)) this.send(p, { t: 'sectionLight', cx, sy, cz, section: c.sections[sy]! });
       }
     }

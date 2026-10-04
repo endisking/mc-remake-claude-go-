@@ -75,7 +75,7 @@ function emissionFor(b: BlockData, s: number): number {
     case 'soul_campfire':
       return lit() ? 10 : 0;
     case 'sea_pickle':
-      return getProp(s, 'waterlogged') === true ? 3 + 3 * ((getProp(s, 'pickles') as number) - 1) : 0;
+      return getProp(s, 'waterlogged') === true ? 3 + 3 * (getProp(s, 'pickles') as number) : 0; // vanilla: 6, 9, 12, 15
     case 'respawn_anchor':
       return [0, 3, 7, 11, 15][getProp(s, 'charges') as number]!;
     case 'light':

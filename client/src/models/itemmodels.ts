@@ -26,6 +26,11 @@ const TALL: Record<string, string> = {
 export function flatItemTexture(block: string): string | null {
   if (CROSS_PLANTS.has(block)) return block;
   if (TALL[block]) return TALL[block]!;
+  // corals and coral fans, amethyst buds, pointed dripstone: item/generated from the block texture
+  if (/^(dead_)?(tube|brain|bubble|fire|horn)_coral(_fan)?$/.test(block)) return block;
+  if (/^(small|medium|large)_amethyst_bud$|^amethyst_cluster$/.test(block)) return block;
+  if (block === 'pointed_dripstone') return 'pointed_dripstone_up_tip';
+  if (block === 'bamboo') return 'bamboo_stage0';
   if (block === 'glass_pane') return 'glass';
   if (block.endsWith('_stained_glass_pane')) return block.replace(/_pane$/, '');
   if (block.endsWith('_door')) return `${block}_bottom`;

@@ -75,7 +75,7 @@ export class Commands {
   tick(): void {
     const s = this.server;
     const now = Date.now();
-    for (const p of s.players) {
+    for (const p of s.allPlayers) {
       const spam = this.spam.get(p);
       if (spam) this.spam.set(p, spam - 1);
       let st = this.pings.get(p);
@@ -90,9 +90,9 @@ export class Commands {
       }
     }
     if (s.gameTime % 600 === 0 || s.gameTime === 20) {
-      for (const p of s.players) {
+      for (const p of s.allPlayers) {
         const latency = this.latency(p);
-        for (const o of s.players) s.send(o, { t: 'playerLatency', id: p.id, latency });
+        for (const o of s.allPlayers) s.send(o, { t: 'playerLatency', id: p.id, latency });
       }
     }
   }
@@ -167,7 +167,7 @@ export class Commands {
   /** PlayerList.broadcastMessage: every player and the console. */
   broadcast(m: TextComponent): void {
     const json = JSON.stringify(m);
-    for (const o of this.server.players) this.server.send(o, { t: 'chat', json });
+    for (const o of this.server.allPlayers) this.server.send(o, { t: 'chat', json });
     this.console.sendMessage(m);
   }
 
@@ -200,8 +200,8 @@ export class Commands {
   loginCheck(name: string, address: string | undefined): string | null {
     const r = this.access.loginCheck(name, address);
     if (r) return r;
-    if (this.server.players.some((o) => o.name.toLowerCase() === name.toLowerCase())) return null;
-    if (this.server.opts.dedicated && this.server.players.length >= this.maxPlayers && !this.access.opEntry(name)?.bypassesPlayerLimit) return 'The server is full!';
+    if (this.server.allPlayers.some((o) => o.name.toLowerCase() === name.toLowerCase())) return null;
+    if (this.server.opts.dedicated && this.server.allPlayers.length >= this.maxPlayers && !this.access.opEntry(name)?.bypassesPlayerLimit) return 'The server is full!';
     return null;
   }
 

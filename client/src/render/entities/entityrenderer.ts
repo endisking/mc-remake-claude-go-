@@ -5,7 +5,10 @@
 import { createProgram, Uniforms } from '../gl';
 import { mat4, multiply, type Mat4 } from '../math';
 import { bakeEntityModel, FLOATS_PER_VERTEX, PartPose, type BakedEntityModel, type PartDef } from './model';
-import { playerParts, animateHumanoid } from './playermodel';
+import { playerParts, animateHumanoid, armorParts } from './playermodel';
+import { armorInfo, nameOf } from '@shared/game/items';
+import { PoseStack } from '../posestack';
+import { armPartTransform } from '../handpose';
 import type { RemotePlayer } from '../../world/entities';
 import type { ClientWorld } from '../../world/clientworld';
 
@@ -83,15 +86,77 @@ export class EntityRenderer {
     this.u = new Uniforms(gl, this.prog);
     this.models.set('player', this.upload(playerParts(false), 64, 64));
     this.models.set('player_slim', this.upload(playerParts(true), 64, 64));
+    this.models.set('armor_outer', this.upload(armorParts(1), 64, 32));
+    this.models.set('armor_inner', this.upload(armorParts(0.5), 64, 32));
   }
+
+  private armorTex = new Map<string, WebGLTexture>();
+  /** Armour layer textures (textures/entity/armor/<material>_layer_<n>.png). */
+  async loadArmor(base = './textures/entity/armor/'): Promise<void> {
+    const names = ['leather', 'chainmail', 'iron', 'gold', 'diamond', 'netherite'].flatMap((m) => [`${m}_layer_1`, `${m}_layer_2`]).concat('turtle_layer_1');
+    await Promise.all(names.map(async (n) => {
+      try {
+        this.armorTex.set(n, await this.loadTexture(`${base}${n}.png`));
+      } catch {
+        /* missing texture: that armour just isn't drawn */
+      }
+    }));
+  }
+
+  /** HumanoidArmorLayer: each worn piece on the outer (or, for leggings, inner) armour model. */
+  private renderArmor(p: RemotePlayer, poses: Record<string, PartPose>, m: Mat4): boolean {
+    const gl = this.gl;
+    let drew = false;
+    const slots: [number, string, string[]][] = [
+      [p.armor[3], 'armor_outer', ['head']],
+      [p.armor[2], 'armor_outer', ['body', 'rightArm', 'leftArm']],
+      [p.armor[1], 'armor_inner', ['body', 'rightLeg', 'leftLeg']],
+      [p.armor[0], 'armor_outer', ['rightLeg', 'leftLeg']],
+    ];
+    for (const [item, modelName, parts] of slots) {
+      if (!item) continue;
+      const a = armorInfo(item);
+      if (!a) continue;
+      const mat = a.material === 'golden' ? 'gold' : a.material;
+      const tex = this.armorTex.get(`${mat}_layer_${modelName === 'armor_inner' ? 2 : 1}`);
+      if (!tex) continue;
+      const model = this.models.get(modelName)!;
+      gl.bindVertexArray(model.vao);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      drew = true;
+      model.baked.parts.forEach((part) => {
+        if (!parts.includes(part.def.name)) return;
+        const pose = poses[part.def.name];
+        if (!pose || !pose.visible) return;
+        const pm = this.tmp2;
+        partMatrix(pm, pose);
+        multiply(this.tmp, m, pm);
+        gl.uniformMatrix4fv(this.u.get('uModel'), false, this.tmp);
+        gl.drawArrays(gl.TRIANGLES, part.first, part.count);
+      });
+    }
+    return drew;
+  }
+  private readonly tmp2 = mat4();
 
   async loadSkins(base = './textures/skins/'): Promise<void> {
     this.defaultSkins = (await (await fetch(`${base}skins.json`)).json()) as string[];
-    await Promise.all(this.defaultSkins.map(async (n) => this.skins.set(n, await this.loadTexture(`${base}${n}.png`))));
+    await Promise.all(this.defaultSkins.map(async (n) => this.skins.set(n, await this.loadTexture(`${base}${n}.png`, n))));
   }
 
-  private async loadTexture(url: string): Promise<WebGLTexture> {
+  private readonly armPose = new PoseStack();
+
+  /** Skins with 3-px ("slim") arms. */
+  private readonly slimSkins = new Set<string>();
+
+  /** Whether a skin uses the slim arm model (PlayerModel slim = true). */
+  isSlim(skin: string): boolean {
+    return this.slimSkins.has(skin);
+  }
+
+  private async loadTexture(url: string, skinName?: string): Promise<WebGLTexture> {
     const bmp = await createImageBitmap(await (await fetch(url)).blob(), { premultiplyAlpha: 'none' });
+    if (skinName !== undefined && isSlimSkin(bmp)) this.slimSkins.add(skinName);
     const gl = this.gl;
     const t = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, t);
@@ -132,7 +197,7 @@ export class EntityRenderer {
 
   private poses = new Map<number, Record<string, PartPose>>();
   /** Held-item draws queued by renderPlayers (camera-relative matrix, light, item, left hand). */
-  readonly held: { matrix: Mat4; light: number; item: number; left: boolean }[] = [];
+  readonly held: { matrix: Mat4; light: number; item: number; left: boolean; pull?: number }[] = [];
   private heldPool: Mat4[] = [];
   /** Bed yaw (Direction.toYRot of FACING) under a sleeping player — set by the game. */
   bedFacing: ((p: RemotePlayer) => number | null) | null = null;
@@ -159,9 +224,17 @@ export class EntityRenderer {
     gl.activeTexture(gl.TEXTURE0);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
-    const model = this.models.get('player')!;
-    gl.bindVertexArray(model.vao);
+    const classic = this.models.get('player')!, slimModel = this.models.get('player_slim')!;
+    let bound: GpuModel | null = null;
     for (const p of players) {
+      // PlayerModel(slim): skins with 3-px arms use the slim model (same parts, same order)
+      const skin = this.skinFor(p.name, p.skin);
+      const slim = this.isSlim(skin);
+      const model = slim ? slimModel : classic;
+      if (bound !== model) {
+        gl.bindVertexArray(model.vao);
+        bound = model;
+      }
       const x = p.xo + (p.x - p.xo) * partial - camX;
       const y = p.yo + (p.y - p.yo) * partial - camY;
       const z = p.zo + (p.z - p.zo) * partial - camZ;
@@ -185,6 +258,8 @@ export class EntityRenderer {
         attackTime: p.attackAnimO + (p.attackAnim - p.attackAnimO) * partial,
         attackArm: p.swingingArm,
         swimAmount: 0,
+        bowPose: p.usingItem !== 0 && nameOf(p.usingItem) === 'bow',
+        blockArm: p.usingItem !== 0 && nameOf(p.usingItem) === 'shield' && p.useTicks >= 5 ? (p.usingItem === p.offHand && p.usingItem !== p.mainHand ? 'left' : 'right') : undefined,
       });
       // entity base transform: translate, rotate by body yaw (yaw 0 faces +Z), scale px → blocks
       const m = this.m;
@@ -209,7 +284,7 @@ export class EntityRenderer {
       }
       const light = world.getLight(Math.floor(p.x), Math.floor(p.y + 1.62), Math.floor(p.z));
       gl.uniform2f(this.u.get('uLight'), ((light & 15) + 0.5) / 16, ((light >> 4) + 0.5) / 16);
-      gl.bindTexture(gl.TEXTURE_2D, this.skins.get(this.skinFor(p.name, p.skin)) ?? null);
+      gl.bindTexture(gl.TEXTURE_2D, this.skins.get(skin) ?? null);
       // OverlayTexture: hurt entities are tinted 30% red
       gl.uniform4f(this.u.get('uOverlay'), 1, 0, 0, p.hurtTime > 0 ? 0.3 : 0);
       // PlayerRenderer.setModelProperties: a spectator is only its head (and hat), drawn at
@@ -236,6 +311,7 @@ export class EntityRenderer {
         gl.enable(gl.CULL_FACE);
         continue;
       }
+      if (p.armor && this.renderArmor(p, poses, m)) gl.bindVertexArray(model.vao);
       // ItemInHandLayer: items held in each hand
       for (const [item, armName, left] of [[p.mainHand, 'rightArm', false], [p.offHand, 'leftArm', true]] as const) {
         if (!item) continue;
@@ -244,10 +320,14 @@ export class EntityRenderer {
         const arm = poses[armName]!;
         const am = mat4();
         partMatrix(am, arm);
+        // PlayerModel.translateToHand: the slim arm's hand sits 0.5 px closer to the body
+        if (slim) am[12] += left ? -0.5 : 0.5;
         const out = this.heldPool.pop() ?? mat4();
         multiply(out, m, am);
         multiply(out, out, heldItemTransform(left, info.flat, info.handheld ?? false));
-        this.held.push({ matrix: out, light, item, left });
+        // a drawn bow shows its pulling frames (pull = ticks used / 20)
+        const pull = p.usingItem === item && nameOf(item) === 'bow' ? Math.min(1, p.useTicks / 20) : undefined;
+        this.held.push({ matrix: out, light, item, left, pull });
       }
     }
     gl.bindVertexArray(null);
@@ -257,10 +337,12 @@ export class EntityRenderer {
    * First-person arm (vanilla PlayerRenderer.renderRightHand): the right arm part drawn with
    * `base` (view space, vanilla model units where +Y is down) and the idle zRot of 0.1.
    */
-  renderFirstPersonArm(proj: Mat4, base: Mat4, skinName: string, light: number, lightmap: WebGLTexture, l0: [number, number, number], l1: [number, number, number]): void {
+  renderFirstPersonArm(proj: Mat4, base: Mat4, skinName: string, light: number, lightmap: WebGLTexture, l0: [number, number, number], l1: [number, number, number], side: 1 | -1 = 1): void {
     const gl = this.gl;
-    const model = this.models.get('player')!;
-    const part = model.baked.parts.find((p) => p.def.name === 'rightArm')!;
+    const skin = this.skinFor(skinName, '');
+    // classic (4 px) or slim (3 px) arms; both pivot at (±5, 2, 0) once setupAnim has run
+    const model = this.models.get(this.isSlim(skin) ? 'player_slim' : 'player')!;
+    const part = model.baked.parts.find((p) => p.def.name === (side === 1 ? 'rightArm' : 'leftArm'))!;
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(this.u.get('uViewProj'), false, proj);
     gl.uniform1i(this.u.get('uTex'), 0);
@@ -275,22 +357,33 @@ export class EntityRenderer {
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, lightmap);
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.skins.get(this.skinFor(skinName, '')) ?? null);
-    // pivot (−5, 2, 0) in vanilla model space, zRot 0.1, px → blocks, then our model space
-    // (y up, facing +Z) → vanilla's (y down, facing −Z): diag(1, −1, −1)
-    const m = this.tmp;
-    m.set(base);
-    const c = Math.cos(0.1), s = Math.sin(0.1), k = 1 / 16;
-    const r = this.m;
-    r.set([c * k, s * k, 0, 0, s * k, -c * k, 0, 0, 0, 0, -k, 0, -5 / 16, 2 / 16, 0, 1]);
-    multiply(m, m, r);
-    gl.uniformMatrix4fv(this.u.get('uModel'), false, m);
+    gl.bindTexture(gl.TEXTURE_2D, this.skins.get(skin) ?? null);
+    // the arm ModelPart (pivot (∓5, 2, 0), zRot ±0.1 from bobModelPart at age 0, px → blocks), then
+    // our model space (y up, facing +Z) → vanilla's (y down, facing −Z): diag(1, −1, −1)
+    const ps = this.armPose.reset(base);
+    armPartTransform(ps, side);
+    ps.scale(1, -1, -1);
+    gl.uniformMatrix4fv(this.u.get('uModel'), false, ps.last);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
     gl.bindVertexArray(model.vao);
     gl.drawArrays(gl.TRIANGLES, part.first, part.count);
     gl.bindVertexArray(null);
   }
+}
+
+/**
+ * Slim-arm skins leave the outer 1-px columns of the arm texture empty (x 54-55, y 20-31 of
+ * the right arm strip): the usual way to tell a slim skin from the image alone.
+ */
+function isSlimSkin(bmp: ImageBitmap): boolean {
+  if (typeof OffscreenCanvas === 'undefined' || bmp.width !== 64 || bmp.height !== 64) return false;
+  const c = new OffscreenCanvas(64, 64).getContext('2d');
+  if (!c) return false;
+  c.drawImage(bmp, 0, 0);
+  const d = c.getImageData(54, 20, 2, 12).data;
+  for (let i = 3; i < d.length; i += 4) if (d[i]! !== 0) return false;
+  return true;
 }
 
 /** Return queued held-item matrices to the pool after drawing. */
