@@ -167,6 +167,8 @@ const C2S_SCHEMA = {
   commandSuggest: [['id', 'varint'], ['text', 'str']],
   /** Reply to the server's keepAlive. */
   keepAlive: [['id', 'f64']],
+  /** Creative inventory: NBT for a slot just set with creativeSlot (slot −1: the next thrown stack); Phase 7. */
+  creativeSlotTag: [['slot', 'i16'], ['tag', 'str']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;

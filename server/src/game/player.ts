@@ -69,6 +69,8 @@ export class ServerPlayer {
   readonly inventory = new Inventory();
   /** Player.enchantmentSeed (saved as XpSeed): the enchanting table offers */
   enchantmentSeed = (Math.random() * 0x100000000) | 0;
+  /** creativeSlotTag for slot −1: attached to the next stack thrown from the creative inventory */
+  pendingCreativeTag: import('@shared/item/stack').ItemTag | undefined = undefined;
   /** PlayerEnderChestContainer: 27 slots, saved with the player */
   readonly enderChest: (ItemStack | null)[] = new Array(27).fill(null);
   /** Block being dug in survival: position and start tick. */
