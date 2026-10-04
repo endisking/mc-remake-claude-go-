@@ -49,12 +49,15 @@ const z2 = z + 4;
 for (let i = 0; i < 4; i++) await cmd(page, `/setblock ${x - 2 + i} ${y} ${z2} redstone_wire`);
 await cmd(page, `/setblock ${x + 2} ${y} ${z2} redstone_lamp`);
 await cmd(page, `/setblock ${x - 3} ${y} ${z2} lever[face=floor,facing=east,powered=true]`);
-// row 3: an unpowered lamp beside a torch on a block (the torch powers the lamp above? no: beside it)
+// row 3: a piston pushing three blocks when a redstone block appears behind it
 const z3 = z + 6;
-await cmd(page, `/setblock ${x - 1} ${y} ${z3} stone`);
-await cmd(page, `/setblock ${x - 1} ${y + 1} ${z3} redstone_torch`);
-await cmd(page, `/setblock ${x} ${y + 1} ${z3} redstone_lamp`);
-await cmd(page, `/setblock ${x + 2} ${y} ${z3} redstone_lamp`);
+await cmd(page, `/setblock ${x - 3} ${y} ${z3} piston[facing=west]`);
+for (let i = 1; i <= 3; i++) await cmd(page, `/setblock ${x - 3 - i} ${y} ${z3} oak_planks`);
+await cmd(page, `/setblock ${x - 2} ${y} ${z3} redstone_block`);
+// and a redstone torch on a block, lighting the lamp beside it
+await cmd(page, `/setblock ${x + 1} ${y} ${z3} stone`);
+await cmd(page, `/setblock ${x + 1} ${y + 1} ${z3} redstone_torch`);
+await cmd(page, `/setblock ${x + 2} ${y + 1} ${z3} redstone_lamp`);
 await page.waitForTimeout(11000); // let the chat fade
 const powers = await page.evaluate(([x0, y0, zz]) => {
   const g = (window as any).game;
