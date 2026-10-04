@@ -55,6 +55,7 @@ const GROWING_HEADS: Record<string, { dir: number; chance: number; body: string 
   twisting_vines: { dir: 1, chance: 0.1, body: 'twisting_vines_plant' },
   cave_vines: { dir: -1, chance: 0.11, body: 'cave_vines_plant' },
 };
+const GROWING_BODIES: Record<string, string> = { kelp_plant: 'kelp', weeping_vines_plant: 'weeping_vines', twisting_vines_plant: 'twisting_vines', cave_vines_plant: 'cave_vines' };
 const FLATTENABLE = new Set(['grass_block', 'dirt', 'podzol', 'coarse_dirt', 'mycelium', 'rooted_dirt']);
 
 /** BlockState.isRandomlyTicking for the behaviours implemented here. */
@@ -655,6 +656,39 @@ export class BlockBehaviors {
     this.s.setBlock(x, y, z, body);
   }
 
+  /**
+   * GrowingPlantHeadBlock.performBonemeal (a body piece forwards to its head): kelp grows 1, nether
+   * vines a geometric number of pieces (×0.826 per extra).
+   */
+  private boneMealHead(x: number, y: number, z: number, n: string): boolean {
+    const w = this.w, r = this.s.rand;
+    const headName = GROWING_BODIES[n] ?? n;
+    const h = GROWING_HEADS[headName]!;
+    let hy = y;
+    if (n in GROWING_BODIES) {
+      // GrowingPlantBodyBlock.getHeadPos: follow the stem to its head
+      while (blockNameOf(w.getState(x, hy, z)) === n) hy += h.dir;
+      if (blockNameOf(w.getState(x, hy, z)) !== headName) return false;
+    }
+    const head = w.getState(x, hy, z);
+    const canGrow = (s0: number) => (headName === 'kelp' ? blockNameOf(s0) === 'water' && getProp(s0, 'level') === 0 : IS_AIR[s0] === 1);
+    if (!canGrow(w.getState(x, hy + h.dir, z))) return false;
+    let count = 1;
+    if (headName !== 'kelp') {
+      count = 0;
+      for (let d = 1; r.nextDouble() < d; d *= 0.826) count++;
+    }
+    let age = Math.min((getProp(head, 'age') as number) + 1, 25);
+    let py = hy + h.dir;
+    for (let k = 0; k < count && canGrow(w.getState(x, py, z)); k++) {
+      this.s.setBlock(x, py - h.dir, z, defaultState(h.body));
+      this.s.setBlock(x, py, z, withProp(head, 'age', age));
+      py += h.dir;
+      age = Math.min(age + 1, 25);
+    }
+    return true;
+  }
+
   /** SugarCaneBlock / CactusBlock.randomTick: age 0–15, up to 3 tall. */
   private growColumn(x: number, y: number, z: number, st: number, n: string): void {
     const w = this.w;
@@ -829,6 +863,19 @@ export class BlockBehaviors {
           l++;
         }
       }
+    } else if (n === 'seagrass') {
+      // SeagrassBlock: grows tall when water is above
+      const above = w.getState(x, y + 1, z);
+      if (!(blockNameOf(above) === 'water' && getProp(above, 'level') === 0)) return false;
+      this.s.setBlock(x, y, z, stateOf('tall_seagrass', { half: 'lower' }));
+      this.s.setBlock(x, y + 1, z, stateOf('tall_seagrass', { half: 'upper' }));
+    } else if (n === 'rooted_dirt') {
+      // RootedDirtBlock: hanging roots underneath
+      const below = w.getState(x, y - 1, z);
+      if (!IS_AIR[below]) return false;
+      this.s.setBlock(x, y - 1, z, defaultState('hanging_roots'));
+    } else if ((n in GROWING_HEADS || n in GROWING_BODIES) && n !== 'cave_vines' && n !== 'cave_vines_plant') {
+      if (!this.boneMealHead(x, y, z, n)) return false;
     } else if (n === 'sweet_berry_bush' || n === 'cocoa') {
       const age = getProp(st, 'age') as number;
       if (age >= (n === 'cocoa' ? 2 : 3)) return false;

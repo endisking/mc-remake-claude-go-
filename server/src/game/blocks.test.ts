@@ -529,4 +529,32 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     for (let x = -10; x <= 26; x++) for (let y = 140; y <= 160; y++) for (let z = -12; z <= 20; z++) if (get(x, y, z) === 'dragon_egg') eggs++;
     expect(eggs).toBe(1);
   });
+
+  it('bone meal grows seagrass, kelp, weeping vines and hanging roots', () => {
+    const { server, set, get, give, use } = setup();
+    Object.assign(server.players[0]!, { x: 6, y: 149, z: 10 });
+    set(4, 145, 12, 'sand');
+    for (let y = 146; y <= 150; y++) set(4, y, 12, 'water');
+    set(4, 146, 12, 'seagrass');
+    set(5, 145, 12, 'sand');
+    for (let y = 146; y <= 150; y++) set(5, y, 12, 'water');
+    set(5, 146, 12, 'kelp');
+    set(6, 155, 12, 'netherrack');
+    set(6, 154, 12, 'weeping_vines');
+    set(7, 155, 12, 'rooted_dirt');
+    give('bone_meal', 64);
+    const at = (x: number, y: number, z: number) => use(x, y, z, 2);
+    void server;
+    at(4, 146, 12);
+    expect(get(4, 146, 12)).toBe('tall_seagrass');
+    expect(get(4, 147, 12)).toBe('tall_seagrass');
+    at(5, 146, 12);
+    expect(get(5, 146, 12)).toBe('kelp_plant');
+    expect(get(5, 147, 12)).toBe('kelp');
+    at(6, 154, 12);
+    expect(get(6, 154, 12)).toBe('weeping_vines_plant');
+    expect(get(6, 153, 12)).toMatch(/weeping_vines/);
+    at(7, 155, 12);
+    expect(get(7, 154, 12)).toBe('hanging_roots');
+  });
 });
