@@ -41,12 +41,24 @@ describe('client mobs', () => {
   it('standing still, the body turns after a head turn over 15° and lines up after 10 ticks', () => {
     const m = new ClientMob(1, 'cow');
     m.setPos(0, 64, 0, 0, 0, 0);
+    m.lerpTo(0, 64, 0, 0, 0, 0, true); // first update (snaps the rotation)
     m.lerpTo(0, 64, 0, 0, 0, 100, true);
     for (let i = 0; i < 3; i++) m.tick();
     // the head is 100° off: the body is pulled to within 75°
     expect(m.bodyYaw).toBeCloseTo(25, 0);
     for (let i = 0; i < 25; i++) m.tick();
     expect(m.bodyYaw).toBeCloseTo(100, 0);
+  });
+
+  it('the first update after spawning snaps the rotation instead of turning', () => {
+    const m = new ClientMob(1, 'zombie');
+    m.setPos(0, 64, 0, 0, 0, 0);
+    m.lerpTo(0, 64, 0, 135, 0, 135, true);
+    expect(m.yaw).toBe(135);
+    expect(m.bodyYaw).toBe(135);
+    m.lerpTo(0, 64, 0, 165, 0, 165, true);
+    m.tick();
+    expect(m.yaw).toBeCloseTo(145);
   });
 
   it('rotateIfNecessary clamps the difference', () => {

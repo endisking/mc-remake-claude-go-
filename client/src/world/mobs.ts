@@ -233,7 +233,16 @@ export class ClientMob {
     this.bodyYaw = this.bodyYawO = yaw;
   }
 
+  /** no rotation received yet (addEntity carries none): the first move snaps instead of spinning */
+  private fresh = true;
+
   lerpTo(x: number, y: number, z: number, yaw: number, pitch: number, headYaw: number, onGround: boolean): void {
+    if (this.fresh) {
+      this.fresh = false;
+      this.yaw = this.bodyYaw = this.bodyYawO = yaw;
+      this.headYaw = this.headYawO = this.lastStableHeadYaw = headYaw;
+      this.pitch = this.pitchO = pitch;
+    }
     this.lx = x;
     this.ly = y;
     this.lz = z;
