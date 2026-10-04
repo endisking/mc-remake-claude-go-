@@ -194,7 +194,8 @@ export class PathSearch {
     else {
       let best = PathType.BLOCKED;
       res = -1 as PathType;
-      for (const t of seen) {
+      // EnumSet iteration: unique types in enum order
+      for (const t of [...new Set(seen)].sort((a, b) => a - b)) {
         if (m.malus(t) < 0) {
           res = t;
           break;

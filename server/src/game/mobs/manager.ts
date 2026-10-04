@@ -85,9 +85,35 @@ export class MobManager {
     return out;
   }
 
+  /** 16×16 column buckets of mobs, rebuilt once per tick (and lazily after spawns). */
+  private index = new Map<number, Mob[]>();
+  private indexTick = -1;
+  private indexSize = -1;
+
+  private rebuildIndex(): void {
+    this.index.clear();
+    for (const e of this.s.entities.values()) {
+      if (!(e instanceof Mob) || e.removed) continue;
+      const k = (Math.floor(e.x) >> 4) * 65536 + (Math.floor(e.z) >> 4);
+      let b = this.index.get(k);
+      if (!b) this.index.set(k, (b = []));
+      b.push(e);
+    }
+    this.indexTick = this.s.gameTime;
+    this.indexSize = this.s.entities.size;
+  }
+
   nearbyMobs(x: number, z: number, r: number): Mob[] {
+    if (this.indexTick !== this.s.gameTime || this.indexSize !== this.s.entities.size) this.rebuildIndex();
     const out: Mob[] = [];
-    for (const e of this.s.entities.values()) if (e instanceof Mob && !e.removed && Math.abs(e.x - x) <= r + 2 && Math.abs(e.z - z) <= r + 2) out.push(e);
+    const R = r + 2;
+    const cx0 = Math.floor(x - R) >> 4, cx1 = Math.floor(x + R) >> 4, cz0 = Math.floor(z - R) >> 4, cz1 = Math.floor(z + R) >> 4;
+    for (let cx = cx0; cx <= cx1; cx++)
+      for (let cz = cz0; cz <= cz1; cz++) {
+        const b = this.index.get(cx * 65536 + cz);
+        if (!b) continue;
+        for (const e of b) if (!e.removed && Math.abs(e.x - x) <= R && Math.abs(e.z - z) <= R) out.push(e);
+      }
     return out;
   }
 
