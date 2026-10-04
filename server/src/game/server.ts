@@ -26,7 +26,7 @@ import { destroyProgress, hardness, canHarvest } from '@shared/game/mining';
 import { blockDrops, blockForItem, itemForBlock } from '@shared/game/loot';
 import { isEmpty, maxStackSize, itemName, type ItemStack } from '@shared/item/stack';
 import { collisionBoxes } from '@shared/world/shapes';
-import { getProp, blockNameOf } from '@shared/world/blockstate';
+import { getProp, blockNameOf, parseState } from '@shared/world/blockstate';
 import { FLUID } from '@shared/world/blockinfo';
 import { BLOCKS_BY_NAME, ITEMS_BY_NAME } from '@shared/data';
 import { Survival, DEFAULT_GAME_RULES, DAMAGE, type GameRules } from './survival';
@@ -35,6 +35,11 @@ import { soundId, sourceId, type SoundSource } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
+// --- block behaviours (Phase 4: ticks, gravity, farming, doors)
+import { BlockBehaviors } from './blocks';
+import { FallingBlockEntity } from './fallingblock';
+import { Containers } from './containers';
+import { takeGenBlockEntities } from '@shared/worldgen/features/underground';
 import { Commands, type AccessStore } from './commands';
 import { DEFAULT_ALL_GAME_RULES, type AllGameRules } from './commands/gamerules';
 
@@ -100,6 +105,10 @@ export class GameServer {
   /** server.properties pvp */
   pvp = true;
   readonly sleep = new Sleep(this);
+  /** Block behaviours: scheduled + random ticks, gravity blocks, farming, doors (blocks.ts). */
+  readonly blocks = new BlockBehaviors(this);
+  /** container menus, block entities and furnaces */
+  readonly containers = new Containers(this);
   // ---- fluids (FlowingFluid ticks; see fluidticks.ts) ----
   readonly fluids: FluidTicks = new FluidTicks({
     getState: (x, y, z) => this.world.getState(x, y, z),
@@ -184,6 +193,7 @@ export class GameServer {
     const i = this.players.findIndex((p) => p.conn === conn);
     if (i < 0) return;
     const [gone] = this.players.splice(i, 1);
+    this.containers.closeAll(gone!);
     if (this.opts.storage) {
       const key = this.playerKey(gone!);
       const data = capturePlayer(gone!);
@@ -315,6 +325,9 @@ export class GameServer {
 
   /** LightningBolt.tick server side: strike entities, light fires (needs fire spread, Phase 4). */
   private tickBolt(b: LightningBolt): void {
+    // LightningBolt.spawnFire: 4 extra on the first tick (normal/hard), none on re-flashes
+    if (!b.visualOnly && b.fire === 4 && (this.difficulty === Difficulty.Normal || this.difficulty === Difficulty.Hard)) this.blocks.lightningFire(b.x, b.y, b.z, 4);
+    else if (!b.visualOnly && b.fire === 0) this.blocks.lightningFire(b.x, b.y, b.z, 0);
     if (!b.striking) return;
     for (const p of this.players) {
       if (Math.abs(p.x - b.x) > 3 + 0.3 || Math.abs(p.z - b.z) > 3 + 0.3 || p.y + 1.8 < b.y - 3 || p.y > b.y + 9) continue;
@@ -458,6 +471,7 @@ export class GameServer {
     }
     if (action === 0) {
       if (hardness(state) < 0) return this.resendBlock(p, x, y, z);
+      if (this.blocks.attack(x, y, z)) return this.resendBlock(p, x, y, z);
       p.digging = { x, y, z, start: this.gameTime };
       if (destroyProgress(this.minerState(p), state) >= 1) {
         this.destroyBlock(x, y, z, p, true);
@@ -501,6 +515,9 @@ export class GameServer {
     const state = this.world.getState(x, y, z);
     if (state === 0) return;
     const name = blockNameOf(state);
+    // doors and tall plants drop from their lower half (vanilla destroys it with drops via updateShape)
+    const below = this.world.getState(x, y - 1, z);
+    const lootState = getProp(state, 'half') === 'upper' && blockNameOf(below) === name ? below : state;
     // Level.destroyBlock leaves the block's fluid behind (waterlogged blocks, kelp, seagrass)
     this.setBlock(x, y, z, legacyBlock(FLUID_OF[state]!));
     // particles + sound for everyone else (the breaker plays them locally)
@@ -509,7 +526,8 @@ export class GameServer {
     if (drops && breaker && breaker.gameMode !== 1) {
       const held = breaker.inventory.selectedStack;
       const harvest = canHarvest(held?.id ?? 0, state);
-      const items = blockDrops(state, { silkTouch: false, canHarvest: harvest, random: () => this.rand.nextFloat() });
+      const shears = held ? itemNameOf(held.id) === 'shears' : false;
+      const items = blockDrops(lootState, { silkTouch: false, shears, canHarvest: harvest, random: () => this.rand.nextFloat() });
       for (const it of items) this.popResource(x, y, z, it);
       // Block.spawnAfterBreak → popExperience (OreBlock / RedStoneOreBlock / SpawnerBlock)
       const xp = harvest ? oreExperience(name, this.rand) : 0;
@@ -571,6 +589,8 @@ export class GameServer {
     const slot = m.hand === 1 ? 40 : p.inventory.selected;
     const held = p.inventory.get(slot);
     const block = held ? blockForItem(held.id) : null;
+    // hoes, shovels, axes, bone meal (blocks.ts)
+    if (held && !block && p.gameMode !== 2 && this.blocks.useItemOn(p, slot, held, x, y, z, face)) return;
     if (!held || !block || p.gameMode === 2) return;
     const clicked = this.world.getState(x, y, z);
     let px = x, py = y, pz = z;
@@ -617,6 +637,10 @@ export class GameServer {
     this.entities.set(e.id, e);
   }
 
+  newEntityId(): number {
+    return this.nextEntityId++;
+  }
+
   /** Vanilla Block.popResource: item at the block centre ± 0.25 with a small upward toss. */
   popResource(x: number, y: number, z: number, stack: ItemStack): void {
     // gamerule doTileDrops (vanilla Block.popResource)
@@ -629,6 +653,18 @@ export class GameServer {
     e.vx = r.nextDouble() * 0.2 - 0.1;
     e.vy = 0.2;
     e.vz = r.nextDouble() * 0.2 - 0.1;
+    this.spawnEntity(e);
+  }
+
+  /** Spawn an item entity with a given motion (Containers.dropItemStack and friends). */
+  spawnItem(x: number, y: number, z: number, stack: ItemStack, vx: number, vy: number, vz: number): void {
+    const e = new ItemEntity(this.nextEntityId++, stack);
+    e.x = x;
+    e.y = y;
+    e.z = z;
+    e.vx = vx;
+    e.vy = vy;
+    e.vz = vz;
     this.spawnEntity(e);
   }
 
@@ -800,7 +836,7 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : 0 });
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
         } else if (!visible && p.tracking.has(e.id)) {
           p.tracking.delete(e.id);
@@ -828,6 +864,8 @@ export class GameServer {
     if (mode === 3) p.flying = true;
     // leaving spectator stops looking through another entity
     if (mode !== 3) this.setCamera(p, null);
+    // spectators can't keep a container open
+    else this.containers.closeContainer(p, true);
     p.stateDirty = true;
     this.send(p, { t: 'gameMode', mode });
     this.sendAbilities(p);
@@ -900,6 +938,7 @@ export class GameServer {
     p.onGround = m.onGround;
     this.movementSounds(p, dx, dy, dz);
     if (m.onGround) {
+      if (p.fallDistance > 0) this.blocks.fallOn(p, p.fallDistance);
       if (p.fallDistance > 0) this.survival.land(p, p.fallDistance);
       p.fallDistance = 0;
     } else if (dy < 0) p.fallDistance -= dy;
@@ -910,6 +949,8 @@ export class GameServer {
   private useBlock(p: ServerPlayer, x: number, y: number, z: number): boolean {
     const st = this.world.getState(x, y, z);
     if (blockNameOf(st).endsWith('_bed')) return this.sleep.useBed(p, x, y, z);
+    if (this.blocks.use(p, x, y, z)) return true;
+    if (this.containers.useBlock(p, x, y, z)) return true;
     return false;
   }
 
@@ -1049,9 +1090,20 @@ export class GameServer {
         this.syncSlot(p, 40);
         break;
       }
+      case 'clickWindow':
+        this.containers.handleClick(p, m);
+        break;
+      case 'closeWindow':
+        this.containers.handleClose(p, m.windowId);
+        break;
+      case 'menuButton':
+        this.containers.handleButton(p, m.windowId, m.button);
+        break;
       case 'creativeSlot':
+        // slot −1: the creative inventory throws the stack out of the window
+        if (p.gameMode === 1 && m.slot === -1 && m.item > 0 && m.count > 0) this.tossItem(p, { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) });
         if (p.gameMode === 1 && m.slot >= 0 && m.slot < 41) {
-          p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: 0 } : null);
+          p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) } : null);
         }
         break;
       case 'pickBlock':
@@ -1147,6 +1199,8 @@ export class GameServer {
       if (this.generator instanceof OverworldGenerator) {
         // springs schedule their fluid tick (delay 0); it runs once the chunk is full and ticking
         for (const [x, y, z] of this.generator.decorate(this.world, cx, cz)) this.fluids.scheduleFluidAt(x, y, z, 0);
+        // chests placed by features (dungeons) get their loot table
+        this.containers.attachGenerated(takeGenBlockEntities(this.world));
       }
       c.stage = 2;
     }
@@ -1451,9 +1505,11 @@ export class GameServer {
     if (y < 0 || y > 255) return;
     const old = this.world.setStateRaw(x, y, z, state);
     if (old === state) return;
+    this.containers.onBlockChanged(x, y, z, old, state);
     this.light.onBlockChanged(x, y, z, old, state);
     const key = chunkKey(x >> 4, z >> 4);
     for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
+    this.blocks.afterSetBlock(x, y, z, old, state);
     // after the packet: fluid updates may replace this block again (lava hardening) and must arrive later
     this.fluids.blockChanged(x, y, z, old, state);
   }
@@ -1505,7 +1561,9 @@ export class GameServer {
       }
       p.vx = p.vy = p.vz = 0;
     }
+    this.blocks.tick();
     this.tickEntities();
+    this.containers.tick();
     this.updateChunks();
     this.updateTracking();
     this.trackEntities();

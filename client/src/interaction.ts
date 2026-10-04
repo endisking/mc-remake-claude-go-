@@ -12,7 +12,8 @@ import { getProp, blockNameOf, stateOf } from '@shared/world/blockstate';
 
 const WATER = stateOf('water');
 import { FLUID } from '@shared/world/blockinfo';
-import { isInteractive } from '@shared/world/blockprops';
+import { isInteractive, usesOnBlock } from '@shared/world/blockprops';
+import { useOpenable } from '@shared/game/openable';
 import type { BlockHit } from '@shared/world/raycast';
 import type { C2S } from '@shared/protocol/packets';
 import type { ClientWorld } from './world/clientworld';
@@ -34,6 +35,8 @@ export interface InteractionHost {
   /** a block was placed by the local player (prediction) */
   onBlockPlaced(x: number, y: number, z: number, state: number): void;
   swing(hand?: 0 | 1): void;
+  /** ItemInHandRenderer.itemUsed: an item was used up (count changed) or used in creative → re-equip from the bottom */
+  itemUsed?(hand: 0 | 1): void;
   /** attack at nothing: swing and reset the attack strength (vanilla startAttack miss) */
   missSwing(): void;
   /** attacked an entity (client-side Player.attack effects + cooldown reset) */
@@ -195,6 +198,12 @@ export class Interaction {
     const holding = !!this.inventory.selectedStack || !!this.inventory.get(40);
     if (isInteractive(target.state) && !(this.host.player.shiftDown && holding)) {
       const { x, y, z, face } = target;
+      // doors, trapdoors and fence gates open immediately (vanilla client-side use()); the server confirms
+      const o = this.host.gameMode !== 3 ? useOpenable(this.host.world, x, y, z, this.host.yaw) : null;
+      if (o) for (const c of o.changes) {
+        this.host.world.setStateRaw(c.x, c.y, c.z, c.state);
+        this.host.world.markBlockDirty(c.x, c.y, c.z);
+      }
       this.host.send({ t: 'useOn', x, y, z, face, cx: target.px - x, cy: target.py - y, cz: target.pz - z, hand: 0 });
       this.host.swing(0);
       return;
@@ -206,6 +215,12 @@ export class Interaction {
       const { x, y, z, face } = target;
       const hx = target.px - x, hy = target.py - y, hz = target.pz - z;
       if (!block) {
+        // tools and bone meal act on the clicked block (the server decides whether it did anything)
+        if (stack && usesOnBlock(itemNameOf(stack.id))) {
+          this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
+          this.host.swing(hand);
+          return;
+        }
         // an empty or non-placing main hand passes to the off hand (vanilla InteractionResult.PASS)
         if (hand === 0) continue;
         this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
@@ -219,6 +234,8 @@ export class Interaction {
           stack.count--;
           if (stack.count <= 0) this.inventory.set(slot, null);
         }
+        // Minecraft.startUseItem: the count changed (survival) or infinite items (creative)
+        if (stack) this.host.itemUsed?.(hand);
       }
       return;
     }

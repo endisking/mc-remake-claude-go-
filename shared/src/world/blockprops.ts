@@ -1,7 +1,7 @@
 /** Derived block behaviour flags (vanilla BlockBehaviour.Properties predicates). */
 import { FULL_COLLISION, COLLISION_SHAPE_ID } from './blockinfo';
 import { BLOCK_STATE_COUNT } from '../data';
-import { blockNameOf } from './blockstate';
+import { blockNameOf, getProp as getPropOf } from './blockstate';
 
 /**
  * isSuffocating / isViewBlocking: full collision cubes, except glass and leaves which opt out
@@ -20,7 +20,28 @@ export const isViewBlocking = isSuffocating;
  * sneaking with an item in hand). Grows as block interactions are implemented.
  */
 export function isInteractive(state: number): boolean {
-  return blockNameOf(state).endsWith('_bed');
+  if (isOpenableByHand(state)) return true;
+  const n = blockNameOf(state);
+  if (n === 'dragon_egg' || n === 'cake' || n.endsWith('candle_cake')) return true;
+  if (n.endsWith('candle') && getPropOf(state, 'lit') === true) return true;
+  // harvestable berries
+  if (n === 'sweet_berry_bush' && (getPropOf(state, 'age') as number) > 1) return true;
+  if ((n === 'cave_vines' || n === 'cave_vines_plant') && getPropOf(state, 'berries') === true) return true;
+  return n.endsWith('_bed') || OPENABLE_CONTAINERS.has(n) || n.endsWith('shulker_box');
+}
+
+/** Container blocks whose menus are implemented (server Containers.useBlock). */
+const OPENABLE_CONTAINERS = new Set(['crafting_table', 'chest', 'trapped_chest', 'ender_chest', 'barrel', 'furnace', 'blast_furnace', 'smoker', 'dispenser', 'dropper', 'hopper', 'stonecutter', 'smithing_table', 'grindstone']);
+
+/** Doors, trapdoors and fence gates that open with a click (iron ones need redstone). */
+export function isOpenableByHand(state: number): boolean {
+  const n = blockNameOf(state);
+  return ((n.endsWith('_door') || n.endsWith('_trapdoor')) && !n.startsWith('iron_')) || n.endsWith('_fence_gate');
+}
+
+/** Items whose use acts on the clicked block (Item.useOn): tools that till/flatten/strip, bone meal. */
+export function usesOnBlock(itemName: string): boolean {
+  return itemName === 'bone_meal' || itemName === 'honeycomb' || itemName === 'flint_and_steel' || itemName === 'fire_charge' || itemName.endsWith('_hoe') || itemName.endsWith('_shovel') || itemName.endsWith('_axe');
 }
 
 const MENU_PROVIDERS = new Set([
