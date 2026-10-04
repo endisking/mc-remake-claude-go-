@@ -3062,6 +3062,750 @@
    "cutout": true
   },
   {
+   "name": "redstone_dust_dot",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "redstone_dust_line",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "powered_rail",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "powered_rail_on",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "detector_rail",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "detector_rail_on",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "activator_rail",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "activator_rail_on",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "repeater",
+   "frames": 1
+  },
+  {
+   "name": "repeater_on",
+   "frames": 1
+  },
+  {
+   "name": "comparator",
+   "frames": 1
+  },
+  {
+   "name": "comparator_on",
+   "frames": 1
+  },
+  {
+   "name": "piston_top",
+   "frames": 1
+  },
+  {
+   "name": "piston_top_sticky",
+   "frames": 1
+  },
+  {
+   "name": "piston_side",
+   "frames": 1
+  },
+  {
+   "name": "piston_bottom",
+   "frames": 1
+  },
+  {
+   "name": "piston_inner",
+   "frames": 1
+  },
+  {
+   "name": "hopper_outside",
+   "frames": 1
+  },
+  {
+   "name": "hopper_inside",
+   "frames": 1
+  },
+  {
+   "name": "hopper_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cauldron_side",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cauldron_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cauldron_inner",
+   "frames": 1
+  },
+  {
+   "name": "cauldron_bottom",
+   "frames": 1
+  },
+  {
+   "name": "observer_back",
+   "frames": 1
+  },
+  {
+   "name": "observer_back_on",
+   "frames": 1
+  },
+  {
+   "name": "daylight_detector_top",
+   "frames": 1
+  },
+  {
+   "name": "daylight_detector_inverted_top",
+   "frames": 1
+  },
+  {
+   "name": "lightning_rod",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "tripwire_hook",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "tripwire",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "enchanting_table_top",
+   "frames": 1
+  },
+  {
+   "name": "enchanting_table_side",
+   "frames": 1
+  },
+  {
+   "name": "enchanting_table_bottom",
+   "frames": 1
+  },
+  {
+   "name": "anvil",
+   "frames": 1
+  },
+  {
+   "name": "anvil_top",
+   "frames": 1
+  },
+  {
+   "name": "brewing_stand",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "brewing_stand_base",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cake_top",
+   "frames": 1
+  },
+  {
+   "name": "cake_side",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cake_bottom",
+   "frames": 1
+  },
+  {
+   "name": "cake_inner",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "campfire_log",
+   "frames": 1
+  },
+  {
+   "name": "campfire_log_lit",
+   "frames": 1
+  },
+  {
+   "name": "campfire_fire",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "soul_campfire_fire",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "barrel_side",
+   "frames": 1
+  },
+  {
+   "name": "barrel_top",
+   "frames": 1
+  },
+  {
+   "name": "barrel_top_open",
+   "frames": 1
+  },
+  {
+   "name": "barrel_bottom",
+   "frames": 1
+  },
+  {
+   "name": "smoker_front",
+   "frames": 1
+  },
+  {
+   "name": "smoker_front_on",
+   "frames": 1
+  },
+  {
+   "name": "smoker_side",
+   "frames": 1
+  },
+  {
+   "name": "smoker_top",
+   "frames": 1
+  },
+  {
+   "name": "blast_furnace_front",
+   "frames": 1
+  },
+  {
+   "name": "blast_furnace_front_on",
+   "frames": 1
+  },
+  {
+   "name": "blast_furnace_side",
+   "frames": 1
+  },
+  {
+   "name": "blast_furnace_top",
+   "frames": 1
+  },
+  {
+   "name": "cartography_table_top",
+   "frames": 1
+  },
+  {
+   "name": "cartography_table_side",
+   "frames": 1
+  },
+  {
+   "name": "cartography_table_front",
+   "frames": 1
+  },
+  {
+   "name": "cartography_table_bottom",
+   "frames": 1
+  },
+  {
+   "name": "fletching_table_top",
+   "frames": 1
+  },
+  {
+   "name": "fletching_table_side",
+   "frames": 1
+  },
+  {
+   "name": "fletching_table_front",
+   "frames": 1
+  },
+  {
+   "name": "fletching_table_bottom",
+   "frames": 1
+  },
+  {
+   "name": "smithing_table_top",
+   "frames": 1
+  },
+  {
+   "name": "smithing_table_side",
+   "frames": 1
+  },
+  {
+   "name": "smithing_table_front",
+   "frames": 1
+  },
+  {
+   "name": "smithing_table_bottom",
+   "frames": 1
+  },
+  {
+   "name": "loom_top",
+   "frames": 1
+  },
+  {
+   "name": "loom_side",
+   "frames": 1
+  },
+  {
+   "name": "loom_front",
+   "frames": 1
+  },
+  {
+   "name": "loom_bottom",
+   "frames": 1
+  },
+  {
+   "name": "composter_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "composter_side",
+   "frames": 1
+  },
+  {
+   "name": "composter_front",
+   "frames": 1
+  },
+  {
+   "name": "composter_bottom",
+   "frames": 1
+  },
+  {
+   "name": "compost",
+   "frames": 1
+  },
+  {
+   "name": "compost_ready",
+   "frames": 1
+  },
+  {
+   "name": "lectern_top",
+   "frames": 1
+  },
+  {
+   "name": "lectern_side",
+   "frames": 1
+  },
+  {
+   "name": "stonecutter_top",
+   "frames": 1
+  },
+  {
+   "name": "stonecutter_side",
+   "frames": 1
+  },
+  {
+   "name": "stonecutter_saw",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "grindstone_side",
+   "frames": 1
+  },
+  {
+   "name": "grindstone_round",
+   "frames": 1
+  },
+  {
+   "name": "grindstone_pivot",
+   "frames": 1
+  },
+  {
+   "name": "grindstone_leg",
+   "frames": 1
+  },
+  {
+   "name": "bell_body",
+   "frames": 1
+  },
+  {
+   "name": "bell_bar",
+   "frames": 1
+  },
+  {
+   "name": "oak_sign",
+   "frames": 1
+  },
+  {
+   "name": "spruce_sign",
+   "frames": 1
+  },
+  {
+   "name": "birch_sign",
+   "frames": 1
+  },
+  {
+   "name": "jungle_sign",
+   "frames": 1
+  },
+  {
+   "name": "acacia_sign",
+   "frames": 1
+  },
+  {
+   "name": "dark_oak_sign",
+   "frames": 1
+  },
+  {
+   "name": "crimson_sign",
+   "frames": 1
+  },
+  {
+   "name": "warped_sign",
+   "frames": 1
+  },
+  {
+   "name": "white_banner",
+   "frames": 1
+  },
+  {
+   "name": "orange_banner",
+   "frames": 1
+  },
+  {
+   "name": "magenta_banner",
+   "frames": 1
+  },
+  {
+   "name": "light_blue_banner",
+   "frames": 1
+  },
+  {
+   "name": "yellow_banner",
+   "frames": 1
+  },
+  {
+   "name": "lime_banner",
+   "frames": 1
+  },
+  {
+   "name": "pink_banner",
+   "frames": 1
+  },
+  {
+   "name": "gray_banner",
+   "frames": 1
+  },
+  {
+   "name": "light_gray_banner",
+   "frames": 1
+  },
+  {
+   "name": "cyan_banner",
+   "frames": 1
+  },
+  {
+   "name": "purple_banner",
+   "frames": 1
+  },
+  {
+   "name": "blue_banner",
+   "frames": 1
+  },
+  {
+   "name": "brown_banner",
+   "frames": 1
+  },
+  {
+   "name": "green_banner",
+   "frames": 1
+  },
+  {
+   "name": "red_banner",
+   "frames": 1
+  },
+  {
+   "name": "black_banner",
+   "frames": 1
+  },
+  {
+   "name": "skeleton_skull",
+   "frames": 1
+  },
+  {
+   "name": "wither_skeleton_skull",
+   "frames": 1
+  },
+  {
+   "name": "zombie_skull",
+   "frames": 1
+  },
+  {
+   "name": "creeper_skull",
+   "frames": 1
+  },
+  {
+   "name": "player_skull",
+   "frames": 1
+  },
+  {
+   "name": "dragon_skull",
+   "frames": 1
+  },
+  {
+   "name": "white_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "orange_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "magenta_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "light_blue_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "yellow_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "lime_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pink_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "gray_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "light_gray_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cyan_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "purple_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "blue_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "brown_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "green_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "red_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "black_candle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "end_portal_frame_top",
+   "frames": 1
+  },
+  {
+   "name": "end_portal_frame_side",
+   "frames": 1
+  },
+  {
+   "name": "end_portal_frame_eye",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "end_portal",
+   "frames": 1
+  },
+  {
+   "name": "respawn_anchor_top",
+   "frames": 1
+  },
+  {
+   "name": "respawn_anchor_top_off",
+   "frames": 1
+  },
+  {
+   "name": "respawn_anchor_side0",
+   "frames": 1
+  },
+  {
+   "name": "respawn_anchor_side1",
+   "frames": 1
+  },
+  {
+   "name": "respawn_anchor_side2",
+   "frames": 1
+  },
+  {
+   "name": "respawn_anchor_side3",
+   "frames": 1
+  },
+  {
+   "name": "respawn_anchor_side4",
+   "frames": 1
+  },
+  {
+   "name": "respawn_anchor_bottom",
+   "frames": 1
+  },
+  {
+   "name": "beacon",
+   "frames": 1
+  },
+  {
+   "name": "chorus_plant",
+   "frames": 1
+  },
+  {
+   "name": "chorus_flower",
+   "frames": 1
+  },
+  {
+   "name": "chorus_flower_dead",
+   "frames": 1
+  },
+  {
+   "name": "dragon_egg",
+   "frames": 1
+  },
+  {
+   "name": "turtle_egg",
+   "frames": 1
+  },
+  {
+   "name": "turtle_egg_slightly_cracked",
+   "frames": 1
+  },
+  {
+   "name": "turtle_egg_very_cracked",
+   "frames": 1
+  },
+  {
+   "name": "conduit",
+   "frames": 1
+  },
+  {
+   "name": "sculk_sensor_top",
+   "frames": 1
+  },
+  {
+   "name": "sculk_sensor_side",
+   "frames": 1
+  },
+  {
+   "name": "sculk_sensor_bottom",
+   "frames": 1
+  },
+  {
+   "name": "sculk_sensor_tendril",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "command_command_block_front",
+   "frames": 1
+  },
+  {
+   "name": "command_command_block_back",
+   "frames": 1
+  },
+  {
+   "name": "command_command_block_side",
+   "frames": 1
+  },
+  {
+   "name": "repeating_command_block_front",
+   "frames": 1
+  },
+  {
+   "name": "repeating_command_block_back",
+   "frames": 1
+  },
+  {
+   "name": "repeating_command_block_side",
+   "frames": 1
+  },
+  {
+   "name": "chain_command_block_front",
+   "frames": 1
+  },
+  {
+   "name": "chain_command_block_back",
+   "frames": 1
+  },
+  {
+   "name": "chain_command_block_side",
+   "frames": 1
+  },
+  {
+   "name": "structure_block",
+   "frames": 1
+  },
+  {
+   "name": "jigsaw",
+   "frames": 1
+  },
+  {
+   "name": "ender_chest_top",
+   "frames": 1
+  },
+  {
+   "name": "ender_chest_side",
+   "frames": 1
+  },
+  {
+   "name": "ender_chest_front",
+   "frames": 1
+  },
+  {
    "name": "destroy_stage_0",
    "frames": 1,
    "cutout": true
