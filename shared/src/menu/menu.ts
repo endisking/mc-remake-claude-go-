@@ -1143,7 +1143,7 @@ export class MerchantMenu extends Menu {
     if (!o) o = this.offers.find((x) => pick(x)) ?? null;
     if (!o || isOutOfStock(o)) return;
     this.activeOffer = o;
-    this.result.items[0] = { ...o.result };
+    this.result.items[0] = structuredClone(o.result);
   }
 
   /** MerchantResultSlot.onTake: pay for the active offer */

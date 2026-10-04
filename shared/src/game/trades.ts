@@ -3,11 +3,13 @@
  *
  * Every profession has five levels (novice, apprentice, journeyman, expert, master); a villager
  * that reaches a level picks 2 random listings of that level (the wandering trader picks 5 generic
- * + 1 rare). Item stacks carry no NBT yet, so enchanted items/books, suspicious stew, tipped arrows,
- * explorer maps and dyed leather are offered as the plain item (logged deviation).
+ * + 1 rare). Enchanted items and books carry real enchantments; suspicious stew effects, tipped
+ * arrow potions, explorer map targets and dyed leather colours are plain items (logged deviation).
  */
 import { stack, type ItemStack } from '../item/stack';
 import type { JavaRandom } from '../util/random';
+import { ENCHANTMENTS } from '../data';
+import { addStoredEnchantment, enchantStack, selectEnchantment } from './enchantments';
 
 export const PROFESSIONS = [
   'none', 'armorer', 'butcher', 'cartographer', 'cleric', 'farmer', 'fisherman', 'fletcher',
@@ -76,14 +78,22 @@ const swap = (from: string, n: number, emeralds: number, to: string, m: number, 
   offer(stack('emerald', emeralds), stack(from, n), stack(to, m), maxUses, xp, 0.05);
 /** EnchantBookForEmeralds: 1 random enchantment level → 2 + rand(5 + level·10) + 3·level emeralds (×2 for treasure) */
 const book = (xp: number): Listing => (r) => {
-  const level = 1 + r.nextInt(3);
-  const cost = Math.min(64, 2 + r.nextInt(5 + level * 10) + 3 * level);
-  return offer(stack('emerald', cost), stack('book'), stack('enchanted_book'), 12, xp, 0.2);
+  // a random tradeable enchantment at a random level (EnchantBookForEmeralds; treasure ×2)
+  const list = ENCHANTMENTS.filter((e) => e.tradeable);
+  const e = list[r.nextInt(list.length)]!;
+  const level = 1 + r.nextInt(e.maxLevel);
+  const result = stack('enchanted_book');
+  addStoredEnchantment(result, e.name, level);
+  let cost = 2 + r.nextInt(5 + level * 10) + 3 * level;
+  if (e.treasureOnly) cost *= 2;
+  return offer(stack('emerald', Math.min(64, cost)), stack('book'), result, 12, xp, 0.2);
 };
-/** EnchantedItemForEmeralds: base cost + (5–19 enchantment levels) */
+/** EnchantedItemForEmeralds: EnchantmentHelper.enchantItem at 5–19 levels, cost base + levels */
 const enchanted = (item: string, base: number, maxUses: number, xp: number, mult = 0.05): Listing => (r) => {
   const lvl = 5 + r.nextInt(15);
-  return offer(stack('emerald', Math.min(base + lvl, 64)), null, stack(item), maxUses, xp, mult);
+  const result = stack(item);
+  for (const x of selectEnchantment(r, result.id, lvl, false)) enchantStack(result, x.ench.name, x.level);
+  return offer(stack('emerald', Math.min(base + lvl, 64)), null, result, maxUses, xp, mult);
 };
 /** one of several listings (wool/dye/terracotta colour variants are separate listings in vanilla) */
 const anyOf = (...ls: Listing[]): Listing[] => ls;

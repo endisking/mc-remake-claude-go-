@@ -173,7 +173,7 @@ export abstract class AbstractVillager extends Animal {
     if (!takeOffer(o, a, b)) return null;
     o.uses = before;
     this.notifyTrade(o, p);
-    return { ...o.result };
+    return structuredClone(o.result);
   }
   /** pick up wanted items lying within reach (Mob.aiStep pickUpItem, every tick in vanilla) */
   protected pickUpItems(): void {

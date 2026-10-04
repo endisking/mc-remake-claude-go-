@@ -46,6 +46,22 @@ describe('villager trades (VillagerTrades 1.17.1)', () => {
   });
 });
 
+describe('enchanted trades', () => {
+  it('librarian books store one tradeable enchantment; enchanted tools carry enchantments', () => {
+    const r = new JavaRandom(9n);
+    for (let i = 0; i < 20; i++) {
+      const o = VILLAGER_TRADES.librarian![0]![1]!(r);
+      expect(itemName(o.result.id)).toBe('enchanted_book');
+      expect(o.result.tag?.StoredEnchantments?.length).toBe(1);
+      expect(itemName(o.costB!.id)).toBe('book');
+      expect(o.costA.count).toBeLessThanOrEqual(64);
+    }
+    const sword = VILLAGER_TRADES.weaponsmith![4]![0]!(r);
+    expect(itemName(sword.result.id)).toBe('diamond_sword');
+    expect(sword.result.tag?.Enchantments?.length).toBeGreaterThan(0);
+  });
+});
+
 describe('MerchantMenu', () => {
   it('selecting an offer moves the payment in; shift-taking the result pays and counts uses', () => {
     const inv = new Inventory();
