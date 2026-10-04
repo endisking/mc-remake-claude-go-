@@ -227,6 +227,8 @@ export function structureStart(gen: OverworldGenerator, type: string, cx: number
   const hit = cache.get(key);
   if (hit !== undefined) return hit;
   const start = createStart(gen, type, def, cx, cz);
+  // empty results are cheap to recompute: forget them when the cache grows large
+  if (!start && cache.size > 400000) for (const [k, v] of cache) if (!v) cache.delete(k);
   cache.set(key, start);
   return start;
 }
