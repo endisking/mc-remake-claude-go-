@@ -204,6 +204,11 @@ export class ChunkRenderer {
     s.sortIbo = null;
   }
 
+  /** LevelRenderer.allChanged: rebuild every section (F3+A). */
+  allChanged(): void {
+    for (const s of this.sections.values()) s.dirty = true;
+  }
+
   setMesherOptions(opts: MesherOptions, manifest: TextureManifest): void {
     this.meshOpts = opts;
     for (const w of this.workers) {

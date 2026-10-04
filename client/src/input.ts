@@ -7,6 +7,13 @@ export class Input {
   mouseDY = 0;
   wheel = 0;
   locked = false;
+  /** keys that have an F3 combo, and combos pressed since the last frame */
+  debugKeys = new Set<string>();
+  readonly debugQueue: string[] = [];
+  /** a debug combo was used during the current F3 hold (F3 release then does not toggle the screen) */
+  f3Combo = false;
+  /** whether F3 was held when the pointer lock was last lost */
+  unlockedWithF3 = false;
   readonly mouseButtons = new Set<number>();
   private mousePressed = new Set<number>();
   onLockChange: ((locked: boolean) => void) | null = null;
@@ -38,6 +45,8 @@ export class Input {
     }, { passive: true });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
+      // F3 held when the pointer is released by Escape: pause without the menu (F3+Esc)
+      this.unlockedWithF3 = !this.locked && this.down.has('F3');
       if (!this.locked) {
         this.down.clear();
         this.mouseButtons.clear();
@@ -53,6 +62,14 @@ export class Input {
 
   /** Key or mouse button ("Mouse0".."Mouse4") pressed (also used by tests). */
   press(code: string): void {
+    // KeyboardHandler.keyPress: with F3 held, a debug key goes to the debug handler (queued at
+    // press time so fast taps between frames are not lost) instead of its key mapping
+    if (code === 'F3' && !this.down.has('F3')) this.f3Combo = false;
+    else if (this.down.has('F3') && this.debugKeys.has(code)) {
+      if (!this.down.has(code)) this.debugQueue.push(code);
+      this.f3Combo = true;
+      return;
+    }
     if (!this.down.has(code)) this.pressed.add(code);
     this.down.add(code);
     if (code.startsWith('Mouse')) {

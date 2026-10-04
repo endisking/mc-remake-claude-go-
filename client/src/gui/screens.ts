@@ -14,10 +14,15 @@ export interface ScreenHost {
 }
 
 export class PauseScreen extends Screen {
-  constructor(private host: ScreenHost) {
-    super(host.gui, 'Game Menu');
+  /** showMenu false: F3+Esc, just "Game Paused" with no buttons and no dimming */
+  constructor(private host: ScreenHost, private showMenu = true) {
+    super(host.gui, showMenu ? 'Game Menu' : 'Game Paused');
   }
   init(): void {
+    if (!this.showMenu) {
+      this.widgets = [];
+      return;
+    }
     const cx = Math.floor(this.gui.width / 2), y = Math.floor(this.gui.height / 4) + 8;
     this.widgets = [
       new Button(cx - 102, y + 24 - 16, 204, 20, 'Back to Game', () => this.host.setScreen(null)),
@@ -33,6 +38,10 @@ export class PauseScreen extends Screen {
     for (const i of [1, 2, 3, 4, 6]) this.widgets[i]!.active = false;
   }
   override render(mx: number, my: number): void {
+    if (!this.showMenu) {
+      this.gui.centeredText(this.title, this.gui.width / 2, 10);
+      return;
+    }
     super.render(mx, my);
     this.gui.centeredText(this.title, this.gui.width / 2, 40);
   }

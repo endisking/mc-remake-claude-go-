@@ -91,13 +91,14 @@ export class LineRenderer {
     L(x0, y0, z0, x0, y0, z1); L(x1, y0, z0, x1, y0, z1); L(x0, y1, z0, x0, y1, z1); L(x1, y1, z0, x1, y1, z1);
   }
 
-  flush(viewProj: Mat4, width: number, height: number, depthTest = true): void {
+  /** `lineWidth` (px) overrides the block-outline width (vanilla max(2.5, width / 1920 × 2.5)). */
+  flush(viewProj: Mat4, width: number, height: number, depthTest = true, lineWidth = 0): void {
     if (!this.n) return;
     const gl = this.gl;
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(this.u.get('uViewProj'), false, viewProj);
     gl.uniform2f(this.u.get('uScreen'), width, height);
-    gl.uniform1f(this.u.get('uWidth'), Math.max(2.5, (width / 1920) * 2.5));
+    gl.uniform1f(this.u.get('uWidth'), lineWidth || Math.max(2.5, (width / 1920) * 2.5));
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ZERO);
     gl.disable(gl.CULL_FACE);

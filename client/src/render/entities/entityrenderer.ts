@@ -37,6 +37,7 @@ uniform vec2 uLight;
 uniform vec4 uOverlay;
 uniform vec4 uFogColor;
 uniform vec2 uFog;
+uniform float uAlpha;
 in vec2 vUV;
 in float vShade;
 in float vDist;
@@ -47,7 +48,7 @@ void main() {
   c.rgb = mix(c.rgb, uOverlay.rgb, uOverlay.a);
   c.rgb *= vShade * texture(uLightmap, uLight).rgb;
   float f = clamp((vDist - uFog.x) / max(uFog.y - uFog.x, 0.001), 0.0, 1.0);
-  outColor = vec4(mix(c.rgb, uFogColor.rgb, f), 1.0);
+  outColor = vec4(mix(c.rgb, uFogColor.rgb, f), uAlpha);
 }`;
 
 interface GpuModel {
@@ -150,6 +151,7 @@ export class EntityRenderer {
     gl.uniform4f(this.u.get('uFogColor'), fog[0], fog[1], fog[2], 1);
     gl.uniform2f(this.u.get('uFog'), fogStart, fogEnd);
     gl.uniform4f(this.u.get('uOverlay'), 1, 0, 0, 0);
+    gl.uniform1f(this.u.get('uAlpha'), 1);
     gl.uniform3f(this.u.get('uL0'), LIGHT0[0], LIGHT0[1], LIGHT0[2]);
     gl.uniform3f(this.u.get('uL1'), LIGHT1[0], LIGHT1[1], LIGHT1[2]);
     gl.activeTexture(gl.TEXTURE1);
@@ -210,15 +212,30 @@ export class EntityRenderer {
       gl.bindTexture(gl.TEXTURE_2D, this.skins.get(this.skinFor(p.name, p.skin)) ?? null);
       // OverlayTexture: hurt entities are tinted 30% red
       gl.uniform4f(this.u.get('uOverlay'), 1, 0, 0, p.hurtTime > 0 ? 0.3 : 0);
+      // PlayerRenderer.setModelProperties: a spectator is only its head (and hat), drawn at
+      // 15% opacity because it is invisible to everyone but other spectators
+      const spectator = (p.flags & 32) !== 0;
+      if (spectator) {
+        gl.uniform1f(this.u.get('uAlpha'), 0.15);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.disable(gl.CULL_FACE);
+      }
       model.baked.parts.forEach((part, i) => {
         const pose = poses![part.def.name]!;
-        if (!pose.visible) return;
+        if (!pose.visible || (spectator && part.def.name !== 'head')) return;
         const pm = (this.partMats[i] ??= mat4());
         partMatrix(pm, pose);
         multiply(this.tmp, m, pm);
         gl.uniformMatrix4fv(this.u.get('uModel'), false, this.tmp);
         gl.drawArrays(gl.TRIANGLES, part.first, part.count);
       });
+      if (spectator) {
+        gl.uniform1f(this.u.get('uAlpha'), 1);
+        gl.disable(gl.BLEND);
+        gl.enable(gl.CULL_FACE);
+        continue;
+      }
       // ItemInHandLayer: items held in each hand
       for (const [item, armName, left] of [[p.mainHand, 'rightArm', false], [p.offHand, 'leftArm', true]] as const) {
         if (!item) continue;
@@ -251,6 +268,7 @@ export class EntityRenderer {
     gl.uniform4f(this.u.get('uFogColor'), 0, 0, 0, 1);
     gl.uniform2f(this.u.get('uFog'), 1e6, 1e6 + 1);
     gl.uniform4f(this.u.get('uOverlay'), 1, 0, 0, 0);
+    gl.uniform1f(this.u.get('uAlpha'), 1);
     gl.uniform3f(this.u.get('uL0'), l0[0], l0[1], l0[2]);
     gl.uniform3f(this.u.get('uL1'), l1[0], l1[1], l1[2]);
     gl.uniform2f(this.u.get('uLight'), ((light & 15) + 0.5) / 16, ((light >> 4) + 0.5) / 16);

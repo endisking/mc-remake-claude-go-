@@ -237,3 +237,92 @@ export function icons(): Tex {
     }
   return t;
 }
+
+// 16×16 spectator menu icons (original art): o outline, s skin, d skin shade, h hair, w white, e eye
+const SPEC_PLAYER = [
+  '................',
+  '....oooooooo....',
+  '...ohhhhhhhho...',
+  '...ohhhhhhhho...',
+  '...ohsssssshho..',
+  '...osssssssso...',
+  '...oseesseeso...',
+  '...ossssssssd...',
+  '...osssddsssd...',
+  '...odssssssdo...',
+  '....oddddddo....',
+  '..oooocccoooo...',
+  '.occcccccccccco.',
+  '.occccccccccccco',
+  '.occcccccccccco.',
+  '................',
+];
+const SPEC_TEAM = [
+  '................',
+  '..oooo....oooo..',
+  '.ohhhho..ohhhho.',
+  '.osssso..osssso.',
+  '.oseeso..oseeso.',
+  '.ossssd..ossssd.',
+  '.oddddo..oddddo.',
+  'occccco.occccco.',
+  'occcccc.occcccco',
+  'occcccc.occcccco',
+  '................',
+  '......oooo......',
+  '.....ohhhho.....',
+  '.....oseeso.....',
+  '....occcccco....',
+  '................',
+];
+const SPEC_CLOSE = [
+  '................',
+  '................',
+  '..oo........oo..',
+  '.orro......orro.',
+  '.orrro....orrro.',
+  '..orrro..orrro..',
+  '...orrroorrro...',
+  '....orrrrrro....',
+  '....orrrrrro....',
+  '...orrroorrro...',
+  '..orrro..orrro..',
+  '.orrro....orrro.',
+  '.orro......orro.',
+  '..oo........oo..',
+  '................',
+  '................',
+];
+const SPEC_ARROW = [
+  '................',
+  '................',
+  '......oo........',
+  '.....owwo.......',
+  '....owwwo.......',
+  '...owwwo........',
+  '..owwwoooooooo..',
+  '.owwwwwwwwwwwwo.',
+  '.owwwwwwwwwwwwo.',
+  '..owwwoooooooo..',
+  '...owwwo........',
+  '....owwwo.......',
+  '.....owwo.......',
+  '......oo........',
+  '................',
+  '................',
+];
+
+/** Spectator menu icon sheet (vanilla spectator_widgets.png layout: player, team, close, arrows). */
+export function spectatorWidgets(): Tex {
+  const t = new Tex(256, 256);
+  const pal: Record<string, RGBA> = {
+    o: hex('#1a1a1a'), s: hex('#c9966f'), d: hex('#a87652'), h: hex('#4a3020'), e: hex('#f4f4f4'),
+    c: hex('#2f8fb0'), w: hex('#ececec'), r: hex('#d23a2e'),
+  };
+  sprite(t, 0, 0, SPEC_PLAYER, pal);
+  sprite(t, 16, 0, SPEC_TEAM, pal);
+  sprite(t, 128, 0, SPEC_CLOSE, pal);
+  sprite(t, 144, 0, SPEC_ARROW, pal);
+  sprite(t, 160, 0, SPEC_ARROW.map((r) => [...r].reverse().join('')), pal);
+  return t;
+}

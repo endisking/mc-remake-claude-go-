@@ -20,6 +20,8 @@ export class ServerPlayer {
   skin = '';
   /** 0 survival, 1 creative, 2 adventure, 3 spectator */
   gameMode = 0;
+  /** entity this spectator looks through (vanilla ServerPlayer.camera), null = itself */
+  camera: ServerPlayer | null = null;
   flying = false;
   sneaking = false;
   sprinting = false;
@@ -84,9 +86,18 @@ export class ServerPlayer {
     return this.gameMode === 1 || this.gameMode === 3;
   }
 
+  /**
+   * ServerPlayer.broadcastToPlayer: spectators see everyone not looking through someone else's
+   * eyes; everybody else never sees spectators.
+   */
+  broadcastTo(viewer: ServerPlayer): boolean {
+    if (viewer.gameMode === 3) return this.camera === null;
+    return this.gameMode !== 3;
+  }
+
   /** Shared entity flags byte (vanilla DATA_SHARED_FLAGS_ID bits). */
   flags(): number {
-    return (this.onFire ? 1 : 0) | (this.pose === 'crouching' ? 2 : 0) | (this.sprinting ? 8 : 0) | (this.pose === 'swimming' ? 16 : 0);
+    return (this.onFire ? 1 : 0) | (this.pose === 'crouching' ? 2 : 0) | (this.sprinting ? 8 : 0) | (this.pose === 'swimming' ? 16 : 0) | (this.gameMode === 3 ? 32 : 0);
   }
 
   /** Recompute the pose from the latest state, as vanilla does server-side. */

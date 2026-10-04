@@ -65,6 +65,11 @@ export class Hud {
   // chat (vanilla ChatComponent, closed): newest at the bottom, fading after 10 s
   private chatLines: { text: string; tick: number }[] = [];
 
+  /** F3+D (ChatComponent.clearMessages). */
+  clearChat(): void {
+    this.chatLines.length = 0;
+  }
+
   addChat(text: string): void {
     for (const line of text.split('\n')) this.chatLines.unshift({ text: line, tick: this.tickCount });
     if (this.chatLines.length > 100) this.chatLines.length = 100;
@@ -112,21 +117,23 @@ export class Hud {
 
   render(g: Gui, p: HudPlayer, item: (id: number, count: number, x: number, y: number) => void): void {
     this.renderChat(g);
-    if (p.gameMode === 3) return; // spectators get the spectator menu instead (not yet)
     const mid = Math.floor(g.width / 2);
-    // hotbar
+    const spectator = p.gameMode === 3;
+    // hotbar (spectators get the spectator menu instead, drawn by SpectatorGui)
     const inv = p.inventory;
-    g.blit(g.widgets, 0, 80, 182, 22, mid - 91, g.height - 22);
-    g.blit(g.widgets, 0, 104, 24, 22, mid - 91 - 1 + inv.selected * 20, g.height - 22 - 1);
-    // off hand slot (left of the hotbar for a right-handed player)
-    const off = inv.get(40);
-    if (off) {
-      g.blit(g.widgets, 24, 104, 29, 24, mid - 91 - 29, g.height - 23);
-      item(off.id, off.count, mid - 91 - 26, g.height - 16 - 3);
-    }
-    for (let i = 0; i < 9; i++) {
-      const st = inv.get(i);
-      if (st) item(st.id, st.count, mid - 90 + i * 20 + 2, g.height - 16 - 3);
+    if (!spectator) {
+      g.blit(g.widgets, 0, 80, 182, 22, mid - 91, g.height - 22);
+      g.blit(g.widgets, 0, 104, 24, 22, mid - 91 - 1 + inv.selected * 20, g.height - 22 - 1);
+      // off hand slot (left of the hotbar for a right-handed player)
+      const off = inv.get(40);
+      if (off) {
+        g.blit(g.widgets, 24, 104, 29, 24, mid - 91 - 29, g.height - 23);
+        item(off.id, off.count, mid - 91 - 26, g.height - 16 - 3);
+      }
+      for (let i = 0; i < 9; i++) {
+        const st = inv.get(i);
+        if (st) item(st.id, st.count, mid - 90 + i * 20 + 2, g.height - 16 - 3);
+      }
     }
     const survival = p.gameMode === 0 || p.gameMode === 2;
     if (survival) {
@@ -144,7 +151,7 @@ export class Hud {
       }
     }
     // selected item name
-    if (this.highlightTimer > 0 && this.highlightName) {
+    if (!spectator && this.highlightTimer > 0 && this.highlightName) {
       const k = g.height - 59 + (survival ? 0 : 14);
       const alpha = Math.min(255, Math.floor((this.highlightTimer * 256) / 10));
       if (alpha > 0) {

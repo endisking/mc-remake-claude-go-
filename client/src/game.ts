@@ -22,17 +22,19 @@ import { CrackRenderer } from './render/overlay';
 import { bakeBlockModels } from './render/blockmodels';
 import { raycastBlocks, type BlockHit } from '@shared/world/raycast';
 import { outlineBoxes } from '@shared/world/shapes';
-import { blockNameOf, propsOf, getProp } from '@shared/world/blockstate';
-import { PlayerPhysics, type MoveInput } from '@shared/entity/playerphysics';
+import { blockNameOf, propsOf, getProp, stateToString } from '@shared/world/blockstate';
+import { PlayerPhysics, POSE_EYE, type MoveInput, type Pose } from '@shared/entity/playerphysics';
 import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes, type Mat4 } from './render/math';
 import type { TextureManifest } from './render/blockmodels';
 import { Gui } from './gui/gui';
-import { RemotePlayer } from './world/entities';
+import { RemotePlayer, wrapDegrees } from './world/entities';
 import { Interaction } from './interaction';
 import { ParticleEngine } from './render/particles';
 import { BlockItemRenderer } from './render/blockitem';
 import { HandRenderer, attackSpeedOf } from './render/hand';
 import { Hud, type HudPlayer } from './gui/hud';
+import { SpectatorGui, type PlayerInfoEntry } from './gui/spectator';
+import { keyName } from './keybinds';
 import { DeathScreen } from './gui/deathscreen';
 import { InBedScreen } from './gui/inbed';
 import { ClientBolt, LightningRenderer } from './render/lightning';
@@ -51,7 +53,7 @@ import { BLOCKS_BY_NAME, ITEMS_BY_ID } from '@shared/data';
 import { itemName } from '@shared/item/stack';
 import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
-import { isViewBlocking } from '@shared/world/blockprops';
+import { isViewBlocking, hasMenuProvider } from '@shared/world/blockprops';
 import { JavaRandom } from '@shared/util/random';
 import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
@@ -77,6 +79,26 @@ export class Game implements ScreenHost {
   private sentState = { sneaking: false, sprinting: false, flying: false };
   interaction!: Interaction;
   private readonly hud = new Hud();
+  /** online players (vanilla PlayerInfo list) */
+  readonly playerInfo = new Map<number, PlayerInfoEntry>();
+  /** entity the camera looks through while spectating (null = ourselves) */
+  cameraEntity: number | null = null;
+  /** game mode before the last change (F3+N returns to it) */
+  previousGameMode = -1;
+  private readonly skinImages = new Map<string, ImageBitmap | null>();
+  private readonly spectatorGui = new SpectatorGui({
+    playerInfo: this.playerInfo,
+    skinImage: (name, skin) => {
+      const file = this.entityRenderer.skinFor(name, skin);
+      if (!this.skinImages.has(file)) {
+        this.skinImages.set(file, null);
+        void fetch(`./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
+      }
+      return this.skinImages.get(file) ?? null;
+    },
+    teleportTo: (id) => this.send({ t: 'spectate', target: id }),
+    hotbarKeyName: (i) => keyName(this.binds.key(`hotbar.${i + 1}`)),
+  });
   // local player survival state (LocalPlayer)
   health = 20;
   food = 20;
@@ -170,6 +192,10 @@ export class Game implements ScreenHost {
   /** world difficulty (0 peaceful .. 3 hard) */
   difficulty = 2;
   private f3Used = false;
+  /** F3+G chunk boundaries */
+  showChunkBorders = false;
+  /** last text copied by F3+C / F3+I (tests read it; the clipboard may be unavailable) */
+  lastClipboard = '';
   private scrollAcc = 0;
   binds!: KeyBindings;
   showHitboxes = false;
@@ -206,6 +232,7 @@ export class Game implements ScreenHost {
     this.player = new PlayerPhysics(this.world);
     this.player.loadedAt = (x, z) => this.world.isLoaded(x, z);
     this.input = new Input(canvas);
+    this.input.debugKeys = new Set(DEBUG_KEYS);
     const q = new URLSearchParams(location.search);
     this.settings = applyQueryOverrides(loadSettings(), q);
     this.binds = new KeyBindings(this.input, () => this.settings);
@@ -239,9 +266,17 @@ export class Game implements ScreenHost {
       }
     });
     this.input.onLockChange = (locked) => {
-      // losing the pointer (Escape, alt-tab) opens the pause menu like vanilla
-      if (!locked && !this.screen && this.loggedIn) this.setScreen(new PauseScreen(this));
+      // losing the pointer (Escape, alt-tab) opens the pause menu like vanilla; F3+Esc pauses without it
+      if (!locked && !this.screen && this.loggedIn) {
+        const f3 = this.input.unlockedWithF3;
+        if (f3) this.f3Used = true;
+        this.setScreen(new PauseScreen(this, !f3));
+      }
     };
+    // Minecraft.setWindowActive(false) with pauseOnLostFocus: the pause menu
+    window.addEventListener('blur', () => {
+      if (this.settings.pauseOnLostFocus && !this.screen && this.loggedIn && !this.dead) this.setScreen(new PauseScreen(this));
+    });
     // clicking the world while no screen is open grabs the mouse again
     canvas.addEventListener('mousedown', () => {
       if (!this.screen && !this.input.locked) this.input.lock();
@@ -301,7 +336,7 @@ export class Game implements ScreenHost {
 
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
-    await Promise.all([this.gui.load(), this.hud.load(), this.sound.load()]);
+    await Promise.all([this.gui.load(), this.hud.load(), this.sound.load(), this.spectatorGui.load()]);
     void fetch('./textures/environment/powder_snow_outline.png').then((r) => r.blob()).then((b) => createImageBitmap(b)).then((bmp) => (this.frostOverlay = bmp));
     for (const [c, v] of Object.entries(this.settings.volumes)) this.sound.volumes[c as SoundCategory] = v;
     // audio may only start after a user gesture
@@ -538,6 +573,16 @@ export class Game implements ScreenHost {
       case 'gameMode':
         this.setGameMode(p.mode);
         break;
+      case 'playerInfo':
+        if (p.action === 0) this.playerInfo.set(p.id, { id: p.id, name: p.name, skin: p.skin, gameMode: p.gameMode });
+        else if (p.action === 1) {
+          const e = this.playerInfo.get(p.id);
+          if (e) e.gameMode = p.gameMode;
+        } else if (p.action === 4) this.playerInfo.delete(p.id);
+        break;
+      case 'setCamera':
+        this.cameraEntity = p.id === this.entityId ? null : p.id;
+        break;
       case 'entityMotion':
         // LocalPlayer.lerpMotion (knockback)
         if (p.id === this.entityId) {
@@ -698,7 +743,12 @@ export class Game implements ScreenHost {
   /** 0 survival, 1 creative, 2 adventure, 3 spectator. */
   gameMode = 0;
   setGameMode(m: number): void {
+    if (m !== this.gameMode) this.previousGameMode = this.gameMode;
     this.gameMode = m;
+    if (m !== 3) {
+      this.spectatorGui.reset();
+      this.cameraEntity = null;
+    }
     const a = this.player.abilities;
     a.mayFly = m === 1 || m === 3;
     a.noPhysics = m === 3;
@@ -763,7 +813,10 @@ export class Game implements ScreenHost {
     pl.autoJumpEnabled = this.settings.autoJump;
     const bx = pl.x, by = pl.y, bz = pl.z;
     if (this.sleeping) pl.pose = 'sleeping';
-    else if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
+    else if (this.cameraEntity !== null) {
+      // looking through another entity: no movement, but sneaking still reaches the server
+      pl.shiftDown = move.sneak;
+    } else if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
       pl.tick(move);
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
     }
@@ -808,6 +861,7 @@ export class Game implements ScreenHost {
       const sm = this.selfModel, pl2 = this.player;
       sm.follow(pl2.x, pl2.y, pl2.z, this.yaw, this.pitch);
       sm.pose = pl2.pose;
+      sm.flags = this.gameMode === 3 ? 32 : 0;
       sm.hurtTime = this.hurtTime;
       sm.mainHand = this.interaction.inventory.selectedStack?.id ?? 0;
       sm.offHand = this.interaction.inventory.get(40)?.id ?? 0;
@@ -824,8 +878,16 @@ export class Game implements ScreenHost {
       if (attackPressed) ia.startAttack(this.target, this.targetEntity);
       ia.continueAttack(b.down('attack') && !attackPressed, this.target);
       ia.use(b.consume('use'), b.down('use'), this.target);
-      if (b.consume('pickItem')) ia.pickBlock(this.target);
-      for (let d = 1; d <= 9; d++) if (b.consume(`hotbar.${d}`)) ia.select(d - 1);
+      if (this.gameMode === 3) {
+        // MouseHandler: the middle button opens/uses the spectator menu; hotbar keys pick its slots
+        const middle = i.consumePress('Mouse1');
+        b.consume('pickItem');
+        if (middle) this.spectatorGui.onMouseMiddleClick();
+        for (let d = 1; d <= 9; d++) if (b.consume(`hotbar.${d}`)) this.spectatorGui.onHotbarSelected(d - 1);
+      } else {
+        if (b.consume('pickItem')) ia.pickBlock(this.target);
+        for (let d = 1; d <= 9; d++) if (b.consume(`hotbar.${d}`)) ia.select(d - 1);
+      }
       // vanilla: Ctrl (Screen.hasControlDown) + drop throws the whole stack
       if (b.consume('swapOffhand')) ia.swapOffhand();
       if (b.consume('drop')) ia.drop(i.isDown('ControlLeft') || i.isDown('ControlRight') || i.isDown('MetaLeft'));
@@ -838,7 +900,8 @@ export class Game implements ScreenHost {
         st.flying = pl.abilities.flying;
         this.send({ t: 'playerState', ...st });
       }
-      this.send({ t: 'move', x: pl.x, y: pl.y, z: pl.z, yaw: this.yaw, pitch: this.pitch, onGround: pl.onGround });
+      // LocalPlayer.sendPosition: only while we are the camera
+      if (this.cameraEntity === null) this.send({ t: 'move', x: pl.x, y: pl.y, z: pl.z, yaw: this.yaw, pitch: this.pitch, onGround: pl.onGround });
     }
   }
 
@@ -888,19 +951,19 @@ export class Game implements ScreenHost {
       const whole = Math.trunc(this.scrollAcc);
       if (whole !== 0) {
         this.scrollAcc -= whole;
-        this.interaction.scroll(Math.sign(whole));
+        if (this.gameMode !== 3) this.interaction.scroll(Math.sign(whole));
+        else if (this.spectatorGui.menuActive) this.spectatorGui.onMouseScrolled(Math.sign(whole));
+        else {
+          // spectators scroll to change their flying speed (0–0.2)
+          const a = this.player.abilities;
+          a.flySpeed = Math.max(0, Math.min(0.2, a.flySpeed - Math.sign(whole) * 0.005));
+        }
       }
     }
-    // F3 combos (F3+B hitboxes) suppress the debug toggle on release, like vanilla
-    if (i.down.has('F3')) {
-      if (i.consumePress('KeyB')) {
-        this.showHitboxes = !this.showHitboxes;
-        this.f3Used = true;
-        this.debugFeedback(`Hitboxes: ${this.showHitboxes ? 'shown' : 'hidden'}`);
-      }
-    }
+    // F3 combos suppress the debug toggle on release, like vanilla
+    for (const k of i.debugQueue.splice(0)) if (this.handleDebugKey(k)) this.f3Used = true;
     if (i.consumeRelease('F3')) {
-      if (!this.f3Used) this.showDebug = !this.showDebug;
+      if (!this.f3Used && !i.f3Combo) this.showDebug = !this.showDebug;
       this.f3Used = false;
     }
     i.consumePress('F3');
@@ -1261,7 +1324,8 @@ export class Game implements ScreenHost {
     let hit: number | null = null;
     let hitDist2 = Infinity;
     for (const p of this.players.values()) {
-      if (p.pose === 'dying') continue;
+      // spectators can't be picked (EntitySelector.NO_SPECTATORS)
+      if (p.pose === 'dying' || (p.flags & 32) !== 0) continue;
       const x = p.xo + (p.x - p.xo) * partial, y = p.yo + (p.y - p.yo) * partial, z = p.zo + (p.z - p.zo) * partial;
       const h = p.crouching ? 1.5 : 1.8;
       const t = rayAabb(ex, ey, ez, dx, dy, dz, x - 0.3, y, z - 0.3, x + 0.3, y + h, z + 0.3);
@@ -1282,6 +1346,107 @@ export class Game implements ScreenHost {
       best = hitDist2;
       this.targetEntity = hit;
       this.target = null;
+    }
+  }
+
+  /**
+   * GameRenderer.shouldRenderBlockOutline: players who may not build (adventure, spectator) see
+   * the outline only on blocks they could still act on — containers for spectators, blocks
+   * their item's CanDestroy/CanPlaceOn tags allow in adventure (no item tags exist yet).
+   */
+  private shouldRenderBlockOutline(): boolean {
+    if (this.gameMode === 0 || this.gameMode === 1) return true;
+    if (this.gameMode === 3) return !!this.target && hasMenuProvider(this.target.state);
+    return false;
+  }
+
+  /** Gui.canRenderCrosshairForSpectator: only over a container block (or a container entity). */
+  private spectatorCrosshair(): boolean {
+    return !!this.target && hasMenuProvider(this.target.state);
+  }
+
+  /** KeyboardHandler.handleDebugKeys (F3 + key); false if the key does nothing. */
+  private handleDebugKey(k: string): boolean {
+    const s = this.settings;
+    const shift = this.input.isDown('ShiftLeft') || this.input.isDown('ShiftRight');
+    switch (k) {
+      case 'KeyA':
+        this.chunks.allChanged();
+        this.debugFeedback('Reloading all chunks');
+        return true;
+      case 'KeyB':
+        this.showHitboxes = !this.showHitboxes;
+        this.debugFeedback(`Hitboxes: ${this.showHitboxes ? 'shown' : 'hidden'}`);
+        return true;
+      case 'KeyC': {
+        const p = this.player;
+        this.debugFeedback('Copied location to clipboard');
+        this.setClipboard(`/execute in minecraft:overworld run tp @s ${p.x.toFixed(2)} ${p.y.toFixed(2)} ${p.z.toFixed(2)} ${this.yaw.toFixed(2)} ${this.pitch.toFixed(2)}`);
+        return true;
+      }
+      case 'KeyD':
+        this.hud.clearChat();
+        return true;
+      case 'KeyF':
+        s.renderDistance = Math.max(2, Math.min(32, s.renderDistance + (shift ? -1 : 1)));
+        this.applySettings(false);
+        saveSettings(s);
+        this.debugFeedback(`Render Distance: ${s.renderDistance}`);
+        return true;
+      case 'KeyG':
+        this.showChunkBorders = !this.showChunkBorders;
+        this.debugFeedback(`Chunk borders: ${this.showChunkBorders ? 'shown' : 'hidden'}`);
+        return true;
+      case 'KeyH':
+        s.advancedItemTooltips = !s.advancedItemTooltips;
+        this.debugFeedback(`Advanced tooltips: ${s.advancedItemTooltips ? 'shown' : 'hidden'}`);
+        saveSettings(s);
+        return true;
+      case 'KeyI':
+        this.copyRecreateCommand(!shift);
+        return true;
+      case 'KeyN':
+        // operators toggle between spectator and the previous game mode (creative if none)
+        if (this.gameMode !== 3) this.send({ t: 'chat', message: '/gamemode spectator' });
+        else this.send({ t: 'chat', message: `/gamemode ${GAME_MODE_NAMES[this.previousGameMode >= 0 && this.previousGameMode !== 3 ? this.previousGameMode : 1]}` });
+        return true;
+      case 'KeyP':
+        s.pauseOnLostFocus = !s.pauseOnLostFocus;
+        saveSettings(s);
+        this.debugFeedback(`Pause on lost focus: ${s.pauseOnLostFocus ? 'enabled' : 'disabled'}`);
+        return true;
+      case 'KeyQ':
+        this.debugFeedback('Key bindings:');
+        for (const line of DEBUG_HELP) this.hud.addChat(line);
+        return true;
+      case 'KeyT':
+        this.debugFeedback('Reloaded resource packs');
+        this.chunks.allChanged();
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  private setClipboard(text: string): void {
+    void navigator.clipboard?.writeText(text).catch(() => {});
+    this.lastClipboard = text;
+  }
+
+  /** F3+I: the block or entity under the crosshair as a /setblock or /summon command. */
+  private copyRecreateCommand(queryServer: boolean): void {
+    // block entity and entity NBT come from the server when asked (none exist yet, so the
+    // server's answer is the same as the client's)
+    const side = queryServer ? 'server' : 'client';
+    if (this.targetEntity !== null) {
+      const e = this.players.get(this.targetEntity);
+      if (!e) return;
+      this.setClipboard(`/summon minecraft:player ${e.x.toFixed(2)} ${e.y.toFixed(2)} ${e.z.toFixed(2)}`);
+      this.debugFeedback(`Copied ${side}-side entity data to clipboard`);
+    } else if (this.target) {
+      const t = this.target;
+      this.setClipboard(`/setblock ${t.x} ${t.y} ${t.z} minecraft:${stateToString(t.state)}`);
+      this.debugFeedback(`Copied ${side}-side block data to clipboard`);
     }
   }
 
@@ -1333,6 +1498,37 @@ export class Game implements ScreenHost {
       box(x, y, z, 0.25, 0.25, 1, 1, 1);
     }
     L.flush(this.viewProj, this.canvas.width, this.canvas.height);
+  }
+
+  /**
+   * F3+G (DebugRenderer.ChunkBorderRenderer): red corner posts of the neighbouring chunks,
+   * yellow lines every 2 blocks on the current chunk's sides, blue corners and section rings.
+   */
+  private renderChunkBorders(cx: number, cy: number, cz: number, entityX: number, entityZ: number): void {
+    const L = this.lines;
+    const y0 = 0 - cy, y1 = 256 - cy;
+    const x0 = (Math.floor(entityX) >> 4) * 16 - cx, z0 = (Math.floor(entityZ) >> 4) * 16 - cz;
+    const post = (x: number, z: number, r: number, g: number, b: number, a: number) => L.line(x, y0, z, x, y1, z, r, g, b, a);
+    const ring = (y: number, r: number, g: number, b: number) => {
+      L.line(x0, y, z0, x0, y, z0 + 16, r, g, b, 1);
+      L.line(x0, y, z0 + 16, x0 + 16, y, z0 + 16, r, g, b, 1);
+      L.line(x0 + 16, y, z0 + 16, x0 + 16, y, z0, r, g, b, 1);
+      L.line(x0 + 16, y, z0, x0, y, z0, r, g, b, 1);
+    };
+    L.begin();
+    for (let i = -16; i <= 32; i += 16) for (let j = -16; j <= 32; j += 16) post(x0 + i, z0 + j, 1, 0, 0, 0.5);
+    for (let k = 2; k < 16; k += 2) {
+      post(x0 + k, z0, 1, 1, 0, 1);
+      post(x0 + k, z0 + 16, 1, 1, 0, 1);
+      post(x0, z0 + k, 1, 1, 0, 1);
+      post(x0 + 16, z0 + k, 1, 1, 0, 1);
+    }
+    for (let y = 0; y <= 256; y += 2) ring(y - cy, 1, 1, 0);
+    L.flush(this.viewProj, this.canvas.width, this.canvas.height, true, 1);
+    L.begin();
+    for (let i = 0; i <= 16; i += 16) for (let j = 0; j <= 16; j += 16) post(x0 + i, z0 + j, 0.25, 0.25, 1, 1);
+    for (let y = 0; y <= 256; y += 16) ring(y - cy, 0.25, 0.25, 1);
+    L.flush(this.viewProj, this.canvas.width, this.canvas.height, true, 2);
   }
 
   private readonly handBob = mat4();
@@ -1496,10 +1692,20 @@ export class Game implements ScreenHost {
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     const s = this.settings;
     // eye position (raycasts) and camera position/rotation (detached in third person, vanilla Camera.setup)
-    const ex = this.prevX + (this.x - this.prevX) * partial;
-    const ey = this.prevY + (this.y - this.prevY) * partial;
-    const ez = this.prevZ + (this.z - this.prevZ) * partial;
+    let ex = this.prevX + (this.x - this.prevX) * partial;
+    let ey = this.prevY + (this.y - this.prevY) * partial;
+    let ez = this.prevZ + (this.z - this.prevZ) * partial;
     let camYaw = this.yaw, camPitch = this.pitch;
+    // spectating: the camera sits at the watched entity's eyes and turns with its head
+    const camEnt = this.cameraEntity !== null ? this.players.get(this.cameraEntity) ?? null : null;
+    if (camEnt) {
+      ex = camEnt.xo + (camEnt.x - camEnt.xo) * partial;
+      ey = camEnt.yo + (camEnt.y - camEnt.yo) * partial + (POSE_EYE[camEnt.pose as Pose] ?? 1.62);
+      ez = camEnt.zo + (camEnt.z - camEnt.zo) * partial;
+      camYaw = camEnt.headYawO + wrapDegrees(camEnt.headYaw - camEnt.headYawO) * partial;
+      camPitch = camEnt.pitchO + (camEnt.pitch - camEnt.pitchO) * partial;
+    }
+    const lookYaw = camYaw, lookPitch = camPitch;
     let cx = ex, cy = ey, cz = ez;
     const bedFacing = this.sleeping ? this.bedFacing() : null;
     if (bedFacing !== null) {
@@ -1531,7 +1737,7 @@ export class Game implements ScreenHost {
     const medium: SkyState['medium'] = FLUID[camState] === 1 ? 'water' : FLUID[camState] === 2 ? 'lava' : 'air';
     const yr = (camYaw * Math.PI) / 180, pr = (camPitch * Math.PI) / 180;
     const lookX = -Math.sin(yr) * Math.cos(pr), lookY = -Math.sin(pr), lookZ = Math.cos(yr) * Math.cos(pr);
-    const pyr = (this.yaw * Math.PI) / 180, ppr = (this.pitch * Math.PI) / 180;
+    const pyr = (lookYaw * Math.PI) / 180, ppr = (lookPitch * Math.PI) / 180;
     const eyeLookX = -Math.sin(pyr) * Math.cos(ppr), eyeLookY = -Math.sin(ppr), eyeLookZ = Math.cos(pyr) * Math.cos(ppr);
     const skyState = this.skyState;
     skyState.timeOfDay = tod;
@@ -1603,11 +1809,12 @@ export class Game implements ScreenHost {
     if (this.players.size) {
       // players: bounding-box size 1.0 × 64 blocks × entity distance
       const ed = 64 * this.settings.entityDistance;
-      const visible = [...this.players.values()].filter((p) => (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2 < ed * ed);
+      // (the entity we look through is not drawn in first person)
+      const visible = [...this.players.values()].filter((p) => (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2 < ed * ed && (p !== camEnt || this.cameraType !== 0));
       this.entityRenderer.renderPlayers(visible, this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
     }
-    // our own body in third person (spectators have none)
-    if (this.cameraType !== 0 && this.selfModel && this.gameMode !== 3) {
+    // our own body in third person (a spectator's is a faint floating head)
+    if (this.cameraType !== 0 && this.selfModel && !camEnt) {
       this.entityRenderer.renderPlayers([this.selfModel], this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
     }
     // items in players' hands (ItemInHandLayer), queued by the entity renderer
@@ -1636,7 +1843,7 @@ export class Game implements ScreenHost {
     // targeted block outline (vanilla: black, 40% alpha)
     this.target = raycastBlocks(this.world, ex, ey, ez, eyeLookX, eyeLookY, eyeLookZ, this.reach, false, this.hitScratch);
     this.pickEntity(ex, ey, ez, eyeLookX, eyeLookY, eyeLookZ, partial);
-    if (this.target && !this.hideHud) {
+    if (this.target && !this.hideHud && this.shouldRenderBlockOutline()) {
       const t = this.target;
       this.lines.begin();
       const e = 0.002;
@@ -1653,6 +1860,7 @@ export class Game implements ScreenHost {
       this.clouds.render(this.viewProj, cx, cy, cz, this.clientTicks + partial, s.clouds, s.renderDistance, cloudColor(tod, this.world.rain, this.world.thunder), fog);
     }
     if (this.showHitboxes) this.renderHitboxes(cx, cy, cz, partial);
+    if (this.showChunkBorders) this.renderChunkBorders(cx, cy, cz, camEnt ? camEnt.x : this.player.x, camEnt ? camEnt.z : this.player.z);
     this.renderHand(partial, medium);
     this.renderGui(cx, cy, cz);
   }
@@ -1662,7 +1870,7 @@ export class Game implements ScreenHost {
     g.begin(this.settings.guiScale);
     if (!this.hideHud) {
       if (this.showDebug) this.renderDebug(x, y, z);
-      else if (this.cameraType === 0) {
+      else if (this.cameraType === 0 && (this.gameMode !== 3 || this.spectatorCrosshair())) {
         // crosshair: inverted colours like vanilla
         const ctx = g.ctx;
         ctx.save();
@@ -1683,6 +1891,10 @@ export class Game implements ScreenHost {
         g.ctx.restore();
       }
       this.hud.render(g, this.hudState(), (id, c, x, y) => this.renderGuiItem(id, c, x, y));
+      if (this.gameMode === 3) {
+        this.spectatorGui.renderHotbar(g);
+        this.spectatorGui.renderTooltip(g);
+      }
       // Gui.render: fade to dark blue while falling asleep
       if (this.sleepCounter > 0) {
         let f1 = this.sleepCounter / 100;
@@ -1783,6 +1995,27 @@ export class Game implements ScreenHost {
 }
 
 const IDENTITY4 = mat4();
+
+/** Keys with an F3 combo (KeyboardHandler.handleDebugKeys). */
+const DEBUG_KEYS = ['KeyA', 'KeyB', 'KeyC', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyI', 'KeyN', 'KeyP', 'KeyQ', 'KeyT'];
+const DEBUG_HELP = [
+  'F3 + A = Reload chunks',
+  'F3 + B = Show hitboxes',
+  'F3 + C = Copy location as /tp command, hold F3 + C to crash the game',
+  'F3 + D = Clear chat',
+  'F3 + F = Cycle render distance (Shift to invert)',
+  'F3 + G = Show chunk boundaries',
+  'F3 + H = Advanced tooltips',
+  'F3 + I = Copy entity or block data to clipboard',
+  'F3 + L = Start/stop profiling',
+  'F3 + N = Cycle previous gamemode <-> spectator',
+  'F3 + P = Pause on lost focus',
+  'F3 + Q = Show this list',
+  'F3 + T = Reload resource packs',
+  'F3 + Esc = Pause without pause menu (if pausing is possible)',
+  'F3 + F4 = Open game mode switcher',
+];
+const GAME_MODE_NAMES = ['survival', 'creative', 'adventure', 'spectator'];
 
 /** Ray vs box (slab method); returns the entry distance along the unit direction, or null. */
 function rayAabb(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): number | null {

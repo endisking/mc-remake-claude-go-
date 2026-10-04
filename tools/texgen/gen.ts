@@ -16,7 +16,7 @@ import { miscTextures } from './blocks/misc';
 import { bedTextures } from './blocks/beds';
 import { animatedTextures } from './blocks/animated';
 import { grassColormap, foliageColormap } from './colormap';
-import { widgets, optionsBackground, icons } from './gui';
+import { widgets, optionsBackground, icons, spectatorWidgets } from './gui';
 import { allSkins } from './skins';
 import { sun, moonPhases, clouds, rain, snowflakes, destroyStages, underwater, experienceOrbs, powderSnowOutline } from './environment';
 
@@ -84,6 +84,7 @@ function main(): void {
   writePng(join(outDir, 'gui', 'widgets.png'), widgets());
   writePng(join(outDir, 'gui', 'options_background.png'), optionsBackground());
   writePng(join(outDir, 'gui', 'icons.png'), icons());
+  writePng(join(outDir, 'gui', 'spectator_widgets.png'), spectatorWidgets());
   mkdirSync(join(outDir, 'skins'), { recursive: true });
   const skins = allSkins();
   for (const sk of skins) writePng(join(outDir, 'skins', `${sk.name}.png`), sk.tex);

@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 129 / 4140**
+**Progress: 130 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -163,7 +163,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Survival <!--p2:survival-->
 - [ ] Creative <!--p2:creative-->
 - [ ] Adventure <!--p2:adventure-->
-- [ ] Spectator <!--p2:spectator-->
+- [x] Spectator <!--p2:spectator-->
 
 ### Health, food, XP
 

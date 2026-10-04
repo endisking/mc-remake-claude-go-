@@ -7,7 +7,7 @@ import { ByteReader, ByteWriter } from './buffer';
 import { readChunk, writeChunk, writeSection, readSection } from './chunkcodec';
 import { Chunk, ChunkSection } from '../world/chunk';
 
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 
 type FieldType =
   | 'u8' | 'bool' | 'i16' | 'u16' | 'i32' | 'u32' | 'f32' | 'f64' | 'i64' | 'str' | 'varint' | 'svarint'
@@ -37,7 +37,7 @@ const S2C_SCHEMA = {
   removeEntities: [['ids', 'i32list']],
   /** Absolute entity position/rotation update (interpolated on the client over 3 ticks). */
   entityMove: [['id', 'i32'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['yaw', 'f32'], ['pitch', 'f32'], ['headYaw', 'f32'], ['onGround', 'bool']],
-  /** Shared flags: 1 on fire, 2 crouching, 8 sprinting, 16 swimming, 128 fall flying; pose name. */
+  /** Shared flags: 1 on fire, 2 crouching, 8 sprinting, 16 swimming, 32 invisible, 128 fall flying; pose name. */
   entityState: [['id', 'i32'], ['flags', 'u8'], ['pose', 'str'], ['frozen', 'u8']],
   /** 0 swing main arm, 1 hurt, 3 swing off hand, 4 critical, 5 magic critical. */
   animate: [['id', 'i32'], ['action', 'u8']],
@@ -79,6 +79,10 @@ const S2C_SCHEMA = {
   sound: [['event', 'varint'], ['category', 'u8'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['volume', 'f32'], ['pitch', 'f32']],
   /** Respawned (same dimension): reset client-side player state. */
   respawn: [['gameMode', 'u8']],
+  /** Online player list (vanilla PlayerInfo): action 0 add, 1 game mode update, 4 remove. */
+  playerInfo: [['action', 'u8'], ['id', 'i32'], ['name', 'str'], ['skin', 'str'], ['gameMode', 'u8']],
+  /** Spectate through another entity's eyes, or back to your own (vanilla SetCamera). */
+  setCamera: [['id', 'i32']],
 } as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server
@@ -110,6 +114,8 @@ const C2S_SCHEMA = {
   stopSleeping: [],
   /** Death screen "Respawn" (vanilla ClientCommand PERFORM_RESPAWN). */
   respawn: [],
+  /** Spectator menu "Teleport to Player" (vanilla TeleportToEntity). */
+  spectate: [['target', 'i32']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;

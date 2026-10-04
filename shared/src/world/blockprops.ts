@@ -21,3 +21,18 @@ export const isViewBlocking = isSuffocating;
 export function isInteractive(state: number): boolean {
   return blockNameOf(state).endsWith('_bed');
 }
+
+const MENU_PROVIDERS = new Set([
+  'crafting_table', 'chest', 'trapped_chest', 'furnace', 'blast_furnace', 'smoker', 'dispenser', 'dropper', 'hopper',
+  'brewing_stand', 'enchanting_table', 'anvil', 'chipped_anvil', 'damaged_anvil', 'beacon', 'barrel', 'loom',
+  'cartography_table', 'grindstone', 'stonecutter', 'smithing_table', 'lectern', 'shulker_box',
+]);
+
+/**
+ * BlockState.getMenuProvider != null: blocks that open a container screen (spectators see the
+ * outline and crosshair only on these).
+ */
+export function hasMenuProvider(state: number): boolean {
+  const n = blockNameOf(state);
+  return MENU_PROVIDERS.has(n) || n.endsWith('_shulker_box');
+}

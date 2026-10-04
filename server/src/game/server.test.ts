@@ -72,7 +72,61 @@ describe('multiplayer server', () => {
     server.tick();
     expect(a.received.some((p) => p.t === 'entityState' && p.pose === 'crouching')).toBe(true);
     server.disconnect(b.conn);
-    expect(a.received.at(-1)).toMatchObject({ t: 'removeEntities' });
+    expect(a.received.at(-2)).toMatchObject({ t: 'removeEntities' });
+    expect(a.received.at(-1)).toMatchObject({ t: 'playerInfo', action: 4, name: 'B' });
+  });
+
+  it('spectators: hidden from non-spectators, attack to spectate, sneak to stop, teleport menu', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100 });
+    const a = client(server, 'A');
+    const b = client(server, 'B');
+    const c = client(server, 'C');
+    server.tick();
+    const [pa, pb, pc] = server.players as [typeof server.players[0], typeof server.players[0], typeof server.players[0]];
+    // the player list reaches everyone
+    expect(c.received.filter((p) => p.t === 'playerInfo' && p.action === 0).map((p) => (p as { name: string }).name).sort()).toEqual(['A', 'B', 'C']);
+    a.send({ t: 'chat', message: '/gamemode spectator' });
+    server.tick();
+    // B no longer sees A; A (a spectator) still sees B; everyone hears about the game mode
+    expect(pb.tracking.has(pa.id)).toBe(false);
+    expect(pa.tracking.has(pb.id)).toBe(true);
+    expect(b.received.some((p) => p.t === 'playerInfo' && p.action === 1 && p.id === pa.id && p.gameMode === 3)).toBe(true);
+    // a second spectator sees A (invisible flag → translucent head)
+    c.send({ t: 'chat', message: '/gamemode spectator' });
+    server.tick();
+    expect(pc.tracking.has(pa.id)).toBe(true);
+    expect(c.received.some((p) => p.t === 'entityState' && p.id === pa.id && (p.flags & 32) !== 0)).toBe(true);
+    // A attacks B: looks through B's eyes and follows B around
+    pb.x += 1;
+    a.send({ t: 'attack', target: pb.id, sneaking: false });
+    expect(pa.camera).toBe(pb);
+    expect(a.received.some((p) => p.t === 'setCamera' && p.id === pb.id)).toBe(true);
+    // C can't see A while A is looking through someone else
+    server.tick();
+    expect(pc.tracking.has(pa.id)).toBe(false);
+    pb.x += 2;
+    a.send({ t: 'move', x: 0, y: 0, z: 0, yaw: 0, pitch: 0, onGround: false }); // ignored
+    server.tick();
+    expect(pa.x).toBe(pb.x);
+    // sneaking returns to A's own view
+    a.send({ t: 'playerState', sneaking: true, sprinting: false, flying: true });
+    server.tick();
+    expect(pa.camera).toBe(null);
+    expect(a.received.filter((p) => p.t === 'setCamera').at(-1)).toMatchObject({ id: pa.id });
+    a.send({ t: 'playerState', sneaking: false, sprinting: false, flying: true });
+    // teleport to player
+    pb.x += 30;
+    a.send({ t: 'spectate', target: pb.id });
+    expect(pa.x).toBe(pb.x);
+    expect(a.received.at(-1)).toMatchObject({ t: 'teleport', x: pb.x });
+    // non-spectators can't use it; leaving spectator mode makes A visible again
+    pa.x += 5;
+    const bx = pb.x;
+    b.send({ t: 'spectate', target: pa.id });
+    expect(pb.x).toBe(bx);
+    a.send({ t: 'chat', message: '/gamemode creative' });
+    server.tick();
+    expect(pb.tracking.has(pa.id)).toBe(true);
   });
 });
 

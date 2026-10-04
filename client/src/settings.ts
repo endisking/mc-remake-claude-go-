@@ -27,6 +27,10 @@ export interface Settings {
   fovEffectScale: number;
   /** sound category volumes 0..1 */
   volumes: Record<string, number>;
+  /** F3+P: open the pause menu when the window loses focus */
+  pauseOnLostFocus: boolean;
+  /** F3+H: item ids and durability in tooltips */
+  advancedItemTooltips: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -55,6 +59,8 @@ export const DEFAULT_SETTINGS: Settings = {
   discreteMouseScroll: false,
   fovEffectScale: 1,
   volumes: {},
+  pauseOnLostFocus: true,
+  advancedItemTooltips: false,
 };
 
 const KEY = 'blockcraft.settings';

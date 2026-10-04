@@ -125,6 +125,8 @@ export class GameServer {
     const [gone] = this.players.splice(i, 1);
     for (const o of this.players) {
       if (o.tracking.delete(gone!.id)) this.send(o, { t: 'removeEntities', ids: [gone!.id] });
+      this.send(o, { t: 'playerInfo', action: 4, id: gone!.id, name: gone!.name, skin: '', gameMode: 0 });
+      if (o.camera === gone) this.setCamera(o, null);
     }
   }
 
@@ -149,6 +151,11 @@ export class GameServer {
     this.send(p, { t: 'difficulty', difficulty: this.difficulty });
     this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     this.send(p, { t: 'weather', rain: this.rainLevel, thunder: this.thunderLevel * this.rainLevel });
+    // PlayerList.placeNewPlayer: everyone's PlayerInfo to the newcomer, theirs to everyone
+    for (const o of this.players) {
+      this.send(p, { t: 'playerInfo', action: 0, id: o.id, name: o.name, skin: o.skin, gameMode: o.gameMode });
+      if (o !== p) this.send(o, { t: 'playerInfo', action: 0, id: p.id, name: p.name, skin: p.skin, gameMode: p.gameMode });
+    }
     return p;
   }
 
@@ -732,8 +739,26 @@ export class GameServer {
     p.gameMode = mode;
     if (!p.mayFly) p.flying = false;
     if (mode === 3) p.flying = true;
+    // leaving spectator stops looking through another entity
+    if (mode !== 3) this.setCamera(p, null);
+    p.stateDirty = true;
     this.send(p, { t: 'gameMode', mode });
     this.sendAbilities(p);
+    for (const o of this.players) this.send(o, { t: 'playerInfo', action: 1, id: p.id, name: p.name, skin: '', gameMode: mode });
+  }
+
+  /** ServerPlayer.setCamera: look through `target` (null = yourself), landing where it is. */
+  setCamera(p: ServerPlayer, target: ServerPlayer | null): void {
+    if (target === p) target = null;
+    if (p.camera === target) return;
+    p.camera = target;
+    this.send(p, { t: 'setCamera', id: (target ?? p).id });
+    if (target) {
+      p.x = target.x;
+      p.y = target.y;
+      p.z = target.z;
+    }
+    this.send(p, { t: 'teleport', x: p.x, y: p.y, z: p.z, yaw: p.yaw, pitch: p.pitch });
   }
 
   /**
@@ -802,8 +827,12 @@ export class GameServer {
 
   /** ServerGamePacketListenerImpl.handleInteract (attack) → Player.attack. */
   private handleAttack(p: ServerPlayer, targetId: number): void {
-    if (p.gameMode === 3) return;
     const t = this.players.find((o) => o.id === targetId);
+    // ServerPlayer.attack: a spectator's attack spectates the target instead
+    if (p.gameMode === 3) {
+      if (t && t !== p && t.gameMode !== 3 && !t.living.dead && (t.x - p.x) ** 2 + (t.y - p.y) ** 2 + (t.z - p.z) ** 2 < 36) this.setCamera(p, t);
+      return;
+    }
     // items, orbs, arrows and yourself can't be attacked (vanilla disconnects; we ignore)
     if (!t || t === p || t.gameMode === 3 || t.living.dead) return;
     const dx = t.x - p.x, dy = t.y - p.y, dz = t.z - p.z;
@@ -889,8 +918,23 @@ export class GameServer {
     }
     switch (m.t) {
       case 'move':
-        this.handleMove(p, m);
+        // while spectating through someone, the server places the player (vanilla clients stop sending)
+        if (!p.camera) this.handleMove(p, m);
         break;
+      case 'spectate': {
+        // TeleportToEntity: spectators only
+        const t = this.players.find((o) => o.id === m.target);
+        if (p.gameMode === 3 && t) {
+          this.setCamera(p, null);
+          p.x = t.x;
+          p.y = t.y;
+          p.z = t.z;
+          p.yaw = t.yaw;
+          p.pitch = t.pitch;
+          this.send(p, { t: 'teleport', x: p.x, y: p.y, z: p.z, yaw: p.yaw, pitch: p.pitch });
+        }
+        break;
+      }
       case 'playerState':
         p.sneaking = m.sneaking;
         p.sprinting = m.sprinting;
@@ -1080,6 +1124,19 @@ export class GameServer {
     this.tickLightning();
     this.sleep.tick();
     for (const p of this.players) {
+      // ServerPlayer.tick: a spectator rides along with its camera entity until it sneaks
+      const cam = p.camera;
+      if (cam) {
+        if (!this.players.includes(cam) || cam.living.dead) this.setCamera(p, null);
+        else {
+          p.x = cam.x;
+          p.y = cam.y;
+          p.z = cam.z;
+          p.yaw = cam.yaw;
+          p.pitch = cam.pitch;
+          if (p.sneaking) this.setCamera(p, null);
+        }
+      }
       p.updatePose();
       this.survival.tick(p);
       // Player.tick: attack strength recharges; switching to a different item restarts it
@@ -1202,7 +1259,7 @@ export class GameServer {
       for (const o of this.players) {
         if (o === p) continue;
         const ocx = Math.floor(o.x) >> 4, ocz = Math.floor(o.z) >> 4;
-        const visible = Math.abs(ocx - pcx) <= p.viewDistance && Math.abs(ocz - pcz) <= p.viewDistance && o.gameMode !== 3;
+        const visible = Math.abs(ocx - pcx) <= p.viewDistance && Math.abs(ocz - pcz) <= p.viewDistance && o.broadcastTo(p);
         if (visible && !p.tracking.has(o.id)) {
           p.tracking.add(o.id);
           this.send(p, { t: 'addPlayer', id: o.id, name: o.name, skin: o.skin, x: o.x, y: o.y, z: o.z, yaw: o.yaw, pitch: o.pitch, headYaw: o.headYaw });
