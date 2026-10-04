@@ -168,9 +168,17 @@ export class EntityRenderer {
     gl.activeTexture(gl.TEXTURE0);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
-    const model = this.models.get('player')!;
-    gl.bindVertexArray(model.vao);
+    const classic = this.models.get('player')!, slimModel = this.models.get('player_slim')!;
+    let bound: GpuModel | null = null;
     for (const p of players) {
+      // PlayerModel(slim): skins with 3-px arms use the slim model (same parts, same order)
+      const skin = this.skinFor(p.name, p.skin);
+      const slim = this.isSlim(skin);
+      const model = slim ? slimModel : classic;
+      if (bound !== model) {
+        gl.bindVertexArray(model.vao);
+        bound = model;
+      }
       const x = p.xo + (p.x - p.xo) * partial - camX;
       const y = p.yo + (p.y - p.yo) * partial - camY;
       const z = p.zo + (p.z - p.zo) * partial - camZ;
@@ -218,7 +226,7 @@ export class EntityRenderer {
       }
       const light = world.getLight(Math.floor(p.x), Math.floor(p.y + 1.62), Math.floor(p.z));
       gl.uniform2f(this.u.get('uLight'), ((light & 15) + 0.5) / 16, ((light >> 4) + 0.5) / 16);
-      gl.bindTexture(gl.TEXTURE_2D, this.skins.get(this.skinFor(p.name, p.skin)) ?? null);
+      gl.bindTexture(gl.TEXTURE_2D, this.skins.get(skin) ?? null);
       // OverlayTexture: hurt entities are tinted 30% red
       gl.uniform4f(this.u.get('uOverlay'), 1, 0, 0, p.hurtTime > 0 ? 0.3 : 0);
       // PlayerRenderer.setModelProperties: a spectator is only its head (and hat), drawn at
@@ -253,6 +261,8 @@ export class EntityRenderer {
         const arm = poses[armName]!;
         const am = mat4();
         partMatrix(am, arm);
+        // PlayerModel.translateToHand: the slim arm's hand sits 0.5 px closer to the body
+        if (slim) am[12] += left ? -0.5 : 0.5;
         const out = this.heldPool.pop() ?? mat4();
         multiply(out, m, am);
         multiply(out, out, heldItemTransform(left, info.flat));

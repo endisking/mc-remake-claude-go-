@@ -16,14 +16,16 @@ interface Look {
   shoes: string;
   /** hair style: 'short' | 'long' | 'buzz' */
   style: 'short' | 'long' | 'buzz';
+  /** 3-px arms (the slim model, like vanilla's second default skin); the unused 2-px columns stay transparent */
+  slim?: boolean;
   seed: number;
 }
 
 export const LOOKS: Look[] = [
   { name: 'rowan', skin: '#c99a73', hair: '#5a3a22', eyes: '#3b6fb0', shirt: '#2f6f8f', shirtTrim: '#e2c26a', pants: '#3a3f5c', shoes: '#4a3424', style: 'short', seed: 1 },
-  { name: 'ivy', skin: '#e3b894', hair: '#b4462a', eyes: '#3f8a3a', shirt: '#4c8c3a', shirtTrim: '#d9e6c8', pants: '#5b4a3a', shoes: '#2f2a28', style: 'long', seed: 2 },
+  { name: 'ivy', skin: '#e3b894', hair: '#b4462a', eyes: '#3f8a3a', shirt: '#4c8c3a', shirtTrim: '#d9e6c8', pants: '#5b4a3a', shoes: '#2f2a28', style: 'long', seed: 2, slim: true },
   { name: 'kai', skin: '#8a5a3c', hair: '#1d1a1a', eyes: '#5a3b20', shirt: '#d9772a', shirtTrim: '#f0e6d8', pants: '#2c4a6e', shoes: '#e8e8e8', style: 'buzz', seed: 3 },
-  { name: 'nova', skin: '#f0cfae', hair: '#e8d27a', eyes: '#6a4aa8', shirt: '#7b4ab0', shirtTrim: '#2a2a2a', pants: '#2a2a33', shoes: '#7b4ab0', style: 'long', seed: 4 },
+  { name: 'nova', skin: '#f0cfae', hair: '#e8d27a', eyes: '#6a4aa8', shirt: '#7b4ab0', shirtTrim: '#2a2a2a', pants: '#2a2a33', shoes: '#7b4ab0', style: 'long', seed: 4, slim: true },
 ];
 
 function fill(t: Tex, x: number, y: number, w: number, h: number, c: RGBA, r: () => number, vary = 0.06): void {
@@ -75,14 +77,15 @@ export function skin(look: Look): Tex {
   fill(t, 22, 20, 4, 1, shade(S, 0.95), r, 0.02);
   for (let y = 21; y < 32; y++) t.set(24, y, TR);
   fill(t, 20, 30, 8, 2, shade(SH, 0.8), r); // hem
-  // ---- right arm (u40 v16, 4×12×4): sleeve then skin, hands
-  box(t, 40, 16, 4, 12, 4, S, r, 0.04);
-  fill(t, 40, 20, 16, 5, SH, r);
-  fill(t, 40, 25, 16, 1, TR, r, 0.02);
+  // ---- right arm (u40 v16, 4×12×4 or slim 3×12×4): sleeve then skin, hands
+  const aw = look.slim ? 3 : 4, strip = 2 * (4 + aw);
+  box(t, 40, 16, aw, 12, 4, S, r, 0.04);
+  fill(t, 40, 20, strip, 5, SH, r);
+  fill(t, 40, 25, strip, 1, TR, r, 0.02);
   // ---- left arm (u32 v48)
-  box(t, 32, 48, 4, 12, 4, S, r, 0.04);
-  fill(t, 32, 52, 16, 5, SH, r);
-  fill(t, 32, 57, 16, 1, TR, r, 0.02);
+  box(t, 32, 48, aw, 12, 4, S, r, 0.04);
+  fill(t, 32, 52, strip, 5, SH, r);
+  fill(t, 32, 57, strip, 1, TR, r, 0.02);
   // ---- right leg (u0 v16) and left leg (u16 v48): pants + shoes
   box(t, 0, 16, 4, 12, 4, P, r);
   fill(t, 0, 29, 16, 3, SO, r);
