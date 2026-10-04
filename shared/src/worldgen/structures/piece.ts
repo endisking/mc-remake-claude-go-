@@ -125,6 +125,37 @@ export function rotateState(s: number, r: number): number {
   return out;
 }
 
+const DIR_VEC: Record<string, [number, number]> = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] };
+const vecDir = (x: number, z: number) => (z < 0 ? 'north' : z > 0 ? 'south' : x > 0 ? 'east' : 'west');
+const frameCache = new Map<string, number>();
+/** A block state with directions mapped through a (possibly mirrored) local frame: local +x → ex, +z → ez. */
+export function frameState(s: number, ex: [number, number], ez: [number, number]): number {
+  const key = `${s}:${ex}:${ez}`;
+  let out = frameCache.get(key);
+  if (out !== undefined) return out;
+  const map = (d: string) => {
+    const v = DIR_VEC[d];
+    if (!v) return d;
+    return vecDir(v[0] * ex[0] + v[1] * ez[0], v[0] * ex[1] + v[1] * ez[1]);
+  };
+  const reflect = ex[0] * ez[1] - ex[1] * ez[0] < 0;
+  out = s;
+  const facing = getProp(s, 'facing');
+  if (typeof facing === 'string') out = withProp(out, 'facing', map(facing));
+  const axis = getProp(s, 'axis');
+  if ((axis === 'x' || axis === 'z') && ex[0] === 0) out = withProp(out, 'axis', axis === 'x' ? 'z' : 'x');
+  if (reflect) {
+    const shape = getProp(s, 'shape');
+    if (typeof shape === 'string' && /left|right/.test(shape) && !blockNameOf(s).includes('rail')) out = withProp(out, 'shape', shape.includes('left') ? shape.replace('left', 'right') : shape.replace('right', 'left'));
+    const hinge = getProp(s, 'hinge');
+    if (hinge === 'left' || hinge === 'right') out = withProp(out, 'hinge', hinge === 'left' ? 'right' : 'left');
+  }
+  const sides = HDIRS.map((d) => getProp(s, d));
+  if (sides.every((v) => v !== undefined)) for (let i = 0; i < 4; i++) out = withProp(out, map(HDIRS[i]!), sides[i]!);
+  frameCache.set(key, out);
+  return out;
+}
+
 // ------------------------------------------------------------------ states by name, cached
 const stateCache = new Map<string, number>();
 /** A block state from "name[prop=value,…]", cached. */
@@ -150,8 +181,15 @@ export abstract class Piece {
   /** Draws the part of the piece inside ctx.chunk; false removes the piece (vanilla). */
   abstract postProcess(ctx: PlaceContext): boolean;
 
+  /**
+   * Vanilla StructurePiece frames: for NORTH and EAST orientations vanilla keeps local x along +x / +z
+   * (a mirrored frame). Pieces that reproduce vanilla attachment points set this.
+   */
+  mirrored = false;
+
   /** local → world */
   wx(x: number, z: number): number {
+    if (this.mirrored && (this.rot & 3) === 2) return this.box.x0 + x;
     switch (this.rot & 3) {
       case 1: return this.box.x1 - z;
       case 2: return this.box.x1 - x;
@@ -163,6 +201,7 @@ export abstract class Piece {
     return this.box.y0 + y;
   }
   wz(x: number, z: number): number {
+    if (this.mirrored && (this.rot & 3) === 3) return this.box.z0 + x;
     switch (this.rot & 3) {
       case 1: return this.box.z0 + x;
       case 2: return this.box.z1 - z;
@@ -175,7 +214,15 @@ export abstract class Piece {
   set(c: PlaceContext, state: number, x: number, y: number, z: number): void {
     const X = this.wx(x, z), Y = this.wy(y), Z = this.wz(x, z);
     if (!c.chunk.inside(X, Y, Z)) return;
-    c.lv.setState(X, Y, Z, rotateState(state, this.rot));
+    c.lv.setState(X, Y, Z, this.tf(state));
+  }
+
+  /** a local block state turned into this piece's world frame */
+  tf(state: number): number {
+    if (!this.mirrored || (this.rot & 3) < 2) return rotateState(state, this.rot);
+    const ex: [number, number] = [this.wx(1, 0) - this.wx(0, 0), this.wz(1, 0) - this.wz(0, 0)];
+    const ez: [number, number] = [this.wx(0, 1) - this.wx(0, 0), this.wz(0, 1) - this.wz(0, 0)];
+    return frameState(state, ex, ez);
   }
 
   get(c: PlaceContext, x: number, y: number, z: number): number {
@@ -226,7 +273,7 @@ export abstract class Piece {
     const X = this.wx(x, z), Z = this.wz(x, z);
     let Y = this.wy(y);
     if (!c.chunk.inside(X, Y, Z)) return;
-    const st = rotateState(state, this.rot);
+    const st = this.tf(state);
     while (Y > 1) {
       const s = c.lv.getState(X, Y, Z);
       if (!(IS_AIR[s] === 1 || FLUID[s] !== 0 || isReplaceablePlant(s))) break;
@@ -241,7 +288,7 @@ export abstract class Piece {
     if (!c.chunk.inside(X, Y, Z)) return false;
     const name = blockNameOf(c.lv.getState(X, Y, Z));
     if (name === 'chest' || name === 'trapped_chest' || name === 'barrel') return false;
-    c.lv.setState(X, Y, Z, rotateState(state, this.rot));
+    c.lv.setState(X, Y, Z, this.tf(state));
     addBlockEntity(c.lv, { kind: 'chest', x: X, y: Y, z: Z, lootTable, lootSeed: c.rand.nextLong() });
     return true;
   }
