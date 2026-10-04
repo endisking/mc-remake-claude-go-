@@ -15,7 +15,7 @@ function client(server: GameServer, name: string) {
 
 describe('multiplayer server', () => {
   it('streams chunks to two players and syncs block changes between them', () => {
-    const server = new GameServer({ seed: 7n, chunkGenBudget: 100 });
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true });
     const a = client(server, 'A');
     const b = client(server, 'B');
     for (let i = 0; i < 5; i++) server.tick();
@@ -32,7 +32,7 @@ describe('multiplayer server', () => {
   });
 
   it('unloads far chunks when a player moves away and stops sending to disconnected players', () => {
-    const server = new GameServer({ seed: 7n, chunkGenBudget: 100 });
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true });
     const a = client(server, 'A');
     for (let i = 0; i < 3; i++) server.tick();
     a.send({ t: 'chat', message: '/tp 500 100 500' });
@@ -45,7 +45,7 @@ describe('multiplayer server', () => {
   });
 
   it('rejects moving too quickly and into solid blocks, but accepts normal moves', () => {
-    const server = new GameServer({ seed: 7n, chunkGenBudget: 100 });
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true });
     const a = client(server, 'A');
     for (let i = 0; i < 3; i++) server.tick();
     const login = a.received.find((p) => p.t === 'login') as Extract<typeof a.received[number], { t: 'login' }>;
@@ -63,7 +63,7 @@ describe('multiplayer server', () => {
   });
 
   it('shows players to each other and removes them when they leave', () => {
-    const server = new GameServer({ seed: 7n, chunkGenBudget: 100 });
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true });
     const a = client(server, 'A');
     const b = client(server, 'B');
     server.tick();
@@ -77,7 +77,7 @@ describe('multiplayer server', () => {
   });
 
   it('spectators: hidden from non-spectators, attack to spectate, sneak to stop, teleport menu', () => {
-    const server = new GameServer({ seed: 7n, chunkGenBudget: 100 });
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true });
     const a = client(server, 'A');
     const b = client(server, 'B');
     const c = client(server, 'C');

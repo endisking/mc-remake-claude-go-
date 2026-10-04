@@ -2,6 +2,7 @@
  * A dimension's block storage: a map of chunk columns with block/light accessors.
  * Shared by the server (authoritative) and the client (mirror for rendering/prediction).
  */
+import { zoomToQuart } from '../worldgen/biome/zoom';
 import { Chunk, chunkKey, sectionIndex } from './chunk';
 
 export class BlockWorld {
@@ -71,8 +72,25 @@ export class BlockWorld {
     return this.getLight(x, y, z) & 15;
   }
 
+  /**
+   * BiomeManager's hashed seed. When set, block biomes use vanilla's fuzzy zoom between quart
+   * cells (FuzzyOffsetConstantColumnBiomeZoomer); otherwise the quart cell is used directly.
+   */
+  biomeZoomSeed: bigint | null = null;
+  private readonly zq: [number, number] = [0, 0];
+
   getBiome(x: number, y: number, z: number): number {
     const c = this.getChunk(x >> 4, z >> 4);
-    return c ? c.getBiome(x & 15, y, z & 15) : 1;
+    if (!c) return 1;
+    if (this.biomeZoomSeed === null) return c.getBiome(x & 15, y, z & 15);
+    const i = ((z & 15) << 4) | (x & 15);
+    const cache = (c.blockBiomes ??= new Uint8Array(256).fill(255));
+    if (cache[i] !== 255) return cache[i]!;
+    zoomToQuart(this.biomeZoomSeed, x, z, this.zq);
+    const qx = this.zq[0], qz = this.zq[1];
+    const src = this.getChunk(qx >> 2, qz >> 2);
+    // the chosen cell may lie in a neighbour that isn't loaded yet: answer without caching
+    if (!src) return c.getBiome(Math.max(0, Math.min(15, (qx << 2) - (c.x << 4))), y, Math.max(0, Math.min(15, (qz << 2) - (c.z << 4))));
+    return (cache[i] = src.biomes[((qz & 3) << 2) | (qx & 3)]!);
   }
 }

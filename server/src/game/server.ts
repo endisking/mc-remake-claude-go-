@@ -6,6 +6,8 @@ import { BlockWorld } from '@shared/world/world';
 import { LightEngine } from '@shared/world/light';
 import { Chunk, chunkKey } from '@shared/world/chunk';
 import { DevGenerator } from '@shared/worldgen/devgen';
+import { OverworldGenerator } from '@shared/worldgen/overworld/generator';
+import { obfuscateSeed } from '@shared/worldgen/biome/zoom';
 import { encodeS2C, decodeC2S, type C2S, type S2C, PROTOCOL_VERSION } from '@shared/protocol/packets';
 import { TICKS_PER_SECOND, DAY_LENGTH } from '@shared/constants';
 import { JavaRandom } from '@shared/util/random';
@@ -39,6 +41,8 @@ export interface ServerOptions {
   seed: bigint;
   /** Development scene (e.g. 'models' showcase). */
   scene?: string;
+  /** Use the flat development terrain instead of the 1.17 generator (fast tests). */
+  devTerrain?: boolean;
   /** Max chunks generated per tick across all players. */
   chunkGenBudget?: number;
   /** Game mode for new players: 0 survival, 1 creative, 2 adventure, 3 spectator. */
@@ -50,7 +54,7 @@ export interface ServerOptions {
 export class GameServer {
   readonly world = new BlockWorld();
   readonly light: LightEngine;
-  readonly generator: DevGenerator;
+  readonly generator: DevGenerator | OverworldGenerator;
   readonly players: ServerPlayer[] = [];
   readonly entities = new Map<number, ServerEntity>();
   gameTime = 0;
@@ -91,7 +95,9 @@ export class GameServer {
 
   constructor(readonly opts: ServerOptions) {
     this.rand = new JavaRandom(opts.randomSeed ?? BigInt(Date.now()));
-    this.generator = new DevGenerator(opts.seed, opts.scene);
+    // development scenes (model showcase, tests) keep the flat dev terrain; worlds use the 1.17 generator
+    this.generator = opts.scene || opts.devTerrain ? new DevGenerator(opts.seed, opts.scene) : new OverworldGenerator(opts.seed);
+    this.world.biomeZoomSeed = obfuscateSeed(opts.seed);
     this.light = new LightEngine(this.world);
     this.light.onSectionChanged = (cx, sy, cz) => {
       this.lightDirty.set(chunkKey(cx, cz) * 16 + sy, [cx, sy, cz]);
@@ -143,7 +149,7 @@ export class GameServer {
     p.prevTickZ = p.z;
     this.players.push(p);
     this.send(p, {
-      t: 'login', entityId: p.id, gameMode: p.gameMode, dimension: 'overworld', seed: this.opts.seed,
+      t: 'login', entityId: p.id, gameMode: p.gameMode, dimension: 'overworld', seed: this.world.biomeZoomSeed!,
       x: p.x, y: p.y, z: p.z, yaw: 0, pitch: 0, simulationDistance: 10,
     });
     this.sendAbilities(p);

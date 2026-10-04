@@ -115,6 +115,8 @@ export class Chunk {
   readonly sections: ChunkSection[] = [];
   /** Biomes in 4×4×4 cells: index (y>>2)<<4 | (z>>2)<<2 | (x>>2). 64*16 = 1024 entries. */
   readonly biomes = new Uint8Array(1024);
+  /** lazily filled block-resolution biomes (fuzzy zoom), 255 = not computed; see BlockWorld.getBiome */
+  blockBiomes: Uint8Array | null = null;
   /**
    * Height of the lowest y above which sky light falls unobstructed (y of the topmost
    * light-filtering block + 1). Indexed z*16+x.

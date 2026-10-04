@@ -79,8 +79,14 @@ function fiddle(h: number, l: number): number {
  * FuzzyOffsetBiomeZoomer.getBiome: the quart cell (qx, qz) whose jittered centre is nearest to the
  * block; writes into `out`. `sha` is the obfuscated seed.
  */
+let lastSha: bigint | null = null, lastH = 0, lastL = 0;
+
 export function zoomToQuart(sha: bigint, x: number, z: number, out: [number, number]): [number, number] {
-  const [sh, sl] = splitBig(sha);
+  if (sha !== lastSha) {
+    [lastH, lastL] = splitBig(sha);
+    lastSha = sha;
+  }
+  const sh = lastH, sl = lastL;
   const i = x - 2, j = -2, k = z - 2;
   const l = i >> 2, i1 = j >> 2, j1 = k >> 2;
   const d0 = (i & 3) / 4, d1 = (j & 3) / 4, d2 = (k & 3) / 4;

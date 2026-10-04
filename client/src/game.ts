@@ -461,6 +461,7 @@ export class Game implements ScreenHost {
     switch (p.t) {
       case 'login':
         this.entityId = p.entityId;
+        this.world.biomeZoomSeed = p.seed;
         this.selfModel = new RemotePlayer(p.entityId, new URLSearchParams(location.search).get('name') ?? 'Player', '');
         this.selfModel.setPos(p.x, p.y, p.z, p.yaw, p.pitch, p.yaw);
         this.setGameMode(p.gameMode);
