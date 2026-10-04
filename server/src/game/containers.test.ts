@@ -4,6 +4,8 @@ import { encodeC2S, decodeS2C, decodeStacks, PROTOCOL_VERSION, type S2C } from '
 import { getProp, blockNameOf, stateOf } from '@shared/world/blockstate';
 import { stack, itemName } from '@shared/item/stack';
 import { ItemEntity } from './entity';
+import { Chunk, blockEntityKey } from '@shared/world/chunk';
+import { serializeChunk, deserializeChunk, capturePlayer, applyPlayer } from '../storage/codec';
 
 function client(server: GameServer, name: string) {
   const received: S2C[] = [];
@@ -136,5 +138,18 @@ describe('containers', () => {
     expect(open).toMatchObject({ type: 'generic_3x3', title: 'Dropper' });
     const items = a.received.filter((m) => m.t === 'windowItems').at(-1) as Extract<S2C, { t: 'windowItems' }>;
     expect(decodeStacks(items.items).length).toBe(9 + 36 + 1);
+  });
+
+  it('block entities survive the save format; ender chest contents are saved with the player', () => {
+    const c = new Chunk(0, 0);
+    c.blockEntities.set(blockEntityKey(1, 64, 2), { id: 'furnace', items: [stack('sand', 3), null, null], litTime: 50, litDuration: 300, cookingProgress: 10, cookingTotalTime: 200, recipesUsed: {} });
+    const back = deserializeChunk(serializeChunk(c));
+    expect(back.blockEntities.get(blockEntityKey(1, 64, 2))).toMatchObject({ id: 'furnace', litTime: 50, items: [{ count: 3 }, null, null] });
+    const { p } = setup();
+    p.enderChest[4] = stack('diamond', 2);
+    const data = capturePlayer(p);
+    p.enderChest[4] = null;
+    applyPlayer(p, data);
+    expect(p.enderChest[4]).toMatchObject({ count: 2 });
   });
 });
