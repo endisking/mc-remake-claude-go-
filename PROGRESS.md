@@ -26,12 +26,16 @@ are still silent — currently none). Stand-ins that should get dedicated record
   Fortune, explosion decay and table-driven structure loot are not modelled yet.
 - Chunk storage keeps flat 16-bit arrays per non-empty section (empty sections store nothing); palette compression
   is used only on the wire and in saves.
+- F3+F4 (game mode switcher) waits for item textures (its icons are a sword, map and ender eye); F3+L (profiler
+  capture) is not implemented. F3+I asks no server query yet: no block entities exist, so the answer would match.
+- Spectators: mob view shaders (creeper/spider/enderman) and view-only containers arrive with mobs and containers.
 
 ## Benchmarks
 
 | Date | Phase | Avg FPS | 1% low | Chunk build (ms) | Notes |
 |---|---|---|---|---|---|
 | 2026-10-03 | 1 | 9.3 | 4.6 | 0.50 | RD 6, 1280×720, SwiftShader (software GL in the CI container). JS CPU per frame 2.2 ms, 304 visible sections. |
+| 2026-10-04 | 2 | 8.9 | 5.0 | 0.43 | Same setup. JS CPU per frame 2.07 ms (down from 2.2); the frame rate is bound by SwiftShader fill rate. |
 
 ---
 
@@ -134,3 +138,40 @@ Deviations / notes:
 
 Next: F5 perspectives, F3+B hitboxes, controls screen with key rebinding and mouse settings, offhand swap, beds and
 spawn points, eating, XP orbs, then Phase 3 world generation.
+
+## 2026-10-04 — Phase 2: player (continued) and phase summary
+
+Done (unit/server tests plus Playwright screenshots; e2e scripts `tools/e2e/pvp.ts`, `bed.ts`, `spectator.ts`):
+- Camera & controls: F5 third person front/back with vanilla Camera.getMaxZoom, F3+B hitboxes, entity picking
+  (3 blocks survival, 6 creative), Controls screen with key rebinding (vanilla KeyMapping ids/defaults), mouse
+  settings (sensitivity, invert, wheel sensitivity, discrete scroll), toggle sneak/sprint, auto-jump
+  (LocalPlayer.updateAutoJump), accessibility (FOV effects), sound options.
+- F3 key combos ported from KeyboardHandler.handleDebugKeys, handled at key press: A reload chunks, B hitboxes,
+  C copy location, D clear chat, F render distance, G chunk borders (ChunkBorderRenderer), H advanced tooltips,
+  I copy block/entity as a command, N spectator ↔ previous mode, P pause on lost focus, Q help, T reload, Esc
+  pause without menu.
+- Off hand: F swap, off-hand slot in the HUD, both hands rendered in first and third person, use falls back to
+  the off hand.
+- PvP: Player.attack (attack strength, crits, sprint knockback), invulnerability frames, held items on other
+  players, pvp setting.
+- Beds: sleeping (time window from the exact sky-darken table), night skip with playersSleepingPercentage, "You
+  can only sleep at night", spawn point setting/respawn at the bed, wake-up stand-up search, sleeping pose and
+  camera, in-bed chat screen.
+- XP orbs (vanilla merge, pickup delay, level-up chime), ore XP, death XP.
+- Movement: honey slide, bubble columns (up/down), powder snow sinking and freezing (140 ticks, frost overlay,
+  frozen hearts, shaking), scaffolding (context-aware collision via an EntityCollisionContext port: stand on top,
+  sneak to sink, climb inside; powder snow catches falls over 2.5 blocks) with original bamboo textures.
+- Spectator mode: SpectatorGui menu (teleport to player by face, team page, paging), attack to look through a
+  player's eyes and sneak to stop, broadcastToPlayer visibility (hidden from non-spectators, translucent heads for
+  spectators), fly-speed scrolling, container-only outline/crosshair; PlayerInfo list packet (protocol v4).
+- Death messages: CombatTracker port with all 1.17.1 variants (accidents by climbable, doomed/finished by, kill
+  credit "whilst trying to escape", named items, thorns, bed explosion).
+
+Phase 2 summary: 65 of 77 player items are done. The rest wait on later systems and stay unchecked until those
+exist: eating and first-person non-block items (item textures, Phase 5), survival/creative/adventure rules that
+need inventory screens and item tags (Phase 5), soul speed and feather falling (enchantments, Phase 7), leather
+boots on powder snow (armour, Phase 5), elytra (Phase 5/7), nausea/portal wobble (effects, portals), the bed's
+phantom reset and "monsters nearby" check (Phase 6) and bed explosions (Phase 8). Full suite: 98 Vitest tests
+pass; benchmark row above.
+
+Next: Phase 3 — world generation with the 1.17.1 rules (noise terrain, biomes, carvers, ores, trees, structures).
