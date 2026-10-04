@@ -171,6 +171,25 @@ export const STRUCTURE_LOOT: Record<string, StructureLootTable> = {
       { rolls: [2, 3], entries: [e('experience_bottle', 7), e('string', 4, n(1, 6)), e('arrow', 4, n(2, 7)), e('tripwire_hook', 3, n(1, 3)), e('iron_ingot', 3, n(1, 3)), e('book', 1, ER)] },
     ],
   },
+  'chests/woodland_mansion': {
+    pools: [
+      {
+        rolls: [1, 3],
+        entries: [
+          e('lead', 20), e('golden_apple', 15), e('enchanted_golden_apple', 2), e('music_disc_13', 15), e('music_disc_cat', 15), e('name_tag', 20),
+          e('chainmail_chestplate', 10), e('diamond_hoe', 15), e('diamond_chestplate', 5), e('book', 10, ER),
+        ],
+      },
+      {
+        rolls: [1, 4],
+        entries: [
+          e('iron_ingot', 10, n(1, 4)), e('gold_ingot', 5, n(1, 4)), e('bread', 20), e('wheat', 20, n(1, 4)), e('bucket', 10), e('redstone', 15, n(1, 4)),
+          e('coal', 15, n(1, 4)), e('melon_seeds', 10, n(2, 4)), e('pumpkin_seeds', 10, n(2, 4)), e('beetroot_seeds', 10, n(2, 4)),
+        ],
+      },
+      { rolls: 3, entries: [e('bone', 10, n(1, 8)), e('gunpowder', 10, n(1, 8)), e('rotten_flesh', 10, n(1, 8)), e('string', 10, n(1, 8))] },
+    ],
+  },
   // villages (chests/village/*)
   'chests/village/village_plains_house': {
     pools: [{ rolls: [3, 8], entries: [e('gold_nugget', 1, n(1, 3)), e('dandelion', 2), e('poppy', 1), e('potato', 10, n(1, 7)), e('bread', 10, n(1, 4)), e('apple', 10, n(1, 5)), e('book', 1), e('feather', 1), e('emerald', 2, n(1, 4)), e('oak_sapling', 5, n(1, 2))] }],
