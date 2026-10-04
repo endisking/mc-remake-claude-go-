@@ -401,13 +401,13 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### End
 
-- [ ] Main island <!--p3e:main_island-->
+- [x] Main island <!--p3e:main_island-->
 - [ ] Obsidian pillars with crystals and cages <!--p3e:obsidian_pillars_with_crystals_and_cages-->
-- [ ] Outer islands <!--p3e:outer_islands-->
+- [x] Outer islands <!--p3e:outer_islands-->
 - [ ] End cities <!--p3e:end_cities-->
 - [ ] End ships with elytra <!--p3e:end_ships_with_elytra-->
 - [ ] End gateways <!--p3e:end_gateways-->
-- [ ] Chorus plants <!--p3e:chorus_plants-->
+- [x] Chorus plants <!--p3e:chorus_plants-->
 
 ## Phase 4 — Blocks & interaction
 
@@ -473,7 +473,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Flower pots <!--p4:flower_pots-->
 - [ ] Banners on blocks <!--p4:banners_on_blocks-->
 - [ ] Mob heads <!--p4:mob_heads-->
-- [ ] End portal frames and eyes <!--p4:end_portal_frames_and_eyes-->
+- [x] End portal frames and eyes <!--p4:end_portal_frames_and_eyes-->
 - [x] Nether portal block behavior <!--p4:nether_portal_block_behavior-->
 - [ ] Spawners <!--p4:spawners-->
 
@@ -1652,7 +1652,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Fermented Spider Eye (`fermented_spider_eye`) <!--item:fermented_spider_eye-->
 - [ ] Blaze Powder (`blaze_powder`) <!--item:blaze_powder-->
 - [ ] Magma Cream (`magma_cream`) <!--item:magma_cream-->
-- [ ] Eye of Ender (`ender_eye`) <!--item:ender_eye-->
+- [x] Eye of Ender (`ender_eye`) <!--item:ender_eye-->
 - [ ] Glistering Melon Slice (`glistering_melon_slice`) <!--item:glistering_melon_slice-->
 - [ ] Axolotl Spawn Egg (`axolotl_spawn_egg`) ⊘ <!--item:axolotl_spawn_egg-->
 - [ ] Bat Spawn Egg (`bat_spawn_egg`) ⊘ <!--item:bat_spawn_egg-->
@@ -2588,7 +2588,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] End Crystal (`end_crystal`) <!--entity:end_crystal-->
 - [ ] Evoker Fangs (`evoker_fangs`) <!--entity:evoker_fangs-->
 - [ ] Experience Orb (`experience_orb`) <!--entity:experience_orb-->
-- [ ] Eye of Ender (`eye_of_ender`) <!--entity:eye_of_ender-->
+- [x] Eye of Ender (`eye_of_ender`) <!--entity:eye_of_ender-->
 - [ ] Falling Block (`falling_block`) <!--entity:falling_block-->
 - [ ] Firework Rocket (`firework_rocket`) <!--entity:firework_rocket-->
 - [ ] Glow Item Frame (`glow_item_frame`) <!--entity:glow_item_frame-->
@@ -2838,14 +2838,14 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Portal search radius (128 overworld / 16 nether) <!--p8:portal_search_radius_128_overworld_16_nether-->
 - [x] Portal creation when no link <!--p8:portal_creation_when_no_link-->
 - [x] Portal travel delay and nausea overlay <!--p8:portal_travel_delay_and_nausea_overlay-->
-- [ ] End portals in strongholds <!--p8:end_portals_in_strongholds-->
-- [ ] Eyes of Ender (flight, shatter chance) <!--p8:eyes_of_ender_flight_shatter_chance-->
+- [x] End portals in strongholds <!--p8:end_portals_in_strongholds-->
+- [x] Eyes of Ender (flight, shatter chance) <!--p8:eyes_of_ender_flight_shatter_chance-->
 - [ ] End gateways (teleport to outer islands) <!--p8:end_gateways_teleport_to_outer_islands-->
-- [ ] End exit portal and credits <!--p8:end_exit_portal_and_credits-->
-- [ ] Credits / poem screen (original text) <!--p8:credits_poem_screen_original_text-->
+- [x] End exit portal and credits <!--p8:end_exit_portal_and_credits-->
+- [x] Credits / poem screen (original text) <!--p8:credits_poem_screen_original_text-->
 - [x] Nether sky and fog by biome <!--p8:nether_sky_and_fog_by_biome-->
-- [ ] End sky <!--p8:end_sky-->
-- [ ] Dimension-specific music and ambience <!--p8:dimension_specific_music_and_ambience-->
+- [x] End sky <!--p8:end_sky-->
+- [x] Dimension-specific music and ambience <!--p8:dimension_specific_music_and_ambience-->
 - [x] Bed/respawn anchor dimension rules <!--p8:bed_respawn_anchor_dimension_rules-->
 - [ ] Compass/clock behavior per dimension <!--p8:compass_clock_behavior_per_dimension-->
 

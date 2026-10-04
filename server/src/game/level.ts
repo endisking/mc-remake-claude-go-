@@ -9,6 +9,7 @@ import { LightEngine } from '@shared/world/light';
 import type { DevGenerator } from '@shared/worldgen/devgen';
 import type { OverworldGenerator } from '@shared/worldgen/overworld/generator';
 import type { NetherGenerator } from '@shared/worldgen/nether/generator';
+import type { EndGenerator } from '@shared/worldgen/end/generator';
 import type { WorldStorage } from '../storage/types';
 import type { ServerEntity } from './entity';
 import type { ServerPlayer } from './player';
@@ -52,7 +53,7 @@ export const DIMENSION_TYPES: Record<DimensionId, DimensionType> = {
   },
 };
 
-export type LevelGenerator = DevGenerator | OverworldGenerator | NetherGenerator;
+export type LevelGenerator = DevGenerator | OverworldGenerator | NetherGenerator | EndGenerator;
 
 export class ServerLevel {
   readonly world = new BlockWorld();

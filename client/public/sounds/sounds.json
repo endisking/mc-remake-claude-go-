@@ -16261,6 +16261,53 @@
    }
   ]
  },
+ "entity.ender_eye.launch": {
+  "sounds": [
+   {
+    "name": "whoosh/0",
+    "pitch": 1.2,
+    "volume": 0.8
+   },
+   {
+    "name": "whoosh/1",
+    "pitch": 1.2,
+    "volume": 0.8
+   }
+  ]
+ },
+ "entity.ender_eye.death": {
+  "sounds": [
+   {
+    "name": "glass_break/0",
+    "pitch": 1.4,
+    "volume": 0.6
+   },
+   {
+    "name": "glass_break/1",
+    "pitch": 1.4,
+    "volume": 0.6
+   },
+   {
+    "name": "glass_break/2",
+    "pitch": 1.4,
+    "volume": 0.6
+   }
+  ]
+ },
+ "block.end_portal_frame.fill": {
+  "sounds": [
+   {
+    "name": "teleport/0",
+    "pitch": 1.5,
+    "volume": 0.8
+   },
+   {
+    "name": "teleport/1",
+    "pitch": 1.5,
+    "volume": 0.8
+   }
+  ]
+ },
  "entity.iron_golem.damage": {
   "sounds": [
    {

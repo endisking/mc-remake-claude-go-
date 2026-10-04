@@ -218,3 +218,34 @@ export function powderSnowOutline(): Tex {
     }
   return t;
 }
+
+/**
+ * 128×128 End sky tile (original): a tileable field of muted violet-grey speckle and soft
+ * streaks on near-black, drawn bright so the renderer's 40/255 tint brings it down to the dim,
+ * grainy void the End sky box shows. Repeated 16 times across each face of the sky cube.
+ */
+export function endSky(): Tex {
+  const N = 128;
+  const t = new Tex(N, N);
+  const r = rng(1717);
+  const grid = (n: number) => Array.from({ length: n * n }, () => r());
+  const octs: [number[], number][] = [[grid(8), 8], [grid(16), 16], [grid(32), 32]];
+  const sample = (g: number[], n: number, x: number, y: number) => {
+    const fx = (x / N) * n, fy = (y / N) * n;
+    const x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+    const v = (i: number, j: number) => g[((j % n) + n) % n * n + (((i % n) + n) % n)]!;
+    const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+    return (v(x0, y0) * (1 - sx) + v(x0 + 1, y0) * sx) * (1 - sy) + (v(x0, y0 + 1) * (1 - sx) + v(x0 + 1, y0 + 1) * sx) * sy;
+  };
+  const dark = hex('#4a4352'), mid = hex('#9a8fa8'), light = hex('#f0e8f8');
+  for (let y = 0; y < N; y++)
+    for (let x = 0; x < N; x++) {
+      const n = sample(octs[0][0], 8, x, y) * 0.5 + sample(octs[1][0], 16, x, y) * 0.3 + sample(octs[2][0], 32, x, y) * 0.2;
+      const grain = r();
+      let c = mix(dark, mid, Math.max(0, Math.min(1, (n - 0.35) * 2.2)));
+      if (grain > 0.985) c = mix(c, light, 0.8);
+      else if (grain > 0.93) c = mix(c, mid, 0.5);
+      t.set(x, y, [c[0], c[1], c[2], 255]);
+    }
+  return t;
+}

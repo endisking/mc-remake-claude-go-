@@ -87,7 +87,9 @@ import { ClientArrows } from './world/arrows';
 import { itemName as itemNameOfId } from '@shared/item/stack';
 import { ItemTextures } from './render/itemtextures';
 import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './gui/itemicons';
-import { netherFogColor, netherFogRange, PortalEffect, applyPortalWobble, insidePortal, ambientLight, hasSky, animatePortals } from './world/dimension';
+import { netherFogColor, netherFogRange, PortalEffect, applyPortalWobble, insidePortal, ambientLight, hasSky, animatePortals, endFogColor } from './world/dimension';
+import { EndSkyRenderer } from './render/endsky';
+import { CreditsScreen } from './gui/credits';
 import { isPortal } from '@shared/game/portalshape';
 import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
@@ -186,6 +188,8 @@ export class Game implements ScreenHost, ContainerHost {
   // ---- dimensions / nether portals ----
   /** Current dimension (login / dimension packets): overworld, the_nether, the_end. */
   dimension = 'overworld';
+  /** The End's sky box (created on first use). */
+  private endSky: EndSkyRenderer | null = null;
   readonly portalFx = new PortalEffect();
   private readonly portalRand = new JavaRandom(BigInt(Date.now()) ^ 0x5deece66dn);
   private portalOverlay: ImageBitmap | null = null;
@@ -1121,6 +1125,10 @@ export class Game implements ScreenHost, ContainerHost {
       case 'dimension':
         this.changeDimension(p);
         break;
+      case 'winGame':
+        // ClientboundGameEventPacket WIN_GAME: roll the credits (the first time)
+        if (p.showCredits) this.setScreen(new CreditsScreen(this, new URLSearchParams(location.search).get('name') ?? 'Player', () => this.setScreen(null)));
+        break;
       case 'levelEvent':
         if (p.event === 1032) this.playUi('block.portal.travel', this.sfxRand.nextFloat() * 0.4 + 0.8);
         if (p.event === 2001) this.blockBroken(p.x, p.y, p.z, p.data);
@@ -1790,7 +1798,7 @@ export class Game implements ScreenHost, ContainerHost {
     const underWater = loaded && pl.isUnderWater;
     this.music.tick(situationalMusic({
       inMenu: !loaded,
-      dimension: biome?.dimension ?? 'overworld',
+      dimension: (this.dimension as 'overworld' | 'the_nether' | 'the_end') ?? 'overworld',
       biome: biome?.name ?? 'plains',
       biomeCategory: biome?.category ?? 'plains',
       underWater,
@@ -2654,6 +2662,8 @@ export class Game implements ScreenHost, ContainerHost {
     if (nether && medium === 'air') {
       netherFogColor(this.world, cx, cy, cz, s.renderDistance, fog);
       [fogStart, fogEnd] = netherFogRange(renderDist);
+    } else if (this.dimension === 'the_end' && medium === 'air') {
+      endFogColor(cy, s.renderDistance, fog);
     } else if (medium === 'water') {
       // FogRenderer: 192 × max(0.25, water vision) × (0.85 in swamps), halved
       const wv = this.waterVision();
@@ -2698,7 +2708,7 @@ export class Game implements ScreenHost, ContainerHost {
       gamma: s.gamma,
       nightVision: this.nightVisionScale(partial),
       flash: this.skyFlashTime > 0,
-      end: false,
+      end: this.dimension === 'the_end',
     });
 
     gl.clearColor(fog[0], fog[1], fog[2], 1);
@@ -2714,6 +2724,7 @@ export class Game implements ScreenHost, ContainerHost {
     this.applyNausea(partial);
     viewRotation(this.view, camYaw, camPitch);
     if (hasSky(this.dimension)) this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
+    else if (this.dimension === 'the_end' && medium === 'air') (this.endSky ??= new EndSkyRenderer(this.gl)).render(this.proj, this.view);
 
     multiply(this.viewProj, this.proj, this.view);
     this.camPos[0] = cx;

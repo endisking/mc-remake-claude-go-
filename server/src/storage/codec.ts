@@ -127,6 +127,7 @@ export function capturePlayer(p: ServerPlayer): PlayerData {
     enderItems: p.enderChest.map((s) => (s && s.count > 0 ? { ...s } : null)),
     selected: p.inventory.selected,
     respawn: p.respawn ? { ...p.respawn } : null,
+    seenCredits: p.seenCredits,
     effects: [...l.effects.active.values()].map((e) => ({ ...e })),
     xpSeed: p.enchantmentSeed,
   };
@@ -174,6 +175,7 @@ export function applyPlayer(p: ServerPlayer, d: PlayerData): void {
   }
   p.inventory.selected = Math.max(0, Math.min(8, num(d.selected, 0) | 0));
   p.respawn = d.respawn ? { ...d.respawn } : null;
+  p.seenCredits = !!d.seenCredits;
   // effects come back as they were (absorption hearts are saved separately above)
   l.effects.active.clear();
   if (Array.isArray(d.effects)) {
