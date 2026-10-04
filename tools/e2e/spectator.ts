@@ -14,7 +14,7 @@ mkdirSync(out, { recursive: true });
 const root = new URL('../../', import.meta.url).pathname;
 const srv = spawn('pnpm', ['-s', 'tsx', '--tsconfig', 'server/tsconfig.json', 'server/src/node/main.ts'], {
   cwd: root,
-  env: { ...process.env, PORT: '8092', SCENE: 'models', GAMEMODE: '0' },
+  env: { ...process.env, PORT: '8092', SCENE: 'models', GAMEMODE: '0', OPS: '*' },
   stdio: 'pipe',
 });
 srv.stdout.on('data', (d) => process.stdout.write(`[server] ${d}`));

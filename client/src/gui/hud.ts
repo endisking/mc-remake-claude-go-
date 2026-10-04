@@ -90,9 +90,8 @@ export class Hud {
     if (!focused) this.chatScroll = 0;
     const bottom = g.height - 40;
     const max = focused ? 20 : 10;
-    let n = 0;
-    for (let i = focused ? this.chatScroll : 0; i < this.chatLines.length; i++) {
-      const l = this.chatLines[i]!;
+    let n = 0, skip = focused ? this.chatScroll : 0;
+    for (const l of this.chatLines) {
       const age = this.tickCount - l.tick;
       if (n >= max || (!focused && age >= 200)) break;
       let o = focused ? 1 : 1 - age / 200;
@@ -101,14 +100,22 @@ export class Hud {
       const alpha = o * 0.9 + 0.1;
       const bg = o * 0.5;
       if (alpha <= 0.01) continue;
-      const y = bottom - n * 9;
-      g.ctx.save();
-      g.ctx.globalAlpha = bg;
-      g.fill(0, y - 9, 4 + 320 + 4, 9, 0xff000000);
-      g.ctx.globalAlpha = alpha;
-      g.text(l.text, 4, y - 8, 0xffffff, true);
-      g.ctx.restore();
-      n++;
+      // ComponentRenderUtils.wrapComponents: lines wider than the chat (320) wrap, newest at the bottom
+      const parts = wrapChat(g, l.text, 320);
+      for (let i = parts.length - 1; i >= 0 && n < max; i--) {
+        if (skip > 0) {
+          skip--;
+          continue;
+        }
+        const y = bottom - n * 9;
+        g.ctx.save();
+        g.ctx.globalAlpha = bg;
+        g.fill(0, y - 9, 4 + 320 + 4, 9, 0xff000000);
+        g.ctx.globalAlpha = alpha;
+        g.text(parts[i]!, 4, y - 8, 0xffffff, true);
+        g.ctx.restore();
+        n++;
+      }
     }
   }
 
@@ -287,4 +294,22 @@ export class Hud {
       g.text(s, i1, j1, 0x80ff20, false);
     }
   }
+}
+
+/** Split a §-formatted line at spaces to fit `width` GUI pixels, carrying the colour code over. */
+export function wrapChat(g: Gui, text: string, width: number): string[] {
+  if (g.font.width(text) <= width) return [text];
+  const out: string[] = [];
+  let line = '', color = '';
+  for (const word of text.split(/(?<= )/)) {
+    if (line && g.font.width(line + word) > width) {
+      out.push(line);
+      line = color;
+    }
+    line += word;
+    const codes = word.match(/§[0-9a-fr]/gi);
+    if (codes) color = codes[codes.length - 1]!.toLowerCase() === '§r' ? '' : codes[codes.length - 1]!;
+  }
+  if (line) out.push(line);
+  return out;
 }

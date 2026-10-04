@@ -59,7 +59,7 @@ import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
-import { ChatScreen, componentToLegacy, renderPlayerList, type SuggestionReply } from './gui/chat';
+import { ChatScreen, DisconnectedScreen, componentToLegacy, renderPlayerList, type SuggestionReply } from './gui/chat';
 
 export class Game implements ScreenHost {
   readonly gl: WebGL2RenderingContext;
@@ -455,7 +455,10 @@ export class Game implements ScreenHost {
   connect(t: ClientTransport): void {
     this.transport = t;
     t.onMessage = (d) => this.handle(decodeS2C(d));
-    t.onClose = (r) => console.warn('disconnected', r);
+    t.onClose = (r) => {
+      console.warn('disconnected', r);
+      this.showDisconnected(r);
+    };
     this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: '' });
   }
 
@@ -722,10 +725,19 @@ export class Game implements ScreenHost {
       case 'playerLatency':
         this.playerLatency.set(p.id, p.latency);
         break;
-      case 'digAck':
       case 'disconnect':
+        this.showDisconnected(p.reason);
+        break;
+      case 'digAck':
         break;
     }
+  }
+
+  /** Kicked, banned or the connection dropped: vanilla DisconnectedScreen. */
+  private showDisconnected(reason: string): void {
+    if (this.screen instanceof DisconnectedScreen) return;
+    this.loggedIn = false;
+    this.setScreen(new DisconnectedScreen(this, reason));
   }
 
   /** Move the camera directly (benchmark / tests); position is the eye. */

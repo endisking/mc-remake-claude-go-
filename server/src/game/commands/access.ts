@@ -69,6 +69,8 @@ export class AccessControl {
   cheats = true;
   /** Dedicated server: only ops.json entries are operators. */
   dedicated = false;
+  /** Dedicated server started with OPS=* : every player is an operator (private test/friend rooms). */
+  allOps = false;
 
   constructor(private store: AccessStore | null = null) {
     this.reload();
@@ -117,14 +119,14 @@ export class AccessControl {
    * cheats allowed — everyone (vanilla allowCheatsForAllPlayers when opened to LAN with cheats).
    */
   isOp(p: ServerPlayer): boolean {
-    return !!this.opEntry(p.name) || (!this.dedicated && this.cheats);
+    return !!this.opEntry(p.name) || (!this.dedicated && this.cheats) || this.allOps;
   }
   /** MinecraftServer.getProfilePermissions */
   permissionLevel(p: ServerPlayer): number {
     const e = this.opEntry(p.name);
     if (e) return e.level;
     if (!this.dedicated) return this.cheats ? 4 : 0;
-    return 0;
+    return this.allOps ? this.opPermissionLevel : 0;
   }
   op(name: string): boolean {
     if (this.opEntry(name)) return false;

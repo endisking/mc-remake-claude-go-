@@ -4,7 +4,7 @@
  * server), sent-message history, JSON text components → §-formatted strings, and the
  * player list shown while Tab is held (vanilla PlayerTabOverlay).
  */
-import { Screen } from './screen';
+import { Button, Screen } from './screen';
 import type { Gui } from './gui';
 import type { PlayerInfoEntry } from './spectator';
 
@@ -418,5 +418,34 @@ export function renderPlayerList(
     g.text(p.name, x + 9, y, spectator ? 0xffffff : 0xffffff, true);
     g.ctx.restore();
     pingBars(g, x + slotW - 11, y, latency(p.id));
+  }
+}
+
+// ------------------------------------------------------------------ disconnected
+/** Vanilla DisconnectedScreen: "Connection Lost", the (kick/ban) reason, back to the title screen. */
+export class DisconnectedScreen extends Screen {
+  constructor(private host: { gui: Gui; quitToTitle(): void }, private reason: string) {
+    super(host.gui, 'Connection Lost');
+    this.pausesGame = false;
+  }
+  init(): void {
+    const g = this.gui;
+    const lines = this.reason.split('\n').length;
+    this.widgets = [new Button(Math.floor(g.width / 2) - 100, Math.min(Math.floor(g.height / 2 + (lines * 9) / 2 + 9), g.height - 30), 200, 20, 'Back to Title Screen', () => this.host.quitToTitle())];
+  }
+  override renderBackground(): void {
+    this.gui.dirtBackground();
+  }
+  override render(mx: number, my: number): void {
+    this.renderBackground();
+    const g = this.gui;
+    const lines = this.reason.split('\n');
+    const top = Math.floor(g.height / 2 - (lines.length * 9) / 2);
+    g.centeredText(this.title, g.width / 2, top - 9 * 2, 0xaaaaaa);
+    lines.forEach((l, i) => g.centeredText(l, g.width / 2, top + i * 9, 0xffffff));
+    for (const w of this.widgets) if (w.visible) w.render(g, mx, my);
+  }
+  override keyDown(code: string): boolean {
+    return code === 'Escape';
   }
 }
