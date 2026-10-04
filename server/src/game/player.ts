@@ -44,6 +44,8 @@ export class ServerPlayer {
   lastSentYaw = NaN;
   lastSentPitch = NaN;
   stateDirty = true;
+  sentMainHand = -1;
+  sentOffHand = -1;
   readonly inventory = new Inventory();
   /** Block being dug in survival: position and start tick. */
   digging: { x: number; y: number; z: number; start: number } | null = null;

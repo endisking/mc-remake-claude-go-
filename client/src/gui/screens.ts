@@ -2,6 +2,7 @@
 import { Button, Screen, Slider } from './screen';
 import type { Gui } from './gui';
 import type { Settings } from '../settings';
+import { ControlsScreen, SoundOptionsScreen, AccessibilityScreen } from './controls';
 
 export interface ScreenHost {
   gui: Gui;
@@ -51,18 +52,31 @@ export class OptionsScreen extends Screen {
   init(): void {
     const s = this.host.settings;
     const cx = Math.floor(this.gui.width / 2), y0 = Math.floor(this.gui.height / 6);
+    const DIFF = ['Peaceful', 'Easy', 'Normal', 'Hard'];
+    const h = this.host as ScreenHost & { difficulty: number; send(p: unknown): void };
     this.widgets = [
       new Slider(cx - 155, y0 - 12, 150, 20, (s.fov - 30) / 80, (v) => `FOV: ${Math.round(30 + v * 80) === 70 ? 'Normal' : Math.round(30 + v * 80) === 110 ? 'Quake Pro' : Math.round(30 + v * 80)}`, (v) => {
         s.fov = Math.round(30 + v * 80);
         this.host.applySettings(false);
       }),
+      new Button(cx + 5, y0 - 12, 150, 20, `Difficulty: ${DIFF[h.difficulty] ?? 'Normal'}`, (b) => {
+        const next = (h.difficulty + 1) % 4;
+        h.send({ t: 'chat', message: `/difficulty ${DIFF[next]!.toLowerCase()}` });
+        h.difficulty = next;
+        b.label = `Difficulty: ${DIFF[next]}`;
+      }),
+      new Button(cx - 155, y0 + 48 - 6, 150, 20, 'Skin Customization...', () => {}),
+      new Button(cx + 5, y0 + 48 - 6, 150, 20, 'Music & Sounds...', () => this.host.setScreen(new SoundOptionsScreen(this.host as never, this))),
       new Button(cx - 155, y0 + 72 - 6, 150, 20, 'Video Settings...', () => this.host.setScreen(new VideoSettingsScreen(this.host, this))),
-      new Button(cx + 5, y0 + 72 - 6, 150, 20, 'Controls...', () => {}),
-      new Button(cx - 155, y0 + 96 - 6, 150, 20, 'Music & Sounds...', () => {}),
-      new Button(cx + 5, y0 + 96 - 6, 150, 20, 'Skin Customization...', () => {}),
+      new Button(cx + 5, y0 + 72 - 6, 150, 20, 'Controls...', () => this.host.setScreen(new ControlsScreen(this.host, this))),
+      new Button(cx - 155, y0 + 96 - 6, 150, 20, 'Language...', () => {}),
+      new Button(cx + 5, y0 + 96 - 6, 150, 20, 'Chat Settings...', () => {}),
+      new Button(cx - 155, y0 + 120 - 6, 150, 20, 'Resource Packs...', () => {}),
+      new Button(cx + 5, y0 + 120 - 6, 150, 20, 'Accessibility Settings...', () => this.host.setScreen(new AccessibilityScreen(this.host, this))),
       new Button(cx - 100, y0 + 168, 200, 20, 'Done', () => this.host.setScreen(this.parent)),
     ];
-    for (const i of [2, 3, 4]) this.widgets[i]!.active = false;
+    // not built yet: skins, languages (English only), chat settings, resource packs
+    for (const i of [2, 6, 7, 8]) this.widgets[i]!.active = false;
   }
   override renderBackground(): void {
     this.gui.worldBackground();

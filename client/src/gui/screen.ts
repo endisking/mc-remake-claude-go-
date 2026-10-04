@@ -119,6 +119,14 @@ export abstract class Screen {
     this.pressed?.onRelease();
     this.pressed = null;
   }
+  /** Any mouse button before the normal click handling; return true to consume (key capture). */
+  mouseButton(_mx: number, _my: number, _button: number): boolean {
+    return false;
+  }
+  /** Wheel notches, positive = down. */
+  mouseScrolled(_mx: number, _my: number, _delta: number): void {}
+  /** Called every game tick while open. */
+  tick(): void {}
   /** Return true if the key was handled. */
   keyDown(_code: string): boolean {
     return false;

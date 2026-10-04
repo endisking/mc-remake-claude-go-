@@ -59,6 +59,10 @@ const S2C_SCHEMA = {
   /** Inventory slot contents (player inventory numbering, see Inventory). */
   setSlot: [['slot', 'i16'], ['item', 'i16'], ['count', 'u8'], ['damage', 'i16']],
   heldSlot: [['slot', 'u8']],
+  /** Items another player holds (vanilla SetEquipment: main hand and off hand item ids, 0 = empty). */
+  equipment: [['id', 'i32'], ['mainHand', 'i16'], ['offHand', 'i16']],
+  /** World difficulty (vanilla ChangeDifficulty). */
+  difficulty: [['difficulty', 'u8']],
   /** Remaining air (300 = full). */
   air: [['air', 'i16']],
   /** XP bar progress, level and total points. */

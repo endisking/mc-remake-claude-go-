@@ -30,7 +30,7 @@ export class DeathScreen extends Screen {
   }
 
   /** Buttons unlock after 20 ticks. */
-  tick(): void {
+  override tick(): void {
     if (++this.delayTicker === 20) for (const w of this.widgets) w.active = true;
   }
 

@@ -48,21 +48,19 @@ const played = await page.evaluate(async () => {
   const pitch = g.pitch;
   g.pitch = 0;
   g.yaw = 270;
-  g.input.down.add('KeyW');
+  g.input.press('KeyW');
   await new Promise((r) => setTimeout(r, 2000));
-  g.input.down.delete('KeyW');
+  g.input.release('KeyW');
   log.push(`walked to ${g.player.x.toFixed(1)},${g.player.y.toFixed(1)},${g.player.z.toFixed(1)} moveDist=${g.steps.moveDist.toFixed(2)} water=${g.player.isInWater}`);
   g.pitch = pitch;
   await new Promise((r) => setTimeout(r, 400));
   // dig the block below, then place, then walk
-  g.input.mouseButtons.add(0);
-  g.input.mousePressed.add(0);
+  g.input.press('Mouse0');
   await new Promise((r) => setTimeout(r, 1500));
-  g.input.mouseButtons.delete(0);
-  g.input.mouseButtons.add(2);
-  g.input.mousePressed.add(2);
+  g.input.release('Mouse0');
+  g.input.press('Mouse2');
   await new Promise((r) => setTimeout(r, 100));
-  g.input.mouseButtons.delete(2);
+  g.input.release('Mouse2');
   return { ctx: g.sound.ctx?.state, events: [...new Set(log)], count: log.length };
 });
 console.log('played', played);

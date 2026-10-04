@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 117 / 4140**
+**Progress: 121 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -132,13 +132,13 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Camera & controls
 
-- [ ] First-person camera with mouse look and sensitivity setting <!--p2:first_person_camera_with_mouse_look_and_sensitivity_setting-->
+- [x] First-person camera with mouse look and sensitivity setting <!--p2:first_person_camera_with_mouse_look_and_sensitivity_setting-->
 - [x] Sprint FOV change, FOV effects (speed/slowness) <!--p2:sprint_fov_change_fov_effects_speed_slowness-->
 - [x] View bobbing <!--p2:view_bobbing-->
 - [x] Hand sway and swing animation <!--p2:hand_sway_and_swing_animation-->
-- [ ] F5 three perspectives <!--p2:f5_three_perspectives-->
-- [ ] F3+B hitboxes <!--p2:f3_b_hitboxes-->
-- [ ] Rebindable keys <!--p2:rebindable_keys-->
+- [x] F5 three perspectives <!--p2:f5_three_perspectives-->
+- [x] F3+B hitboxes <!--p2:f3_b_hitboxes-->
+- [x] Rebindable keys <!--p2:rebindable_keys-->
 - [x] Scroll / number-key hotbar selection <!--p2:scroll_number_key_hotbar_selection-->
 - [x] Q drop / Ctrl+Q drop stack <!--p2:q_drop_ctrl_q_drop_stack-->
 - [ ] F swap offhand <!--p2:f_swap_offhand-->

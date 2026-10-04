@@ -130,6 +130,11 @@ export class EntityRenderer {
   }
 
   private poses = new Map<number, Record<string, PartPose>>();
+  /** Held-item draws queued by renderPlayers (camera-relative matrix, light, item, left hand). */
+  readonly held: { matrix: Mat4; light: number; item: number; left: boolean }[] = [];
+  private heldPool: Mat4[] = [];
+  /** Resolves whether an item has a model and whether it is flat (generated) — set by the game. */
+  itemModel: (item: number) => { flat: boolean } | null = () => null;
 
   renderPlayers(
     players: Iterable<RemotePlayer>, world: ClientWorld, viewProj: Mat4, camX: number, camY: number, camZ: number, partial: number,
@@ -193,6 +198,19 @@ export class EntityRenderer {
         gl.uniformMatrix4fv(this.u.get('uModel'), false, this.tmp);
         gl.drawArrays(gl.TRIANGLES, part.first, part.count);
       });
+      // ItemInHandLayer: items held in each hand
+      for (const [item, armName, left] of [[p.mainHand, 'rightArm', false], [p.offHand, 'leftArm', true]] as const) {
+        if (!item) continue;
+        const info = this.itemModel(item);
+        if (!info) continue;
+        const arm = poses[armName]!;
+        const am = mat4();
+        partMatrix(am, arm);
+        const out = this.heldPool.pop() ?? mat4();
+        multiply(out, m, am);
+        multiply(out, out, heldItemTransform(left, info.flat));
+        this.held.push({ matrix: out, light, item, left });
+      }
     }
     gl.bindVertexArray(null);
   }
@@ -234,6 +252,61 @@ export class EntityRenderer {
     gl.drawArrays(gl.TRIANGLES, part.first, part.count);
     gl.bindVertexArray(null);
   }
+}
+
+/** Return queued held-item matrices to the pool after drawing. */
+export function recycleHeld(r: EntityRenderer): void {
+  for (const h of r.held) (r as unknown as { heldPool: Mat4[] }).heldPool.push(h.matrix);
+  r.held.length = 0;
+}
+
+/**
+ * Hand → item transform in our model space (px): vanilla ItemInHandLayer.renderArmWithItem
+ * (rotX −90, rotY 180, translate (±1/16, 0.125, −0.625)) and the item's thirdperson display
+ * transform (blocks: rot (75, 45, 0), 2.5 px up, scale 0.375; generated: 3 px up, 1 px forward,
+ * scale 0.55), converted from vanilla's y-down model space by diag(1, −1, −1) and px scale.
+ */
+function heldItemTransform(left: boolean, flat: boolean): Mat4 {
+  const out = mat4();
+  const mul = (b: Mat4) => multiply(out, out, b);
+  const S = mat4();
+  S[0] = 16; S[5] = -16; S[10] = -16; // px · diag(1, −1, −1)
+  mul(S);
+  mul(rot(1, 0, 0, -90));
+  mul(rot(0, 1, 0, 180));
+  mul(tr((left ? -1 : 1) / 16, 0.125, -0.625));
+  const sgn = left ? -1 : 1;
+  if (flat) {
+    mul(tr(0, 3 / 16, 1 / 16));
+    const k = mat4();
+    k[0] = k[5] = k[10] = 0.55;
+    mul(k);
+  } else {
+    mul(tr(0, 2.5 / 16, 0));
+    mul(rot(1, 0, 0, 75));
+    mul(rot(0, 1, 0, 45 * sgn));
+    const k = mat4();
+    k[0] = k[5] = k[10] = 0.375;
+    mul(k);
+  }
+  return out;
+}
+
+function tr(x: number, y: number, z: number): Mat4 {
+  const m = mat4();
+  m[12] = x;
+  m[13] = y;
+  m[14] = z;
+  return m;
+}
+
+function rot(x: number, y: number, z: number, deg: number): Mat4 {
+  const a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a), t = 1 - c;
+  const m = mat4();
+  m[0] = t * x * x + c; m[1] = t * x * y + s * z; m[2] = t * x * z - s * y;
+  m[4] = t * x * y - s * z; m[5] = t * y * y + c; m[6] = t * y * z + s * x;
+  m[8] = t * x * z + s * y; m[9] = t * y * z - s * x; m[10] = t * z * z + c;
+  return m;
 }
 
 /** translate(pivot) · rotZ · rotY · rotX (vanilla ModelPart.translateAndRotate order). */

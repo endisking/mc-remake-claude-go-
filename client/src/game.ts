@@ -41,6 +41,7 @@ import { soundTypeOf } from '@shared/world/soundtype';
 import { isRainingAt } from '@shared/world/weather';
 import { StepTracker } from '@shared/entity/steps';
 import { Button } from './gui/screen';
+import { KeyBindings } from './keybinds';
 import { blockForItem } from '@shared/game/loot';
 import { BLOCKS_BY_NAME, ITEMS_BY_ID } from '@shared/data';
 import { itemName } from '@shared/item/stack';
@@ -48,7 +49,7 @@ import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
 import { isViewBlocking } from '@shared/world/blockprops';
 import { JavaRandom } from '@shared/util/random';
-import { EntityRenderer } from './render/entities/entityrenderer';
+import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
@@ -148,6 +149,15 @@ export class Game implements ScreenHost {
   pitch = 0;
   loggedIn = false;
   showDebug = false;
+  /** vanilla CameraType: 0 first person, 1 third person back, 2 third person front */
+  cameraType = 0;
+  /** world difficulty (0 peaceful .. 3 hard) */
+  difficulty = 2;
+  private f3Used = false;
+  private scrollAcc = 0;
+  binds!: KeyBindings;
+  showHitboxes = false;
+  private selfModel: RemotePlayer | null = null;
   hideHud = false;
 
   // timing
@@ -182,6 +192,7 @@ export class Game implements ScreenHost {
     this.input = new Input(canvas);
     const q = new URLSearchParams(location.search);
     this.settings = applyQueryOverrides(loadSettings(), q);
+    this.binds = new KeyBindings(this.input, () => this.settings);
     this.showDebug = q.get('debug') === '1';
     const guiCanvas = document.getElementById('gui') as HTMLCanvasElement;
     this.gui = new Gui(guiCanvas);
@@ -192,8 +203,15 @@ export class Game implements ScreenHost {
     };
     guiCanvas.addEventListener('mousedown', (e) => {
       toGui(e);
-      if (e.button === 0) this.screen?.mouseDown(this.mouseGX, this.mouseGY);
+      if (!this.screen) return;
+      if (this.screen.mouseButton(this.mouseGX, this.mouseGY, e.button)) return;
+      if (e.button === 0) this.screen.mouseDown(this.mouseGX, this.mouseGY);
     });
+    guiCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    guiCanvas.addEventListener('wheel', (e) => {
+      toGui(e);
+      this.screen?.mouseScrolled(this.mouseGX, this.mouseGY, e.deltaMode === 0 ? e.deltaY / 100 : e.deltaMode === 1 ? e.deltaY / 3 : e.deltaY);
+    }, { passive: true });
     guiCanvas.addEventListener('mousemove', (e) => {
       toGui(e);
       this.screen?.mouseMove(this.mouseGX, this.mouseGY);
@@ -268,6 +286,7 @@ export class Game implements ScreenHost {
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
     await Promise.all([this.gui.load(), this.hud.load(), this.sound.load()]);
+    for (const [c, v] of Object.entries(this.settings.volumes)) this.sound.volumes[c as SoundCategory] = v;
     // audio may only start after a user gesture
     const unlock = () => this.sound.resume();
     window.addEventListener('pointerdown', unlock);
@@ -299,6 +318,11 @@ export class Game implements ScreenHost {
       return t === null ? null : (mainBake.textures.get(t)?.layer ?? mainBake.textures.get('missing')!.layer);
     }, (layer) => this.textures.alpha[layer]);
     this.lightning = new LightningRenderer(this.gl);
+    this.entityRenderer.itemModel = (item) => {
+      const block = blockForItem(item);
+      if (!block) return null;
+      return { flat: this.blockItems.isFlat(BLOCKS_BY_NAME.get(block)!.defaultState) };
+    };
     this.hand = new HandRenderer(this.gl, this.entityRenderer, this.blockItems, () => this.textures.tex, mainBake.textures.get('fire_1')!.layer);
     this.interaction = new Interaction({
       world: this.world,
@@ -369,6 +393,8 @@ export class Game implements ScreenHost {
     switch (p.t) {
       case 'login':
         this.entityId = p.entityId;
+        this.selfModel = new RemotePlayer(p.entityId, new URLSearchParams(location.search).get('name') ?? 'Player', '');
+        this.selfModel.setPos(p.x, p.y, p.z, p.yaw, p.pitch, p.yaw);
         this.setGameMode(p.gameMode);
         this.placePlayer(p.x, p.y, p.z);
         this.yaw = p.yaw;
@@ -381,6 +407,14 @@ export class Game implements ScreenHost {
           const sc = new URLSearchParams(location.search).get('screen');
           if (sc === 'video') import('./gui/screens').then((m) => this.setScreen(new m.VideoSettingsScreen(this, new m.PauseScreen(this))));
           else if (sc === 'pause') this.setScreen(new PauseScreen(this));
+          else if (sc === 'options') import('./gui/screens').then((m) => this.setScreen(new m.OptionsScreen(this, null)));
+          else if (sc === 'controls' || sc === 'mouse' || sc === 'sound' || sc === 'access') {
+            void import('./gui/controls').then((m) => {
+              const scr = sc === 'controls' ? new m.ControlsScreen(this, null) : sc === 'mouse' ? new m.MouseSettingsScreen(this, null)
+                : sc === 'sound' ? new m.SoundOptionsScreen(this, null) : new m.AccessibilityScreen(this, null);
+              this.setScreen(scr);
+            });
+          }
         }
         break;
       case 'chunk':
@@ -460,6 +494,17 @@ export class Game implements ScreenHost {
         break;
       case 'gameMode':
         this.setGameMode(p.mode);
+        break;
+      case 'equipment': {
+        const rp = this.players.get(p.id);
+        if (rp) {
+          rp.mainHand = p.mainHand;
+          rp.offHand = p.offHand;
+        }
+        break;
+      }
+      case 'difficulty':
+        this.difficulty = p.difficulty;
         break;
       case 'abilities':
         this.player.abilities.flying = p.flying;
@@ -553,8 +598,18 @@ export class Game implements ScreenHost {
         if (p.stage < 0) this.otherCracks.delete(p.id);
         else this.otherCracks.set(p.id, { x: p.x, y: p.y, z: p.z, stage: p.stage });
         break;
+      case 'chat': {
+        let text = p.json;
+        try {
+          const j = JSON.parse(p.json) as { text?: string };
+          if (typeof j.text === 'string') text = j.text;
+        } catch {
+          /* plain text */
+        }
+        this.hud.addChat(text);
+        break;
+      }
       case 'digAck':
-      case 'chat':
       case 'disconnect':
         break;
     }
@@ -610,6 +665,8 @@ export class Game implements ScreenHost {
       this.pitch = (-Math.atan2(dy, Math.hypot(dx, dz)) * 180) / Math.PI;
     }
     if (q.has('fly')) this.player.abilities.flying = true;
+    if (n('camera') !== undefined) this.cameraType = n('camera')!;
+    if (q.has('hitboxes')) this.showHitboxes = true;
     for (const g of q.getAll('give')) this.send({ t: 'chat', message: `/give @s ${g.replace(':', ' ')}` });
     if (q.has('weather')) this.send({ t: 'chat', message: `/weather ${q.get('weather')}` });
     if (n('time') !== undefined) {
@@ -634,14 +691,16 @@ export class Game implements ScreenHost {
     pl.pitch = this.pitch;
     const i = this.input;
     const active = !this.screen && !this.dead && (this.input.locked || new URLSearchParams(location.search).get('nolock') === '1');
-    const k = (code: string) => active && i.down.has(code);
+    this.binds.tick();
+    const k = (id: string) => active && this.binds.down(id);
     const move: MoveInput = {
-      forward: (k('KeyW') ? 1 : 0) - (k('KeyS') ? 1 : 0),
-      strafe: (k('KeyA') ? 1 : 0) - (k('KeyD') ? 1 : 0),
-      jump: k('Space'),
-      sneak: k('ShiftLeft') || k('ShiftRight'),
-      sprint: k('ControlLeft'),
+      forward: (k('forward') ? 1 : 0) - (k('back') ? 1 : 0),
+      strafe: (k('left') ? 1 : 0) - (k('right') ? 1 : 0),
+      jump: k('jump'),
+      sneak: k('sneak'),
+      sprint: k('sprint'),
     };
+    pl.autoJumpEnabled = this.settings.autoJump;
     const bx = pl.x, by = pl.y, bz = pl.z;
     if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
       pl.tick(move);
@@ -658,6 +717,8 @@ export class Game implements ScreenHost {
     let fovTarget = 1;
     if (pl.abilities.flying) fovTarget *= 1.1;
     fovTarget *= (pl.movementSpeed() / 0.1 + 1) / 2;
+    // FOV Effects accessibility slider scales the change
+    fovTarget = 1 + (fovTarget - 1) * this.settings.fovEffectScale;
     this.fovModifier += (fovTarget - this.fovModifier) * 0.5;
     if (this.fovModifier > 1.5) this.fovModifier = 1.5;
     if (this.fovModifier < 0.1) this.fovModifier = 0.1;
@@ -682,19 +743,30 @@ export class Game implements ScreenHost {
     this.swingTick();
     this.hud.tick(this.interaction.inventory);
     this.tickHand();
+    if (this.selfModel) {
+      const sm = this.selfModel, pl2 = this.player;
+      sm.follow(pl2.x, pl2.y, pl2.z, this.yaw, this.pitch);
+      sm.pose = pl2.pose;
+      sm.hurtTime = this.hurtTime;
+      sm.mainHand = this.interaction.inventory.selectedStack?.id ?? 0;
+      sm.offHand = this.interaction.inventory.get(40)?.id ?? 0;
+      sm.tick();
+    }
     this.tickLiving();
     this.tickEnvironment();
     // mouse buttons (vanilla handleKeybinds: attack, use, pick block)
     if (active && this.loggedIn) {
       const ia = this.interaction;
       ia.tick();
-      const attackPressed = i.consumeMouse(0);
+      const b = this.binds;
+      const attackPressed = b.consume('attack');
       if (attackPressed) ia.startAttack(this.target);
-      ia.continueAttack(i.mouseButtons.has(0) && !attackPressed, this.target);
-      ia.use(i.consumeMouse(2), i.mouseButtons.has(2), this.target);
-      if (i.consumeMouse(1)) ia.pickBlock(this.target);
-      for (let d = 1; d <= 9; d++) if (i.consumePress(`Digit${d}`)) ia.select(d - 1);
-      if (i.consumePress('KeyQ')) ia.drop(i.down.has('ControlLeft'));
+      ia.continueAttack(b.down('attack') && !attackPressed, this.target);
+      ia.use(b.consume('use'), b.down('use'), this.target);
+      if (b.consume('pickItem')) ia.pickBlock(this.target);
+      for (let d = 1; d <= 9; d++) if (b.consume(`hotbar.${d}`)) ia.select(d - 1);
+      // vanilla: Ctrl (Screen.hasControlDown) + drop throws the whole stack
+      if (b.consume('drop')) ia.drop(i.isDown('ControlLeft') || i.isDown('ControlRight') || i.isDown('MetaLeft'));
     }
     if (this.loggedIn) {
       const st = this.sentState;
@@ -746,11 +818,33 @@ export class Game implements ScreenHost {
     const sens = this.settings.mouseSensitivity * 0.6 + 0.2;
     const k = sens * sens * sens * 8 * 0.15;
     this.yaw += i.mouseDX * k;
-    this.pitch = Math.max(-90, Math.min(90, this.pitch + i.mouseDY * k));
-    if (i.wheel !== 0 && this.interaction) this.interaction.scroll(i.wheel);
-    if (i.consumePress('F3')) this.showDebug = !this.showDebug;
+    this.pitch = Math.max(-90, Math.min(90, this.pitch + i.mouseDY * k * (this.settings.invertYMouse ? -1 : 1)));
+    // MouseHandler.onScroll: discrete or smooth, scaled, accumulated into whole slots
+    if (i.wheel !== 0 && this.interaction) {
+      const d = (this.settings.discreteMouseScroll ? Math.sign(i.wheel) : i.wheel) * this.settings.mouseWheelSensitivity;
+      this.scrollAcc += d;
+      const whole = Math.trunc(this.scrollAcc);
+      if (whole !== 0) {
+        this.scrollAcc -= whole;
+        this.interaction.scroll(Math.sign(whole));
+      }
+    }
+    // F3 combos (F3+B hitboxes) suppress the debug toggle on release, like vanilla
+    if (i.down.has('F3')) {
+      if (i.consumePress('KeyB')) {
+        this.showHitboxes = !this.showHitboxes;
+        this.f3Used = true;
+        this.debugFeedback(`Hitboxes: ${this.showHitboxes ? 'shown' : 'hidden'}`);
+      }
+    }
+    if (i.consumeRelease('F3')) {
+      if (!this.f3Used) this.showDebug = !this.showDebug;
+      this.f3Used = false;
+    }
+    i.consumePress('F3');
+    if (this.binds.consume('togglePerspective')) this.cameraType = (this.cameraType + 1) % 3;
     if (i.consumePress('F1')) this.hideHud = !this.hideHud;
-    if (i.consumePress('F11')) {
+    if (this.binds.consume('fullscreen')) {
       if (document.fullscreenElement) void document.exitFullscreen();
       else void document.documentElement.requestFullscreen();
     }
@@ -783,6 +877,7 @@ export class Game implements ScreenHost {
       this.swingTime = -1;
       this.swinging = true;
       if (this.loggedIn) this.send({ t: 'swing', hand: 0 });
+      this.selfModel?.swing();
     }
   }
   private swingTick(): void {
@@ -920,6 +1015,17 @@ export class Game implements ScreenHost {
     return this.health <= 0;
   }
 
+  // ------------------------------------------------------------------ sound options (host for SoundOptionsScreen)
+  volume(c: SoundCategory): number {
+    return this.settings.volumes[c] ?? 1;
+  }
+  setVolume(c: SoundCategory, v: number): void {
+    this.settings.volumes[c] = v;
+    this.sound.volumes[c] = v;
+    this.sound.applyVolumes();
+    saveSettings(this.settings);
+  }
+
   respawn(): void {
     this.send({ t: 'respawn' });
   }
@@ -946,7 +1052,7 @@ export class Game implements ScreenHost {
     if (this.hurtTime > 0) this.hurtTime--;
     if (this.invulnerableTime > 0) this.invulnerableTime--;
     if (this.dead) this.deathTime = Math.min(20, this.deathTime + 1);
-    if (this.screen && 'tick' in this.screen && typeof (this.screen as { tick?: unknown }).tick === 'function') (this.screen as unknown as { tick(): void }).tick();
+    this.screen?.tick();
   }
 
   private hudState(): HudPlayer {
@@ -1065,10 +1171,60 @@ export class Game implements ScreenHost {
     return Math.floor((1 - d) * 11);
   }
 
+  /** Minecraft.debugFeedback: "[Debug]:" prefix in bold yellow. */
+  private debugFeedback(msg: string): void {
+    this.hud.addChat(`§e§l[Debug]:§r ${msg}`);
+  }
+
+  /** Camera.getMaxZoom: pull the third-person camera in front of blocks (8 jittered rays). */
+  private maxZoom(x: number, y: number, z: number, fx: number, fy: number, fz: number, start: number): number {
+    let d = start;
+    for (let i = 0; i < 8; i++) {
+      const ox = ((i & 1) * 2 - 1) * 0.1, oy = (((i >> 1) & 1) * 2 - 1) * 0.1, oz = (((i >> 2) & 1) * 2 - 1) * 0.1;
+      const ax = x + ox, ay = y + oy, az = z + oz;
+      const bx = x - fx * start + ox + oz, by = y - fy * start + oy, bz = z - fz * start + oz;
+      const hit = raycastBlocks(this.world, ax, ay, az, bx - ax, by - ay, bz - az, Math.hypot(bx - ax, by - ay, bz - az));
+      if (hit) {
+        const dist = Math.hypot(hit.px - x, hit.py - y, hit.pz - z);
+        if (dist < d) d = dist;
+      }
+    }
+    return d;
+  }
+
+  /** F3+B: entity bounding boxes, eye-height plane (red) and view direction (blue). */
+  private renderHitboxes(cx: number, cy: number, cz: number, partial: number): void {
+    const L = this.lines;
+    L.begin();
+    const box = (x: number, y: number, z: number, w: number, h: number, r: number, g: number, b: number) =>
+      L.box(x - w / 2 - cx, y - cy, z - w / 2 - cz, x + w / 2 - cx, y + h - cy, z + w / 2 - cz, r, g, b, 1);
+    const living = (x: number, y: number, z: number, w: number, h: number, eye: number, yaw: number, pitch: number) => {
+      box(x, y, z, w, h, 1, 1, 1);
+      L.box(x - w / 2 - cx, y + eye - 0.01 - cy, z - w / 2 - cz, x + w / 2 - cx, y + eye + 0.01 - cy, z + w / 2 - cz, 1, 0, 0, 1);
+      const yr = (yaw * Math.PI) / 180, pr = (pitch * Math.PI) / 180;
+      const vx = -Math.sin(yr) * Math.cos(pr), vy = -Math.sin(pr), vz = Math.cos(yr) * Math.cos(pr);
+      L.line(x - cx, y + eye - cy, z - cz, x + vx * 2 - cx, y + eye + vy * 2 - cy, z + vz * 2 - cz, 0, 0, 1, 1);
+    };
+    for (const p of this.players.values()) {
+      const x = p.xo + (p.x - p.xo) * partial, y = p.yo + (p.y - p.yo) * partial, z = p.zo + (p.z - p.zo) * partial;
+      const crouch = p.crouching;
+      living(x, y, z, 0.6, crouch ? 1.5 : 1.8, crouch ? 1.27 : 1.62, p.headYaw, p.pitch);
+    }
+    if (this.cameraType !== 0 && this.selfModel) {
+      const s = this.selfModel, pl = this.player;
+      living(s.xo + (s.x - s.xo) * partial, s.yo + (s.y - s.yo) * partial, s.zo + (s.z - s.zo) * partial, pl.width, pl.height, pl.eyeHeight, this.yaw, this.pitch);
+    }
+    for (const it of this.items.values()) {
+      const x = it.xo + (it.x - it.xo) * partial, y = it.yo + (it.y - it.yo) * partial, z = it.zo + (it.z - it.zo) * partial;
+      box(x, y, z, 0.25, 0.25, 1, 1, 1);
+    }
+    L.flush(this.viewProj, this.canvas.width, this.canvas.height);
+  }
+
   private readonly handBob = mat4();
   private renderHand(partial: number, medium: string): void {
-    const showHand = !this.hideHud && this.gameMode !== 3;
-    const fire = this.onFire && this.gameMode !== 3;
+    const showHand = !this.hideHud && this.gameMode !== 3 && this.cameraType === 0;
+    const fire = this.onFire && this.gameMode !== 3 && this.cameraType === 0;
     // bobHurt then bobView, like the level camera
     const hb = this.handBob;
     hb.set(IDENTITY4);
@@ -1191,9 +1347,24 @@ export class Game implements ScreenHost {
     this.resize();
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     const s = this.settings;
-    const cx = this.prevX + (this.x - this.prevX) * partial;
-    const cy = this.prevY + (this.y - this.prevY) * partial;
-    const cz = this.prevZ + (this.z - this.prevZ) * partial;
+    // eye position (raycasts) and camera position/rotation (detached in third person, vanilla Camera.setup)
+    const ex = this.prevX + (this.x - this.prevX) * partial;
+    const ey = this.prevY + (this.y - this.prevY) * partial;
+    const ez = this.prevZ + (this.z - this.prevZ) * partial;
+    let camYaw = this.yaw, camPitch = this.pitch;
+    let cx = ex, cy = ey, cz = ez;
+    if (this.cameraType !== 0) {
+      if (this.cameraType === 2) {
+        camYaw += 180;
+        camPitch = -camPitch;
+      }
+      const yr0 = (camYaw * Math.PI) / 180, pr0 = (camPitch * Math.PI) / 180;
+      const fx = -Math.sin(yr0) * Math.cos(pr0), fy = -Math.sin(pr0), fz = Math.cos(yr0) * Math.cos(pr0);
+      const d = this.maxZoom(ex, ey, ez, fx, fy, fz, 4);
+      cx = ex - fx * d;
+      cy = ey - fy * d;
+      cz = ez - fz * d;
+    }
     const dayTime = this.world.dayTime + (this.world.doDaylightCycle ? partial : 0);
     const tod = timeOfDay(dayTime);
 
@@ -1201,8 +1372,10 @@ export class Game implements ScreenHost {
     const biome = BIOMES[this.world.getBiome(Math.floor(cx), Math.floor(cy), Math.floor(cz))] ?? BIOMES[1]!;
     const camState = this.world.getState(Math.floor(cx), Math.floor(cy), Math.floor(cz));
     const medium: SkyState['medium'] = FLUID[camState] === 1 ? 'water' : FLUID[camState] === 2 ? 'lava' : 'air';
-    const yr = (this.yaw * Math.PI) / 180, pr = (this.pitch * Math.PI) / 180;
+    const yr = (camYaw * Math.PI) / 180, pr = (camPitch * Math.PI) / 180;
     const lookX = -Math.sin(yr) * Math.cos(pr), lookY = -Math.sin(pr), lookZ = Math.cos(yr) * Math.cos(pr);
+    const pyr = (this.yaw * Math.PI) / 180, ppr = (this.pitch * Math.PI) / 180;
+    const eyeLookX = -Math.sin(pyr) * Math.cos(ppr), eyeLookY = -Math.sin(ppr), eyeLookZ = Math.cos(pyr) * Math.cos(ppr);
     const skyState = this.skyState;
     skyState.timeOfDay = tod;
     skyState.moonPhase = Math.floor(this.world.dayTime / 24000) % 8;
@@ -1219,7 +1392,7 @@ export class Game implements ScreenHost {
     skyState.lookZ = lookZ;
     skyState.medium = medium;
     skyState.flash = this.skyFlashTime > 0 ? this.skyFlashTime - partial : 0;
-    this.sound.setListener(cx, cy, cz, this.yaw, this.pitch);
+    this.sound.setListener(cx, cy, cz, camYaw, camPitch);
     const sky = skyColor(skyState, this.skyRgb);
     const fog = fogColor(skyState, sky, this.fogRgb);
     const renderDist = s.renderDistance * 16;
@@ -1259,7 +1432,7 @@ export class Game implements ScreenHost {
     perspective(this.proj, (fov * Math.PI) / 180, aspect, 0.05, Math.max(renderDist * 4, 512));
     this.applyHurtBob(this.proj, partial);
     if (s.viewBobbing && !this.player.abilities.flying) this.applyViewBob(partial);
-    viewRotation(this.view, this.yaw, this.pitch);
+    viewRotation(this.view, camYaw, camPitch);
     this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
 
     multiply(this.viewProj, this.proj, this.view);
@@ -1276,6 +1449,16 @@ export class Game implements ScreenHost {
       const visible = [...this.players.values()].filter((p) => (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2 < ed * ed);
       this.entityRenderer.renderPlayers(visible, this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
     }
+    // our own body in third person (spectators have none)
+    if (this.cameraType !== 0 && this.selfModel && this.gameMode !== 3) {
+      this.entityRenderer.renderPlayers([this.selfModel], this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
+    }
+    // items in players' hands (ItemInHandLayer), queued by the entity renderer
+    for (const h of this.entityRenderer.held) {
+      const block = blockForItem(h.item);
+      if (block) this.blockItems.draw(BLOCKS_BY_NAME.get(block)!.defaultState, this.viewProj, h.matrix, h.light, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
+    }
+    recycleHeld(this.entityRenderer);
     this.renderItems(cx, cy, cz, partial, fog, fogStart, fogEnd);
     if (this.bolts.size) {
       const ed = 64 * this.settings.entityDistance;
@@ -1288,13 +1471,13 @@ export class Game implements ScreenHost {
     this.chunks.renderTranslucent(cx, cy, cz, this.textures.tex, this.lightmap.tex);
     // particles: camera-facing quads
     {
-      const yr2 = (this.yaw * Math.PI) / 180, pr2 = (this.pitch * Math.PI) / 180;
+      const yr2 = (camYaw * Math.PI) / 180, pr2 = (camPitch * Math.PI) / 180;
       const rx = -Math.cos(yr2), rz = -Math.sin(yr2);
       const ux = -Math.sin(yr2) * Math.sin(pr2) * -1, uy = Math.cos(pr2), uz = Math.cos(yr2) * Math.sin(pr2) * -1;
       this.particles.render(this.viewProj, rx, 0, rz, ux, uy, uz, cx, cy, cz, partial, this.textures.tex, this.lightmap.tex, fog, fogStart, fogEnd);
     }
     // targeted block outline (vanilla: black, 40% alpha)
-    this.target = raycastBlocks(this.world, cx, cy, cz, lookX, lookY, lookZ, this.reach, false, this.hitScratch);
+    this.target = raycastBlocks(this.world, ex, ey, ez, eyeLookX, eyeLookY, eyeLookZ, this.reach, false, this.hitScratch);
     if (this.target && !this.hideHud) {
       const t = this.target;
       this.lines.begin();
@@ -1311,6 +1494,7 @@ export class Game implements ScreenHost {
     if (medium === 'air') {
       this.clouds.render(this.viewProj, cx, cy, cz, this.clientTicks + partial, s.clouds, s.renderDistance, cloudColor(tod, this.world.rain, this.world.thunder), fog);
     }
+    if (this.showHitboxes) this.renderHitboxes(cx, cy, cz, partial);
     this.renderHand(partial, medium);
     this.renderGui(cx, cy, cz);
   }
@@ -1320,7 +1504,7 @@ export class Game implements ScreenHost {
     g.begin(this.settings.guiScale);
     if (!this.hideHud) {
       if (this.showDebug) this.renderDebug(x, y, z);
-      else {
+      else if (this.cameraType === 0) {
         // crosshair: inverted colours like vanilla
         const ctx = g.ctx;
         ctx.save();

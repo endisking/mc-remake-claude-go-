@@ -160,4 +160,28 @@ describe('player physics (vanilla 1.17.1 values)', () => {
     expect(q.pose).toBe('swimming');
     expect(q.height).toBe(0.6);
   });
+
+  it('auto-jump climbs a 1-block step but not a 2-block wall; off by default', () => {
+    // yaw 0 walks toward +z; a raised floor from z=3 on
+    const raised: Record<string, number> = {};
+    for (let z = 3; z < 30; z++) raised[`0,64,${z}`] = STONE;
+    const step = world(raised);
+    const p = spawn(step);
+    p.autoJumpEnabled = true;
+    for (let i = 0; i < 40; i++) p.tick(fwd());
+    expect(p.y).toBeGreaterThanOrEqual(65);
+    expect(p.z).toBeGreaterThan(3);
+    const q = spawn(step);
+    for (let i = 0; i < 40; i++) q.tick(fwd());
+    expect(q.y).toBe(64);
+    const wall = world({ ...raised, '0,65,3': STONE });
+    const r = spawn(wall);
+    r.autoJumpEnabled = true;
+    let jumped = false;
+    for (let i = 0; i < 40; i++) {
+      r.tick(fwd());
+      if (r.y > 64.01) jumped = true;
+    }
+    expect(jumped).toBe(false);
+  });
 });

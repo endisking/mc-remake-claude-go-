@@ -16,6 +16,17 @@ export interface Settings {
   biomeBlend: number;
   mouseSensitivity: number;
   caveCulling: boolean;
+  /** key mapping id → key code (only changed bindings are stored) */
+  keys: Record<string, string>;
+  toggleCrouch: boolean;
+  toggleSprint: boolean;
+  autoJump: boolean;
+  invertYMouse: boolean;
+  mouseWheelSensitivity: number;
+  discreteMouseScroll: boolean;
+  fovEffectScale: number;
+  /** sound category volumes 0..1 */
+  volumes: Record<string, number>;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -35,6 +46,15 @@ export const DEFAULT_SETTINGS: Settings = {
   biomeBlend: 2,
   mouseSensitivity: 0.5,
   caveCulling: true,
+  keys: {},
+  toggleCrouch: false,
+  toggleSprint: false,
+  autoJump: false,
+  invertYMouse: false,
+  mouseWheelSensitivity: 1,
+  discreteMouseScroll: false,
+  fovEffectScale: 1,
+  volumes: {},
 };
 
 const KEY = 'blockcraft.settings';
@@ -42,11 +62,14 @@ const KEY = 'blockcraft.settings';
 export function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
+    if (raw) {
+      const s = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
+      return { ...s, keys: { ...s.keys }, volumes: { ...s.volumes } };
+    }
   } catch {
     /* storage unavailable */
   }
-  return { ...DEFAULT_SETTINGS };
+  return { ...DEFAULT_SETTINGS, keys: {}, volumes: {} };
 }
 
 export function saveSettings(s: Settings): void {

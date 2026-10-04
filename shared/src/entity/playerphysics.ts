@@ -5,7 +5,8 @@
  *
  * Units: blocks and ticks. Velocities are per tick.
  */
-import { AABB, collideBox, noCollision } from './aabb';
+import { AABB, collideBox, noCollision, blockBoxesIn } from './aabb';
+import { collisionBoxes } from '../world/shapes';
 import { FRICTION, SPEED_FACTOR, JUMP_FACTOR, CLIMBABLE, STUCK } from './blockphysics';
 import { STATE_TO_BLOCK, getProp } from '../world/blockstate';
 import { FLUID, FLUID_LEVEL, COLLISION_SHAPE_ID, FULL_COLLISION } from '../world/blockinfo';
@@ -111,6 +112,11 @@ export class PlayerPhysics {
   readonly abilities: PhysicsAbilities = { flying: false, mayFly: false, flySpeed: 0.05, noPhysics: false };
   readonly effects: PhysicsEffects = { speed: 0, slowness: 0, jumpBoost: 0, slowFalling: false, levitation: 0, dolphinsGrace: false, depthStrider: 0 };
   private prevSprintKey = false;
+  /** Auto-Jump option (vanilla LocalPlayer.updateAutoJump) */
+  autoJumpEnabled = false;
+  private autoJumpTime = 0;
+  /** last travel speed (LivingEntity.speed) */
+  private speed = 0;
   private prevJumpKey = false;
   private wasForward = false;
 
@@ -531,6 +537,7 @@ export class PlayerPhysics {
       const f4 = this.onGround ? friction * 0.91 : 0.91;
       // handleRelativeFrictionAndCalculateMovement
       const speed = this.onGround ? this.movementSpeed() * (0.21600002 / (friction * friction * friction)) : flyingSpeed;
+      this.speed = speed;
       this.moveRelative(speed, strafe, up, forward);
       this.handleOnClimbable();
       this.move(this.vx, this.vy, this.vz);
@@ -588,6 +595,72 @@ export class PlayerPhysics {
     return this.pose === 'crouching' || (this.pose === 'swimming' && !this.isInWater);
   }
 
+  // ------------------------------------------------------------------ auto-jump
+  private collisionAt(x: number, y: number, z: number): AABB[] {
+    return collisionBoxes(this.world.getState(x, y, z)).map((b) => new AABB(x + b[0]!, y + b[1]!, z + b[2]!, x + b[3]!, y + b[4]!, z + b[5]!));
+  }
+
+  /** LocalPlayer.updateAutoJump: jump when walking into a 1-block step with headroom. */
+  private updateAutoJump(dx: number, dz: number): void {
+    const canAutoJump = this.autoJumpEnabled && this.autoJumpTime <= 0 && this.onGround && !this.shiftDown &&
+      (this.forwardImpulse !== 0 || this.leftImpulse !== 0) && this.blockJumpFactor() >= 1;
+    if (!canAutoJump) return;
+    const f = this.speed;
+    let mx = dx, mz = dz;
+    let f1 = mx * mx + mz * mz;
+    const yr = (this.yaw * Math.PI) / 180;
+    if (f1 <= 0.001) {
+      const f2 = f * this.leftImpulse, f3 = f * this.forwardImpulse;
+      const f4 = Math.sin(yr), f5 = Math.cos(yr);
+      mx = f2 * f5 - f3 * f4;
+      mz = f3 * f5 + f2 * f4;
+      f1 = mx * mx + mz * mz;
+      if (f1 <= 0.001) return;
+    }
+    const f12 = 1 / Math.sqrt(f1);
+    const nx = mx * f12, nz = mz * f12;
+    // getForward (yaw only matters for x/z)
+    const fwdX = -Math.sin(yr) * Math.cos((this.pitch * Math.PI) / 180), fwdZ = Math.cos(yr) * Math.cos((this.pitch * Math.PI) / 180);
+    if (fwdX * nx + fwdZ * nz < -0.15) return;
+    const top = Math.floor(this.boundingBox().maxY);
+    let bx = Math.floor(this.x), by = top, bz = Math.floor(this.z);
+    if (this.collisionAt(bx, by, bz).length) return;
+    by++;
+    if (this.collisionAt(bx, by, bz).length) return;
+    const f7 = 1.2 + (this.effects.jumpBoost ? this.effects.jumpBoost * 0.75 : 0);
+    const f8 = Math.max(f * 7, 1 / f12);
+    const ex = this.x + dx + nx * f8, ez = this.z + dz + nz * f8;
+    const w = this.width, h = this.height;
+    const area = new AABB(Math.min(this.x, ex) - w, this.y, Math.min(this.z, ez) - w, Math.max(this.x, ex) + w, Math.max(this.y, this.y + h), Math.max(this.z, ez) + w);
+    const sy = this.y + 0.51;
+    // side vector (n × up) scaled by half the width
+    const sx = -nz * w * 0.5, sz = nx * w * 0.5;
+    const segA = new AABB(Math.min(this.x - sx, ex - sx), sy, Math.min(this.z - sz, ez - sz), Math.max(this.x - sx, ex - sx), sy, Math.max(this.z - sz, ez - sz));
+    const segB = new AABB(Math.min(this.x + sx, ex + sx), sy, Math.min(this.z + sz, ez + sz), Math.max(this.x + sx, ex + sx), sy, Math.max(this.z + sz, ez + sz));
+    let f11 = -Infinity;
+    for (const b of blockBoxesIn(this.world, area)) {
+      if (!(b.intersects(segA) || b.intersects(segB))) continue;
+      f11 = b.maxY;
+      const cx = Math.floor((b.minX + b.maxX) / 2), cy = Math.floor((b.minY + b.maxY) / 2), cz = Math.floor((b.minZ + b.maxZ) / 2);
+      for (let i = 1; i < f7; i++) {
+        const above = this.collisionAt(cx, cy + i, cz);
+        if (above.length) {
+          f11 = Math.max(...above.map((a) => a.maxY));
+          if (f11 - this.y > f7) return;
+        }
+        if (i > 1) {
+          by++;
+          if (this.collisionAt(bx, by, bz).length) return;
+        }
+      }
+      break;
+    }
+    if (f11 !== -Infinity) {
+      const f14 = f11 - this.y;
+      if (!(f14 <= 0.5) && !(f14 > f7)) this.autoJumpTime = 1;
+    }
+  }
+
   // ------------------------------------------------------------------ tick
   /**
    * One game tick of a locally controlled player (LocalPlayer.tick → aiStep).
@@ -640,6 +713,11 @@ export class PlayerPhysics {
       }
     }
     this.prevJumpKey = input.jump;
+    let jumpInput = input.jump;
+    if (this.autoJumpTime > 0) {
+      this.autoJumpTime--;
+      jumpInput = true;
+    }
     if (this.abilities.noPhysics) this.abilities.flying = true;
     // flying vertical control
     if (this.abilities.flying) {
@@ -648,7 +726,7 @@ export class PlayerPhysics {
       if (input.jump) j++;
       if (j !== 0) this.vy += j * this.abilities.flySpeed * 3;
     }
-    this.jumping = input.jump;
+    this.jumping = jumpInput;
     // Player.aiStep → LivingEntity.aiStep
     const flyingSpeed = this.sprinting ? 0.026 : 0.02;
     if (this.noJumpDelay > 0) this.noJumpDelay--;
@@ -669,6 +747,7 @@ export class PlayerPhysics {
       } else this.vy += 0.04; // jumpInLiquid (water)
     } else this.noJumpDelay = 0;
     const strafe = left * 0.98, forward = fwd * 0.98;
+    const x0 = this.x, z0 = this.z;
     if (this.abilities.flying) {
       const vy0 = this.vy;
       const fs = this.abilities.flySpeed * (this.sprinting ? 2 : 1);
@@ -678,6 +757,8 @@ export class PlayerPhysics {
     } else {
       this.travel(strafe, 0, forward, flyingSpeed);
     }
+    // LocalPlayer.move → updateAutoJump with the distance actually moved
+    this.updateAutoJump(this.x - x0, this.z - z0);
     // landing ends creative flight
     if (this.onGround && this.abilities.flying && !this.abilities.noPhysics) this.abilities.flying = false;
     // view bob (Player.aiStep)

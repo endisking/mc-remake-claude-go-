@@ -38,6 +38,9 @@ export class RemotePlayer {
   hurtTime = 0;
   /** shared flag: on fire */
   onFire = false;
+  /** held item ids (main hand, off hand) */
+  mainHand = 0;
+  offHand = 0;
   tickCount = 0;
 
   constructor(
@@ -65,6 +68,18 @@ export class RemotePlayer {
     this.lsteps = 3;
     this.lheadYaw = headYaw;
     this.lheadSteps = 3;
+  }
+
+  /** Follow an exact position every tick (the local player's own model in third person). */
+  follow(x: number, y: number, z: number, yaw: number, pitch: number): void {
+    this.lx = x;
+    this.ly = y;
+    this.lz = z;
+    this.lyaw = yaw;
+    this.lpitch = pitch;
+    this.lsteps = 1;
+    this.lheadYaw = yaw;
+    this.lheadSteps = 1;
   }
 
   swing(): void {

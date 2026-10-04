@@ -23,12 +23,14 @@ const cmd = (p: Page, c: string) => p.evaluate((m) => (window as any).game.send(
 const mouse = (p: Page, button: number, down: boolean) =>
   p.evaluate(([b, d]) => {
     const i = (window as any).game.input;
-    if (d) {
-      i.mouseButtons.add(b);
-      i.mousePressed.add(b);
-    } else i.mouseButtons.delete(b);
+    if (d) i.press(`Mouse${b}`);
+    else i.release(`Mouse${b}`);
   }, [button, down] as const);
-const key = (p: Page, code: string) => p.evaluate((c) => (window as any).game.input.pressed.add(c), code);
+const key = (p: Page, code: string) => p.evaluate((c) => {
+  const i = (window as any).game.input;
+  i.press(c);
+  i.release(c);
+}, code);
 const state = () =>
   page.evaluate(() => {
     const g = (window as any).game;
@@ -88,10 +90,10 @@ await shot('placed2');
 // drop a stack with Q and look at it
 await key(page, 'Digit7');
 await page.waitForTimeout(100);
-await page.evaluate(() => (window as any).game.input.down.add('ControlLeft'));
+await page.evaluate(() => (window as any).game.input.press('ControlLeft'));
 await key(page, 'KeyQ');
 await page.waitForTimeout(100);
-await page.evaluate(() => (window as any).game.input.down.delete('ControlLeft'));
+await page.evaluate(() => (window as any).game.input.release('ControlLeft'));
 await page.waitForTimeout(900);
 // look at the dropped stack from 2 blocks away
 const it = await page.evaluate(() => {

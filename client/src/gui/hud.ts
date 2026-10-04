@@ -54,6 +54,37 @@ export class Hud {
   private highlightName = '';
   private lastHighlight = '';
 
+  // chat (vanilla ChatComponent, closed): newest at the bottom, fading after 10 s
+  private chatLines: { text: string; tick: number }[] = [];
+
+  addChat(text: string): void {
+    for (const line of text.split('\n')) this.chatLines.unshift({ text: line, tick: this.tickCount });
+    if (this.chatLines.length > 100) this.chatLines.length = 100;
+  }
+
+  renderChat(g: Gui): void {
+    const bottom = g.height - 40;
+    let n = 0;
+    for (const l of this.chatLines) {
+      const age = this.tickCount - l.tick;
+      if (age >= 200 || n >= 10) break;
+      let o = 1 - age / 200;
+      o = Math.max(0, Math.min(1, o * 10));
+      o *= o;
+      const alpha = o * 0.9 + 0.1;
+      const bg = o * 0.5;
+      if (alpha <= 0.01) continue;
+      const y = bottom - n * 9;
+      g.ctx.save();
+      g.ctx.globalAlpha = bg;
+      g.fill(0, y - 9, 4 + 320 + 4, 9, 0xff000000);
+      g.ctx.globalAlpha = alpha;
+      g.text(l.text, 4, y - 8, 0xffffff, true);
+      g.ctx.restore();
+      n++;
+    }
+  }
+
   async load(): Promise<void> {
     this.icons = await createImageBitmap(await (await fetch('./textures/gui/icons.png')).blob());
   }
@@ -71,6 +102,7 @@ export class Hud {
   }
 
   render(g: Gui, p: HudPlayer, item: (id: number, count: number, x: number, y: number) => void): void {
+    this.renderChat(g);
     if (p.gameMode === 3) return; // spectators get the spectator menu instead (not yet)
     const mid = Math.floor(g.width / 2);
     // hotbar
