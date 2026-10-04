@@ -181,3 +181,27 @@ describe('lingering potion clouds', () => {
     expect(a.received.some((m) => m.t === 'effectCloud')).toBe(true);
   });
 });
+
+describe('melee enchantments against mobs', () => {
+  it('Smite adds 2.5 per level against undead; Fire Aspect sets them alight', () => {
+    const { server, a, p } = setup();
+    const sword = stack('diamond_sword');
+    sword.tag = { Enchantments: [{ id: 'smite', lvl: 5 }, { id: 'fire_aspect', lvl: 2 }] };
+    p.inventory.set(0, sword);
+    p.inventory.selected = 0;
+    for (let i = 0; i < 25; i++) server.tick();
+    const z = server.mobs.spawn('zombie', p.x + 1.5, p.y, p.z)!;
+    server.tick();
+    const before = z.health;
+    a.send({ t: 'attack', target: z.id, sneaking: false });
+    // 7 + 12.5, then the zombie's 2 armour points: 19.5 × (1 − 0.4/25)
+    expect(before - z.health).toBeCloseTo(19.5 * (1 - 0.4 / 25), 4);
+    expect(z.isOnFire()).toBe(true);
+    // Smite does nothing extra to a pig
+    const pig = server.mobs.spawn('pig', p.x - 1.5, p.y, p.z)!;
+    for (let i = 0; i < 25; i++) server.tick();
+    const hp = pig.health;
+    a.send({ t: 'attack', target: pig.id, sneaking: false });
+    expect(hp - pig.health).toBeCloseTo(Math.min(hp, 7), 4);
+  });
+});

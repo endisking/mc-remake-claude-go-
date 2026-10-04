@@ -212,6 +212,20 @@ export function armorAbsorb(damage: number, armor: number, toughness: number): n
 
 export type MobType = 'undefined' | 'undead' | 'arthropod' | 'illager' | 'water';
 
+const UNDEAD = new Set(['zombie', 'husk', 'drowned', 'zombie_villager', 'skeleton', 'stray', 'wither_skeleton', 'phantom', 'zombified_piglin', 'zoglin', 'skeleton_horse', 'zombie_horse', 'wither']);
+const ARTHROPOD = new Set(['spider', 'cave_spider', 'silverfish', 'endermite', 'bee']);
+const ILLAGER = new Set(['pillager', 'vindicator', 'evoker', 'illusioner']);
+const WATER = new Set(['guardian', 'elder_guardian', 'squid', 'glow_squid', 'dolphin', 'cod', 'salmon', 'pufferfish', 'tropical_fish', 'turtle', 'axolotl']);
+
+/** LivingEntity.getMobType by entity type name. */
+export function mobTypeOf(type: string): MobType {
+  if (UNDEAD.has(type)) return 'undead';
+  if (ARTHROPOD.has(type)) return 'arthropod';
+  if (ILLAGER.has(type)) return 'illager';
+  if (WATER.has(type)) return 'water';
+  return 'undefined';
+}
+
 /** DamageEnchantment / ImpalerEnchantment getDamageBonus, summed over the stack (EnchantmentHelper.getDamageBonus). */
 export function damageBonus(s: ItemStack | null | undefined, mobType: MobType = 'undefined'): number {
   let f = 0;

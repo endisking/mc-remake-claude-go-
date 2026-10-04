@@ -30,6 +30,8 @@ import { Pig, Cow, Sheep, Chicken, Animal, Mooshroom } from './animals';
 import { Arrow, Pickup } from '../arrow';
 import { explode } from '../explosion';
 import { hurtEnemyCost } from '@shared/game/items';
+import { damageBonus, mobTypeOf, entityEnchLevel } from '@shared/game/enchantments';
+import { attackExtras } from '../enchanthooks';
 import { Slime, isSlimeChunk, moonBrightness } from './slime';
 import { Enderman } from './enderman';
 import { Bat, Squid, Cod, Salmon } from './ambient';
@@ -562,16 +564,27 @@ export class MobManager {
     ph.y = p.y;
     ph.z = p.z;
     ph.updateFluidState();
+    // Phase 7: Strength/Weakness, Haste/Fatigue, Sharpness/Smite/Bane/Impaling, Knockback, Sweeping Edge, Blindness
+    const fx = p.living.effects;
+    const ex = attackExtras(p);
     const res = computeAttack({
       item, attackStrengthTicker: p.attackStrengthTicker, sprinting: p.sprinting, fallDistance: p.fallDistance, onGround: p.onGround,
       onClimbable: ph.onClimbable(), inWater: ph.isInWater, walked: p.walkDist - p.walkDistO, speed: 0.1,
+      damageBonus: 3 * (fx.amplifier('strength') + 1) - 4 * (fx.amplifier('weakness') + 1),
+      speedMul: (1 + 0.1 * (fx.amplifier('haste') + 1)) * (1 - 0.1 * (fx.amplifier('mining_fatigue') + 1)),
+      enchantBonus: damageBonus(p.inventory.selectedStack, mobTypeOf(t.type)), knockbackBonus: ex.knockback, blind: ex.blind, sweeping: ex.sweeping,
     });
     p.attackStrengthTicker = 0;
     const sx = p.x, sy = p.y, sz = p.z;
     if (res.knockback > 0 && res.charged && p.sprinting) s.playSound(null, 'entity.player.attack.knockback', 'player', sx, sy, sz, 1, 1);
     const src: DamageSource = { ...DAMAGE.playerAttack, entity: { name: p.name, player: true } };
     const hpBefore = t.health;
+    // Fire Aspect: alight for the hit itself, then 4 s per level
+    const lit = ex.fireAspect > 0 && !t.isOnFire();
+    if (lit) t.setSecondsOnFire(1);
     const hit = t.hurt(src, res.damage, p);
+    if (hit && ex.fireAspect > 0) t.setSecondsOnFire(ex.fireAspect * 4);
+    if (!hit && lit) t.remainingFireTicks = 0;
     if (hit) this.combat(p).hurt = { mob: t, time: s.gameTime };
     if (!hit) {
       s.playSound(null, 'entity.player.attack.nodamage', 'player', sx, sy, sz, 1, 1);
@@ -590,7 +603,7 @@ export class MobManager {
         if (o === t || o.dead || !o.bb().intersects(bb)) continue;
         if ((o.x - p.x) ** 2 + (o.y - p.y) ** 2 + (o.z - p.z) ** 2 >= 9) continue;
         o.knockback(0.4, Math.sin(yr), -Math.cos(yr));
-        o.hurt(src, 1, p);
+        o.hurt(src, res.sweepDamage, p);
       }
       s.playSound(null, 'entity.player.attack.sweep', 'player', sx, sy, sz, 1, 1);
     }
@@ -687,7 +700,8 @@ export class MobManager {
     void src;
     void attacker;
     const byPlayer = m.lastHurtByPlayerTime > 0;
-    const looting = 0; // Looting enchantment arrives with enchanting (Phase 7)
+    // Looting on the killer's main-hand weapon (Phase 7)
+    const looting = attacker && !isMob(attacker) && 'inventory' in attacker ? entityEnchLevel('looting', (attacker as ServerPlayer).inventory) : 0;
     const dropLoot = !(m instanceof Animal && m.isBaby());
     if (this.doMobLoot && dropLoot) {
       const items = mobLoot(m.type, {
