@@ -94,6 +94,10 @@ import { BossOverlay } from './gui/bossbar';
 import { isPortal } from '@shared/game/portalshape';
 import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
+
+/** riding: mounts with a charged jump (PlayerRideableJumping) */
+const JUMPABLE_MOUNTS = new Set(['horse', 'donkey', 'mule', 'skeleton_horse', 'zombie_horse']);
+
 export class Game implements ScreenHost, ContainerHost {
   readonly gl: WebGL2RenderingContext;
   readonly world = new ClientWorld();
@@ -151,6 +155,13 @@ export class Game implements ScreenHost, ContainerHost {
   private readonly camPos = [0, 0, 0];
   /** entity the camera looks through while spectating (null = ourselves) */
   cameraEntity: number | null = null;
+  /** riding: the vehicle we sit on (setPassengers), and the horse jump charge (LocalPlayer.jumpRidingTicks/Scale) */
+  ridingVehicle: number | null = null;
+  private jumpRidingTicks = 0;
+  private jumpRidingScale = 0;
+  private rideJumpHeld = false;
+  /** our seat index and the passenger count (Boat.positionRider) */
+  private ridingSeat: [number, number] = [0, 1];
   /** game mode before the last change (F3+N returns to it) */
   previousGameMode = -1;
   private readonly skinImages = new Map<string, ImageBitmap | null>();
@@ -850,6 +861,7 @@ export class Game implements ScreenHost, ContainerHost {
         this.world.doDaylightCycle = p.doDaylightCycle;
         break;
       case 'teleport':
+        this.ridingVehicle = null; // riding: the server only teleports riders when they dismount
         this.placePlayer(p.x, p.y, p.z);
         this.player.vx = this.player.vy = this.player.vz = 0;
         break;
@@ -865,6 +877,7 @@ export class Game implements ScreenHost, ContainerHost {
       }
       case 'removeEntities':
         for (const id of p.ids) {
+          if (id === this.ridingVehicle) this.ridingVehicle = null;
           this.players.delete(id);
           this.mobs.remove(id);
           this.items.delete(id);
@@ -1097,6 +1110,7 @@ export class Game implements ScreenHost, ContainerHost {
         else if (p.type === 'tnt') this.fallingBlocks.add(p.id, BLOCKS_BY_NAME.get('tnt')!.defaultState, p.x, p.y, p.z);
         else if (isMobType(p.type)) {
           this.mobs.add(p.id, p.type, p.x, p.y, p.z);
+          if (p.type === 'boat') this.mobs.get(p.id)?.setData('variant', p.data); // riding: boat wood
         } else if (p.type === 'item' || p.type === 'experience_orb') {
           this.items.set(p.id, { x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z, steps: 0, item: 0, count: 1, age: 0, bobOffs: Math.random() * Math.PI * 2, ...(p.type === 'experience_orb' ? { orb: p.data } : {}) });
         }
@@ -1145,6 +1159,17 @@ export class Game implements ScreenHost, ContainerHost {
         break;
       case 'bossEvent':
         this.bossBars.handle(p);
+        break;
+      case 'setPassengers':
+        // riding: we sit on this vehicle until the list no longer has us
+        if (p.passengers.includes(this.entityId)) {
+          this.ridingSeat = [p.passengers.indexOf(this.entityId), p.passengers.length];
+          if (this.ridingVehicle === p.vehicle) break;
+          this.ridingVehicle = p.vehicle;
+          this.jumpRidingTicks = 0;
+          this.jumpRidingScale = 0;
+          this.rideJumpHeld = false;
+        } else if (this.ridingVehicle === p.vehicle) this.ridingVehicle = null;
         break;
       case 'winGame':
         // ClientboundGameEventPacket WIN_GAME: roll the credits (the first time)
@@ -1340,6 +1365,10 @@ export class Game implements ScreenHost, ContainerHost {
     else if (this.cameraEntity !== null) {
       // looking through another entity: no movement, but sneaking still reaches the server
       pl.shiftDown = move.sneak;
+    } else if (this.ridingVehicle !== null) {
+      // riding: steer the vehicle (the server moves it) and sit on its seat
+      pl.shiftDown = false;
+      this.tickRiding(move);
     } else if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
       // LocalPlayer.aiStep: eating/drawing slows movement input to 20%
       pl.usingItem = !!this.itemUse?.isUsing;
@@ -1501,6 +1530,47 @@ export class Game implements ScreenHost, ContainerHost {
       // LocalPlayer.sendPosition: only while we are the camera
       if (this.cameraEntity === null) this.send({ t: 'move', x: pl.x, y: pl.y, z: pl.z, yaw: this.yaw, pitch: this.pitch, onGround: pl.onGround });
     }
+  }
+
+  /**
+   * Riding (LocalPlayer.aiStep / rideTick): send ServerboundPlayerInput each tick, charge the horse
+   * jump while space is held (jumpRidingScale) and send it on release, and sit on the seat
+   * (vehicle y + bbHeight × 0.75 + Player.getMyRidingOffset −0.35).
+   */
+  private tickRiding(move: MoveInput): void {
+    const pl = this.player;
+    const mob = this.mobs.get(this.ridingVehicle!);
+    let jumpPower = -1;
+    if (mob && JUMPABLE_MOUNTS.has(mob.type)) {
+      if (this.jumpRidingTicks < 0) {
+        this.jumpRidingTicks++;
+        if (this.jumpRidingTicks === 0) this.jumpRidingScale = 0;
+      }
+      if (this.rideJumpHeld && !move.jump) {
+        this.jumpRidingTicks = -10;
+        jumpPower = Math.floor(this.jumpRidingScale * 100);
+      } else if (!this.rideJumpHeld && move.jump) {
+        this.jumpRidingTicks = 0;
+        this.jumpRidingScale = 0;
+      } else if (this.rideJumpHeld) {
+        this.jumpRidingTicks++;
+        this.jumpRidingScale = this.jumpRidingTicks < 10 ? this.jumpRidingTicks * 0.1 : 0.8 + (2 / (this.jumpRidingTicks - 9)) * 0.1;
+      }
+    }
+    this.rideJumpHeld = move.jump;
+    if (this.loggedIn) this.send({ t: 'steerVehicle', forward: move.forward, strafe: move.strafe, jump: move.jump, sneak: move.sneak, jumpPower });
+    if (mob) {
+      // Boat: riding offset −0.1 and seats at +0.2 / −0.6 along the hull with two passengers
+      const boat = mob.type === 'boat';
+      const [i, n] = this.ridingSeat;
+      const off = boat && n > 1 ? (i === 0 ? 0.2 : -0.6) : 0;
+      const a = (-mob.yaw * Math.PI) / 180 - Math.PI / 2;
+      pl.x = mob.x + off * Math.cos(a);
+      pl.y = mob.y + (boat ? -0.1 : mob.dims()[1] * 0.75) - 0.35;
+      pl.z = mob.z - off * Math.sin(a);
+    }
+    pl.vx = pl.vy = pl.vz = 0;
+    pl.fallDistance = 0;
   }
 
   // ------------------------------------------------------------------ frame
@@ -1941,6 +2011,7 @@ export class Game implements ScreenHost, ContainerHost {
       invulnerableTime: this.invulnerableTime,
       xpProgress: this.xpProgress,
       xpLevel: this.xpLevel,
+      jumpCharge: this.ridingVehicle !== null && JUMPABLE_MOUNTS.has(this.mobs.get(this.ridingVehicle)?.type ?? '') ? this.jumpRidingScale : null,
       inventory: this.interaction.inventory,
       heartType: this.itemUse.hasEffect('poison') ? 'poisoned' : this.itemUse.hasEffect('wither') ? 'withered' : this.ticksFrozen >= 140 ? 'frozen' : 'normal',
       hardcore: false,

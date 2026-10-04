@@ -80,6 +80,10 @@ export abstract class Mob extends ServerEntity {
   zza = 0;
   speed = 0;
   jumping = false;
+  /** LivingEntity.flyingSpeed (air acceleration; horses ridden use speed × 0.1) */
+  flyingSpeed = 0.02;
+  /** riding: the controlling passenger's steering input, set each tick by Riding (null when not steered) */
+  steer: import('../riding').SteerInput | null = null;
   noJumpDelay = 0;
   maxUpStep = 0.6;
   horizontalCollision = false;
@@ -495,7 +499,7 @@ export abstract class Mob extends ServerEntity {
     if (this.dead) {
       this.jumping = false;
       this.xxa = this.zza = 0;
-    } else this.serverAiStep();
+    } else if (!(this.steer && this.steeredStep(this.steer))) this.serverAiStep();
     if (this.jumping) {
       const h = this.lavaHeight > 0 ? this.lavaHeight : this.waterHeight;
       const inW = this.wasTouchingWater && h > 0;
@@ -527,12 +531,22 @@ export abstract class Mob extends ServerEntity {
 
   protected customServerAiStep(): void {}
 
+  /** Ridden by a steering player (AbstractHorse/Pig.travel controlled branch); false = normal AI. */
+  protected steeredStep(_in: import('../riding').SteerInput): boolean {
+    return false;
+  }
+
+  /** Entity.getPassengersRidingOffset (default bbHeight × 0.75). */
+  passengersRidingOffset(): number {
+    return this.height * 0.75;
+  }
+
   jumpFromGround(): void {
     const f = 0.42 * this.jumpFactor();
     this.vy = f;
   }
 
-  private jumpFactor(): number {
+  protected jumpFactor(): number {
     const a = JUMP_FACTOR[STATE_TO_BLOCK[this.world.getState(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z))]!]!;
     return a === 1 ? JUMP_FACTOR[STATE_TO_BLOCK[this.blockBelow()]!]! : a;
   }
@@ -587,7 +601,7 @@ export abstract class Mob extends ServerEntity {
     } else {
       const friction = FRICTION[STATE_TO_BLOCK[this.blockBelow()]!]!;
       const f3 = this.onGround ? friction * 0.91 : 0.91;
-      const sp = this.onGround ? this.speed * (0.21600002 / (friction * friction * friction)) : 0.02;
+      const sp = this.onGround ? this.speed * (0.21600002 / (friction * friction * friction)) : this.flyingSpeed;
       this.moveRelative(sp, strafe, up, forward);
       if (this.onClimbable()) {
         this.fallDistance = 0;
@@ -825,6 +839,8 @@ export abstract class Mob extends ServerEntity {
     // players push mobs too (the player's own push happens on its client)
     for (const p of this.s.players) {
       if (p.gameMode === 3 || p.living.dead || Math.abs(p.x - this.x) > 3 || Math.abs(p.z - this.z) > 3) continue;
+      // riders don't push (Entity.isPassengerOfSameVehicle; their vehicle takes the pushes)
+      if (this.s.riding.isPassenger(p)) continue;
       const pb = AABB.ofSize(p.x, p.y, p.z, 0.6, p.pose === 'crouching' ? 1.5 : 1.8);
       if (!bb.intersects(pb)) continue;
       let dx = p.x - this.x, dz = p.z - this.z;

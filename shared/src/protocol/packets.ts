@@ -143,6 +143,9 @@ const S2C_SCHEMA = {
   winGame: [['showCredits', 'bool']],
   /** ClientboundBossEventPacket: op 0 add, 1 remove, 2 update (progress/name); color BossBarColor (0 pink), overlay 0 progress. */
   bossEvent: [['op', 'u8'], ['id', 'i32'], ['name', 'str'], ['progress', 'f32'], ['color', 'u8'], ['overlay', 'u8']],
+  // ---- riding (passengers and vehicles)
+  /** Vehicle's passenger list (vanilla ClientboundSetPassengersPacket); empty = nobody rides it. */
+  setPassengers: [['vehicle', 'i32'], ['passengers', 'i32list']],
 } as const satisfies Schema;
 
 /** Keys of the mobData packet (client: client/src/world/mobs.ts). */
@@ -201,6 +204,9 @@ const C2S_SCHEMA = {
   // ---- mobs
   /** Right-click an entity (vanilla Interact INTERACT): breeding food, shears, buckets, saddles, flint and steel, bones. */
   interactEntity: [['id', 'i32'], ['hand', 'u8']],
+  // ---- riding
+  /** Steering while riding (vanilla ServerboundPlayerInputPacket + START_RIDING_JUMP): forward/strafe −1..1, sneak dismounts, jumpPower 0–100 on releasing a charged horse jump (−1 none). */
+  steerVehicle: [['forward', 'f32'], ['strafe', 'f32'], ['jump', 'bool'], ['sneak', 'bool'], ['jumpPower', 'i16']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;

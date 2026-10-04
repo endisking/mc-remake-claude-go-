@@ -6,8 +6,9 @@
  * and mules, breeding with golden carrots/apples (child stats average both parents and a random
  * roll; horse × donkey → mule; mules are sterile).
  *
- * Riding (passengers, player-steered movement and the jump bar) is not simulated yet: a mount
- * attempt does the taming roll immediately instead of after a ride.
+ * Riding (riding.ts): an empty-handed click mounts; untamed horses run around and, each tick
+ * with chance 1/50, either accept the rider (random(100) < temper) or throw them off (+5 temper).
+ * Saddled tame horses are steered by the rider (AbstractHorse.travel) with the charged jump.
  */
 import { itemName, stack } from '@shared/item/stack';
 import type { ServerPlayer } from '../player';
@@ -43,6 +44,11 @@ export abstract class AbstractHorse extends Animal {
   saddled = false;
   /** ticks of the rearing animation after a failed mount */
   standCounter = 0;
+  /** AbstractHorse.playerJumpPendingScale (0 = none) and isJumping */
+  playerJumpPendingScale = 0;
+  isJumping = false;
+  /** AbstractHorse: maxUpStep 1.0 */
+  override maxUpStep = 1;
 
   get maxHealth(): number {
     return this.maxHp;
@@ -114,6 +120,13 @@ export abstract class AbstractHorse extends Animal {
     return false;
   }
 
+  /** HorseRunAroundLikeCrazyGoal.tick roll: tame, or throw the rider off (ejectPassengers). */
+  riderTamingRoll(p: ServerPlayer): boolean {
+    const ok = this.tryTame(p);
+    if (!ok) this.s.riding.dismount(p);
+    return ok;
+  }
+
   makeMad(): void {
     this.standCounter = 20;
     this.playSound(this.angrySound(), 1, this.voicePitch());
@@ -163,13 +176,64 @@ export abstract class AbstractHorse extends Animal {
       return true;
     }
     if (this.extraInteract(p, slot, name)) return true;
-    // an empty hand (or anything else) mounts: untamed horses try to throw the rider
+    // an empty hand mounts (doPlayerRide); holding anything else angers an untamed horse
     if (hand !== 0) return false;
-    if (!this.tame) {
-      this.tryTame(p);
+    if (held && !this.tame) {
+      this.makeMad();
       return true;
     }
-    return false;
+    if (this.s.riding.isVehicle(this)) return false;
+    return this.s.riding.mount(p, this);
+  }
+
+  /** AbstractHorse.onPlayerJump: power 0–100 → pending jump scale */
+  onPlayerJump(power: number): void {
+    if (!this.saddled) return;
+    if (power < 0) power = 0;
+    this.playerJumpPendingScale = power >= 90 ? 1 : 0.4 + (0.4 * power) / 90;
+  }
+
+  /** AbstractHorse.travel, ridden by a player: rider rotation, rider input, charged jump. */
+  protected override steeredStep(inp: import('../riding').SteerInput): boolean {
+    if (!this.tame || !this.saddled) return false;
+    if (inp.jumpPower >= 0) this.onPlayerJump(inp.jumpPower);
+    this.navigation.stop();
+    this.yaw = inp.yaw;
+    this.pitch = inp.pitch * 0.5;
+    this.yBodyRot = this.yaw;
+    this.yHeadRot = this.yBodyRot;
+    let f = inp.strafe * 0.5;
+    let f1 = inp.forward;
+    if (f1 <= 0) f1 *= 0.25;
+    if (this.onGround && this.playerJumpPendingScale === 0 && this.standCounter > 0) f = f1 = 0;
+    if (this.playerJumpPendingScale > 0 && !this.isJumping && this.onGround) {
+      const jb = this.mobEffects.get('jump_boost');
+      const d0 = this.jumpStrength * this.playerJumpPendingScale * this.jumpFactor();
+      this.vy = jb ? d0 + (jb.amplifier + 1) * 0.1 : d0;
+      this.isJumping = true;
+      if (f1 > 0) {
+        const r = (this.yaw * Math.PI) / 180;
+        this.vx += -0.4 * Math.sin(r) * this.playerJumpPendingScale;
+        this.vz += 0.4 * Math.cos(r) * this.playerJumpPendingScale;
+      }
+      this.playerJumpPendingScale = 0;
+      this.playSound('entity.horse.jump', 0.4, 1);
+    }
+    this.flyingSpeed = this.movementSpeedValue() * 0.1;
+    this.speed = this.movementSpeedValue();
+    this.xxa = f;
+    this.zza = f1;
+    this.jumping = false;
+    return true;
+  }
+
+  /** AbstractHorse.travel tail: landing ends the jump */
+  protected override afterTravel(): void {
+    if (this.onGround) {
+      if (this.isJumping) this.playerJumpPendingScale = 0;
+      this.isJumping = false;
+    }
+    if (!this.steer) this.flyingSpeed = 0.02;
   }
 
   protected extraInteract(_p: ServerPlayer, _slot: number, _name: string): boolean {
@@ -180,6 +244,15 @@ export abstract class AbstractHorse extends Animal {
     if (this.standCounter > 0) {
       this.standCounter--;
       this.navigation.stop();
+    }
+    // HorseRunAroundLikeCrazyGoal: an untamed horse with a rider bolts and, 1 in 50 ticks, decides
+    const rider = !this.tame ? this.s.riding.passengers(this)[0] : undefined;
+    if (rider) {
+      if (this.navigation.isDone()) {
+        const a = this.rng.nextFloat() * Math.PI * 2, d = 5 + this.rng.nextInt(5);
+        this.navigation.moveTo(this.x + Math.cos(a) * d, this.y, this.z + Math.sin(a) * d, 1.2);
+      }
+      if (this.rng.nextInt(50) === 0) this.riderTamingRoll(rider);
     }
     // AbstractHorse.aiStep: heal 1 every 900 ticks
     if (this.tickCount % 900 === 0 && this.health < this.maxHealth) this.heal(1);

@@ -47,6 +47,8 @@ import { soundTypeOf } from '@shared/world/soundtype';
 import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
 import { MobManager, MOB_TYPES } from './mobs/manager';
+import { Riding } from './riding';
+import { Boat } from './boat';
 import { Mob } from './mobs/mob';
 import type { MobSave } from './mobs/persist';
 // --- block behaviours (Phase 4: ticks, gravity, farming, doors)
@@ -212,6 +214,8 @@ export class GameServer {
   readonly sleep = new Sleep(this);
   /** mob spawning, combat, interactions and sync */
   readonly mobs = new MobManager(this);
+  /** passengers and vehicles (riding.ts) */
+  readonly riding = new Riding(this);
   /** Block behaviours: scheduled + random ticks, gravity blocks, farming, doors (blocks.ts). */
   readonly blocks = new BlockBehaviors(this);
   /** container menus, block entities and furnaces */
@@ -1049,7 +1053,7 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId :  e instanceof Thrown || e instanceof EyeOfEnder ? e.item : 0 });
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId :  e instanceof Thrown || e instanceof EyeOfEnder ? e.item : e instanceof Boat ? e.wood : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
           if (e instanceof ItemEntity && e.stack.tag) this.send(p, { t: 'itemEntityTag', id: e.id, tag: encodeTag(e.stack.tag) });
           this.mobs.onStartTracking(p, e);
@@ -1061,7 +1065,8 @@ export class GameServer {
     }
     for (const e of this.entities.values()) {
       if (e.removed || e instanceof Mob) continue;
-      if (e.x === e.sentX && e.y === e.sentY && e.z === e.sentZ) continue;
+      if (e.x === e.sentX && e.y === e.sentY && e.z === e.sentZ && e.yaw === e.sentRot) continue; // yaw: boats turning in place
+      e.sentRot = e.yaw;
       e.sentX = e.x;
       e.sentY = e.y;
       e.sentZ = e.z;
@@ -1111,8 +1116,10 @@ export class GameServer {
     // moves sent from the old dimension before the client saw the dimension change
     if (this.portals.ignoreMove(p, m.x, m.y, m.z)) return;
     // sleeping players stay in bed (rotation still updates)
-    if (p.sleepingPos) {
+    if (p.sleepingPos || this.riding.isPassenger(p)) {
+      // riders sit on the vehicle's seat (Riding.positionRiders); only the rotation counts
       p.yaw = m.yaw;
+      p.headYaw = m.yaw;
       p.pitch = Math.max(-90, Math.min(90, m.pitch));
       return;
     }
@@ -1185,6 +1192,7 @@ export class GameServer {
       if (p.gameMode !== 3) this.mobs.playerAttack(p, mob);
       return;
     }
+    if (this.riding.attackVehicle(p, targetId)) return; // riding: boats break
     // ServerPlayer.attack: a spectator's attack spectates the target instead
     if (p.gameMode === 3) {
       if (t && t !== p && t.gameMode !== 3 && !t.living.dead && (t.x - p.x) ** 2 + (t.y - p.y) ** 2 + (t.z - p.z) ** 2 < 36) this.setCamera(p, t);
@@ -1331,7 +1339,10 @@ export class GameServer {
         this.handleAttack(p, m.target);
         break;
       case 'interactEntity':
-        this.mobs.interact(p, m.id, m.hand);
+        if (!this.riding.interactVehicle(p, m.id)) this.mobs.interact(p, m.id, m.hand); // riding: boats
+        break;
+      case 'steerVehicle':
+        this.riding.steer(p, m);
         break;
       case 'stopSleeping':
         this.sleep.wake(p, false);
@@ -1940,7 +1951,9 @@ export class GameServer {
       if (lv === overworld) this.mobs.tick();
       this.blocks.tick();
       this.redstone.tickLevel();
+      if (lv === overworld) this.riding.tick(); // riding: steering input → vehicles
       this.tickEntities();
+      if (lv === overworld) this.riding.positionRiders(); // riding: riders follow their seats
       this.items.tickClouds(); // Phase 7: lingering potion clouds of this dimension
       this.portals.tickEntities();
       this.theEnd.tickEntities();

@@ -23,6 +23,7 @@ export abstract class ServerEntity {
   sentX = NaN;
   sentY = NaN;
   sentZ = NaN;
+  sentRot = NaN;
   abstract readonly type: string;
   abstract readonly width: number;
   abstract readonly height: number;

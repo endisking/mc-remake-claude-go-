@@ -134,6 +134,9 @@ export class ItemUse {
     if (this.onCooldown(p, stack.id)) return;
     const n = nameOf(stack.id);
     const creative = p.gameMode === 1;
+    // riding: carrot on a stick boosts the ridden pig
+    if (n === 'carrot_on_a_stick' && this.s.riding.useSteeringItem(p, hand)) return;
+    if (n.endsWith('_boat') && this.s.riding.placeBoat(p, hand)) return;
     // ArmorItem.use / ElytraItem.use: equip into an empty slot
     const eq = equipSlotFor(stack.id);
     if (eq) {

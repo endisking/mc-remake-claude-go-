@@ -1494,7 +1494,26 @@ const dolphinAnim = (p: Poses, a: MobAnim) => {
 
 const none = () => {};
 
+/**
+ * BoatModel.createBodyLayer (bottom, back, front, right and left planks), wrapped in a root that
+ * applies BoatRenderer's transform in mob space: +18 px down (its 0.375 lift vs the mob 1.501
+ * offset) and a 90° turn so the hull's long axis points forward.
+ */
+export function boatMesh(): VPart[] {
+  return [{
+    name: 'root', pivot: [0, 18, 0], rot: [0, PI / 2, 0], boxes: [],
+    children: [
+      { name: 'bottom', pivot: [0, 3, 1], rot: [PI / 2, 0, 0], boxes: [b(0, 0, -14, -9, -3, 28, 16, 3)] },
+      { name: 'back', pivot: [-15, 4, 4], rot: [0, (3 * PI) / 2, 0], boxes: [b(0, 19, -13, -7, -1, 18, 6, 2)] },
+      { name: 'front', pivot: [15, 4, 0], rot: [0, PI / 2, 0], boxes: [b(0, 27, -8, -7, -1, 16, 6, 2)] },
+      { name: 'right', pivot: [0, 4, -9], rot: [0, PI, 0], boxes: [b(0, 35, -14, -7, -1, 28, 6, 2)] },
+      { name: 'left', pivot: [0, 4, 9], boxes: [b(0, 43, -14, -7, -1, 28, 6, 2)] },
+    ],
+  }];
+}
+
 export const MOB_MODELS: Record<string, MobModelDef> = {
+  boat: { tex: [128, 64], parts: boatMesh(), anim: none },
   zombie: { tex: [64, 64], parts: humanoidMesh(), headParts: ['head', 'hat'], baby: HUMANOID_BABY, anim: zombieAnim },
   drowned: { tex: [64, 64], parts: humanoidMesh(0, 0, true), headParts: ['head', 'hat'], baby: HUMANOID_BABY, anim: zombieAnim },
   skeleton: { tex: [64, 32], parts: skeletonMesh(), headParts: ['head', 'hat'], baby: HUMANOID_BABY, anim: skeletonAnim },
@@ -1604,6 +1623,8 @@ function villagerLayers(model: string, base: string): MobLayer[] {
 }
 
 export const MOB_RENDER: Record<string, MobRenderDef> = {
+  /** boats: one texture per wood (Boat.Type ordinal in mobData variant) */
+  boat: { layers: ['oak', 'spruce', 'birch', 'jungle', 'acacia', 'dark_oak'].map((w, i) => ({ model: 'boat', texture: `boat_${w}`, when: (m: ClientMob) => (m.data.get('variant') ?? 0) === i })) },
   zombie: { layers: [{ model: 'zombie', texture: 'zombie' }] },
   husk: { layers: [{ model: 'zombie', texture: 'husk' }], scale: 1.0625 },
   giant: { layers: [{ model: 'zombie', texture: 'zombie' }], scale: 6 },

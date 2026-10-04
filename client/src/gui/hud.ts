@@ -34,6 +34,8 @@ export interface HudPlayer {
   hardcore: boolean;
   regeneration: boolean;
   hungerEffect: boolean;
+  /** riding a jumpable mount: the jump charge 0–1 (Gui.renderJumpMeter replaces the XP bar); null otherwise */
+  jumpCharge?: number | null;
 }
 
 const HEART_INDEX = { container: 0, normal: 2, poisoned: 4, withered: 6, absorbing: 8, frozen: 9 } as const;
@@ -244,10 +246,9 @@ export class Hud {
       }
     }
     const survival = p.gameMode === 0 || p.gameMode === 2;
-    if (survival) {
-      this.renderPlayerHealth(g, p);
-      this.renderExperienceBar(g, p);
-    }
+    if (survival) this.renderPlayerHealth(g, p);
+    if (p.jumpCharge !== null && p.jumpCharge !== undefined && p.gameMode !== 3) this.renderJumpMeter(g, p.jumpCharge);
+    else if (survival) this.renderExperienceBar(g, p);
     // overlay message (Gui.render: alpha from the remaining time)
     if (this.overlay && this.overlayTime > 0) {
       const a = Math.min(255, Math.floor((this.overlayTime * 255) / 20));
@@ -358,6 +359,19 @@ export class Hud {
       }
       if (blink && j2 < displayHealth) this.icon(g, l1, i2, heartU(type, j2 + 1 === displayHealth, true), v);
       if (j2 < health) this.icon(g, l1, i2, heartU(type, j2 + 1 === health, false), v);
+    }
+  }
+
+  /** Gui.renderJumpMeter: 182×5 bar in the XP bar's place, filled by the charge × 183 */
+  private renderJumpMeter(g: Gui, charge: number): void {
+    const x = Math.floor(g.width / 2) - 91;
+    const k = Math.floor(charge * 183);
+    const l = g.height - 32 + 3;
+    g.fill(x, l, 182, 5, 0xff1c1c24);
+    g.fill(x + 1, l + 1, 180, 3, 0xff3a3a4a);
+    if (k > 0) {
+      g.fill(x, l, Math.min(182, k), 5, 0xff5a3a10);
+      g.fill(x + 1, l + 1, Math.max(0, Math.min(180, k - 2)), 3, charge >= 0.9 ? 0xffffd040 : 0xffd08a20);
     }
   }
 
