@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ClientMob, ClientMobs, rotateIfNecessary, sheepColor, isMobType, type MobHooks } from './mobs';
+import { encodeS2C, decodeS2C } from '@shared/protocol/packets';
 import { MOB_MODELS, MOB_RENDER, bakeMobModel, createPoses, MOB_TEXTURES } from '../render/entities/mobmodels';
 
 function hooks(log: string[] = []): MobHooks {
@@ -149,6 +150,11 @@ describe('client mobs', () => {
     expect(sheepColor(0)).toEqual([0.9019608, 0.9019608, 0.9019608]);
     const red = sheepColor(14);
     expect(red[0]).toBeCloseTo((0xb0 / 255) * 0.75);
+  });
+
+  it('mobData packet round-trips (id, key, value)', () => {
+    const p = decodeS2C(encodeS2C({ t: 'mobData', id: 42, key: 'swell_dir', value: -1 }));
+    expect(p).toEqual({ t: 'mobData', id: 42, key: 'swell_dir', value: -1 });
   });
 
   it('recognises mob types from minecraft-data', () => {

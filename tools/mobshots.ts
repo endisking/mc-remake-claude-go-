@@ -48,6 +48,7 @@ const SHOTS: Record<string, Shot> = {
     mobs: row(['zombie', 'skeleton', 'cow', 'pig', 'sheep', 'spider'], { yaw: 150 }).map((m, i) => ({ ...m, ...[{ hurt: true }, { flags: 1 }, { die: 8 }, { die: 30 }, { data: { color: 11 } }, { flags: 1 }][i] })),
     wait: 400,
   },
+  dying: { cam: NEAR, mobs: row(['zombie', 'cow', 'spider', 'creeper'], { yaw: 150, die: 9 }), wait: 50 },
   night: { cam: NEAR + '&time=18000', mobs: row(['spider', 'enderman', 'zombie', 'cave_spider']) },
 };
 
@@ -62,8 +63,7 @@ async function spawn(page: Page, mobs: MobSpec[]): Promise<void> {
       for (const [k, v] of Object.entries(s.data ?? {})) m.setData(k, v);
       if (s.flags) m.flags = s.flags;
       if (s.hurt) {
-        const keep = () => { m.hurtTime = 10; };
-        setInterval(keep, 50);
+        setInterval(() => { m.hurtTime = 10; }, 50);
       }
       if (s.die) {
         g.mobs.event(m.id, 3);
@@ -114,7 +114,16 @@ for (const [name, shot] of Object.entries(SHOTS)) {
     g.send({ t: 'chat', message: `/tp ${x} ${y} ${z}` });
     g.player.abilities.flying = true;
   }, [q.get('x'), q.get('y'), q.get('z')]);
-  await page.waitForTimeout(300);
+  for (let i = 0; i < 10; i++) {
+    await page.waitForTimeout(300);
+    const y = await page.evaluate(() => (window as any).game.player.y);
+    if (Math.abs(y - Number(q.get('y'))) < 0.6) break;
+    await page.evaluate(([x, y, z]) => {
+      const g = (window as any).game;
+      g.send({ t: 'chat', message: `/tp ${x} ${y} ${z}` });
+      g.player.abilities.flying = true;
+    }, [q.get('x'), q.get('y'), q.get('z')]);
+  }
   await spawn(page, shot.mobs);
   await page.waitForTimeout(shot.wait ?? 500);
   console.log(name, await page.evaluate(() => { const g = (window as any).game; return [g.loggedIn, g.player.x, g.player.y, g.player.z, g.mobs.mobs.size, g.world.getState(37, 199, 9)]; }));

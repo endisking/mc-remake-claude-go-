@@ -57,7 +57,7 @@ import { isViewBlocking, hasMenuProvider } from '@shared/world/blockprops';
 import { JavaRandom } from '@shared/util/random';
 import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import { MobRenderer } from './render/entities/mobrenderer';
-import { ClientMobs, isMobType } from './world/mobs';
+import { ClientMobs, isMobType, type ClientMob } from './world/mobs';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
@@ -77,6 +77,7 @@ export class Game implements ScreenHost {
   private lines!: LineRenderer;
   private entityRenderer!: EntityRenderer;
   private mobRenderer!: MobRenderer;
+  private readonly visibleMobs: ClientMob[] = [];
   /** Client-side mobs (addEntity with a mob type), by entity id. */
   readonly mobs = new ClientMobs({
     sound: (ev, cat, x, y, z, vol, pitch) => this.playAt(ev, cat, x, y, z, vol, pitch),
@@ -1881,7 +1882,8 @@ export class Game implements ScreenHost {
     }
     if (this.mobs.mobs.size) {
       // LivingEntity.shouldRenderAtSqrDistance: bounding-box size × 64 blocks × entity distance
-      const visible = [];
+      const visible = this.visibleMobs;
+      visible.length = 0;
       for (const m of this.mobs.mobs.values()) {
         const [w, h] = m.dims();
         const d = ((w + w + h) / 3) * 64 * this.settings.entityDistance;

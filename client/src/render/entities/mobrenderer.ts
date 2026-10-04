@@ -9,7 +9,7 @@ import { createProgram, Uniforms } from '../gl';
 import { mat4, multiply, type Mat4 } from '../math';
 import { FLOATS_PER_VERTEX } from './model';
 import { LIGHT0, LIGHT1 } from './entityrenderer';
-import { MOB_MODELS, MOB_RENDER, MOB_TEXTURES, bakeMobModel, createPoses, type BakedMobModel, type MobModelDef, type Poses, type VPose } from './mobmodels';
+import { MOB_MODELS, MOB_RENDER, MOB_TEXTURES, bakeMobModel, createPoses, type BakedMobModel, type MobAnim, type MobModelDef, type Poses, type VPose } from './mobmodels';
 import type { ClientMob } from '../../world/mobs';
 import type { ClientWorld } from '../../world/clientworld';
 import { collisionBoxes } from '@shared/world/shapes';
@@ -119,13 +119,16 @@ export class MobRenderer {
   private shadowVao: WebGLVertexArrayObject;
   private shadowVbo: WebGLBuffer;
   private shadowVerts = new Float32Array(MAX_SHADOW_QUADS * 6 * 6);
-  private poses = new Map<string, Poses>();
+  private poses = new Map<number, Map<string, Poses>>();
   private poofs: Poof[] = [];
   private readonly E = mat4();
   private readonly roots = [mat4(), mat4(), mat4()];
   private readonly mats: Mat4[] = [];
   private readonly tmp = mat4();
   private readonly tmp2 = mat4();
+  private readonly anim: MobAnim = { limbSwing: 0, limbSwingAmount: 0, ageInTicks: 0, netHeadYaw: 0, headPitch: 0, attackTime: 0, partial: 0, mob: null as unknown as ClientMob };
+  private readonly burning: ClientMob[] = [];
+  private readonly shadowed: ClientMob[] = [];
   /** game ticks, for animated flames */
   ticks = 0;
   /** Entity Shadows video option */
@@ -263,8 +266,8 @@ export class MobRenderer {
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
     gl.depthFunc(gl.LEQUAL);
-    const burning: ClientMob[] = [];
-    const shadowed: ClientMob[] = [];
+    const burning = this.burning, shadowed = this.shadowed;
+    burning.length = shadowed.length = 0;
     for (const m of mobs) {
       if (m.invisible) continue;
       this.renderMob(m, world, camX, camY, camZ, partial);
@@ -279,18 +282,16 @@ export class MobRenderer {
   }
 
   private posesFor(m: ClientMob, model: string): Poses {
-    const k = `${m.id}:${model}`;
-    let p = this.poses.get(k);
-    if (!p) {
-      p = createPoses(MOB_MODELS[model]!.parts);
-      this.poses.set(k, p);
-    }
+    let byModel = this.poses.get(m.id);
+    if (!byModel) this.poses.set(m.id, (byModel = new Map()));
+    let p = byModel.get(model);
+    if (!p) byModel.set(model, (p = createPoses(MOB_MODELS[model]!.parts)));
     return p;
   }
 
   /** Drop cached poses of mobs that are gone. */
   forget(id: number): void {
-    for (const k of this.poses.keys()) if (k.startsWith(`${id}:`)) this.poses.delete(k);
+    this.poses.delete(id);
   }
 
   private renderMob(m: ClientMob, world: ClientWorld, camX: number, camY: number, camZ: number, partial: number): void {
@@ -368,16 +369,15 @@ export class MobRenderer {
       white = true;
     }
     const baby = m.baby;
-    const anim = {
-      limbSwing: (m.animationPosition - m.animationSpeed * (1 - partial)) * (baby ? 3 : 1),
-      limbSwingAmount: Math.min(1, m.animationSpeedOld + (m.animationSpeed - m.animationSpeedOld) * partial),
-      ageInTicks: m.tickCount + partial,
-      netHeadYaw: wrap(headYaw - bodyYaw),
-      headPitch: m.pitchO + (m.pitch - m.pitchO) * partial,
-      attackTime: m.attackAnimO + (m.attackAnim - m.attackAnimO) * partial,
-      partial,
-      mob: m,
-    };
+    const anim = this.anim;
+    anim.limbSwing = (m.animationPosition - m.animationSpeed * (1 - partial)) * (baby ? 3 : 1);
+    anim.limbSwingAmount = Math.min(1, m.animationSpeedOld + (m.animationSpeed - m.animationSpeedOld) * partial);
+    anim.ageInTicks = m.tickCount + partial;
+    anim.netHeadYaw = wrap(headYaw - bodyYaw);
+    anim.headPitch = m.pitchO + (m.pitch - m.pitchO) * partial;
+    anim.attackTime = m.attackAnimO + (m.attackAnim - m.attackAnimO) * partial;
+    anim.partial = partial;
+    anim.mob = m;
     for (const layer of rdef.layers) {
       if (layer.when && !layer.when(m)) continue;
       const tex = this.textures.get(layer.texture);
@@ -399,8 +399,8 @@ export class MobRenderer {
         mulTranslate(rBody!, 0, bp.bodyY, 0);
       }
       gl.bindTexture(gl.TEXTURE_2D, tex);
-      const c = layer.color?.(m) ?? [1, 1, 1];
-      gl.uniform4f(this.u.get('uColor'), c[0], c[1], c[2], 1);
+      const c = layer.color?.(m);
+      gl.uniform4f(this.u.get('uColor'), c ? c[0] : 1, c ? c[1] : 1, c ? c[2] : 1, 1);
       if (layer.emissive) {
         gl.uniform1f(this.u.get('uEmissive'), 1);
         gl.uniform4f(this.u.get('uOverlay'), 0, 0, 0, 0);
@@ -552,12 +552,13 @@ export class MobRenderer {
             if (a > 1) a = 1;
             const px0 = bx - x, px1 = bx + 1 - x, pz0 = bz - z, pz1 = bz + 1 - z, py = by - y + 0.001;
             const u0 = -px0 / 2 / r + 0.5, u1 = -px1 / 2 / r + 0.5, v0 = -pz0 / 2 / r + 0.5, v1 = -pz1 / 2 / r + 0.5;
-            const ox = x - camX, oy = y - camY, oz = z - camZ;
-            const corner = (px: number, pz: number, u: number, vv: number) => {
-              v[o++] = ox + px; v[o++] = oy + py; v[o++] = oz + pz; v[o++] = u; v[o++] = vv; v[o++] = a;
-            };
-            corner(px0, pz0, u0, v0); corner(px0, pz1, u0, v1); corner(px1, pz1, u1, v1);
-            corner(px0, pz0, u0, v0); corner(px1, pz1, u1, v1); corner(px1, pz0, u1, v0);
+            const ox = x - camX, oy = y - camY + py, oz = z - camZ;
+            o = shadowVertex(v, o, ox + px0, oy, oz + pz0, u0, v0, a);
+            o = shadowVertex(v, o, ox + px0, oy, oz + pz1, u0, v1, a);
+            o = shadowVertex(v, o, ox + px1, oy, oz + pz1, u1, v1, a);
+            o = shadowVertex(v, o, ox + px0, oy, oz + pz0, u0, v0, a);
+            o = shadowVertex(v, o, ox + px1, oy, oz + pz1, u1, v1, a);
+            o = shadowVertex(v, o, ox + px1, oy, oz + pz0, u1, v0, a);
           }
     }
     if (!o) return;
@@ -582,6 +583,16 @@ export class MobRenderer {
     gl.disable(gl.BLEND);
     gl.enable(gl.CULL_FACE);
   }
+}
+
+function shadowVertex(v: Float32Array, o: number, x: number, y: number, z: number, u: number, vv: number, a: number): number {
+  v[o] = x;
+  v[o + 1] = y;
+  v[o + 2] = z;
+  v[o + 3] = u;
+  v[o + 4] = vv;
+  v[o + 5] = a;
+  return o + 6;
 }
 
 function isFull(b: readonly number[]): boolean {
