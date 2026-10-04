@@ -24,6 +24,7 @@ import {
 } from '@shared/game/items';
 import { EFFECT_NAME, type EffectInstance, type EffectTarget } from '@shared/game/effects';
 import { DAMAGE, type DamageSource } from './survival';
+import { commandHooks } from './commands/hooks';
 
 interface UseState {
   hand: 0 | 1;
@@ -55,6 +56,23 @@ export class ItemUse {
 
   constructor(private readonly s: GameServer) {
     const srv = s;
+    // /effect give|clear (the command system calls into the effect map here)
+    const asPlayer = (t: unknown) => srv.players.find((p) => p === t) ?? null;
+    commandHooks.applyEffect = (t, effect, ticks, amp, particles) => {
+      const p = asPlayer(t);
+      if (!p || p.living.dead) return false;
+      const ok = p.living.effects.add(effect, ticks, amp, this.effectTarget(p), false, particles);
+      srv.survival.sync(p);
+      return ok;
+    };
+    commandHooks.removeEffect = (t, effect) => {
+      const p = asPlayer(t);
+      if (!p) return false;
+      const target = this.effectTarget(p);
+      const ok = effect ? p.living.effects.remove(effect, target) : p.living.effects.clear(target);
+      srv.survival.sync(p);
+      return ok;
+    };
     this.arrowHost = {
       arrowTargets: () => this.arrowTargets(),
       ownerBox: (oid) => {

@@ -4,6 +4,12 @@
  * and the experience bar with level number.
  */
 import type { Gui } from './gui';
+
+/** A text component click event (copy_to_clipboard, suggest_command, run_command, open_url). */
+export interface ChatClick {
+  action: string;
+  value: string;
+}
 import { JavaRandom } from '@shared/util/random';
 import { ITEMS_BY_ID } from '@shared/data';
 import { itemName, type Inventory } from '@shared/item/stack';
@@ -63,38 +69,63 @@ export class Hud {
   }
 
   // chat (vanilla ChatComponent, closed): newest at the bottom, fading after 10 s
-  private chatLines: { text: string; tick: number }[] = [];
+  private chatLines: { text: string; tick: number; click?: ChatClick }[] = [];
+  /** rows drawn by the last focused render (for clicking on chat components) */
+  private chatRows: { y: number; click?: ChatClick }[] = [];
 
   /** F3+D (ChatComponent.clearMessages). */
   clearChat(): void {
     this.chatLines.length = 0;
   }
 
-  addChat(text: string): void {
-    for (const line of text.split('\n')) this.chatLines.unshift({ text: line, tick: this.tickCount });
+  /** sent messages (ChatComponent.recentChat) for the chat screen's up/down history */
+  readonly sentHistory: string[] = [];
+
+  addChat(text: string, click?: ChatClick): void {
+    for (const line of text.split('\n')) this.chatLines.unshift({ text: line, tick: this.tickCount, click });
+    if (this.chatScroll > 0) this.chatScroll++;
     if (this.chatLines.length > 100) this.chatLines.length = 100;
   }
 
-  renderChat(g: Gui): void {
+  /** lines scrolled up while the chat is open (ChatComponent.chatScrollbarPos) */
+  chatScroll = 0;
+  scrollChat(lines: number): void {
+    this.chatScroll = Math.max(0, Math.min(this.chatLines.length - 20, this.chatScroll + lines));
+  }
+
+  /** ChatComponent.render: closed = last 10 lines fading after 10 s; focused (chat open) = 20 lines, opaque. */
+  renderChat(g: Gui, focused = false): void {
+    if (!focused) this.chatScroll = 0;
+    else this.chatRows.length = 0;
     const bottom = g.height - 40;
-    let n = 0;
+    const max = focused ? 20 : 10;
+    let n = 0, skip = focused ? this.chatScroll : 0;
     for (const l of this.chatLines) {
       const age = this.tickCount - l.tick;
-      if (age >= 200 || n >= 10) break;
-      let o = 1 - age / 200;
+      if (n >= max || (!focused && age >= 200)) break;
+      let o = focused ? 1 : 1 - age / 200;
       o = Math.max(0, Math.min(1, o * 10));
       o *= o;
       const alpha = o * 0.9 + 0.1;
       const bg = o * 0.5;
       if (alpha <= 0.01) continue;
-      const y = bottom - n * 9;
-      g.ctx.save();
-      g.ctx.globalAlpha = bg;
-      g.fill(0, y - 9, 4 + 320 + 4, 9, 0xff000000);
-      g.ctx.globalAlpha = alpha;
-      g.text(l.text, 4, y - 8, 0xffffff, true);
-      g.ctx.restore();
-      n++;
+      // ComponentRenderUtils.wrapComponents: lines wider than the chat (320) wrap, newest at the bottom
+      const parts = wrapChat(g, l.text, 320);
+      for (let i = parts.length - 1; i >= 0 && n < max; i--) {
+        if (skip > 0) {
+          skip--;
+          continue;
+        }
+        const y = bottom - n * 9;
+        if (focused) this.chatRows.push({ y: y - 9, click: l.click });
+        g.ctx.save();
+        g.ctx.globalAlpha = bg;
+        g.fill(0, y - 9, 4 + 320 + 4, 9, 0xff000000);
+        g.ctx.globalAlpha = alpha;
+        g.text(parts[i]!, 4, y - 8, 0xffffff, true);
+        g.ctx.restore();
+        n++;
+      }
     }
   }
 
@@ -128,8 +159,17 @@ export class Hud {
     this.lastHighlight = key;
   }
 
+  /** ChatComponent.getClickedComponentStyleAt (per line here): the click action under the mouse. */
+  chatClickAt(mx: number, my: number): ChatClick | undefined {
+    if (mx < 0 || mx > 4 + 320 + 4) return undefined;
+    return this.chatRows.find((r) => my >= r.y && my < r.y + 9)?.click;
+  }
+
+  /** the chat screen draws the chat itself (focused) */
+  chatOpen = false;
+
   render(g: Gui, p: HudPlayer, item: (id: number, count: number, x: number, y: number, damage: number, pop: number) => void, partial = 0): void {
-    this.renderChat(g);
+    if (!this.chatOpen) this.renderChat(g);
     const mid = Math.floor(g.width / 2);
     const spectator = p.gameMode === 3;
     // hotbar (spectators get the spectator menu instead, drawn by SpectatorGui)
@@ -283,4 +323,22 @@ export class Hud {
       g.text(s, i1, j1, 0x80ff20, false);
     }
   }
+}
+
+/** Split a §-formatted line at spaces to fit `width` GUI pixels, carrying the colour code over. */
+export function wrapChat(g: Gui, text: string, width: number): string[] {
+  if (g.font.width(text) <= width) return [text];
+  const out: string[] = [];
+  let line = '', color = '';
+  for (const word of text.split(/(?<= )/)) {
+    if (line && g.font.width(line + word) > width) {
+      out.push(line);
+      line = color;
+    }
+    line += word;
+    const codes = word.match(/§[0-9a-fr]/gi);
+    if (codes) color = codes[codes.length - 1]!.toLowerCase() === '§r' ? '' : codes[codes.length - 1]!;
+  }
+  if (line) out.push(line);
+  return out;
 }

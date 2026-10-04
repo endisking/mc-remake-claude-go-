@@ -3,6 +3,7 @@ import { AABB, collideBox } from '@shared/entity/aabb';
 import { FRICTION } from '@shared/entity/blockphysics';
 import { STATE_TO_BLOCK } from '@shared/world/blockstate';
 import { FLUID } from '@shared/world/blockinfo';
+import { getFlow, FLUID_OF, fluidHeight, fluidKind } from '@shared/game/fluids';
 import type { ItemStack } from '@shared/item/stack';
 import type { BlockWorld } from '@shared/world/world';
 
@@ -34,6 +35,52 @@ export abstract class ServerEntity {
 
   bb(): AABB {
     return AABB.ofSize(this.x, this.y, this.z, this.width, this.height);
+  }
+
+  /**
+   * Entity.updateFluidHeightAndDoFluidPushing for non-player entities: returns the fluid height
+   * over the feet (−1 when not touching) and adds the averaged, normalised flow × `factor`.
+   */
+  protected fluidPush(world: BlockWorld, kind: number, factor: number): number {
+    const bb = this.bb().deflate(0.001);
+    let height = 0, touching = false;
+    let px = 0, py = 0, pz = 0;
+    for (let x = Math.floor(bb.minX); x < Math.ceil(bb.maxX); x++)
+      for (let y = Math.floor(bb.minY); y < Math.ceil(bb.maxY); y++)
+        for (let z = Math.floor(bb.minZ); z < Math.ceil(bb.maxZ); z++) {
+          const f = FLUID_OF[world.getState(x, y, z)]!;
+          if (f === 0 || fluidKind(f) !== kind) continue;
+          const top = y + fluidHeight(world, x, y, z, f);
+          if (top < bb.minY) continue;
+          touching = true;
+          height = Math.max(top - bb.minY, height);
+          const v = getFlow(world, x, y, z);
+          const k = height < 0.4 ? height : 1;
+          px += v[0] * k;
+          py += v[1] * k;
+          pz += v[2] * k;
+        }
+    let len = Math.hypot(px, py, pz);
+    if (len > 0) {
+      // averaged, then normalised (only players skip the normalisation)
+      px /= len;
+      py /= len;
+      pz /= len;
+      px *= factor;
+      py *= factor;
+      pz *= factor;
+      len = factor;
+      if (Math.abs(this.vx) < 0.003 && Math.abs(this.vz) < 0.003 && len < 0.0045) {
+        const s = 0.0045 / len;
+        px *= s;
+        py *= s;
+        pz *= s;
+      }
+      this.vx += px;
+      this.vy += py;
+      this.vz += pz;
+    }
+    return touching ? height : -1;
   }
 
   /** Move with collisions (no step-up); returns whether we hit the ground. */
@@ -78,12 +125,21 @@ export class ItemEntity extends ServerEntity {
     this.prevZ = this.z;
     this.age++;
     if (this.pickupDelay > 0 && this.pickupDelay !== 32767) this.pickupDelay--;
-    const inWater = FLUID[world.getState(Math.floor(this.x), Math.floor(this.y + 0.1), Math.floor(this.z))] === 1;
-    if (inWater) {
+    // Entity.baseTick: pushed by flowing water (0.014) and lava (0.0023333 in the overworld)
+    const water = this.fluidPush(world, 1, 0.014);
+    const lava = this.fluidPush(world, 2, 0.0023333333333333335);
+    // eye height 0.2125 − 0.11111111
+    const eye = 0.2125 - 0.11111111;
+    if (water > eye) {
       // float upward in water (ItemEntity.setUnderwaterMovement)
       this.vx *= 0.99;
       this.vy += this.vy < 0.06 ? 5.0e-4 : 0;
       this.vz *= 0.99;
+    } else if (lava > eye) {
+      // setUnderLavaMovement
+      this.vx *= 0.95;
+      this.vy += this.vy < 0.06 ? 5.0e-4 : 0;
+      this.vz *= 0.95;
     } else this.vy -= 0.04;
     if (!this.onGround || this.vx * this.vx + this.vz * this.vz > 1e-5 || (this.age + this.id) % 4 === 0) {
       this.moveWithCollision(world, this.vx, this.vy, this.vz);
@@ -165,6 +221,7 @@ export class ExperienceOrb extends ServerEntity {
 
   tick(world: BlockWorld): void {
     this.age++;
+    this.fluidPush(world, 1, 0.014);
     const inWater = FLUID[world.getState(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z))] === 1;
     if (inWater) {
       // setUnderwaterMovement

@@ -9,7 +9,8 @@ import { EFFECTS } from '../data';
 export const EFFECT_ID: Record<string, number> = {};
 export const EFFECT_NAME: Record<number, string> = {};
 for (const e of EFFECTS) {
-  const snake = e.name.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
+  // vanilla registry names (minecraft-data's BadLuck is "unluck")
+  const snake = e.name === 'BadLuck' ? 'unluck' : e.name.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
   EFFECT_ID[snake] = e.id;
   EFFECT_NAME[e.id] = snake;
 }

@@ -93,6 +93,13 @@ const S2C_SCHEMA = {
   armorEquipment: [['id', 'i32'], ['feet', 'i16'], ['legs', 'i16'], ['chest', 'i16'], ['head', 'i16']],
   /** A living entity starts/stops using an item (vanilla DATA_LIVING_ENTITY_FLAGS: eating, drinking, drawing a bow). */
   livingUse: [['id', 'i32'], ['using', 'bool'], ['hand', 'u8'], ['item', 'i16']],
+  // ---- commands & player list (Phase 9) ----
+  /** Answer to a commandSuggest request: JSON {start, list:[{text,tooltip?}], usage:[], error, parsedTo}. */
+  commandSuggestions: [['id', 'varint'], ['json', 'str']],
+  /** Vanilla KeepAlive: echo the id back (latency measurement). */
+  keepAlive: [['id', 'f64']],
+  /** Vanilla PlayerInfo UPDATE_LATENCY: a player's ping in milliseconds. */
+  playerLatency: [['id', 'i32'], ['latency', 'varint']],
 } as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server
@@ -130,6 +137,11 @@ const C2S_SCHEMA = {
   useItem: [['hand', 'u8']],
   /** Use key released while using an item: shoot the bow (vanilla PlayerAction RELEASE_USE_ITEM). */
   releaseUseItem: [],
+  // ---- commands & player list (Phase 9) ----
+  /** Chat box tab completion (vanilla ServerboundCommandSuggestion); text includes the leading '/'. */
+  commandSuggest: [['id', 'varint'], ['text', 'str']],
+  /** Reply to the server's keepAlive. */
+  keepAlive: [['id', 'f64']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;
