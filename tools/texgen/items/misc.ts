@@ -360,13 +360,12 @@ function clock(frame: number): Tex {
       t.set(x, y, hex(day ? '#4a8ad8' : '#141a3a'));
     }
   // sun and moon on the dial
-  const sx = Math.round(7.5 + Math.sin(a) * 2.6 - 0.5), sy = Math.round(7.5 - Math.cos(a) * 2.6 - 0.5);
+  const sx = Math.round(7 + Math.sin(a) * 2.2), sy = Math.round(7 - Math.cos(a) * 2.2);
   px(t, `${sx},${sy} ${sx + 1},${sy} ${sx},${sy + 1} ${sx + 1},${sy + 1}`, '#f8e040');
-  const mx = Math.round(7.5 - Math.sin(a) * 2.6 - 0.5), my = Math.round(7.5 + Math.cos(a) * 2.6 - 0.5);
-  px(t, `${mx},${my} ${mx + 1},${my} ${mx},${my + 1}`, '#e0e0f0');
-  // the fixed lower half of the case covers the dial (only the top half is a window)
-  for (let y = 8; y < 12; y++) for (let x = 3; x < 13; x++) if (at(face, x, y) && (x - 7.5) ** 2 + (y - 7.5) ** 2 < 15) t.set(x, y, TIERS.golden![y === 8 ? 1 : 2]!);
-  px(t, '7,9 8,9', TIERS.golden![4]!);
+  const mx = Math.round(7 - Math.sin(a) * 2.2), my = Math.round(7 + Math.cos(a) * 2.2);
+  px(t, `${mx},${my} ${mx + 1},${my + 1}`, '#e8e8f8');
+  // fixed pointer at the top of the window
+  px(t, '7,3 8,3', TIERS.golden![0]!);
   return t;
 }
 

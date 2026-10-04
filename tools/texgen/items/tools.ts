@@ -1,6 +1,6 @@
 /** Tools, weapons and armour for every tier — original sprites shaded from masks. */
 import { Tex, hex, type Palette } from '../lib';
-import { at, handle, mat, maskFn, maskOf, paintGrid, px, shadeMask, union, type Mask } from './lib';
+import { at, handle, mat, maskFn, maskOf, outlineOutside, paintGrid, px, shadeMask, union, type Mask } from './lib';
 import type { ItemTexDef } from './registry';
 
 /** Head/blade material ramps: rim, dark, mid, light, highlight. */
@@ -54,11 +54,11 @@ function sword(tier: string): Tex {
 const PICK_HEAD = (() => {
   const half = maskOf([
     '................',
-    '.....#######....',
-    '...##########...',
-    '..#####..#####..',
-    '.###.......###..',
-    '.##.............',
+    '................',
+    '.....######.....',
+    '...#########....',
+    '..###.....###...',
+    '..#.........#...',
   ]);
   // mirror across the handle's diagonal: (x, y) → (15 − y, 15 − x)
   return union(half, maskFn((x, y) => at(half, 15 - y, 15 - x)));
@@ -66,36 +66,36 @@ const PICK_HEAD = (() => {
 
 function pickaxe(tier: string): Tex {
   const t = new Tex();
+  const p = TIERS[tier]!;
+  // head: bevel-shaded band with its outline drawn outside it (keeps a 2 px band readable)
+  const head = new Tex();
+  shadeMask(head, PICK_HEAD, p, { seed: 21, rim: false, dither: 0 });
   handle(t, 1, 11, stickFor(tier));
-  shadeMask(t, PICK_HEAD, TIERS[tier]!, { seed: 21 });
+  t.over(outlineOutside(head, p[0]!));
   return t;
 }
 
-/** Axe blade: a fan on the upper-left of the handle top, cutting edge parallel to the handle. */
+/** Axe head: a broad blade on the upper-left of the handle top, with a short poll behind it. */
 const AXE_HEAD = union(
   maskFn((x, y) => {
     const s = x + y, a = x - y;
-    if (s < 5 || s > 15) return false;
-    const hw = 5.2 - (s - 5) * 0.4;
-    return Math.abs(a - 5) <= hw;
+    return s >= 6 && s <= 14 && Math.abs(a - 5) <= 3.8 - (s - 6) * 0.38;
   }),
-  // poll (the back of the head) on the other side of the handle
   maskFn((x, y) => {
     const s = x + y, a = x - y;
-    return s >= 16 && s <= 18 && a >= 5 && a <= 8;
+    return s >= 17 && s <= 18 && a >= 6 && a <= 8;
   }),
 );
 
 function axe(tier: string): Tex {
   const t = new Tex();
-  handle(t, 1, 12, stickFor(tier));
   const p = TIERS[tier]!;
-  shadeMask(t, AXE_HEAD, p, { seed: 31 });
-  // bright cutting edge along the far side
-  for (let x = 0; x < 16; x++)
-    for (let y = 0; y < 16; y++) if (x + y === 5 && at(AXE_HEAD, x, y)) t.set(x, y, p[1]!);
-  for (let x = 0; x < 16; x++)
-    for (let y = 0; y < 16; y++) if (x + y === 6 && at(AXE_HEAD, x, y)) t.set(x, y, p[3]!);
+  handle(t, 1, 12, stickFor(tier));
+  const head = new Tex();
+  shadeMask(head, AXE_HEAD, p, { seed: 31, rim: false, dither: 0 });
+  // bright cutting edge down the far side
+  for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) if (x + y === 6 && at(AXE_HEAD, x, y)) head.set(x, y, p[4]!);
+  t.over(outlineOutside(head, p[0]!));
   return t;
 }
 
@@ -116,18 +116,20 @@ function shovel(tier: string): Tex {
 const HOE_HEAD = maskOf([
   '................',
   '................',
+  '.......######...',
   '......#######...',
-  '.....#########..',
-  '....####...###..',
-  '....###.........',
-  '....##..........',
-  '....#...........',
+  '......##........',
+  '......#.........',
+  '......#.........',
 ]);
 
 function hoe(tier: string): Tex {
   const t = new Tex();
-  handle(t, 1, 12, stickFor(tier));
-  shadeMask(t, HOE_HEAD, TIERS[tier]!, { seed: 51 });
+  const p = TIERS[tier]!;
+  const head = new Tex();
+  shadeMask(head, HOE_HEAD, p, { seed: 51, rim: false, dither: 0 });
+  handle(t, 1, 11, stickFor(tier));
+  t.over(outlineOutside(head, p[0]!));
   return t;
 }
 
