@@ -45,6 +45,7 @@ import { PROFESSIONS as PROFESSION_IDS } from '@shared/game/trades';
 import { Villager, WanderingTrader, AbstractVillager } from './villager';
 import { IronGolem, SnowGolem } from './golems';
 import { Witch } from './witch';
+import { Rabbit, PolarBear, Ocelot, Cat, Turtle } from './creatures';
 import { Horse, Donkey, Mule, AbstractHorse, AbstractChestedHorse } from './horse';
 
 type MobCtor = new (id: number, s: GameServer) => Mob;
@@ -53,6 +54,7 @@ export const MOB_TYPES: Record<string, MobCtor> = {
   pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, mooshroom: Mooshroom, phantom: Phantom, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid, cod: Cod, salmon: Salmon,
   villager: Villager, wandering_trader: WanderingTrader, iron_golem: IronGolem, snow_golem: SnowGolem,
   horse: Horse, donkey: Donkey, mule: Mule, witch: Witch,
+  rabbit: Rabbit, polar_bear: PolarBear, ocelot: Ocelot, cat: Cat, turtle: Turtle,
 };
 
 /** MobCategory caps (1.17.1) and the categories we spawn. */
@@ -926,6 +928,11 @@ export function mobDataOf(m: Mob): Record<string, number> {
   }
   if (m instanceof AbstractChestedHorse) d.chest = m.hasChest ? 1 : 0;
   if (m instanceof Horse) d.variant = m.horseVariant;
+  if (m instanceof Rabbit || m instanceof Cat) d.variant = m.variant();
+  if (m instanceof Cat) {
+    d.tame = m.tame ? 1 : 0;
+    d.sitting = m.tame && m.orderedToSit ? 1 : 0;
+  }
   if (m instanceof Wolf) {
     d.tame = m.tame ? 1 : 0;
     d.sitting = m.sitting ? 1 : 0;

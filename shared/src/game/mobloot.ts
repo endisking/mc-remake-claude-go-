@@ -125,6 +125,20 @@ export function mobLoot(type: string, c: MobLootContext): ItemStack[] {
       for (let i = 0; i < rolls; i++) entry(out, c, pool[Math.floor(c.random() * pool.length)]!, 0, 2, { looting: L });
       break;
     }
+    case 'rabbit':
+      entry(out, c, 'rabbit_hide', 0, 1, { looting: L });
+      entry(out, c, 'rabbit', 0, 1, { looting: L, smelt: true });
+      if (c.killedByPlayer && c.random() < 0.1 + c.looting * 0.03) entry(out, c, 'rabbit_foot', 1, 1);
+      break;
+    case 'polar_bear':
+      entry(out, c, c.random() < 0.75 ? 'cod' : 'salmon', 0, 2, { looting: L, smelt: true });
+      break;
+    case 'cat':
+      entry(out, c, 'string', 0, 2, { looting: L });
+      break;
+    case 'turtle':
+      entry(out, c, 'seagrass', 0, 2, { looting: L });
+      break;
     case 'iron_golem':
       entry(out, c, 'poppy', 0, 2);
       entry(out, c, 'iron_ingot', 3, 5);

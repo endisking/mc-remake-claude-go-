@@ -309,7 +309,7 @@ describe('world commands', () => {
     expect(server.worldSpawn).toEqual([5, 90, 5]);
     expect(a.run('/summon minecraft:item ~ ~ ~ {Item:{id:"minecraft:apple",Count:3b}}')).toEqual(['Summoned new Apple']);
     expect(a.run('/summon zombie')).toEqual(['Summoned new Zombie']);
-    expect(a.run('/summon horse')).toEqual(['Unable to summon entity']);
+    expect(a.run('/summon ravager')).toEqual(['Unable to summon entity']);
     expect(a.run('/summon unicorn')).toEqual(['Unknown entity: minecraft:unicorn']);
     expect(a.run('/locate village')).toEqual(['Could not find that structure nearby']);
     commandHooks.locate.set('village', () => [100, -200]);
