@@ -130,6 +130,22 @@ describe('crafted block models', () => {
   });
 });
 
+describe('every block', () => {
+  /** Blocks vanilla draws with no block model (fluids use the fluid renderer). */
+  const INVISIBLE = new Set(['air', 'cave_air', 'void_air', 'water', 'lava', 'bubble_column', 'moving_piston', 'barrier', 'light', 'structure_void']);
+  it('no state of any block uses the missing texture, and only invisible/invalid states are empty', () => {
+    const { states } = baked();
+    const bad: string[] = [];
+    for (const b of BLOCKS)
+      for (let s = b.minStateId; s <= b.maxStateId; s++)
+        for (const c of states[s]!.choices) {
+          if (c.quads.some((q) => q.layer === missingLayer)) bad.push(`${b.name}#${s} missing texture`);
+          if (!c.quads.length && !INVISIBLE.has(b.name) && !noFaces(b.name, s)) bad.push(`${b.name}#${s} empty`);
+        }
+    expect(bad.slice(0, 20)).toEqual([]);
+  });
+});
+
 describe('render layers, tints and light', () => {
   const passOf = (name: string, props: Record<string, string | number | boolean> = {}) => {
     const { states } = baked();

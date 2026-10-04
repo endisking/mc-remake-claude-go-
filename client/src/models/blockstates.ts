@@ -6,6 +6,7 @@ import type { BlockStateDef, ModelRef } from './format';
 import { MODELS, box } from './library';
 import { NATURAL } from './natural';
 import { CRAFTED } from './crafted';
+import { TECH } from './tech';
 
 /** Register a model that inherits `parent` with the given texture variables. */
 function model(name: string, parent: string, textures: Record<string, string>): string {
@@ -374,7 +375,7 @@ function materialTextures(base: string, has: (t: string) => boolean): { top: str
 }
 
 export function blockStateDef(name: string, hasTexture: (t: string) => boolean): BlockStateDef {
-  const ex = EXPLICIT[name] ?? NATURAL[name] ?? CRAFTED[name];
+  const ex = EXPLICIT[name] ?? NATURAL[name] ?? CRAFTED[name] ?? TECH[name];
   if (ex) return ex();
   if (FLUID_BLOCKS.has(name)) return { variants: {} };
   // waxed copper looks exactly like its unwaxed counterpart
