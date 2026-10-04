@@ -106,6 +106,30 @@ describe('world generation block models', () => {
   });
 });
 
+/** Crafted/utility blocks players place early in survival must not show the missing texture either. */
+const CRAFTED_BLOCKS = [
+  'crafting_table', 'furnace', 'bookshelf', 'dispenser', 'dropper', 'observer', 'jukebox', 'note_block', 'redstone_lamp', 'beehive', 'lapis_block', 'diamond_block',
+  'emerald_block', 'coal_block', 'redstone_block', 'netherite_block', 'raw_iron_block', 'copper_block', 'cut_copper', 'waxed_cut_copper_stairs', 'oxidized_cut_copper_slab',
+  'quartz_block', 'quartz_pillar', 'quartz_stairs', 'smooth_quartz', 'cobbled_deepslate_wall', 'deepslate_tile_stairs', 'polished_blackstone_brick_slab', 'nether_brick_fence',
+  'red_nether_brick_wall', 'end_stone_brick_stairs', 'purpur_slab', 'purpur_pillar', 'red_wool', 'red_carpet', 'blue_concrete', 'lime_concrete_powder', 'cyan_glazed_terracotta',
+  'purple_shulker_box', 'carrots', 'potatoes', 'beetroots', 'nether_wart', 'pumpkin_stem', 'attached_melon_stem', 'spruce_door', 'iron_door', 'birch_trapdoor', 'iron_trapdoor',
+  'oak_fence_gate', 'warped_fence_gate', 'oak_pressure_plate', 'light_weighted_pressure_plate', 'heavy_weighted_pressure_plate', 'soul_torch', 'soul_wall_torch', 'redstone_torch',
+  'redstone_wall_torch', 'lantern', 'soul_lantern', 'chain', 'end_rod', 'flower_pot', 'potted_poppy', 'potted_fern', 'slime_block', 'honey_block', 'tinted_glass', 'bone_block',
+  'dried_kelp_block', 'target', 'crying_obsidian', 'lodestone', 'gilded_blackstone', 'chiseled_deepslate', 'frosted_ice', 'petrified_oak_slab',
+];
+
+describe('crafted block models', () => {
+  it.each(CRAFTED_BLOCKS)('%s has a complete model', (name) => {
+    const b = byName.get(name)!;
+    const { states } = baked();
+    for (let s = b.minStateId; s <= b.maxStateId; s++)
+      for (const choice of states[s]!.choices) {
+        if (!noFaces(name, s)) expect(choice.quads.length, `${name} state ${s}`).toBeGreaterThan(0);
+        for (const q of choice.quads) expect(q.layer, `${name} state ${s} uses the missing texture`).not.toBe(missingLayer);
+      }
+  });
+});
+
 describe('render layers, tints and light', () => {
   const passOf = (name: string, props: Record<string, string | number | boolean> = {}) => {
     const { states } = baked();

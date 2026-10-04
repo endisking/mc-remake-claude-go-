@@ -5,6 +5,7 @@
 import type { BlockStateDef, ModelRef } from './format';
 import { MODELS, box } from './library';
 import { NATURAL } from './natural';
+import { CRAFTED } from './crafted';
 
 /** Register a model that inherits `parent` with the given texture variables. */
 function model(name: string, parent: string, textures: Record<string, string>): string {
@@ -373,9 +374,27 @@ function materialTextures(base: string, has: (t: string) => boolean): { top: str
 }
 
 export function blockStateDef(name: string, hasTexture: (t: string) => boolean): BlockStateDef {
-  const ex = EXPLICIT[name] ?? NATURAL[name];
+  const ex = EXPLICIT[name] ?? NATURAL[name] ?? CRAFTED[name];
   if (ex) return ex();
   if (FLUID_BLOCKS.has(name)) return { variants: {} };
+  // waxed copper looks exactly like its unwaxed counterpart
+  if (name.startsWith('waxed_')) return blockStateDef(name === 'waxed_copper_block' ? 'copper_block' : name.slice(6), hasTexture);
+  if (name.endsWith('_door') && hasTexture(`${name}_top`)) return doorDef(name, `${name}_top`, `${name}_bottom`);
+  if (name.endsWith('_trapdoor') && hasTexture(name)) return trapdoorDef(name, name);
+  if (name.endsWith('_pressure_plate')) {
+    const base = name.slice(0, -'_pressure_plate'.length);
+    const tex = base === 'light_weighted' ? 'gold_block' : base === 'heavy_weighted' ? 'iron_block' : materialTextures(base, hasTexture)?.side;
+    if (tex && hasTexture(tex)) {
+      return {
+        variants: {
+          'powered=false': { model: model(name, 'pressure_plate_up', { texture: tex }) },
+          'powered=true': { model: model(`${name}_down`, 'pressure_plate_down', { texture: tex }) },
+          'power=0': { model: model(name, 'pressure_plate_up', { texture: tex }) },
+          '': { model: model(`${name}_down`, 'pressure_plate_down', { texture: tex }) },
+        },
+      };
+    }
+  }
   if (name.endsWith('_bed')) return bedDef(name);
   if (name === 'scaffolding') return scaffoldingDef();
   if (name.endsWith('_leaves')) return single({ model: model(name, 'leaves', { all: name }) });

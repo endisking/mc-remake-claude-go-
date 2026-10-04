@@ -18,6 +18,7 @@ import { animatedTextures } from './blocks/animated';
 import { plantTextures } from './blocks/plants';
 import { mineralTextures } from './blocks/minerals';
 import { buildingTextures } from './blocks/building';
+import { decorTextures } from './blocks/decor';
 import { grassColormap, foliageColormap } from './colormap';
 import { widgets, optionsBackground, icons, spectatorWidgets } from './gui';
 import { allSkins } from './skins';
@@ -45,6 +46,7 @@ export const ALL_BLOCK_TEXTURES: TexDef[] = [
   ...plantTextures,
   ...mineralTextures,
   ...buildingTextures,
+  ...decorTextures,
   ...destroyStages().map((t, i): TexDef => ({ name: `destroy_stage_${i}`, make: () => t, cutout: true })),
 ];
 
