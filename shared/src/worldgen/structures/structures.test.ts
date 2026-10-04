@@ -137,6 +137,41 @@ describe('structure pieces', () => {
   });
 });
 
+describe('more structures', () => {
+  it('village: a meeting point, streets and buildings within 80 blocks', () => {
+    const p = locateStructure(gen, 'village', 0, 0, 40)!;
+    const s = structureStart(gen, 'village', p.x >> 4, p.z >> 4)!;
+    const names = s.pieces.map((x) => x.constructor.name);
+    expect(names.filter((n) => n === 'StreetPiece').length).toBeGreaterThan(2);
+    expect(names.filter((n) => n === 'BuildingPiece').length).toBeGreaterThan(5);
+    const cx = (s.cx << 4) + 8, cz = (s.cz << 4) + 8;
+    for (const pc of s.pieces) {
+      expect(Math.abs(pc.box.x0 - cx)).toBeLessThanOrEqual(80);
+      expect(Math.abs(pc.box.z1 - cz)).toBeLessThanOrEqual(80);
+    }
+    // no two pieces overlap
+    for (let i = 0; i < s.pieces.length; i++)
+      for (let j = i + 1; j < s.pieces.length; j++) {
+        const a = s.pieces[i]!.box, b = s.pieces[j]!.box;
+        expect(a.intersectsXZ(b.x0, b.z0, b.x1, b.z1)).toBe(false);
+      }
+  });
+
+  it('pillager outpost: a watchtower with the outpost chest', () => {
+    const p = locateStructure(gen, 'pillager_outpost', 0, 0, 60)!;
+    expect(p).not.toBeNull();
+    const s = structureStart(gen, 'pillager_outpost', p.x >> 4, p.z >> 4)!;
+    const tower = s.pieces[0] as unknown as { model: { chests: { loot: string }[] } };
+    expect(tower.model.chests.map((c) => c.loot)).toContain('minecraft:chests/pillager_outpost');
+  });
+
+  it('monument and mansion obey their extra biome checks', () => {
+    const m = locateStructure(gen, 'monument', 0, 0, 40)!;
+    const biome = gen.quartBiome(((m.x >> 4) << 2) + 2, ((m.z >> 4) << 2) + 2);
+    expect(NAMES[biome]).toMatch(/deep_/);
+  });
+});
+
 describe('structure loot', () => {
   it('every table names real items', () => {
     for (const [id, t] of Object.entries(STRUCTURE_LOOT))
