@@ -56,6 +56,24 @@ describe('mesher', () => {
     expect(out.centers.length).toBe(quads(out.passes[2]) * 3);
   });
 
+  it('fluid corner heights follow 1.17.1 LiquidBlockRenderer.getWaterHeight', () => {
+    // a lone source on stone: each corner averages the source (8/9 × 10) with three empty cells
+    const inp = emptyInput();
+    inp.states[padIndex(4, 4, 4)] = stateOf('water');
+    for (let x = 2; x <= 6; x++) for (let z = 2; z <= 6; z++) inp.states[padIndex(x, 3, z)] = stateOf('stone');
+    const ys = (out: Uint32Array) => {
+      const r = new Set<number>();
+      for (let i = 0; i < out.length; i += 3) r.add(((out[i]! >> 10) & 1023) - 256);
+      return r;
+    };
+    const lone = ys(mesher.mesh(inp).passes[2]);
+    const h = (8 / 9) * 10 / 13 - 0.001;
+    expect([...lone].sort((a, b) => a - b)).toEqual([4 * 32, Math.round((4 + h) * 32)]);
+    // the same fluid above: full-height corners
+    inp.states[padIndex(4, 5, 4)] = stateOf('water');
+    expect(ys(mesher.mesh(inp).passes[2]).has(Math.round((4 + 1 - 0.001) * 32))).toBe(true);
+  });
+
   it('applies ambient occlusion in corners', () => {
     const inp = emptyInput();
     const stone = stateOf('stone');
