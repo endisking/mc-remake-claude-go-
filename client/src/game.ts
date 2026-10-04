@@ -2,6 +2,7 @@
  * The client game: networking to a (local or remote) server, world mirror, camera,
  * frame loop and renderers.
  */
+import { animateFluids } from './world/fluidambience';
 import { decodeS2C, encodeC2S, PROTOCOL_VERSION, type C2S, type S2C } from '@shared/protocol/packets';
 import { BIOMES } from '@shared/data';
 import { chunkKey } from '@shared/world/chunk';
@@ -757,6 +758,11 @@ export class Game implements ScreenHost {
       }
       case 'levelEvent':
         if (p.event === 2001) this.blockBroken(p.x, p.y, p.z, p.data);
+        else if (p.event === 1501) {
+          // LevelRenderer.levelEvent LAVA_FIZZ: extinguish hiss (large smoke particles: no smoke particle type yet)
+          const r = this.sfxRand;
+          this.playAt('block.lava.extinguish', 'block', p.x + 0.5, p.y + 0.5, p.z + 0.5, 0.5, 2.6 + (r.nextFloat() - r.nextFloat()) * 0.8);
+        }
         break;
       case 'sound': {
         const name = soundName(p.event);
@@ -869,6 +875,7 @@ export class Game implements ScreenHost {
     this.lightmap.tick();
     if (this.world.doDaylightCycle) this.world.dayTime++;
     this.world.gameTime++;
+    animateFluids(this.world, this.player.x, this.player.y, this.player.z, this.sfxRand, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
     this.prevX = this.x;
     this.prevY = this.y;
     this.prevZ = this.z;
