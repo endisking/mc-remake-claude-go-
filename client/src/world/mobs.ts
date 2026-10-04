@@ -395,9 +395,15 @@ export class ClientMob {
         // Squid.aiStep: the mantle tilts toward the direction of motion
         this.xBodyRotO = this.xBodyRot;
         const hd = Math.hypot(this.x - this.xo, this.z - this.zo), vd = this.y - this.yo;
-        const target = hd * hd + vd * vd > 1e-6 ? (-Math.atan2(hd, vd) * 180) / Math.PI : 0;
-        this.xBodyRot += (target - this.xBodyRot) * 0.1;
-        if (this.tentacleMovement < Math.PI) {
+        if (this.inWater) {
+          const target = hd * hd + vd * vd > 1e-6 ? (-Math.atan2(hd, vd) * 180) / Math.PI : 0;
+          this.xBodyRot += (target - this.xBodyRot) * 0.1;
+        } else {
+          // stranded: slowly keels over onto its side, tentacles flopping
+          this.xBodyRot += (-90 - this.xBodyRot) * 0.02;
+        }
+        if (!this.inWater) this.tentacleAngle = Math.abs(Math.sin(this.tentacleMovement)) * Math.PI * 0.25;
+        else if (this.tentacleMovement < Math.PI) {
           const f = this.tentacleMovement / Math.PI;
           this.tentacleAngle = Math.sin(f * f * Math.PI) * Math.PI * 0.25;
         } else this.tentacleAngle = 0;

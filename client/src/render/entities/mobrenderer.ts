@@ -290,7 +290,9 @@ export class MobRenderer {
     gl.bindTexture(gl.TEXTURE_2D, lightmap);
     gl.activeTexture(gl.TEXTURE0);
     gl.enable(gl.DEPTH_TEST);
-    gl.enable(gl.CULL_FACE);
+    // mob models render without face culling (RenderType.entityCutoutNoCull): see-through
+    // texture holes show the far side of the box
+    gl.disable(gl.CULL_FACE);
     gl.depthFunc(gl.LEQUAL);
     const burning = this.burning, shadowed = this.shadowed;
     burning.length = shadowed.length = 0;
@@ -306,6 +308,7 @@ export class MobRenderer {
     gl.depthFunc(gl.LESS);
     if (this.shadows) this.renderShadows(shadowed, world, viewProj, camX, camY, camZ, partial, fogStart, fogEnd, skyDarken);
     else this.casterCount = 0;
+    gl.enable(gl.CULL_FACE);
     gl.bindVertexArray(null);
   }
 
@@ -372,7 +375,8 @@ export class MobRenderer {
         mulRotZ(E, -Math.PI / 2);
       }
     }
-    if (m.type === 'squid') {
+    if (m.type === 'squid' || m.type === 'glow_squid') {
+      m.inWater = FLUID[world.getState(Math.floor(m.x), Math.floor(m.y + 0.4), Math.floor(m.z))] === 1;
       // SquidRenderer.setupRotations: pivot about the mantle, tilted by the swim angle
       mulTranslate(E, 0, 0.5, 0);
       mulRotX(E, (-(m.xBodyRotO + (m.xBodyRot - m.xBodyRotO) * partial) * Math.PI) / 180);
