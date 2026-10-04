@@ -46,10 +46,25 @@ export class OverworldGenerator {
     return this.layers.quart.get(qx, qz);
   }
 
+  /** Block biomes per chunk column (deterministic, so cached): surface building and features ask often. */
+  private readonly blockBiomes = new Map<number, Int16Array>();
+
   /** Biome at a block (BiomeManager.getBiome with the fuzzy zoom). */
   blockBiome(x: number, z: number): number {
-    zoomToQuart(this.biomeSeed, x, z, this.q);
-    return this.layers.quart.get(this.q[0], this.q[1]);
+    const key = (x >> 4) * 0x400000 + (z >> 4);
+    let a = this.blockBiomes.get(key);
+    if (!a) {
+      if (this.blockBiomes.size >= 4096) this.blockBiomes.clear();
+      a = new Int16Array(256).fill(-1);
+      this.blockBiomes.set(key, a);
+    }
+    const i = ((z & 15) << 4) | (x & 15);
+    let b = a[i]!;
+    if (b < 0) {
+      zoomToQuart(this.biomeSeed, x, z, this.q);
+      b = a[i] = this.layers.quart.get(this.q[0], this.q[1]);
+    }
+    return b;
   }
 
   /** The biome's surface builder puts mycelium on top (lakes regrow it instead of grass). */

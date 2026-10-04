@@ -60,8 +60,14 @@ export interface ServerOptions {
   scene?: string;
   /** Use the flat development terrain instead of the 1.17 generator (fast tests). */
   devTerrain?: boolean;
-  /** Max chunks generated per tick across all players. */
+  /** Max chunks sent per tick across all players. */
   chunkGenBudget?: number;
+  /**
+   * Milliseconds per tick that chunk generation (generate / decorate / light) may use, so a
+   * player flying into new terrain never stalls the 20 TPS loop. Default 20 (Infinity when
+   * chunkGenBudget is given explicitly, as tests expect whole chunks per tick).
+   */
+  chunkGenTimeMs?: number;
   /** Game mode for new players: 0 survival, 1 creative, 2 adventure, 3 spectator. */
   defaultGameMode?: number;
   /** Seed for the level's random source (tests); defaults to the clock like vanilla. */
@@ -147,6 +153,9 @@ export class GameServer {
   simulationDistance = 10;
   nextEntityId = 1;
   private readonly chunkGenBudget: number;
+  private readonly chunkGenTimeMs: number;
+  /** Per-tick chunk pipeline timings for profiling (EMA, ms). */
+  readonly genStats = { genMs: 0, sent: 0, generated: 0, decorated: 0 };
   /** Sections whose light changed this tick: key -> [cx, sy, cz] */
   private lightDirty = new Map<number, [number, number, number]>();
   private running = false;
@@ -165,6 +174,7 @@ export class GameServer {
       this.saveDirty.add(chunkKey(cx, cz));
     };
     this.chunkGenBudget = opts.chunkGenBudget ?? 6;
+    this.chunkGenTimeMs = opts.chunkGenTimeMs ?? (opts.chunkGenBudget !== undefined ? Infinity : 20);
     this.commands.configure(opts);
   }
 
@@ -218,7 +228,8 @@ export class GameServer {
   private join(conn: Connection, hello: Extract<C2S, { t: 'hello' }>, owner: boolean): ServerPlayer {
     const p = new ServerPlayer(this.nextEntityId++, conn, this.world);
     p.name = hello.name.slice(0, 16) || 'Player';
-    p.skin = hello.skin.slice(0, 64);
+    // a bundled skin name, or an uploaded 64×64 PNG as a data URL (client-checked, size-capped here)
+    p.skin = hello.skin.startsWith('data:image/png;base64,') ? (hello.skin.length <= 24000 ? hello.skin : '') : hello.skin.slice(0, 64);
     p.isOwner = owner;
     p.viewDistance = clampViewDistance(hello.viewDistance);
     p.gameMode = this.opts.defaultGameMode ?? 0;
@@ -1257,6 +1268,28 @@ export class GameServer {
     return this.ensureStage(cx, cz, 1);
   }
 
+  /**
+   * One unit of generation work toward prepareChunk(cx, cz): generates one missing chunk
+   * (radius 2) or decorates one neighbour (radius 1). Returns true once nothing is left to
+   * generate, so the expensive pipeline can be spread over ticks under a time budget.
+   */
+  private stepTowards(cx: number, cz: number): boolean {
+    // nearest first, so the chunks the player needs soonest exist first
+    for (const [dx, dz] of SPIRAL2) {
+      if (this.world.getChunk(cx + dx, cz + dz)) continue;
+      this.ensureStage(cx + dx, cz + dz, 1);
+      this.genStats.generated++;
+      return false;
+    }
+    for (const [dx, dz] of SPIRAL1) {
+      if (this.world.getChunk(cx + dx, cz + dz)!.stage >= 2) continue;
+      this.ensureStage(cx + dx, cz + dz, 2);
+      this.genStats.decorated++;
+      return false;
+    }
+    return true;
+  }
+
   /** A chunk is ready to send once it is full (neighbours decorated) and lit. */
   private prepareChunk(cx: number, cz: number): Chunk {
     const c = this.ensureStage(cx, cz, 3);
@@ -1558,8 +1591,12 @@ export class GameServer {
   }
 
   // ---------------------------------------------------------------- ticking
+  /** performance.now() when the current tick started (chunk generation fits in what is left). */
+  private tickStart = 0;
+
   tick(): void {
     const t0 = performance.now();
+    this.tickStart = t0;
     this.gameTime++;
     if (this.doDaylightCycle) this.dayTime++;
     // MinecraftServer.tickServer: autosave every 6000 ticks
@@ -1668,6 +1705,12 @@ export class GameServer {
 
   private updateChunks(): void {
     let budget = this.chunkGenBudget;
+    const g0 = performance.now();
+    // a player still waiting for the terrain around them ("Loading terrain…") gets most of the tick
+    let limit = this.players.some((p) => p.sent.size < 25) ? Math.max(this.chunkGenTimeMs, 40) : this.chunkGenTimeMs;
+    // never past ~45 ms into the tick, so the rest of the tick still fits in 50 ms (20 TPS)
+    if (limit !== Infinity) limit = Math.max(2, Math.min(limit, 45 - (g0 - this.tickStart)));
+    const outOfTime = () => performance.now() - g0 >= limit;
     for (const p of this.players) {
       const pcx = Math.floor(p.x) >> 4, pcz = Math.floor(p.z) >> 4;
       // vanilla ChunkMap sends one ring beyond the client's view distance so edge chunks have neighbours
@@ -1681,14 +1724,17 @@ export class GameServer {
           this.send(p, { t: 'unloadChunk', cx, cz });
         }
       }
-      // send nearest missing chunks first
+      // send nearest missing chunks first; generation work is spread over ticks (time budget)
       for (const [dx, dz] of spiral(r)) {
-        if (budget <= 0) break;
+        if (budget <= 0 || outOfTime()) break;
         const cx = pcx + dx, cz = pcz + dz;
         const key = chunkKey(cx, cz);
         if (p.sent.has(key)) continue;
         // saved chunks are read asynchronously; send this one once they are in memory
         if (!this.chunksReady(cx, cz)) continue;
+        let ready = this.stepTowards(cx, cz);
+        while (!ready && !outOfTime()) ready = this.stepTowards(cx, cz);
+        if (!ready) break;
         const c = this.prepareChunk(cx, cz);
         p.sent.add(key);
         this.send(p, { t: 'chunk', chunk: c });
@@ -1697,6 +1743,8 @@ export class GameServer {
         budget--;
       }
     }
+    this.genStats.genMs = this.genStats.genMs * 0.9 + (performance.now() - g0) * 0.1;
+    this.genStats.sent += this.chunkGenBudget - budget;
     // drop chunks nobody can see (keep a margin of 2 for lighting neighbors)
     if (this.gameTime % 40 === 0) {
       for (const c of [...this.world.chunks.values()]) {
@@ -1859,5 +1907,7 @@ export function spiral(r: number): [number, number][] {
   spiralCache.set(r, s);
   return s;
 }
+const SPIRAL2 = spiral(2);
+const SPIRAL1 = spiral(1);
 
 export { DAY_LENGTH };

@@ -143,9 +143,18 @@ export class Gui {
     ctx.imageSmoothingEnabled = false;
   }
 
+  /** CSS colour strings by ARGB, so HUD fills don't build a string every call every frame */
+  private readonly fillStyles = new Map<number, string>();
+
   fill(x: number, y: number, w: number, h: number, argb: number): void {
-    const a = ((argb >>> 24) & 255) / 255;
-    this.ctx.fillStyle = `rgba(${(argb >> 16) & 255},${(argb >> 8) & 255},${argb & 255},${a})`;
+    let style = this.fillStyles.get(argb);
+    if (style === undefined) {
+      const a = ((argb >>> 24) & 255) / 255;
+      style = `rgba(${(argb >> 16) & 255},${(argb >> 8) & 255},${argb & 255},${a})`;
+      if (this.fillStyles.size > 512) this.fillStyles.clear();
+      this.fillStyles.set(argb, style);
+    }
+    this.ctx.fillStyle = style;
     this.ctx.fillRect(x, y, w, h);
   }
 

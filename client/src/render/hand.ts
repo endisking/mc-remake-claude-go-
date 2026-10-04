@@ -62,6 +62,8 @@ export interface HandFrame {
   yBob: number;
   light: number;
   skinName: string;
+  /** Skin Customization "Main Hand: Left": the main hand is drawn on the left (Player.getMainArm) */
+  leftHanded?: boolean;
   aspect: number;
   /** FOV of the hand pass: 70 × fluid × death modifiers (never the FOV setting or sprint change) */
   fov: number;
@@ -273,8 +275,9 @@ export class HandRenderer {
     // level lights in view space
     rotateDir(this.l0, f.viewRot, LIGHT0);
     rotateDir(this.l1, f.viewRot, LIGHT1);
-    if (f.renderMain) this.renderArmWithItem(f, 1, true, f.main, lightmap);
-    if (f.renderOff) this.renderArmWithItem(f, -1, false, f.off, lightmap);
+    const mainSide = f.leftHanded ? -1 : 1;
+    if (f.renderMain) this.renderArmWithItem(f, mainSide, true, f.main, lightmap);
+    if (f.renderOff) this.renderArmWithItem(f, mainSide === 1 ? -1 : 1, false, f.off, lightmap);
   }
 
   /** renderArmWithItem: one hand (side 1 = right, −1 = left), the bare arm or the held item. */

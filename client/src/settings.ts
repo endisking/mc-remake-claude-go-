@@ -12,10 +12,15 @@ export interface Settings {
   clouds: 'off' | 'fast' | 'fancy';
   particles: 'all' | 'decreased' | 'minimal';
   mipmapLevels: number;
-  maxFps: number; // 0 = unlimited, -1 = vsync
+  /** Max Framerate: 10–250, 0 = unlimited (legacy -1 = vsync, migrated on load) */
+  maxFps: number;
+  /** Use VSync (the browser always presents on vsync; this caps rendering to rAF) */
+  vsync: boolean;
   biomeBlend: number;
   mouseSensitivity: number;
   caveCulling: boolean;
+  /** 3D view resolution relative to the screen's pixels (0.25–1); lower = less GPU fill work */
+  renderScale: number;
   /** key mapping id → key code (only changed bindings are stored) */
   keys: Record<string, string>;
   toggleCrouch: boolean;
@@ -31,6 +36,30 @@ export interface Settings {
   pauseOnLostFocus: boolean;
   /** F3+H: item ids and durability in tooltips */
   advancedItemTooltips: boolean;
+  // Chat Settings (vanilla Options chat*)
+  chatVisibility: 'shown' | 'commands' | 'hidden';
+  chatColors: boolean;
+  chatLinks: boolean;
+  chatLinksPrompt: boolean;
+  chatOpacity: number;
+  textBackgroundOpacity: number;
+  chatScale: number;
+  chatLineSpacing: number;
+  /** seconds */
+  chatDelay: number;
+  /** 0..1 → floor(v*280+40) px */
+  chatWidth: number;
+  /** 0..1 → floor(v*160+20) px */
+  chatHeightFocused: number;
+  chatHeightUnfocused: number;
+  autoSuggestions: boolean;
+  hideMatchedNames: boolean;
+  reducedDebugInfo: boolean;
+  // Skin Customization
+  modelParts: { cape: boolean; jacket: boolean; left_sleeve: boolean; right_sleeve: boolean; left_pants_leg: boolean; right_pants_leg: boolean; hat: boolean };
+  mainHand: 'right' | 'left';
+  /** '' = default for your name, a bundled skin name, or a custom skin as a PNG data URL */
+  skin: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -46,10 +75,12 @@ export const DEFAULT_SETTINGS: Settings = {
   clouds: 'fancy',
   particles: 'all',
   mipmapLevels: 4,
-  maxFps: -1,
+  maxFps: 0,
+  vsync: true,
   biomeBlend: 2,
   mouseSensitivity: 0.5,
   caveCulling: true,
+  renderScale: 1,
   keys: {},
   toggleCrouch: false,
   toggleSprint: false,
@@ -61,6 +92,24 @@ export const DEFAULT_SETTINGS: Settings = {
   volumes: {},
   pauseOnLostFocus: true,
   advancedItemTooltips: false,
+  chatVisibility: 'shown',
+  chatColors: true,
+  chatLinks: true,
+  chatLinksPrompt: true,
+  chatOpacity: 1,
+  textBackgroundOpacity: 0.5,
+  chatScale: 1,
+  chatLineSpacing: 0,
+  chatDelay: 0,
+  chatWidth: 1,
+  chatHeightFocused: 1,
+  chatHeightUnfocused: 0.44366196,
+  autoSuggestions: true,
+  hideMatchedNames: true,
+  reducedDebugInfo: false,
+  modelParts: { cape: true, jacket: true, left_sleeve: true, right_sleeve: true, left_pants_leg: true, right_pants_leg: true, hat: true },
+  mainHand: 'right',
+  skin: '',
 };
 
 const KEY = 'blockcraft.settings';
@@ -70,12 +119,17 @@ export function loadSettings(): Settings {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const s = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
-      return { ...s, keys: { ...s.keys }, volumes: { ...s.volumes } };
+      // older saves: maxFps -1 meant VSync
+      if (s.maxFps < 0) {
+        s.maxFps = 0;
+        s.vsync = true;
+      }
+      return { ...s, keys: { ...s.keys }, volumes: { ...s.volumes }, modelParts: { ...DEFAULT_SETTINGS.modelParts, ...s.modelParts } };
     }
   } catch {
     /* storage unavailable */
   }
-  return { ...DEFAULT_SETTINGS, keys: {}, volumes: {} };
+  return { ...DEFAULT_SETTINGS, keys: {}, volumes: {}, modelParts: { ...DEFAULT_SETTINGS.modelParts } };
 }
 
 export function saveSettings(s: Settings): void {
@@ -94,7 +148,13 @@ export function applyQueryOverrides(s: Settings, q: URLSearchParams): Settings {
   if (n('fov') !== undefined) out.fov = n('fov')!;
   if (q.has('smooth')) out.smoothLighting = q.get('smooth') !== '0';
   if (q.has('graphics')) out.graphics = q.get('graphics') === 'fast' ? 'fast' : 'fancy';
-  if (n('fps') !== undefined) out.maxFps = n('fps')!;
+  if (n('fps') !== undefined) {
+    // ?fps=-1: VSync (the old encoding); ?fps=0: unlimited
+    out.maxFps = Math.max(0, n('fps')!);
+    out.vsync = n('fps')! < 0;
+  }
   if (q.has('cave')) out.caveCulling = q.get('cave') !== '0';
+  if (q.get('mainhand') === 'left' || q.get('mainhand') === 'right') out.mainHand = q.get('mainhand') as 'left' | 'right';
+  if (n('scale') !== undefined) out.renderScale = Math.max(0.25, Math.min(1, n('scale')!));
   return out;
 }

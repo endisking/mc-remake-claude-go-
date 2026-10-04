@@ -46,6 +46,25 @@ function heartU(type: keyof typeof HEART_INDEX, half: boolean, blinking: boolean
   return 16 + (HEART_INDEX[type] * 2 + i) * 9;
 }
 
+/** The Chat Settings the chat HUD reads (a subset of the game's Settings). */
+export interface ChatOptions {
+  chatVisibility: 'shown' | 'commands' | 'hidden';
+  chatColors: boolean;
+  chatOpacity: number;
+  textBackgroundOpacity: number;
+  chatScale: number;
+  chatLineSpacing: number;
+  chatDelay: number;
+  chatWidth: number;
+  chatHeightFocused: number;
+  chatHeightUnfocused: number;
+}
+
+export const DEFAULT_CHAT_OPTIONS: ChatOptions = {
+  chatVisibility: 'shown', chatColors: true, chatOpacity: 1, textBackgroundOpacity: 0.5, chatScale: 1, chatLineSpacing: 0, chatDelay: 0,
+  chatWidth: 1, chatHeightFocused: 1, chatHeightUnfocused: 0.44366196,
+};
+
 export class Hud {
   icons!: ImageBitmap;
   private tickCount = 0;
@@ -68,10 +87,15 @@ export class Hud {
     this.overlayTime = 60;
   }
 
+  /** Chat Settings (vanilla Options chat*); the game passes its settings object. */
+  chatOptions: ChatOptions = { ...DEFAULT_CHAT_OPTIONS };
+  /** messages held back by Chat Delay (ChatComponent / ChatListener delay queue) */
+  private delayed: { text: string; click?: ChatClick; due: number }[] = [];
+
   // chat (vanilla ChatComponent, closed): newest at the bottom, fading after 10 s
   private chatLines: { text: string; tick: number; click?: ChatClick }[] = [];
   /** rows drawn by the last focused render (for clicking on chat components) */
-  private chatRows: { y: number; click?: ChatClick }[] = [];
+  private chatRows: { y: number; h: number; click?: ChatClick }[] = [];
 
   /** F3+D (ChatComponent.clearMessages). */
   clearChat(): void {
@@ -82,6 +106,18 @@ export class Hud {
   readonly sentHistory: string[] = [];
 
   addChat(text: string, click?: ChatClick): void {
+    const delay = this.chatOptions.chatDelay;
+    if (delay > 0 && (this.delayed.length > 0 || performance.now() < this.chatReadyAt)) {
+      this.delayed.push({ text, click, due: 0 });
+      return;
+    }
+    this.chatReadyAt = performance.now() + delay * 1000;
+    this.addChatNow(text, click);
+  }
+  private chatReadyAt = 0;
+
+  private addChatNow(text: string, click?: ChatClick): void {
+    if (!this.chatOptions.chatColors) text = text.replace(/§./g, '');
     for (const line of text.split('\n')) this.chatLines.unshift({ text: line, tick: this.tickCount, click });
     if (this.chatScroll > 0) this.chatScroll++;
     if (this.chatLines.length > 100) this.chatLines.length = 100;
@@ -97,36 +133,48 @@ export class Hud {
   renderChat(g: Gui, focused = false): void {
     if (!focused) this.chatScroll = 0;
     else this.chatRows.length = 0;
+    const o = this.chatOptions;
+    if (o.chatVisibility === 'hidden') return;
+    const scale = o.chatScale;
+    if (scale <= 0) return;
+    // ChatComponent.getWidth / getHeight / getLinesPerPage, scaled by Text Size
+    const width = Math.ceil(Math.floor(o.chatWidth * 280 + 40) / scale);
+    const max = Math.floor(Math.floor((focused ? o.chatHeightFocused : o.chatHeightUnfocused) * 160 + 20) / 9);
+    const lineH = 9 * (o.chatLineSpacing + 1);
+    const textOpacity = o.chatOpacity * 0.9 + 0.1;
     const bottom = g.height - 40;
-    const max = focused ? 20 : 10;
     let n = 0, skip = focused ? this.chatScroll : 0;
+    g.ctx.save();
+    g.ctx.translate(0, bottom);
+    g.ctx.scale(scale, scale);
     for (const l of this.chatLines) {
       const age = this.tickCount - l.tick;
       if (n >= max || (!focused && age >= 200)) break;
-      let o = focused ? 1 : 1 - age / 200;
-      o = Math.max(0, Math.min(1, o * 10));
-      o *= o;
-      const alpha = o * 0.9 + 0.1;
-      const bg = o * 0.5;
+      // Commands Only: player chat ("<name> …") is hidden, system/command output stays
+      if (o.chatVisibility === 'commands' && l.text.replace(/§./g, '').startsWith('<')) continue;
+      let f = focused ? 1 : 1 - age / 200;
+      f = Math.max(0, Math.min(1, f * 10));
+      f *= f;
+      const alpha = f * textOpacity;
+      const bg = f * o.textBackgroundOpacity;
       if (alpha <= 0.01) continue;
-      // ComponentRenderUtils.wrapComponents: lines wider than the chat (320) wrap, newest at the bottom
-      const parts = wrapChat(g, l.text, 320);
+      // ComponentRenderUtils.wrapComponents: lines wider than the chat wrap, newest at the bottom
+      const parts = wrapChat(g, l.text, width);
       for (let i = parts.length - 1; i >= 0 && n < max; i--) {
         if (skip > 0) {
           skip--;
           continue;
         }
-        const y = bottom - n * 9;
-        if (focused) this.chatRows.push({ y: y - 9, click: l.click });
-        g.ctx.save();
+        const y = -n * lineH;
+        if (focused) this.chatRows.push({ y: bottom + (y - lineH) * scale, h: lineH * scale, click: l.click });
         g.ctx.globalAlpha = bg;
-        g.fill(0, y - 9, 4 + 320 + 4, 9, 0xff000000);
+        g.fill(0, y - lineH, 4 + width + 4, lineH, 0xff000000);
         g.ctx.globalAlpha = alpha;
-        g.text(parts[i]!, 4, y - 8, 0xffffff, true);
-        g.ctx.restore();
+        g.text(parts[i]!, 4, y - lineH + 1 + Math.round(4 * o.chatLineSpacing), 0xffffff, true);
         n++;
       }
     }
+    g.ctx.restore();
   }
 
   async load(): Promise<void> {
@@ -139,6 +187,12 @@ export class Hud {
 
   tick(inv: Inventory): void {
     this.tickCount++;
+    // Chat Delay: release one held message per delay interval
+    if (this.delayed.length && performance.now() >= this.chatReadyAt) {
+      const m = this.delayed.shift()!;
+      this.chatReadyAt = performance.now() + this.chatOptions.chatDelay * 1000;
+      this.addChatNow(m.text, m.click);
+    }
     for (let i = 0; i < 9; i++) {
       if (this.popTime[i]! > 0) this.popTime[i]!--;
       const s = inv.get(i);
@@ -161,8 +215,9 @@ export class Hud {
 
   /** ChatComponent.getClickedComponentStyleAt (per line here): the click action under the mouse. */
   chatClickAt(mx: number, my: number): ChatClick | undefined {
-    if (mx < 0 || mx > 4 + 320 + 4) return undefined;
-    return this.chatRows.find((r) => my >= r.y && my < r.y + 9)?.click;
+    const o = this.chatOptions;
+    if (mx < 0 || mx > (4 + Math.floor(o.chatWidth * 280 + 40) / Math.max(0.01, o.chatScale) + 4) * o.chatScale) return undefined;
+    return this.chatRows.find((r) => my >= r.y && my < r.y + r.h)?.click;
   }
 
   /** the chat screen draws the chat itself (focused) */

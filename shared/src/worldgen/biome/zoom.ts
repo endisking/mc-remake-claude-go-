@@ -86,7 +86,70 @@ export function zoomToQuart(sha: bigint, x: number, z: number, out: [number, num
     [lastH, lastL] = splitBig(sha);
     lastSha = sha;
   }
-  const sh = lastH, sl = lastL;
+  const sh = lastH, sl = lastL | 0;
+  const i = x - 2, j = -2, k = z - 2;
+  const l = i >> 2, i1 = j >> 2, j1 = k >> 2;
+  const d0 = (i & 3) / 4, d1 = (j & 3) / 4, d2 = (k & 3) / 4;
+  let best = 0, bestD = Infinity;
+  const r = R;
+  for (let c = 0; c < 8; c++) {
+    const fx = (c & 4) === 0, fy = (c & 2) === 0, fz = (c & 1) === 0;
+    const cx = fx ? l : l + 1, cy = fy ? i1 : i1 + 1, cz = fz ? j1 : j1 + 1;
+    const dx = fx ? d0 : d0 - 1, dy = fy ? d1 : d1 - 1, dz = fz ? d2 : d2 - 1;
+    // getFiddledDistance (same LCG as lcg.ts step, kept in an Int32Array so nothing is boxed:
+    // this runs 8× per block column on the client's meshing path)
+    stepR(sh, sl, cx < 0 ? -1 : 0, cx); stepR(r[0]!, r[1]!, cy < 0 ? -1 : 0, cy); stepR(r[0]!, r[1]!, cz < 0 ? -1 : 0, cz);
+    stepR(r[0]!, r[1]!, cx < 0 ? -1 : 0, cx); stepR(r[0]!, r[1]!, cy < 0 ? -1 : 0, cy); stepR(r[0]!, r[1]!, cz < 0 ? -1 : 0, cz);
+    const ox = fiddle(r[0]!, r[1]!);
+    stepR(r[0]!, r[1]!, sh, sl);
+    const oy = fiddle(r[0]!, r[1]!);
+    stepR(r[0]!, r[1]!, sh, sl);
+    const oz = fiddle(r[0]!, r[1]!);
+    const d = (dz + oz) * (dz + oz) + (dy + oy) * (dy + oy) + (dx + ox) * (dx + ox);
+    if (bestD > d) {
+      bestD = d;
+      best = c;
+    }
+  }
+  out[0] = (best & 4) === 0 ? l : l + 1;
+  out[1] = (best & 1) === 0 ? j1 : j1 + 1;
+  return out;
+}
+
+/** LCG registers [hi, lo] (int32 each) for the allocation-free step below. */
+const R = new Int32Array(2);
+const M_HI = 0x5851f42d, M_LO = 0x4c957f2d;
+const A_HI = 0x14057b7e, A_LO = 0xf767814f | 0;
+
+function mulhi(a: number, b: number): number {
+  const a0 = a & 0xffff, a1 = a >>> 16, b0 = b & 0xffff, b1 = b >>> 16;
+  const t = a0 * b0;
+  const m1 = a1 * b0 + (t >>> 16);
+  const m2 = a0 * b1 + (m1 & 0xffff);
+  return (a1 * b1 + Math.floor(m1 / 65536) + Math.floor(m2 / 65536)) | 0;
+}
+
+/** LinearCongruentialGenerator.next(s, t) = s × (s × M + A) + t, 64-bit as int32 pairs → R */
+function stepR(sh: number, sl: number, th: number, tl: number): void {
+  // m = s × M
+  let lo = Math.imul(sl, M_LO);
+  let hi = (mulhi(sl >>> 0, M_LO >>> 0) + Math.imul(sh, M_LO) + Math.imul(sl, M_HI)) | 0;
+  // m += A
+  let sum = (lo >>> 0) + (A_LO >>> 0);
+  hi = (hi + A_HI + (sum > 0xffffffff ? 1 : 0)) | 0;
+  lo = sum | 0;
+  // p = s × m
+  const plo = Math.imul(sl, lo);
+  const phi = (mulhi(sl >>> 0, lo >>> 0) + Math.imul(sh, lo) + Math.imul(sl, hi)) | 0;
+  // p += t
+  sum = (plo >>> 0) + (tl >>> 0);
+  R[0] = (phi + th + (sum > 0xffffffff ? 1 : 0)) | 0;
+  R[1] = sum | 0;
+}
+
+/** The straightforward version on lcg.ts's registers (reference for tests). */
+export function zoomToQuartReference(sha: bigint, x: number, z: number, out: [number, number]): [number, number] {
+  const [sh, sl] = splitBig(sha);
   const i = x - 2, j = -2, k = z - 2;
   const l = i >> 2, i1 = j >> 2, j1 = k >> 2;
   const d0 = (i & 3) / 4, d1 = (j & 3) / 4, d2 = (k & 3) / 4;
@@ -95,7 +158,6 @@ export function zoomToQuart(sha: bigint, x: number, z: number, out: [number, num
     const fx = (c & 4) === 0, fy = (c & 2) === 0, fz = (c & 1) === 0;
     const cx = fx ? l : l + 1, cy = fy ? i1 : i1 + 1, cz = fz ? j1 : j1 + 1;
     const dx = fx ? d0 : d0 - 1, dy = fy ? d1 : d1 - 1, dz = fz ? d2 : d2 - 1;
-    // getFiddledDistance
     stepInt(sh, sl, cx); stepInt(H, L, cy); stepInt(H, L, cz);
     stepInt(H, L, cx); stepInt(H, L, cy); stepInt(H, L, cz);
     const ox = fiddle(H, L);
