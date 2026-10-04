@@ -10,6 +10,7 @@ import type { BlockWorld } from '../../world/world';
 import { decorationSeed, featureSeed } from '../rand';
 import { WORLDGEN } from '../features/data';
 import { configuredFeature, type Placer } from '../features/engine';
+import { anchorTop } from '../features/providers';
 import { GenLevel, type GenSource } from '../features/level';
 import { B } from '../biome/biomeids';
 
@@ -34,7 +35,13 @@ export function biomeFeatures(biome: number): Placer[][] {
   let lists = biomeLists.get(biome);
   if (!lists) {
     const data = WORLDGEN.biomes[BIOME_NAMES[biome] ?? 'plains']!;
-    lists = data.features.map((step) => step.map((fj) => configuredFeature(fj)));
+    // Nether biomes generate in a 128-deep NoiseBasedChunkGenerator
+    anchorTop.y = data.category === 'nether' ? 127 : 255;
+    try {
+      lists = data.features.map((step) => step.map((fj) => configuredFeature(fj)));
+    } finally {
+      anchorTop.y = 255;
+    }
     biomeLists.set(biome, lists);
   }
   return lists;

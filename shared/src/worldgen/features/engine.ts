@@ -15,7 +15,7 @@ import { BIOME_INFO_NOISE, getTemperature } from '../../world/climate';
 import { canSurvive } from '../../game/support';
 import { WORLDGEN } from './data';
 import type { GenLevel, HeightmapType } from './level';
-import { blockState, intProvider, floatProvider, heightProvider, ruleTest, stateProvider, inTag, type RuleTest } from './providers';
+import { anchorTop, blockState, intProvider, floatProvider, heightProvider, ruleTest, stateProvider, inTag, type RuleTest } from './providers';
 import { treeFeature } from './trees';
 import { geode, monsterRoom, glowLichen, dripstoneCluster, smallDripstone, largeDripstone, replaceSingleBlock, fossil, carvingMaskDecorator } from './underground';
 import * as surface from './surface';
@@ -220,11 +220,13 @@ const cache = new Map<string, Placer>();
 export function configuredFeature(j: J): Placer {
   if (typeof j === 'string') {
     const id = j.replace('minecraft:', '');
-    let p = cache.get(id);
+    // anchors resolve against the dimension's generation depth at compile time
+    const key = anchorTop.y === 255 ? id : `${anchorTop.y}:${id}`;
+    let p = cache.get(key);
     if (!p) {
       const def = WORLDGEN.configured_features[id];
       if (!def) throw new Error(`configured feature ${id}`);
-      cache.set(id, (p = feature(def)));
+      cache.set(key, (p = feature(def)));
     }
     return p;
   }

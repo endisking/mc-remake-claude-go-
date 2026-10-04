@@ -85,11 +85,13 @@ export function floatProvider(j: J): FloatProvider {
 }
 
 // ------------------------------------------------------------------ heights
-/** VerticalAnchor.resolveY in a 0–255 overworld. */
+/** Top of the generation depth used by below_top anchors: 255, or 127 for the Nether (ChunkGenerator.getGenDepth 128). */
+export const anchorTop = { y: 255 };
+/** VerticalAnchor.resolveY (minimum y 0, generation depth anchorTop.y + 1). */
 export function anchor(j: J): number {
   if ('absolute' in j) return j.absolute;
   if ('above_bottom' in j) return 0 + j.above_bottom;
-  if ('below_top' in j) return 255 - j.below_top;
+  if ('below_top' in j) return anchorTop.y - j.below_top;
   throw new Error(`anchor ${JSON.stringify(j)}`);
 }
 

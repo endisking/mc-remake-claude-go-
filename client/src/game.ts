@@ -875,6 +875,12 @@ export class Game implements ScreenHost {
     if (q.has('hitboxes')) this.showHitboxes = true;
     for (const g of q.getAll('give')) this.send({ t: 'chat', message: `/give @s ${g.replace(':', ' ')}` });
     if (q.has('weather')) this.send({ t: 'chat', message: `/weather ${q.get('weather')}` });
+    // test hooks: chat commands right away (cmd), 3 s later (later) and 7 s later (later2), e.g. after a portal trip
+    for (const c of q.getAll('cmd')) this.send({ t: 'chat', message: c });
+    for (const [key, ms] of [['later', n('laterms') ?? 3000], ['later2', n('later2ms') ?? 7000]] as const) {
+      const cmds = q.getAll(key);
+      if (cmds.length) setTimeout(() => cmds.forEach((c) => this.send({ t: 'chat', message: c })), ms);
+    }
     if (n('time') !== undefined) {
       this.send({ t: 'chat', message: '/gamerule doDaylightCycle false' });
       this.send({ t: 'chat', message: `/time set ${n('time')}` });
