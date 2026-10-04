@@ -475,7 +475,7 @@ export class Game implements ScreenHost {
       swing: (hand) => this.swingArm(hand ?? 0),
       onAttack: () => {
         // client-side Player.attack: a charged sprint hit slows us and stops sprinting
-        const charged = attackStrengthScale(this.attackStrengthTicker, this.interaction.inventory.selectedStack?.id ?? 0, 0.5) > 0.9;
+        const charged = attackStrengthScale(this.attackStrengthTicker, this.interaction.inventory.selectedStack?.id ?? 0, 0.5, this.attackSpeedMul()) > 0.9;
         if (charged && this.player.sprinting) {
           this.player.vx *= 0.6;
           this.player.vz *= 0.6;
@@ -1488,7 +1488,7 @@ export class Game implements ScreenHost {
     const h = this.handItem;
     const matches = (!h && !cur) || (!!h && !!cur && h.id === cur.id && h.count === cur.count && h.damage === cur.damage);
     if (matches) this.handItem = cur;
-    const delay = 20 / attackSpeedOf(cur?.id ?? 0);
+    const delay = 20 / (attackSpeedOf(cur?.id ?? 0) * this.attackSpeedMul());
     const f = Math.min(1, Math.max(0, (this.attackStrengthTicker + 1) / delay));
     const same = this.handItem === cur;
     this.mainHandHeight += Math.max(-0.4, Math.min(0.4, (same ? f * f * f : 0) - this.mainHandHeight));
@@ -1501,6 +1501,13 @@ export class Game implements ScreenHost {
     if (offMatches) this.offHandItem = off;
     this.offHandHeight += Math.max(-0.4, Math.min(0.4, (this.offHandItem === off ? 1 : 0) - this.offHandHeight));
     if (this.offHandHeight < 0.1) this.offHandItem = off;
+  }
+
+  /** ATTACK_SPEED effect modifiers: Haste +10% per level, Mining Fatigue −10% per level. */
+  private attackSpeedMul(): number {
+    const u = this.itemUse;
+    if (!u) return 1;
+    return (1 + 0.1 * (u.amplifier('haste') + 1)) * (1 - 0.1 * (u.amplifier('mining_fatigue') + 1));
   }
 
   /** Called by a swing at nothing (vanilla startAttack on a miss). */
