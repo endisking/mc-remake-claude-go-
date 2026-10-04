@@ -53,6 +53,11 @@ const SHOTS: Record<string, Shot> = {
   close: { cam: 'x=24.2&y=200&z=1.8&lookat=24.2,200.8,4.5&fov=65', mobs: row(['pig', 'creeper', 'zombie']) },
   close2: { cam: 'x=24.2&y=200&z=1.8&lookat=24.2,200.8,4.5&fov=65', mobs: row(['cow', 'skeleton', 'sheep']) },
   names: { cam: NEAR, mobs: row(['pig', 'zombie', 'sheep', 'creeper'], { name: 'Sir Oinks', data: { name_visible: 1 } }) },
+  v_prof: { cam: FAR, mobs: row(['villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'zombie_villager'], { yaw: 160 }).map((m, i) => ({ ...m, data: ([{ profession: 1, level: 1, variant: 2 }, { profession: 2, level: 2, variant: 0 }, { profession: 3, level: 3, variant: 1 }, { profession: 4, level: 4, variant: 3 }, { profession: 5, level: 5, variant: 4 }, { profession: 6, level: 1, variant: 5 }, { profession: 7, level: 2, variant: 6 }, { profession: 9, level: 1, variant: 4 }] as Record<string, number>[])[i] })) },
+  v_prof2: { cam: FAR, mobs: row(['villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager'], { yaw: 160 }).map((m, i) => ({ ...m, data: { profession: 8 + i <= 14 ? 8 + i : 0, level: 1 + (i % 5), variant: i % 7, baby: i === 7 ? 1 : 0 } })) },
+  hv_front: { cam: 'x=24.2&y=200.8&z=-5.5&lookat=24.2,200.8,4.5&fov=60', mobs: [
+    ...row(['horse', 'horse', 'horse', 'donkey', 'mule'], { yaw: 90 }).map((m, i) => ({ ...m, x: 24.2 - (i - 2) * 2.6, data: ([{ variant: 0 + (1 << 8) }, { variant: 4 + (3 << 8), saddle: 1 }, { variant: 2 + (2 << 8) }, { chest: 1, saddle: 1 }, { chest: 1 }] as Record<string, number>[])[i] })),
+  ] },
   e_front: { cam: NEAR, mobs: row(['villager', 'witch', 'zombie_villager', 'wandering_trader']) },
   e_side: { cam: NEAR, mobs: row(['villager', 'witch', 'zombie_villager', 'wandering_trader'], { yaw: 120, walk: true }), wait: 1100 },
   f_front: { cam: NEAR, mobs: row(['creeper', 'glow_squid', 'wolf', 'villager']).map((m, i) => ({ ...m, data: ([{ charged: 1 }, {}, {}, { baby: 1 }] as Record<string, number>[])[i] })) },

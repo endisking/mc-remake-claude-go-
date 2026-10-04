@@ -545,14 +545,32 @@ export function horseMesh(longEars = false): VPart[] {
         { name: 'right_ear', pivot: [0, 0, 0], boxes: [b(19, 16, -2.55, -13, 4, 2, 3, 1, -0.001)] },
       ];
   const leg = (mirror: boolean, x0: number, z0: number) => [b(48, 21, x0, -1.01, z0, 4, 11, 4, 0, mirror)];
+  // HorseModel saddle parts (shown when saddled) and ChestedHorseModel saddlebags (donkey/mule)
+  const chests: VPart[] = longEars
+    ? [
+        { name: 'left_chest', pivot: [6, -8, 0], rot: [0, -PI / 2, 0], boxes: [b(26, 21, -4, 0, -2, 8, 8, 3)] },
+        { name: 'right_chest', pivot: [-6, -8, 0], rot: [0, PI / 2, 0], boxes: [b(26, 21, -4, 0, -2, 8, 8, 3)] },
+      ]
+    : [];
   return [
-    { name: 'body', pivot: [0, 11, 5], boxes: [b(0, 32, -5, -8, -17, 10, 10, 22, 0.05)] },
+    {
+      name: 'body', pivot: [0, 11, 5], boxes: [b(0, 32, -5, -8, -17, 10, 10, 22, 0.05)], children: [
+        { name: 'saddle', pivot: [0, 0, 0], boxes: [b(26, 0, -5, -8, -9, 10, 9, 9, 0.5)] },
+        ...chests,
+      ],
+    },
     {
       name: 'head_parts', pivot: [0, 4, -12], rot: [PI / 6, 0, 0], boxes: [b(0, 35, -2, -11, -2, 4, 12, 7)], children: [
         { name: 'head', pivot: [0, 0, 0], boxes: [b(0, 13, -3, -11, -2, 6, 5, 7)] },
         { name: 'mane', pivot: [0, 0, 0], boxes: [b(56, 36, -1, -11, 5.01, 2, 16, 2)] },
         { name: 'upper_mouth', pivot: [0, 0, 0], boxes: [b(0, 25, -2, -11, -7, 4, 5, 5)] },
         ...ears,
+        { name: 'left_saddle_mouth', pivot: [0, 0, 0], boxes: [b(29, 5, 2, -9, -6, 1, 2, 2)] },
+        { name: 'right_saddle_mouth', pivot: [0, 0, 0], boxes: [b(29, 5, -3, -9, -6, 1, 2, 2)] },
+        { name: 'left_saddle_line', pivot: [0, 0, 0], rot: [-PI / 6, 0, 0], boxes: [b(32, 2, 3.1, -6, -8, 0, 3, 16)] },
+        { name: 'right_saddle_line', pivot: [0, 0, 0], rot: [-PI / 6, 0, 0], boxes: [b(32, 2, -3.1, -6, -8, 0, 3, 16)] },
+        { name: 'head_saddle', pivot: [0, 0, 0], boxes: [b(1, 1, -3, -11, -1.9, 6, 5, 6, 0.22)] },
+        { name: 'mouth_saddle_wrap', pivot: [0, 0, 0], boxes: [b(19, 0, -2, -11, -4, 4, 5, 2, 0.2)] },
       ],
     },
     { name: 'left_hind_leg', pivot: [4, 14, 7], boxes: leg(true, -3, -1) },
@@ -1201,6 +1219,11 @@ const horseAnim = (p: Poses, a: MobAnim) => {
   p.tail!.xRot = PI / 6 + amt * 0.75;
   p.tail!.y = 4 - amt;
   p.tail!.z = 11 + amt * 2;
+  // saddle parts only when saddled; reins only while ridden (no riding yet); saddlebags when chested
+  const saddled = (a.mob.data.get('saddle') ?? 0) !== 0;
+  for (const k of ['saddle', 'left_saddle_mouth', 'right_saddle_mouth', 'head_saddle', 'mouth_saddle_wrap']) p[k]!.visible = saddled;
+  p.left_saddle_line!.visible = p.right_saddle_line!.visible = false;
+  if (p.left_chest) p.left_chest.visible = p.right_chest!.visible = (a.mob.data.get('chest') ?? 0) !== 0;
 };
 
 /** OcelotModel.setupAnim (walking): offset leg phases and a curling tail. */
@@ -1475,6 +1498,10 @@ export interface MobLayer {
   translucent?: boolean;
   /** scrolling repeat texture (charged creeper energy swirl; drawn additively) */
   scroll?: boolean;
+  /** per-mob texture (villager clothing, horse coats); null skips the layer */
+  tex?: (m: ClientMob) => string | null;
+  /** every texture `tex` can return (preloaded) */
+  textures?: readonly string[];
 }
 
 export interface MobRenderDef {
@@ -1485,6 +1512,32 @@ export interface MobRenderDef {
   bright?: boolean;
   /** whole-model scale for babies (villagers shrink uniformly instead of using AgeableListModel) */
   babyScale?: number;
+}
+
+/** Horse.Variant coat colours (mobData variant & 0xff) and Markings (variant >> 8, 0 = none). */
+export const HORSE_COATS = ['white', 'creamy', 'chestnut', 'brown', 'black', 'gray', 'darkbrown'] as const;
+export const HORSE_MARKINGS = ['white', 'whitefield', 'white_dots', 'black_dots'] as const;
+/** VillagerType order (mobData variant) and professions in PROFESSIONS order (mobData profession). */
+export const VILLAGER_TYPES = ['desert', 'jungle', 'plains', 'savanna', 'snow', 'swamp', 'taiga'] as const;
+export const VILLAGER_PROFESSIONS = ['none', 'armorer', 'butcher', 'cartographer', 'cleric', 'farmer', 'fisherman', 'fletcher', 'leatherworker', 'librarian', 'mason', 'nitwit', 'shepherd', 'toolsmith', 'weaponsmith'] as const;
+export const VILLAGER_LEVELS = ['stone', 'iron', 'gold', 'emerald', 'diamond'] as const;
+
+/**
+ * VillagerProfessionLayer: base skin, then the biome type outfit, then (adults only) the
+ * profession outfit and the level badge (not for nitwits).
+ */
+function villagerLayers(model: string, base: string): MobLayer[] {
+  const typePrefix = model === 'zombie_villager' ? 'zombie_villager_type_' : 'villager_type_';
+  const prof = (m: ClientMob) => VILLAGER_PROFESSIONS[m.data.get('profession') ?? 0] ?? 'none';
+  return [
+    { model, texture: base },
+    { model, texture: base, tex: (m) => `${typePrefix}${VILLAGER_TYPES[m.data.get('variant') ?? 2] ?? 'plains'}`, textures: VILLAGER_TYPES.map((t) => typePrefix + t) },
+    { model, texture: base, when: (m) => !m.baby && prof(m) !== 'none', tex: (m) => `villager_profession_${prof(m)}`, textures: VILLAGER_PROFESSIONS.slice(1).map((p) => `villager_profession_${p}`) },
+    {
+      model, texture: base, when: (m) => !m.baby && prof(m) !== 'none' && prof(m) !== 'nitwit',
+      tex: (m) => `villager_level_${VILLAGER_LEVELS[Math.min(5, Math.max(1, m.data.get('level') ?? 1)) - 1]}`, textures: VILLAGER_LEVELS.map((l) => `villager_level_${l}`),
+    },
+  ];
 }
 
 export const MOB_RENDER: Record<string, MobRenderDef> = {
@@ -1517,10 +1570,10 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   bat: { layers: [{ model: 'bat', texture: 'bat' }], scale: 0.35 },
   squid: { layers: [{ model: 'squid', texture: 'squid' }] },
   glow_squid: { layers: [{ model: 'squid', texture: 'glow_squid' }, { model: 'squid', texture: 'glow_squid', emissive: true, color: () => [0.35, 0.35, 0.35] }] },
-  villager: { layers: [{ model: 'villager', texture: 'villager' }], scale: 0.9375, babyScale: 0.5 },
+  villager: { layers: villagerLayers('villager', 'villager'), scale: 0.9375, babyScale: 0.5 },
   wandering_trader: { layers: [{ model: 'villager', texture: 'wandering_trader' }], scale: 0.9375 },
   witch: { layers: [{ model: 'witch', texture: 'witch' }], scale: 0.9375 },
-  zombie_villager: { layers: [{ model: 'zombie_villager', texture: 'zombie_villager' }] },
+  zombie_villager: { layers: villagerLayers('zombie_villager', 'zombie_villager') },
   mooshroom: { layers: [{ model: 'cow', texture: 'mooshroom' }] },
   iron_golem: { layers: [{ model: 'iron_golem', texture: 'iron_golem' }] },
   wolf: { layers: [{ model: 'wolf', texture: 'wolf' }] },
@@ -1530,7 +1583,13 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   evoker: { layers: [{ model: 'illager', texture: 'evoker' }], scale: 0.9375 },
   cod: { layers: [{ model: 'cod', texture: 'cod' }] },
   salmon: { layers: [{ model: 'salmon', texture: 'salmon' }] },
-  horse: { layers: [{ model: 'horse', texture: 'horse' }], scale: 1.1, babyScale: 0.5 },
+  horse: {
+    layers: [
+      { model: 'horse', texture: 'horse', tex: (m) => `horse_${HORSE_COATS[(m.data.get('variant') ?? 3) & 0xff] ?? 'brown'}`, textures: HORSE_COATS.map((c) => `horse_${c}`) },
+      { model: 'horse', texture: 'horse', tex: (m) => { const k = HORSE_MARKINGS[((m.data.get('variant') ?? 0) >> 8) - 1]; return k ? `horse_markings_${k}` : null; }, textures: HORSE_MARKINGS.map((k) => `horse_markings_${k}`) },
+    ],
+    scale: 1.1, babyScale: 0.5,
+  },
   skeleton_horse: { layers: [{ model: 'horse', texture: 'skeleton_horse' }], scale: 1.1, babyScale: 0.5 },
   zombie_horse: { layers: [{ model: 'horse', texture: 'zombie_horse' }], scale: 1.1, babyScale: 0.5 },
   donkey: { layers: [{ model: 'donkey', texture: 'donkey' }], scale: 0.87, babyScale: 0.5 },
@@ -1567,4 +1626,4 @@ export const MOB_SCROLLING = new Set(['creeper_armor']);
 const sheepColorOf = (m: ClientMob): [number, number, number] => sheepColor(m.data.get('color') ?? 0);
 
 /** Every entity texture the mob renderer loads. */
-export const MOB_TEXTURES = [...new Set(Object.values(MOB_RENDER).flatMap((r) => r.layers.map((l) => l.texture)))];
+export const MOB_TEXTURES = [...new Set(Object.values(MOB_RENDER).flatMap((r) => r.layers.flatMap((l) => [l.texture, ...(l.textures ?? [])])))];

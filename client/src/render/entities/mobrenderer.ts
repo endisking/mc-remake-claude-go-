@@ -14,6 +14,7 @@ import { MOB_MODELS, MOB_RENDER, MOB_TEXTURES, MOB_SCROLLING, bakeMobModel, crea
 import type { ClientMob } from '../../world/mobs';
 import type { ClientWorld } from '../../world/clientworld';
 import { FLUID, FULL_COLLISION } from '@shared/world/blockinfo';
+import { blockNameOf, getProp } from '@shared/world/blockstate';
 import { BitmapFont } from '../../gui/gui';
 
 const VS = `#version 300 es
@@ -339,7 +340,19 @@ export class MobRenderer {
     E[12] = x;
     E[13] = y;
     E[14] = z;
-    mulRotY(E, (-bodyYaw * Math.PI) / 180);
+    const sleepDir = (m.type === 'villager' && (m.data.get('sleeping') ?? 0) !== 0) ? bedFacing(world, m) : null;
+    if (sleepDir) {
+      // LivingEntityRenderer: a sleeper lies on the bed with its head on the pillow — shifted
+      // towards the head end by (eye height − 0.1), then setupRotations turns it to the bed's
+      // direction and tips it over (Rz 90°, Ry 270°)
+      const k = (m.baby ? 0.81 : 1.62) - 0.1;
+      E[12] -= sleepDir[0] * k;
+      E[14] -= sleepDir[1] * k;
+      // (vanilla's Ry(270) composed with its model flip S(−1,−1,1) is Ry(90) with ours, S(1,−1,−1))
+      mulRotY(E, (sleepDir[2] * Math.PI) / 180);
+      mulRotZ(E, Math.PI / 2);
+      mulRotY(E, Math.PI / 2);
+    } else mulRotY(E, (-bodyYaw * Math.PI) / 180);
     if (m.deathTime > 0) {
       // LivingEntityRenderer.setupRotations: fall over with a sqrt ease over 20 ticks
       let f = ((m.deathTime + partial - 1) / 20) * 1.6;
@@ -454,7 +467,9 @@ export class MobRenderer {
     anim.mob = m;
     for (const layer of rdef.layers) {
       if (layer.when && !layer.when(m)) continue;
-      const tex = this.textures.get(layer.texture);
+      const texName = layer.tex ? layer.tex(m) : layer.texture;
+      if (!texName) continue;
+      const tex = this.textures.get(texName);
       if (!tex) continue;
       const gm = this.models.get(layer.model)!;
       const def = gm.def;
@@ -818,6 +833,19 @@ function gaussian(): number {
 }
 
 // ------------------------------------------------------------------ matrix helpers (column-major, in place: M = M · X)
+
+/** Direction.step and LivingEntityRenderer.sleepDirectionToRotation of the bed under a sleeper. */
+function bedFacing(world: ClientWorld, m: ClientMob): [number, number, number] | null {
+  const st = world.getState(Math.floor(m.x), Math.floor(m.y), Math.floor(m.z));
+  if (!blockNameOf(st).endsWith('_bed')) return null;
+  switch (getProp(st, 'facing')) {
+    case 'south': return [0, 1, 90];
+    case 'west': return [-1, 0, 0];
+    case 'north': return [0, -1, 270];
+    case 'east': return [1, 0, 180];
+    default: return null;
+  }
+}
 
 function setIdentity(m: Mat4): void {
   m.fill(0);

@@ -17,6 +17,26 @@ export const PROFESSIONS = [
 ] as const;
 export type Profession = (typeof PROFESSIONS)[number];
 
+/** Villager types (VillagerType registry order; mobData `variant` is the index). */
+export const VILLAGER_TYPES = ['desert', 'jungle', 'plains', 'savanna', 'snow', 'swamp', 'taiga'] as const;
+export type VillagerType = (typeof VILLAGER_TYPES)[number];
+
+/** VillagerType.BY_BIOME (1.17.1); every other biome is plains. */
+const TYPE_BY_BIOME: Record<string, VillagerType> = {};
+for (const [t, list] of [
+  ['desert', 'badlands badlands_plateau desert desert_hills desert_lakes eroded_badlands modified_badlands_plateau modified_wooded_badlands_plateau wooded_badlands_plateau'],
+  ['jungle', 'bamboo_jungle bamboo_jungle_hills jungle jungle_edge jungle_hills modified_jungle modified_jungle_edge'],
+  ['savanna', 'savanna_plateau shattered_savanna shattered_savanna_plateau savanna'],
+  ['snow', 'deep_frozen_ocean frozen_ocean frozen_river ice_spikes snowy_beach snowy_mountains snowy_taiga snowy_taiga_hills snowy_taiga_mountains snowy_tundra'],
+  ['swamp', 'swamp swamp_hills'],
+  ['taiga', 'giant_spruce_taiga giant_spruce_taiga_hills giant_tree_taiga giant_tree_taiga_hills gravelly_mountains modified_gravelly_mountains mountain_edge mountains taiga taiga_hills taiga_mountains wooded_mountains'],
+] as const) {
+  for (const b of list.split(' ')) TYPE_BY_BIOME[b] = t;
+}
+export function villagerTypeForBiome(biome: string): VillagerType {
+  return TYPE_BY_BIOME[biome] ?? 'plains';
+}
+
 /** PoiType of each profession's job site block(s) (1.17.1: any cauldron counts for leatherworkers). */
 export const JOB_SITES: Record<string, Profession> = {
   blast_furnace: 'armorer',

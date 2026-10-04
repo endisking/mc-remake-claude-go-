@@ -697,6 +697,235 @@ export function zombieVillager(): Tex {
   return t;
 }
 
+// ---- villager clothing layers (VillagerProfessionLayer: biome type, then profession, then level badge)
+
+/** VillagerType order (mobData variant). */
+export const VILLAGER_TYPES = ['desert', 'jungle', 'plains', 'savanna', 'snow', 'swamp', 'taiga'] as const;
+/** Professions with a clothing layer (mobData profession index − 1; 'none' has none). */
+export const VILLAGER_PROFESSIONS = ['armorer', 'butcher', 'cartographer', 'cleric', 'farmer', 'fisherman', 'fletcher', 'leatherworker', 'librarian', 'mason', 'nitwit', 'shepherd', 'toolsmith', 'weaponsmith'] as const;
+/** Level badge materials (novice … master). */
+export const VILLAGER_LEVELS = ['stone', 'iron', 'gold', 'emerald', 'diamond'] as const;
+
+const SIDES = ['right', 'front', 'left', 'back'] as const;
+/** Villager-layout boxes the clothing layers paint over. */
+const V = {
+  hat: faceRects(32, 0, 8, 10, 8),
+  body: faceRects(16, 20, 8, 12, 6),
+  jacket: faceRects(0, 38, 8, 18, 6),
+  leg: faceRects(0, 22, 4, 12, 4),
+};
+/** Paint the hat box: the crown (top) plus the top `rows` rows of each side. */
+function hatBand(t: Tex, rows: number, p: Paint): void {
+  rect(t, V.hat.top[0], V.hat.top[1], 8, 8, p);
+  for (const k of SIDES) rect(t, V.hat[k][0], V.hat[k][1], 8, rows, p);
+}
+/** Paint the hat rim (16×16 plane at 30,47; both faces) as a disc of radius `r`. */
+function hatRim(t: Tex, r: number, p: Paint): void {
+  for (const ox of [31, 48]) rect(t, ox, 48, 16, 16, (x, y, w, h) => ((x - 7.5) ** 2 + (y - 7.5) ** 2 <= r * r ? p(x, y, w, h) : null));
+}
+/** Paint the front of the robe (jacket) from row `from` down, `w` pixels wide centred. */
+function apron(t: Tex, from: number, w: number, p: Paint): void {
+  const [x, y] = V.jacket.front;
+  rect(t, x + (8 - w) / 2, y + from, w, 18 - from, p);
+}
+
+interface TypeLook { robe: string; robeDark: string; trim: string; seed: number; extra?: (t: Tex) => void }
+const TYPE_LOOKS: Record<(typeof VILLAGER_TYPES)[number], TypeLook> = {
+  plains: { robe: '#7a5a3e', robeDark: '#634830', trim: '#5f8a3a', seed: 501 },
+  desert: { robe: '#d8c08a', robeDark: '#bfa470', trim: '#b8502e', seed: 502, extra: (t) => hatBand(t, 4, noisy(hex('#e8dcc0'), 0.04, 512)) },
+  savanna: { robe: '#b0602e', robeDark: '#944c22', trim: '#e0b040', seed: 503, extra: (t) => {
+    // bead necklace
+    const [x, y] = V.jacket.front;
+    for (let i = 0; i < 8; i++) px(t, x + i, y + (i === 0 || i === 7 ? 0 : 1), i % 2 ? hex('#e0b040') : hex('#3a8a8a'));
+  } },
+  snow: { robe: '#4a6a9a', robeDark: '#3a547c', trim: '#e8e8f0', seed: 504, extra: (t) => {
+    hatBand(t, 3, noisy(hex('#f0f0f4'), 0.05, 514)); // fur cap
+    for (const k of SIDES) hline(t, V.jacket[k][0], V.jacket[k][1], V.jacket[k][2], hex('#f0f0f4')); // fur collar
+  } },
+  taiga: { robe: '#5a4636', robeDark: '#46362a', trim: '#8a6a4a', seed: 505, extra: (t) => {
+    hatBand(t, 2, noisy(hex('#6a523e'), 0.06, 515));
+    for (const k of SIDES) rect(t, V.jacket[k][0], V.jacket[k][1], V.jacket[k][2], 2, noisy(hex('#a08060'), 0.08, 516));
+  } },
+  jungle: { robe: '#4e7a3a', robeDark: '#3e622e', trim: '#d8a040', seed: 506, extra: (t) => {
+    // leafy headband
+    for (const k of SIDES) for (let i = 0; i < 8; i++) px(t, V.hat[k][0] + i, V.hat[k][1] + 2 + (i % 3 === 0 ? 1 : 0), i % 2 ? hex('#3a8a2a') : hex('#5aa83a'));
+  } },
+  swamp: { robe: '#4a5a3a', robeDark: '#3a4a2e', trim: '#6a3a6a', seed: 507, extra: (t) => {
+    hatBand(t, 2, blotches(hex('#3e5a2a'), hex('#566e34'), 517, 2, 0.5));
+    hatRim(t, 6.5, blotches(hex('#3e5a2a'), hex('#566e34'), 518, 2, 0.5));
+  } },
+};
+
+/** Biome clothing: robe, sash and trousers recoloured, plus a regional accessory. */
+export function villagerTypeLayer(type: (typeof VILLAGER_TYPES)[number], zombie = false): Tex {
+  const t = new Tex(64, 64);
+  const L = TYPE_LOOKS[type];
+  const R = hex(L.robe), RD = hex(L.robeDark), TR = hex(L.trim);
+  const robe = blotches(R, RD, L.seed, 2.5, 0.62, 0.05);
+  box(t, 16, 20, 8, 12, 6, robe);
+  rect(t, V.body.top[0], V.body.top[1], 8, 6, () => CLEAR);
+  const j = box(t, 0, 38, 8, 18, 6, robe);
+  rect(t, j.top[0], j.top[1], 8, 6, () => CLEAR);
+  for (const k of SIDES) {
+    const [x, y, w] = j[k];
+    hline(t, x, y + 6, w, TR);
+    hline(t, x, y + 17, w, shade(RD, 0.8));
+    if (zombie) for (let i = 1; i < w; i += 3) {
+      px(t, x + i, y + 17, CLEAR);
+      px(t, x + i + 1, y + 16, CLEAR);
+    }
+  }
+  // sleeves: villager arms are 4×8×4, zombie villager arms 4×12×4 (torn short sleeves)
+  const arm = box(t, 44, 22, 4, zombie ? 12 : 8, 4, (_x, y) => (zombie && y >= 6 ? null : robe(_x, y, 4, 8)));
+  for (const k of SIDES) hline(t, arm[k][0], arm[k][1] + (zombie ? 5 : 7), 4, shade(RD, 0.85));
+  if (!zombie) rect(t, arm.bottom[0], arm.bottom[1], 4, 4, () => null);
+  const leg = box(t, 0, 22, 4, 12, 4, (x, y) => (y < 9 ? shade(RD, 0.85 + ((x * 7 + y * 3) % 5) * 0.01) : null));
+  void leg;
+  L.extra?.(t);
+  return t;
+}
+
+/** Profession outfits: hats, aprons and tools of the trade (original designs). */
+export function villagerProfessionLayer(prof: (typeof VILLAGER_PROFESSIONS)[number]): Tex {
+  const t = new Tex(64, 64);
+  const hf = V.hat.front;
+  const jf = V.jacket.front;
+  const solid = (c: string, seed: number, vary = 0.05) => noisy(hex(c), vary, seed);
+  switch (prof) {
+    case 'armorer': {
+      // soot-black work cap with a riveted visor; heavy smithing apron
+      hatBand(t, 3, solid('#2e2e32', 601));
+      hline(t, hf[0], hf[1] + 3, 8, hex('#8a8a92'));
+      for (const i of [1, 6]) px(t, hf[0] + i, hf[1] + 3, hex('#d0d0d8'));
+      apron(t, 2, 8, solid('#3a3a40', 602));
+      hline(t, jf[0], jf[1] + 6, 8, hex('#8a8a92'));
+      break;
+    }
+    case 'butcher': {
+      // white headband; white apron with a few stains
+      for (const k of SIDES) hline(t, V.hat[k][0], V.hat[k][1] + 2, 8, hex('#ecebe4'));
+      apron(t, 1, 6, (x, y) => ((x * 5 + y * 3) % 17 === 0 ? hex('#a83a32') : shade(hex('#ecebe4'), 0.97 + ((x + y) % 3) * 0.015)));
+      break;
+    }
+    case 'cartographer': {
+      // brass monocle over one eye, a navy waistcoat with a compass-rose clasp
+      px(t, hf[0] + 5, hf[1] + 4, hex('#e0c060'));
+      px(t, hf[0] + 6, hf[1] + 5, hex('#c0a040'));
+      apron(t, 0, 4, solid('#2a3a6a', 603));
+      px(t, jf[0] + 3, jf[1] + 6, hex('#e0c060'));
+      px(t, jf[0] + 4, jf[1] + 6, hex('#e0c060'));
+      break;
+    }
+    case 'cleric': {
+      // violet vestment over the whole robe with a gold stole
+      for (const k of SIDES) rect(t, V.jacket[k][0], V.jacket[k][1], V.jacket[k][2], 18, solid('#6a3a8a', 604));
+      vline(t, jf[0] + 2, jf[1], 18, hex('#d8b040'));
+      vline(t, jf[0] + 5, jf[1], 18, hex('#d8b040'));
+      break;
+    }
+    case 'farmer': {
+      // wide woven straw hat
+      const straw = (x: number, y: number) => ((x + y) % 2 ? hex('#d8c070') : hex('#c4aa5a'));
+      hatBand(t, 3, straw);
+      for (const k of SIDES) hline(t, V.hat[k][0], V.hat[k][1] + 2, 8, hex('#8a5a2a'));
+      hatRim(t, 8, straw);
+      break;
+    }
+    case 'fisherman': {
+      // teal rain hat with a short brim; a rope sash
+      hatBand(t, 3, solid('#2e7a7a', 605));
+      hatRim(t, 6.5, solid('#256868', 606));
+      for (let i = 0; i < 8; i++) px(t, jf[0] + i, jf[1] + 1 + Math.floor(i / 2), hex('#c8b080'));
+      break;
+    }
+    case 'fletcher': {
+      // forest-green cap with a long red feather
+      hatBand(t, 3, solid('#3a6a2a', 607));
+      const [lx, ly] = V.hat.left;
+      for (let i = 0; i < 5; i++) px(t, lx + 1 + i, ly + 2 - Math.floor(i / 2), i % 2 ? hex('#c83a2a') : hex('#e85a3a'));
+      apron(t, 2, 6, solid('#7a5a32', 608));
+      break;
+    }
+    case 'leatherworker': {
+      // tanned leather apron with stitching and a headband
+      for (const k of SIDES) hline(t, V.hat[k][0], V.hat[k][1] + 2, 8, hex('#8a5a32'));
+      apron(t, 1, 8, (x, y) => (x === 0 || x === 7 ? hex('#5a3a1e') : (y % 3 === 0 && x % 2 === 0 ? hex('#c89a5a') : shade(hex('#9a6a3a'), 0.96 + ((x * 3 + y) % 4) * 0.02))));
+      break;
+    }
+    case 'librarian': {
+      // tall burgundy scholar's hat, round spectacles, a book-bound sash
+      hatBand(t, 3, solid('#7a2a2a', 609));
+      hline(t, hf[0], hf[1] + 2, 8, hex('#d8b040'));
+      for (const i of [1, 2, 5, 6]) px(t, hf[0] + i, hf[1] + 5, hex('#2a2a2a'));
+      px(t, hf[0] + 3, hf[1] + 4, hex('#2a2a2a'));
+      px(t, hf[0] + 4, hf[1] + 4, hex('#2a2a2a'));
+      apron(t, 0, 2, solid('#7a2a2a', 610));
+      break;
+    }
+    case 'mason': {
+      // dusty grey cloth cap and a stone-grey apron
+      hatBand(t, 2, solid('#8a8680', 611, 0.08));
+      apron(t, 3, 8, solid('#6e6a66', 612, 0.08));
+      hline(t, jf[0], jf[1] + 3, 8, hex('#4a4642'));
+      break;
+    }
+    case 'nitwit': {
+      // a plain green smock with nothing in the pockets
+      for (const k of SIDES) rect(t, V.jacket[k][0], V.jacket[k][1], V.jacket[k][2], 18, solid('#4e8a3e', 613));
+      break;
+    }
+    case 'shepherd': {
+      // woolly cream cap and a brown vest
+      hatBand(t, 3, (x, y) => ((x * 3 + y * 5) % 4 === 0 ? hex('#d8d0bc') : hex('#f0ead8')));
+      for (const k of ['right', 'left'] as const) rect(t, V.jacket[k][0], V.jacket[k][1], 6, 10, solid('#6a4a2e', 614));
+      rect(t, jf[0], jf[1], 2, 10, solid('#6a4a2e', 615));
+      rect(t, jf[0] + 6, jf[1], 2, 10, solid('#6a4a2e', 616));
+      break;
+    }
+    case 'toolsmith': {
+      // iron-grey bandana and a black apron with a hammer loop
+      hatBand(t, 2, solid('#6a6e74', 617));
+      apron(t, 2, 8, solid('#26262a', 618));
+      rect(t, jf[0] + 5, jf[1] + 8, 2, 3, () => hex('#8a8a92'));
+      break;
+    }
+    case 'weaponsmith': {
+      // eye patch with a strap, black apron
+      px(t, hf[0] + 1, hf[1] + 4, hex('#1a1a1a'));
+      px(t, hf[0] + 2, hf[1] + 4, hex('#1a1a1a'));
+      for (const k of SIDES) px(t, V.hat[k][0] + (k === 'back' ? 4 : 0), V.hat[k][1] + 3, hex('#1a1a1a'));
+      hline(t, hf[0], hf[1] + 3, 8, hex('#1a1a1a'));
+      apron(t, 2, 8, solid('#1e1e22', 619));
+      break;
+    }
+  }
+  return t;
+}
+
+/** Level badge on the belt: stone, iron, gold, emerald, diamond. */
+export function villagerLevelLayer(level: (typeof VILLAGER_LEVELS)[number]): Tex {
+  const t = new Tex(64, 64);
+  const C = hex({ stone: '#8a8a86', iron: '#d8d8d8', gold: '#f0c838', emerald: '#3ad86a', diamond: '#5ae8e0' }[level]);
+  const [x, y] = V.jacket.front;
+  rect(t, x + 2, y + 5, 4, 3, (i, j) => (i === 0 || i === 3 || j === 0 || j === 2 ? shade(C, 0.7) : C));
+  px(t, x + 2, y + 5, CLEAR);
+  px(t, x + 5, y + 7, CLEAR);
+  return t;
+}
+
+const villagerLayerTextures = (): Record<string, () => Tex> => {
+  const out: Record<string, () => Tex> = {};
+  for (const ty of VILLAGER_TYPES) {
+    out[`villager_type_${ty}`] = () => villagerTypeLayer(ty);
+    out[`zombie_villager_type_${ty}`] = () => villagerTypeLayer(ty, true);
+  }
+  for (const p of VILLAGER_PROFESSIONS) out[`villager_profession_${p}`] = () => villagerProfessionLayer(p);
+  for (const l of VILLAGER_LEVELS) out[`villager_level_${l}`] = () => villagerLevelLayer(l);
+  for (const c of HORSE_COATS) out[`horse_${c}`] = horseCoat(c);
+  for (const m of HORSE_MARKINGS) out[`horse_markings_${m}`] = () => horseMarkings(m);
+  return out;
+};
+
 /** Witch: villager layout (64×128) plus a crooked four-tier hat and a warty mole. */
 export function witch(): Tex {
   const t = new Tex(64, 128);
@@ -962,6 +1191,85 @@ function horseTex(look: HorseLook): Tex {
     rect(t, leg[k][0], leg[k][1] + 9, 4, 2, () => HO);
   }
   box(t, 42, 36, 3, 14, 4, blotches(M, shade(M, 0.8), look.seed + 2, 1.5, 0.5));
+  horseTack(t);
+  return t;
+}
+
+/**
+ * Saddle, bridle and saddlebag pixels shared by every horse-family texture (the model shows those
+ * parts only when saddled / chested, like vanilla's HorseModel saddle parts and ChestedHorseModel).
+ */
+function horseTack(t: Tex): void {
+  const L = hex('#6a3e22'), LD = hex('#4e2c18'), ST = hex('#c8a05a'), IR = hex('#9a9a9a');
+  // saddle (10×9×9 at 26,0): leather seat, a raised pommel and cantle, stitched edges
+  const s = box(t, 26, 0, 10, 9, 9, noisy(L, 0.05, 401));
+  for (const k of ['right', 'left'] as const) {
+    const [x, y, w, h] = s[k];
+    rect(t, x, y + h - 2, w, 2, () => LD);
+    rect(t, x + 3, y + h - 1, 3, 1, () => IR); // stirrup
+  }
+  const [tx, ty, tw, th] = s.top;
+  hline(t, tx, ty, tw, LD);
+  hline(t, tx, ty + th - 1, tw, LD);
+  for (let i = 1; i < tw - 1; i += 2) px(t, tx + i, ty + 1, ST);
+  // bridle: head strap (6×5×6 at 1,1), noseband (4×5×2 at 19,0), bit rings, reins (0×3×16 at 32,2)
+  box(t, 1, 1, 6, 5, 6, (x, y, w, h) => (y === 1 || x === 0 || x === w - 1 || y === h - 1 ? LD : null));
+  box(t, 19, 0, 4, 5, 2, (_x, y) => (y === 2 ? LD : null));
+  box(t, 29, 5, 1, 2, 2, () => IR);
+  box(t, 32, 2, 0, 3, 16, (_x, y) => (y === 1 ? LD : null));
+  // saddlebags (8×8×3 at 26,21): canvas chest with a strap and buckle
+  const c = box(t, 26, 21, 8, 8, 3, noisy(hex('#8a6a42'), 0.05, 403));
+  for (const k of ['right', 'front', 'left', 'back'] as const) {
+    const [x, y, w] = c[k];
+    hline(t, x, y, w, hex('#5a4228'));
+  }
+  rect(t, c.front[0] + 3, c.front[1] + 2, 2, 5, () => LD);
+  px(t, c.front[0] + 3, c.front[1] + 4, IR);
+  px(t, c.front[0] + 4, c.front[1] + 4, IR);
+}
+
+/** Horse.Variant order: coat colours of the horse texture (mobData variant & 0xff). */
+export const HORSE_COATS = ['white', 'creamy', 'chestnut', 'brown', 'black', 'gray', 'darkbrown'] as const;
+const COAT_LOOKS: Record<(typeof HORSE_COATS)[number], HorseLook> = {
+  white: { coat: '#e6e2da', coatDark: '#cfc9be', mane: '#bdb6aa', muzzle: '#d8cfc4', hoof: '#5a524a', seed: 291 },
+  creamy: { coat: '#c8a070', coatDark: '#b28a5c', mane: '#7a5a3a', muzzle: '#d8bc98', hoof: '#3e3028', seed: 292 },
+  chestnut: { coat: '#9a5a2e', coatDark: '#844a24', mane: '#5a3218', muzzle: '#c08a62', hoof: '#33261e', seed: 293 },
+  brown: { coat: '#7a4e30', coatDark: '#664026', mane: '#2a1e18', muzzle: '#b8987a', hoof: '#2e241e', seed: 294 },
+  black: { coat: '#2e2a2c', coatDark: '#222022', mane: '#141214', muzzle: '#4a4446', hoof: '#18161a', seed: 295 },
+  gray: { coat: '#8a8784', coatDark: '#74716e', mane: '#4a4846', muzzle: '#aaa6a2', hoof: '#2a2828', seed: 296 },
+  darkbrown: { coat: '#4a3020', coatDark: '#3c2618', mane: '#1a120e', muzzle: '#7a5a44', hoof: '#1e1612', seed: 297 },
+};
+export const horseCoat = (c: (typeof HORSE_COATS)[number]) => () => horseTex(COAT_LOOKS[c]);
+
+/** Horse.Markings (mobData variant >> 8, 0 = none): overlays drawn over the coat. */
+export const HORSE_MARKINGS = ['white', 'whitefield', 'white_dots', 'black_dots'] as const;
+export function horseMarkings(kind: (typeof HORSE_MARKINGS)[number]): Tex {
+  const t = new Tex(64, 64);
+  const W = hex('#f2eee6'), B = hex('#1a1614');
+  const r = rng(311 + HORSE_MARKINGS.indexOf(kind));
+  const body = faceRects(0, 32, 10, 10, 22), neck = faceRects(0, 35, 4, 12, 7), head = faceRects(0, 13, 6, 5, 7), leg = faceRects(48, 21, 4, 11, 4);
+  const all = [...Object.values(body), ...Object.values(neck), ...Object.values(head)];
+  if (kind === 'white') {
+    // stockings and a blaze down the face
+    for (const k of ['right', 'front', 'left', 'back'] as const) rect(t, leg[k][0], leg[k][1] + 5, 4, 4, () => W);
+    rect(t, head.top[0] + 2, head.top[1], 2, head.top[3], () => W);
+    rect(t, head.front[0] + 2, head.front[1], 2, head.front[3], () => W);
+  } else if (kind === 'whitefield') {
+    // a broad pale saddle-field over the back and flanks
+    for (const f of all) rect(t, f[0], f[1], f[2], f[3], (x, y) => (r() < 0.82 || (x + y) % 5 === 0 ? shade(W, 0.96 + r() * 0.06) : null));
+    for (const k of ['right', 'front', 'left', 'back'] as const) rect(t, leg[k][0], leg[k][1], 4, 6, () => shade(W, 0.95));
+  } else {
+    // scattered 1–2 pixel spots
+    const C = kind === 'white_dots' ? W : B;
+    for (const f of [...Object.values(body), ...Object.values(neck)]) {
+      const n = Math.floor((f[2] * f[3]) / 9);
+      for (let i = 0; i < n; i++) {
+        const x = f[0] + Math.floor(r() * f[2]), y = f[1] + Math.floor(r() * f[3]);
+        px(t, x, y, C);
+        if (r() < 0.4 && x + 1 < f[0] + f[2]) px(t, x + 1, y, shade(C, 0.95));
+      }
+    }
+  }
   return t;
 }
 
@@ -1400,5 +1708,6 @@ export const ENTITY_TEXTURES: Record<string, () => Tex> = {
   chicken, enderman, enderman_eyes: endermanEyes, slime, bat, squid,
   glow_squid: glowSquid, creeper_armor: creeperArmor, villager, wandering_trader: wanderingTrader, witch, zombie_villager: zombieVillager,
   unknown: unknownMob,
+  ...villagerLayerTextures(),
   blaze, magma_cube: magmaCube, ghast, ghast_shooting: ghastShooting, piglin, piglin_brute: piglinBrute, zombified_piglin: zombifiedPiglin, dolphin, parrot, rabbit, fox, llama, trader_llama: traderLlama, turtle, polar_bear: polarBear, snow_golem: snowGolem, silverfish, endermite, bee, horse, donkey, mule, skeleton_horse: skeletonHorse, zombie_horse: zombieHorse, cat, ocelot, cod, salmon, pillager, vindicator, evoker, illusioner, vex, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
 };

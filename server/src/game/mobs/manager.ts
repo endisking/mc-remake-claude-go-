@@ -41,7 +41,7 @@ import { MobSpawners } from './spawners';
 import { Wolf } from './wolf';
 import { Phantom, PhantomSpawner } from './phantom';
 import { itemForBlock } from '@shared/game/loot';
-import { PROFESSIONS as PROFESSION_IDS } from '@shared/game/trades';
+import { PROFESSIONS as PROFESSION_IDS, VILLAGER_TYPES, villagerTypeForBiome } from '@shared/game/trades';
 import { Villager, WanderingTrader, AbstractVillager } from './villager';
 import { IronGolem, SnowGolem } from './golems';
 import { Witch } from './witch';
@@ -224,6 +224,12 @@ export class MobManager {
     if (reason !== 'breeding' && reason !== 'conversion') {
       if (m instanceof Zombie || m instanceof Skeleton || m instanceof Slime || m instanceof Phantom || m instanceof Pillager || m instanceof Vindicator) m.finalizeSpawn();
       else if (m instanceof Animal) m.finalizeSpawn(groupIndex);
+      // VillagerType.byBiome: villagers and zombie villagers dress for the biome they spawn in
+      if (m instanceof Villager || m instanceof ZombieVillager) {
+        const t = villagerTypeForBiome(BIOMES[this.s.world.getBiome(Math.floor(x), Math.floor(y), Math.floor(z))]?.name ?? 'plains');
+        if (m instanceof Villager) m.villagerType = t;
+        else if (m.villagerData) m.villagerData.type = t;
+      }
     }
     this.s.spawnEntity(m);
     return m;
@@ -920,6 +926,13 @@ export function mobDataOf(m: Mob): Record<string, number> {
     d.profession = PROFESSION_IDS.indexOf(m.profession);
     d.level = m.level;
     d.sleeping = m.sleeping ? 1 : 0;
+    d.variant = Math.max(0, VILLAGER_TYPES.indexOf(m.villagerType as (typeof VILLAGER_TYPES)[number]));
+  }
+  if (m instanceof ZombieVillager) {
+    const v = m.villagerData;
+    d.profession = v ? PROFESSION_IDS.indexOf(v.profession) : 0;
+    d.level = v?.level ?? 1;
+    d.variant = Math.max(0, VILLAGER_TYPES.indexOf((v?.type ?? 'plains') as (typeof VILLAGER_TYPES)[number]));
   }
   if (m instanceof AbstractVillager) d.unhappy = m.unhappyCounter > 0 ? 1 : 0;
   if (m instanceof SnowGolem) d.pumpkin = m.pumpkin ? 1 : 0;
