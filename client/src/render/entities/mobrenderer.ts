@@ -795,7 +795,7 @@ export class MobRenderer {
 
 /** Items mobs spawn holding (FinalizeSpawn equipment) until the server says otherwise. */
 const DEFAULT_HELD = new Map<string, number>(
-  ([['skeleton', 'bow'], ['stray', 'bow'], ['wither_skeleton', 'stone_sword'], ['pillager', 'crossbow'], ['vindicator', 'iron_axe'], ['zombified_piglin', 'golden_sword'], ['piglin', 'golden_sword'], ['piglin_brute', 'golden_axe']] as const)
+  ([['skeleton', 'bow'], ['stray', 'bow'], ['wither_skeleton', 'stone_sword'], ['pillager', 'crossbow'], ['vindicator', 'iron_axe'], ['zombified_piglin', 'golden_sword'], ['piglin', 'golden_sword'], ['piglin_brute', 'golden_axe'], ['vex', 'iron_sword'], ['illusioner', 'bow']] as const)
     .map(([t, i]) => [t, ITEMS_BY_NAME.get(i)?.id ?? 0]),
 );
 

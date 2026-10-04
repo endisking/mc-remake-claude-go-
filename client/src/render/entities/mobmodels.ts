@@ -765,6 +765,16 @@ export function piglinMesh(): VPart[] {
   return m;
 }
 
+/** VexModel.createBodyLayer: small humanoid with a wispy tail and two wings (64×64). */
+export function vexMesh(): VPart[] {
+  const m = humanoidMesh();
+  m.find((p) => p.name === 'right_leg')!.boxes = [b(32, 0, -1, -1, -2, 6, 10, 4)];
+  m.find((p) => p.name === 'left_leg')!.boxes = [];
+  m.push({ name: 'right_wing', pivot: [0, 0, 0], boxes: [b(0, 32, -20, 0, 0, 20, 12, 1)] });
+  m.push({ name: 'left_wing', pivot: [0, 0, 0], boxes: [b(0, 32, 0, 0, 0, 20, 12, 1, 0, true)] });
+  return m;
+}
+
 // ------------------------------------------------------------------ animation helpers
 
 const RAD = PI / 180;
@@ -1301,6 +1311,25 @@ const piglinAnim = (p: Poses, a: MobAnim) => {
   if (a.mob.type === 'zombified_piglin') zombieArms(p, aggressive(a), a.attackTime, a.ageInTicks);
 };
 
+/** VexModel.setupAnim: humanoid pose, tail tucked back, beating wings; arms up when charging. */
+const vexAnim = (p: Poses, a: MobAnim) => {
+  humanoidAnim(p, a);
+  if (aggressive(a)) {
+    p.right_arm!.xRot = 3.7699115;
+    p.left_arm!.xRot = 3.7699115;
+  }
+  p.right_leg!.xRot += PI / 5;
+  const rw = p.right_wing!, lw = p.left_wing!;
+  rw.z = lw.z = 2;
+  rw.y = lw.y = 1;
+  rw.yRot = 0.47123894 + Math.cos(a.ageInTicks * 45.836624 * RAD) * PI * 0.05;
+  lw.yRot = -rw.yRot;
+  lw.zRot = -0.47123894;
+  lw.xRot = 0.47123894;
+  rw.xRot = 0.47123894;
+  rw.zRot = 0.47123894;
+};
+
 const none = () => {};
 
 export const MOB_MODELS: Record<string, MobModelDef> = {
@@ -1348,6 +1377,7 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   magma_cube: { tex: [64, 32], parts: magmaCubeMesh(), anim: magmaCubeAnim },
   ghast: { tex: [64, 32], parts: ghastMesh(), anim: ghastAnim },
   piglin: { tex: [64, 64], parts: piglinMesh(), headParts: ['head', 'hat'], baby: HUMANOID_BABY, anim: piglinAnim },
+  vex: { tex: [64, 64], parts: vexMesh(), anim: vexAnim },
   unknown: { tex: [64, 32], parts: [{ name: 'box', pivot: [0, 0, 0], boxes: [b(0, 0, -8, 8, -8, 16, 16, 16)] }], anim: none },
 };
 
@@ -1443,6 +1473,8 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   piglin: { layers: [{ model: 'piglin', texture: 'piglin' }] },
   piglin_brute: { layers: [{ model: 'piglin', texture: 'piglin_brute' }] },
   zombified_piglin: { layers: [{ model: 'piglin', texture: 'zombified_piglin' }] },
+  illusioner: { layers: [{ model: 'illager', texture: 'illusioner' }], scale: 0.9375 },
+  vex: { layers: [{ model: 'vex', texture: 'vex' }], scale: 0.4, bright: true },
   /** fallback for mobs without a model: a hit-box-sized box */
   unknown: { layers: [{ model: 'unknown', texture: 'unknown' }] },
 };

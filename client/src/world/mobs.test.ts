@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { existsSync } from 'node:fs';
 import { ClientMob, ClientMobs, rotateIfNecessary, sheepColor, isMobType, type MobHooks } from './mobs';
 import { encodeS2C, decodeS2C } from '@shared/protocol/packets';
 import { MOB_MODELS, MOB_RENDER, bakeMobModel, createPoses, MOB_TEXTURES } from '../render/entities/mobmodels';
@@ -233,6 +234,11 @@ describe('mob models', () => {
     def.anim(poses, a);
     expect(calm).toBeCloseTo(-Math.PI / 2.25, 1);
     expect(poses.right_arm!.xRot).toBeLessThan(calm);
+  });
+
+  it('every texture a layer uses was generated (tools/texgen/entities.ts)', () => {
+    const dir = new URL('../../public/textures/entity/', import.meta.url);
+    for (const t of MOB_TEXTURES) expect(existsSync(new URL(`${t}.png`, dir)), t).toBe(true);
   });
 
   it('lists a texture for every layer', () => {

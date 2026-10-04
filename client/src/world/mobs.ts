@@ -81,6 +81,8 @@ export const MOB_INFO: Record<string, MobInfo> = {
   pillager: H(0.5),
   vindicator: H(0.5),
   evoker: H(0.5),
+  illusioner: H(0.5),
+  vex: H(0.3, { flying: true, step: null }),
   bat: N(0.25, { category: 'ambient', flying: true, step: null }),
 };
 
