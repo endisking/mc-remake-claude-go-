@@ -62,7 +62,7 @@ import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
 import { ItemTextures } from './render/itemtextures';
 import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './gui/itemicons';
-import { netherFogColor, netherFogRange, PortalEffect, applyPortalWobble, insidePortal, ambientLight, hasSky } from './world/dimension';
+import { netherFogColor, netherFogRange, PortalEffect, applyPortalWobble, insidePortal, ambientLight, hasSky, animatePortals } from './world/dimension';
 import { isPortal } from '@shared/game/portalshape';
 import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
@@ -136,6 +136,7 @@ export class Game implements ScreenHost {
   /** Current dimension (login / dimension packets): overworld, the_nether, the_end. */
   dimension = 'overworld';
   readonly portalFx = new PortalEffect();
+  private readonly portalRand = new JavaRandom(BigInt(Date.now()) ^ 0x5deece66dn);
   private portalOverlay: ImageBitmap | null = null;
   private skyFlashTime = 0;
   readonly bolts = new Map<number, ClientBolt>();
@@ -899,6 +900,7 @@ export class Game implements ScreenHost {
     if (this.world.doDaylightCycle) this.world.dayTime++;
     this.world.gameTime++;
     animateFluids(this.world, this.player.x, this.player.y, this.player.z, this.sfxRand, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
+    animatePortals(this.world, this.player.x, this.player.y, this.player.z, this.portalRand, isPortal, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
     this.prevX = this.x;
     this.prevY = this.y;
     this.prevZ = this.z;

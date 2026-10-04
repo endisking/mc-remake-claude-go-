@@ -136,6 +136,18 @@ function rotAxis(out: Float32Array, a: number, x: number, y: number, z: number):
   ]);
 }
 
+/**
+ * NetherPortalBlock.animateTick ambience (the sound part; ClientLevel.animateTick samples random
+ * blocks near the player): 1 in 100 portal blocks hums each time it is picked.
+ */
+export function animatePortals(world: BlockWorld, px: number, py: number, pz: number, r: { nextInt(n: number): number; nextFloat(): number }, isPortal: (s: number) => boolean, play: (event: string, x: number, y: number, z: number, volume: number, pitch: number) => void): void {
+  const bx = Math.floor(px), by = Math.floor(py), bz = Math.floor(pz);
+  for (let l = 0; l < 667; l++) {
+    const x = bx + r.nextInt(16) - r.nextInt(16), y = by + r.nextInt(16) - r.nextInt(16), z = bz + r.nextInt(16) - r.nextInt(16);
+    if (isPortal(world.getState(x, y, z)) && r.nextInt(100) === 0) play('block.portal.ambient', x + 0.5, y + 0.5, z + 0.5, 0.5, r.nextFloat() * 0.4 + 0.8);
+  }
+}
+
 /** Is the player's box (deflated by 0.001) touching a nether portal block? (Entity.checkInsideBlocks) */
 export function insidePortal(world: BlockWorld, x: number, y: number, z: number, height: number, isPortal: (s: number) => boolean): boolean {
   const h = 0.3 - 0.001;
