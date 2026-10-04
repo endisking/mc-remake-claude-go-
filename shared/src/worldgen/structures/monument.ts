@@ -7,6 +7,7 @@
  * prismarine. Guardians and elder guardians are entities and are not placed here.
  */
 import { BoundingBox, Piece, S, type PlaceContext } from './piece';
+import { positionRandom } from './template';
 import type { StartContext } from './placement';
 import { FLUID, IS_AIR } from '../../world/blockinfo';
 import { MATERIAL_BLOCKS_MOTION } from '../../world/blockprops';
@@ -53,12 +54,28 @@ class MonumentPiece extends Piece {
     // the central hall
     this.fill(c, 9, 1, 9, 48, 15, 48, pb, water);
     this.fill(c, 10, 15, 10, 47, 15, 47, pr);
-    for (let x = 12; x <= 45; x += 6)
-      for (let z = 12; z <= 45; z += 6) {
-        if (x > 21 && x < 36 && z > 21 && z < 36) continue;
-        this.fill(c, x, 1, z, x, 14, z, pr);
-        this.set(c, lantern, x, 7, z);
+    // the room grid inside the hall: 5 × 5 rooms on three floors, doorways and floor holes by position
+    const walls = [9, 17, 25, 33, 41, 48];
+    for (const y of [5, 10]) this.fill(c, 10, y, 10, 47, y, 47, pb);
+    for (let fl = 0; fl < 3; fl++) {
+      const y0 = fl * 5, y1 = Math.min(14, y0 + 4);
+      for (const w of walls.slice(1, -1)) {
+        this.fill(c, w, y0 + 1, 10, w, y1, 47, pr);
+        this.fill(c, 10, y0 + 1, w, 47, y1, w, pr);
       }
+      for (let i = 0; i < 5; i++)
+        for (let j = 0; j < 5; j++) {
+          const rx = walls[i]!, rz = walls[j]!, mx = (rx + walls[i + 1]!) >> 1, mz = (rz + walls[j + 1]!) >> 1;
+          const h = positionRandom(i * 7 + fl, j, 77).nextInt(16);
+          // doorways east and south, a hole in the floor above, a lantern
+          if (i < 4 && (h & 1)) this.fill(c, walls[i + 1]!, y0 + 1, mz - 1, walls[i + 1]!, y0 + 2, mz, water);
+          if (j < 4 && (h & 2)) this.fill(c, mx - 1, y0 + 1, walls[j + 1]!, mx, y0 + 2, walls[j + 1]!, water);
+          if (fl < 2 && (h & 12) === 0) this.fill(c, mx - 1, y0 + 5, mz - 1, mx, y0 + 5, mz, water);
+          if ((h & 4) !== 0) this.set(c, lantern, mx, y0, mz);
+        }
+    }
+    // the entrance corridor runs straight to the core
+    this.fill(c, 26, 1, 9, 31, 4, 25, water);
     // stripes of dark prismarine on the hall walls
     for (let i = 9; i <= 48; i++)
       for (const [x, z] of [[i, 9], [i, 48], [9, i], [48, i]] as const) {
