@@ -477,4 +477,23 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     expect(n).toBeGreaterThan(1);
     expect(n).toBeLessThanOrEqual(5);
   });
+
+  it('doors are placed as two halves and breaking the top half drops one door', () => {
+    const { server, get, give, use, set, send, p } = setup();
+    set(9, 150, 6, 'stone');
+    give('oak_door', 2);
+    use(9, 150, 6);
+    expect(get(9, 151, 6)).toBe('oak_door');
+    expect(get(9, 152, 6)).toBe('oak_door');
+    expect(getProp(server.world.getState(9, 152, 6), 'half')).toBe('upper');
+    expect(p.inventory.get(0)!.count).toBe(1);
+    p.onGround = true;
+    send({ t: 'dig', action: 0, x: 9, y: 152, z: 6, face: 2 });
+    for (let i = 0; i < 80; i++) server.tick();
+    send({ t: 'dig', action: 2, x: 9, y: 152, z: 6, face: 2 });
+    expect(get(9, 151, 6)).toBe('air');
+    expect(get(9, 152, 6)).toBe('air');
+    const doors = [...server.entities.values()].filter((e) => e instanceof ItemEntity && e.stack.id === ITEMS_BY_NAME.get('oak_door')!.id);
+    expect(doors.length).toBe(1);
+  });
 });

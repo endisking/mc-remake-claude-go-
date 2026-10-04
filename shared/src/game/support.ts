@@ -34,11 +34,12 @@ export function canSurvive(world: StateGetter, x: number, y: number, z: number, 
   if (FLOWERS_AND_PLANTS.has(name)) return plantSurvives(name, below);
   if (TALL_PLANTS.has(name)) {
     if (getProp(state, 'half') === 'upper') return blockNameOf(below) === name;
-    return plantSurvives(name, below) && blockNameOf(world.getState(x, y + 1, z)) === name;
+    // DoublePlantBlock.canSurvive: the lower half only needs its soil (a missing top is updateShape's job)
+    return plantSurvives(name, below);
   }
   if (name.endsWith('_door')) {
     if (getProp(state, 'half') === 'upper') return blockNameOf(below) === name;
-    return sturdy(below) && blockNameOf(world.getState(x, y + 1, z)) === name;
+    return sturdy(below);
   }
   if (name === 'wheat' || name === 'carrots' || name === 'potatoes' || name === 'beetroots') return belowName === 'farmland';
   if (name === 'snow') return sturdy(below) && belowName !== 'ice' && belowName !== 'packed_ice' && belowName !== 'barrier';

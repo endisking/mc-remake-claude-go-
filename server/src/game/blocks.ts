@@ -38,6 +38,7 @@ import type { ItemStack } from '@shared/item/stack';
 const STEM_FRUIT: Record<string, [string, string]> = { pumpkin_stem: ['pumpkin', 'attached_pumpkin_stem'], melon_stem: ['melon', 'attached_melon_stem'] };
 const ATTACHED_STEM: Record<string, [string, string]> = { attached_pumpkin_stem: ['pumpkin', 'pumpkin_stem'], attached_melon_stem: ['melon', 'melon_stem'] };
 const TALL_FLOWERS = new Set(['sunflower', 'lilac', 'rose_bush', 'peony']);
+const DOUBLE_PLANTS = new Set(['sunflower', 'lilac', 'rose_bush', 'peony', 'tall_grass', 'large_fern', 'tall_seagrass', 'small_dripleaf']);
 const STRIPPABLE: Record<string, string> = {};
 for (const w of ['oak', 'spruce', 'birch', 'jungle', 'acacia', 'dark_oak']) {
   STRIPPABLE[`${w}_log`] = `stripped_${w}_log`;
@@ -330,6 +331,10 @@ export class BlockBehaviors {
           if (d === 0 && !farmlandSurvives(w, nx, ny, nz)) this.scheduleTick(nx, ny, nz, ns, 1);
         } else if (nn === 'cactus' || nn === 'sugar_cane') {
           if (!canSurvive(w, nx, ny, nz, ns)) this.scheduleTick(nx, ny, nz, ns, 1);
+        } else if ((d === 0 || d === 1) && getProp(ns, 'half') !== undefined && (nn.endsWith('_door') || DOUBLE_PLANTS.has(nn))) {
+          // DoorBlock / DoublePlantBlock.updateShape: a half whose partner is gone disappears
+          const partnerHere = (d === 0) === (getProp(ns, 'half') === 'lower');
+          if (partnerHere && n !== nn) this.s.setBlock(nx, ny, nz, getProp(ns, 'waterlogged') === true ? defaultState('water') : 0);
         } else if (nn in ATTACHED_STEM) {
           // AttachedStemBlock.updateShape: losing its fruit turns it back into a grown stem
           const f = DIRS.indexOf(getProp(ns, 'facing') as (typeof DIRS)[number]);

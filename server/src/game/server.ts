@@ -431,6 +431,9 @@ export class GameServer {
     const name = blockNameOf(state);
     const waterlogged = getProp(state, 'waterlogged') === true;
     const water = BLOCKS_BY_NAME.get('water')!.defaultState;
+    // doors and tall plants drop from their lower half (vanilla destroys it with drops via updateShape)
+    const below = this.world.getState(x, y - 1, z);
+    const lootState = getProp(state, 'half') === 'upper' && blockNameOf(below) === name ? below : state;
     this.setBlock(x, y, z, waterlogged ? water : 0);
     // particles + sound for everyone else (the breaker plays them locally)
     for (const o of this.players) if (o !== breaker) this.send(o, { t: 'levelEvent', event: 2001, x, y, z, data: state });
@@ -439,8 +442,6 @@ export class GameServer {
       const held = breaker.inventory.selectedStack;
       const harvest = canHarvest(held?.id ?? 0, state);
       const shears = held ? itemNameOf(held.id) === 'shears' : false;
-      // a door's loot comes from its lower half (vanilla destroys the lower half with drops)
-      const lootState = name.endsWith('_door') && getProp(state, 'half') === 'upper' && blockNameOf(this.world.getState(x, y - 1, z)) === name ? this.world.getState(x, y - 1, z) : state;
       const items = blockDrops(lootState, { silkTouch: false, shears, canHarvest: harvest, random: () => this.rand.nextFloat() });
       for (const it of items) this.popResource(x, y, z, it);
       // Block.spawnAfterBreak → popExperience (OreBlock / RedStoneOreBlock / SpawnerBlock)
