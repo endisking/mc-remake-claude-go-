@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Inventory, stack, type ItemStack } from '../item/stack';
-import { ChestMenu, ClickType, CraftingMenu, FurnaceMenu, InventoryMenu, SLOT_OUTSIDE, type MenuPlayer } from './menu';
+import { ChestMenu, ClickType, CraftingMenu, FurnaceMenu, InventoryMenu, SLOT_OUTSIDE, SmithingMenu, type MenuPlayer } from './menu';
 import { InventoryContainer, SimpleContainer } from './container';
 import { craftingResult } from './recipes';
 import { FurnaceContainer, newFurnace, tickFurnace, takeFurnaceExperience } from './furnace';
@@ -309,5 +309,24 @@ describe('stonecutting', () => {
     expect(r('sandstone')).toContain('chiseled_sandstonex1');
     expect(r('cobblestone')).toEqual(['cobblestone_slabx2', 'cobblestone_stairsx1', 'cobblestone_wallx1']);
     expect(r('oak_planks')).toEqual([]);
+  });
+});
+
+describe('smithing', () => {
+  it('upgrades diamond gear with a netherite ingot, keeping damage, using one of each', () => {
+    const p = player();
+    p.inventory.set(9, { ...stack('diamond_pickaxe'), damage: 100 });
+    p.inventory.set(10, stack('netherite_ingot', 2));
+    const m = new SmithingMenu(1, new InventoryContainer(p.inventory));
+    m.clicked(3, 0, ClickType.QUICK_MOVE, p); // pickaxe → base
+    m.clicked(4, 0, ClickType.QUICK_MOVE, p); // ingots → addition
+    expect(m.slots[2]!.getItem()).toEqual({ ...stack('netherite_pickaxe'), damage: 100 });
+    m.clicked(2, 0, ClickType.PICKUP, p);
+    expect(name(m.carried)).toBe('netherite_pickaxex1');
+    expect(name(m.inputs.getItem(1))).toBe('netherite_ingotx1');
+    expect(m.inputs.getItem(0)).toBeNull();
+    expect(m.hasRecipeError()).toBe(true);
+    m.removed(p);
+    expect(p.inventory.find(stack('netherite_ingot').id)).toBeGreaterThanOrEqual(0);
   });
 });

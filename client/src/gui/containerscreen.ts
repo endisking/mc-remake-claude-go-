@@ -14,7 +14,7 @@ import { copyStack } from '@shared/menu/container';
 import { drawItemStack } from './itemicons';
 import { attackDamageOf, attackSpeedOf } from '@shared/game/combat';
 import {
-  ClickType, SLOT_OUTSIDE, canItemQuickReplace, quickCraftSlotCount, ChestMenu, CraftingMenu, FurnaceMenu, InventoryMenu, StonecutterMenu,
+  ClickType, SLOT_OUTSIDE, canItemQuickReplace, quickCraftSlotCount, ChestMenu, CraftingMenu, FurnaceMenu, InventoryMenu, StonecutterMenu, SmithingMenu,
   type Menu, type MenuPlayer, type Slot,
 } from '@shared/menu/menu';
 import { arrow, flame, inset, panel, resultSlot, silhouette, slot as slotWell, tooltip } from './containerart';
@@ -623,11 +623,36 @@ export class StonecutterScreen extends AbstractContainerScreen<StonecutterMenu> 
   }
 }
 
+/** SmithingScreen: base + addition → result, with the red cross when they don't combine. */
+export class SmithingScreen extends AbstractContainerScreen<SmithingMenu> {
+  constructor(host: ContainerHost, menu: SmithingMenu, title: string) {
+    super(host, menu, title);
+    this.titleLabelX = 60;
+    this.titleLabelY = 18;
+  }
+  protected renderBg(): void {
+    const g = this.gui, l = this.leftPos, t = this.topPos;
+    panel(g, l, t, this.imageWidth, this.imageHeight);
+    this.renderSlotWells();
+    // the "+" between the inputs and the arrow to the result
+    g.fill(l + 52, t + 54, 13, 3, 0xff8b8b8b);
+    g.fill(l + 57, t + 49, 3, 13, 0xff8b8b8b);
+    arrow(g, l + 102, t + 48, 22, 15);
+    if (this.menu.hasRecipeError()) {
+      for (let i = 0; i < 13; i++) {
+        g.fill(l + 106 + i, t + 49 + i, 2, 1, 0xffd02020);
+        g.fill(l + 118 - i, t + 49 + i, 2, 1, 0xffd02020);
+      }
+    }
+  }
+}
+
 /** Screen for a server-opened menu. */
 export function screenForMenu(host: ContainerHost, menu: Menu, title: string): AbstractContainerScreen {
   if (menu instanceof CraftingMenu) return new CraftingScreen(host, menu, title);
   if (menu instanceof FurnaceMenu) return new FurnaceScreen(host, menu, title);
   if (menu instanceof StonecutterMenu) return new StonecutterScreen(host, menu, title);
+  if (menu instanceof SmithingMenu) return new SmithingScreen(host, menu, title);
   if (menu instanceof InventoryMenu) return new InventoryScreen(host, menu);
   if (menu.type === 'generic_3x3' || menu.type === 'hopper') return new SimpleContainerScreen(host, menu, title);
   return new ChestScreen(host, menu as ChestMenu, title);

@@ -27,7 +27,7 @@ export const enum ClickType {
 /** The clicked slot id for "outside the window" (drop the carried stack). */
 export const SLOT_OUTSIDE = -999;
 
-export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter';
+export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter' | 'smithing';
 
 export interface MenuPlayer {
   readonly inventory: Inventory;
@@ -913,6 +913,90 @@ export class StonecutterMenu extends Menu {
   }
 }
 
+const NETHERITE_UPGRADES = ['sword', 'shovel', 'pickaxe', 'axe', 'hoe', 'helmet', 'chestplate', 'leggings', 'boots'];
+
+/** UpgradeRecipe (smithing): a diamond item + a netherite ingot → the netherite item, damage kept. */
+export function smithingResult(base: ItemStack | null, addition: ItemStack | null): ItemStack | null {
+  if (isEmpty(base) || isEmpty(addition) || addition.id !== itemId('netherite_ingot')) return null;
+  const n = ITEMS_BY_ID[base.id]?.name ?? '';
+  const m = /^diamond_(\w+)$/.exec(n);
+  if (!m || !NETHERITE_UPGRADES.includes(m[1]!)) return null;
+  const out = itemId(`netherite_${m[1]}`);
+  return out ? { id: out, count: 1, damage: base.damage } : null;
+}
+
+/** SmithingMenu (ItemCombinerMenu): 0 base, 1 addition, 2 result, 3–29 main, 30–38 hotbar. */
+export class SmithingMenu extends Menu {
+  readonly inputs = new SimpleContainer(2);
+  readonly result = new ResultContainer();
+  /** SMITHING_TABLE_USE at the table, set by the server */
+  onUse: (() => void) | null = null;
+  constructor(id: number, inv: Container, private readonly valid: () => boolean = () => true) {
+    super('smithing', id);
+    this.inputs.onChange = () => this.createResult();
+    this.addSlot(new Slot(this.inputs, 0, 27, 47));
+    this.addSlot(new Slot(this.inputs, 1, 76, 47));
+    const menu = this;
+    this.addSlot(
+      new (class extends Slot {
+        override mayPlace(): boolean {
+          return false;
+        }
+        override mayPickup(): boolean {
+          return menu.result.items[0] !== null;
+        }
+        override onTake(p: MenuPlayer, st: ItemStack): void {
+          // SmithingMenu.onTake: one of each input is used up
+          menu.inputs.removeItem(0, 1);
+          menu.inputs.removeItem(1, 1);
+          menu.onUse?.();
+          super.onTake(p, st);
+        }
+      })(this.result, 0, 134, 47),
+    );
+    this.addPlayerInventory(inv, 84);
+  }
+  override stillValid(): boolean {
+    return this.valid();
+  }
+  createResult(): void {
+    this.result.items[0] = smithingResult(this.inputs.getItem(0), this.inputs.getItem(1));
+  }
+  /** hasRecipeError: inputs present but nothing to make (the red cross over the arrow) */
+  hasRecipeError(): boolean {
+    return (!!this.inputs.getItem(0) || !!this.inputs.getItem(1)) && !this.result.items[0];
+  }
+  quickMoveStack(p: MenuPlayer, index: number): ItemStack | null {
+    const slot = this.slots[index];
+    const st = slot?.getItem();
+    if (!slot || !st) return null;
+    const orig = copyStack(st)!;
+    if (index === 2) {
+      if (!this.moveItemStackTo(st, 3, 39, true)) return null;
+      slot.onQuickCraft(st, orig);
+    } else if (index === 0 || index === 1) {
+      if (!this.moveItemStackTo(st, 3, 39, false)) return null;
+    } else if (index >= 3 && index < 39) {
+      const i = st.id === itemId('netherite_ingot') ? 1 : 0;
+      if (!this.moveItemStackTo(st, i, 2, false)) return null;
+    }
+    if (st.count <= 0) slot.set(null);
+    else slot.setChanged();
+    if (st.count === orig.count) return null;
+    slot.onTake(p, st);
+    return orig;
+  }
+  override removed(p: MenuPlayer): void {
+    super.removed(p);
+    this.result.items[0] = null;
+    for (let i = 0; i < 2; i++) {
+      const it = this.inputs.items[i];
+      this.inputs.items[i] = null;
+      if (!isEmpty(it)) placeBack(p, it);
+    }
+  }
+}
+
 /** Menu with mirror containers (client prediction for server-opened windows). */
 export function createClientMenu(type: MenuType, id: number, inv: Container): Menu {
   switch (type) {
@@ -934,6 +1018,8 @@ export function createClientMenu(type: MenuType, id: number, inv: Container): Me
       return new FurnaceMenu(type, id, inv, new SimpleContainer(3));
     case 'stonecutter':
       return new StonecutterMenu(id, inv);
+    case 'smithing':
+      return new SmithingMenu(id, inv);
   }
 }
 
