@@ -17,6 +17,9 @@ import { isReplaceable, DX, DY, DZ } from '@shared/game/placement';
 import { blockDrops } from '@shared/game/loot';
 import { ITEMS_BY_NAME } from '@shared/data';
 import { isEmpty, maxStackSize, type ItemStack } from '@shared/item/stack';
+import { enchLevel } from '@shared/game/enchantments';
+import { POTIONS, potionOf, potionColor } from '@shared/game/potions';
+import { EffectCloud } from './effectcloud';
 import {
   nameOf, hurtItem, mineBlockCost, hurtEnemyCost, BREAK_EVENT, armorInfo, armorTotals, equipSlotFor, ARMOR_INV_SLOT,
   armorDurabilityLoss, foodProps, useAnim, useDuration, canStartUsing, shouldTriggerUseEffects, useRemainder, bowPower, isArrow,
@@ -144,6 +147,20 @@ export class ItemUse {
       this.swing(p, hand);
       return;
     }
+    if (n === 'experience_bottle') {
+      this.throwXpBottle(p, slot, stack);
+      this.swing(p, hand);
+      return;
+    }
+    if (n === 'glass_bottle') {
+      if (this.fillBottle(p, slot, stack)) this.swing(p, hand);
+      return;
+    }
+    if (n === 'splash_potion' || n === 'lingering_potion') {
+      this.throwPotion(p, slot, stack);
+      this.swing(p, hand);
+      return;
+    }
     if (n === 'snowball' || n === 'egg' || n === 'ender_pearl') {
       this.throwItem(p, n, slot, stack);
       this.swing(p, hand);
@@ -231,6 +248,9 @@ export class ItemUse {
     const target = this.effectTarget(p);
     if (n === 'milk_bucket') {
       l.effects.clear(target);
+    } else if (n === 'potion') {
+      // PotionItem.finishUsingItem: every effect of the potion (instant ones apply at once)
+      for (const e of POTIONS[potionOf(stack)] ?? []) l.effects.add(e.effect, e.duration, e.amplifier, target);
     } else {
       const f = foodProps(stack.id);
       if (f) {
@@ -423,6 +443,108 @@ export class ItemUse {
     }
   }
 
+  /** SplashPotionItem.use: thrown 20° above the look direction at 0.5 blocks/tick. */
+  private throwPotion(p: ServerPlayer, slot: number, stack: ItemStack): void {
+    const r = this.s.rand;
+    const lingeringItem = nameOf(stack.id) === 'lingering_potion';
+    this.s.playSound(null, lingeringItem ? 'entity.lingering_potion.throw' : 'entity.splash_potion.throw', 'neutral', p.x, p.y, p.z, 0.5, 0.4 / (r.nextFloat() * 0.4 + 0.8));
+    const t = new Thrown(this.s.newEntityId(), 'potion', stack.id, this.arrowHost);
+    t.x = p.x;
+    t.y = p.y + p.phys.eyeHeight - 0.1;
+    t.z = p.z;
+    t.ownerId = p.id;
+    t.shootFromRotation(p.pitch - 20, p.yaw, 0.5, 1);
+    const potion = potionOf(stack);
+    const lingering = nameOf(stack.id) === 'lingering_potion';
+    t.onHit = (e, hit) => (lingering ? this.linger(e, hit, potion) : this.splash(e, hit, potion));
+    this.s.spawnEntity(t);
+    if (p.gameMode !== 1) {
+      stack.count--;
+      if (stack.count <= 0) p.inventory.set(slot, null);
+      this.s.syncSlot(p, slot);
+    }
+  }
+
+  /** ThrownPotion.onHit → applySplash: effects scaled by distance within 4 blocks; level event 2002/2007. */
+  private splash(e: Thrown, hit: ThrowHit, potion: string): void {
+    const effects = POTIONS[potion] ?? [];
+    const instant = effects.some((x) => x.effect === 'instant_health' || x.effect === 'instant_damage');
+    const color = potionColor({ id: e.item, count: 1, damage: 0, tag: { Potion: potion } });
+    for (const o of this.s.players) this.s.send(o, { t: 'levelEvent', event: instant ? 2007 : 2002, x: Math.floor(hit.x), y: Math.floor(hit.y), z: Math.floor(hit.z), data: color });
+    this.s.playSound(null, 'entity.splash_potion.break', 'neutral', hit.x, hit.y, hit.z, 1, this.s.rand.nextFloat() * 0.1 + 0.9);
+    if (effects.length === 0) return;
+    for (const p of this.s.players) {
+      if (p.gameMode === 3 || p.living.dead) continue;
+      const d = (p.x - hit.x) ** 2 + (p.y + 0.9 - hit.y) ** 2 + (p.z - hit.z) ** 2;
+      if (d >= 16 || Math.abs(p.y - hit.y) > 4) continue;
+      const d1 = hit.target && (hit.target as { id?: number }).id === p.id ? 1 : 1 - Math.sqrt(d) / 4;
+      const target = this.effectTarget(p);
+      for (const x of effects) {
+        if (x.effect === 'instant_health') target.heal(Math.trunc(d1 * (4 << x.amplifier) + 0.5));
+        else if (x.effect === 'instant_damage') target.hurtMagic(Math.trunc(d1 * (6 << x.amplifier) + 0.5));
+        else {
+          const ticks = Math.trunc(d1 * x.duration + 0.5);
+          if (ticks > 20) p.living.effects.add(x.effect, ticks, x.amplifier, target);
+        }
+      }
+    }
+  }
+
+  /** ExperienceBottleItem.use: thrown like a splash potion (−20°, 0.7 blocks/tick). */
+  private throwXpBottle(p: ServerPlayer, slot: number, stack: ItemStack): void {
+    const r = this.s.rand;
+    this.s.playSound(null, 'entity.experience_bottle.throw', 'neutral', p.x, p.y, p.z, 0.5, 0.4 / (r.nextFloat() * 0.4 + 0.8));
+    const t = new Thrown(this.s.newEntityId(), 'potion', stack.id, this.arrowHost);
+    t.x = p.x;
+    t.y = p.y + p.phys.eyeHeight - 0.1;
+    t.z = p.z;
+    t.ownerId = p.id;
+    t.shootFromRotation(p.pitch - 20, p.yaw, 0.7, 1);
+    // ThrownExperienceBottle.onHit: level event 2002 (water-bottle colour) and 3–11 XP
+    t.onHit = (_e, hit) => {
+      for (const o of this.s.players) this.s.send(o, { t: 'levelEvent', event: 2002, x: Math.floor(hit.x), y: Math.floor(hit.y), z: Math.floor(hit.z), data: 3694022 });
+      this.s.playSound(null, 'entity.splash_potion.break', 'neutral', hit.x, hit.y, hit.z, 1, r.nextFloat() * 0.1 + 0.9);
+      this.s.spawnExperience(hit.x, hit.y, hit.z, 3 + r.nextInt(5) + r.nextInt(5));
+    };
+    this.s.spawnEntity(t);
+    if (p.gameMode !== 1) {
+      stack.count--;
+      if (stack.count <= 0) p.inventory.set(slot, null);
+      this.s.syncSlot(p, slot);
+    }
+  }
+
+  /** Lingering potion clouds in the world (AreaEffectCloud). */
+  readonly clouds: EffectCloud[] = [];
+
+  /** ThrownPotion.makeAreaOfEffectCloud + level event 2007/2002 for the shatter. */
+  private linger(e: Thrown, hit: ThrowHit, potion: string): void {
+    const effects = POTIONS[potion] ?? [];
+    const color = potionColor({ id: e.item, count: 1, damage: 0, tag: { Potion: potion } });
+    const instant = effects.some((x) => x.effect === 'instant_health' || x.effect === 'instant_damage');
+    for (const o of this.s.players) this.s.send(o, { t: 'levelEvent', event: instant ? 2007 : 2002, x: Math.floor(hit.x), y: Math.floor(hit.y), z: Math.floor(hit.z), data: color });
+    this.s.playSound(null, 'entity.splash_potion.break', 'neutral', hit.x, hit.y, hit.z, 1, this.s.rand.nextFloat() * 0.1 + 0.9);
+    const cloud = new EffectCloud(this.s.newEntityId(), hit.x, hit.y, hit.z, effects, color);
+    cloud.level = (this.s as unknown as { level?: unknown }).level;
+    this.clouds.push(cloud);
+  }
+
+  /** AreaEffectCloud.tick for every cloud (server tick). */
+  tickClouds(): void {
+    const level = (this.s as unknown as { level?: unknown }).level;
+    for (const c of this.clouds) {
+      if (c.level !== undefined && c.level !== level) continue;
+      c.tick(this.s, (p, x, quarter) => {
+        const target = this.effectTarget(p);
+        // instant effects at half strength (applyInstantenousEffect with 0.5)
+        if (x.effect === 'instant_health') target.heal(Math.trunc(0.5 * (4 << x.amplifier) + 0.5));
+        else if (x.effect === 'instant_damage') target.hurtMagic(Math.trunc(0.5 * (6 << x.amplifier) + 0.5));
+        else p.living.effects.add(x.effect, quarter, x.amplifier, target);
+      });
+    }
+    for (let i = this.clouds.length - 1; i >= 0; i--) if (this.clouds[i]!.removed) this.clouds.splice(i, 1);
+  }
+
   /** Snowball/ThrownEgg/ThrownEnderpearl.onHit. */
   private thrownHit(e: Thrown, hit: ThrowHit): void {
     const r = this.s.rand;
@@ -448,6 +570,31 @@ export class ItemUse {
         this.s.survival.hurt(owner, DAMAGE.fall, 5);
       }
     }
+  }
+
+  // ---------------------------------------------------------------- bottles
+
+  /** BottleItem.use: a water source (or waterlogged block) in reach fills a water bottle. */
+  private fillBottle(p: ServerPlayer, slot: number, stack: ItemStack): boolean {
+    const w = this.s.world;
+    const eyeY = p.y + p.phys.eyeHeight;
+    const D = Math.PI / 180;
+    const dx = -Math.sin(p.yaw * D) * Math.cos(p.pitch * D), dy = -Math.sin(p.pitch * D), dz = Math.cos(p.yaw * D) * Math.cos(p.pitch * D);
+    const hit = raycastBlocks(w, p.x, eyeY, p.z, dx, dy, dz, 5, false, undefined, (st) => (isFluidSource(st) ? FULL : outlineBoxes(st)));
+    if (!hit) return false;
+    const name = blockNameOf(hit.state);
+    const water = (name === 'water' && getProp(hit.state, 'level') === 0) || getProp(hit.state, 'waterlogged') === true || name === 'bubble_column';
+    if (!water) return false;
+    this.s.playSound(null, 'item.bottle.fill', 'neutral', p.x, p.y, p.z, 1, 1);
+    const full: ItemStack = { id: id('potion'), count: 1, damage: 0, tag: { Potion: 'water' } };
+    if (p.gameMode !== 1) {
+      stack.count--;
+      if (stack.count <= 0) p.inventory.set(slot, full);
+      else this.give(p, full);
+    } else if (p.inventory.add(full) > 0) this.s.tossItem(p, full);
+    this.s.syncSlot(p, slot);
+    for (let i = 0; i < 36; i++) this.s.syncSlot(p, i);
+    return true;
   }
 
   // ---------------------------------------------------------------- buckets
@@ -641,8 +788,10 @@ export class ItemUse {
   /** BowItem.releaseUsing. */
   private releaseBow(p: ServerPlayer, st: UseState, slot: number, bow: ItemStack): void {
     const creative = p.gameMode === 1;
+    // Infinity: shoots without ammo; a plain arrow is not used up (BowItem.releaseUsing flags)
+    const infinite = creative || enchLevel('infinity', bow) > 0;
     const ammoSlot = this.findArrows(p);
-    if (ammoSlot < 0 && !creative) return;
+    if (ammoSlot < 0 && !infinite) return;
     const ammo = ammoSlot >= 0 ? p.inventory.get(ammoSlot)! : { id: id('arrow'), count: 1, damage: 0 };
     const ticks = useDuration(bow.id) - st.remaining;
     const f = bowPower(ticks);
@@ -655,12 +804,18 @@ export class ItemUse {
     a.ownerId = p.id;
     a.shootFromRotation(p.pitch, p.yaw, f * 3, 1);
     if (f === 1) a.crit = true;
-    a.pickup = creative ? Pickup.CreativeOnly : Pickup.Allowed;
+    // Power, Punch, Flame (Phase 7)
+    const power = enchLevel('power', bow), punch = enchLevel('punch', bow);
+    if (power > 0) a.baseDamage += power * 0.5 + 0.5;
+    if (punch > 0) a.knockback = punch;
+    if (enchLevel('flame', bow) > 0) a.onFire = true;
+    const keepsAmmo = infinite && nameOf(ammo.id) === 'arrow';
+    a.pickup = creative || keepsAmmo ? Pickup.CreativeOnly : Pickup.Allowed;
     this.s.spawnEntity(a);
     this.damageHeld(p, st.hand, 1);
     const r = this.s.rand;
     this.s.playSound(null, 'entity.arrow.shoot', 'player', p.x, p.y, p.z, 1, 1 / (r.nextFloat() * 0.4 + 1.2) + f * 0.5);
-    if (!creative && ammoSlot >= 0) {
+    if (!creative && !keepsAmmo && ammoSlot >= 0) {
       ammo.count--;
       if (ammo.count <= 0) p.inventory.set(ammoSlot, null);
       this.s.syncSlot(p, ammoSlot);
@@ -682,6 +837,7 @@ export class ItemUse {
           const src: DamageSource = mobOwner
             ? { id: 'arrow', pos: { x: arrow.x, y: arrow.y, z: arrow.z }, projectile: true, scalesWithDifficulty: true, knockbackFrom: mobOwner, entity: { name: self.s.mobs.displayName(mobOwner), player: false } }
             : { id: 'arrow', pos: { x: arrow.x, y: arrow.y, z: arrow.z }, projectile: true, ...(owner ? {} : { entity: { name: 'Arrow', player: false } }) };
+          if (arrow.onFire) self.s.survival.setOnFire(p, 5);
           if (mobOwner) {
             const ok = self.s.survival.hurt(p, src, dmg);
             if (ok) self.s.mobs.noteOwnerHurtBy(p, mobOwner);
@@ -690,6 +846,17 @@ export class ItemUse {
             return ok;
           }
           const ok = self.s.survival.hurt(p, src, dmg, owner && owner !== p ? owner : null);
+          // Punch: extra horizontal push along the arrow's motion
+          if (ok && arrow.knockback > 0) {
+            const h = Math.hypot(arrow.vx, arrow.vz);
+            if (h > 0) {
+              // AbstractArrow.doPostHurtEffects: push × knockback × 0.6, plus a little lift
+              p.vx += (arrow.vx / h) * arrow.knockback * 0.6;
+              p.vz += (arrow.vz / h) * arrow.knockback * 0.6;
+              p.vy = Math.max(p.vy, 0.1);
+              p.knockbackDirty = true;
+            }
+          }
           if (ok && owner && owner !== p) self.s.send(owner, { t: 'sound', event: soundIdSafe('entity.arrow.hit_player'), category: 7, x: owner.x, y: owner.y, z: owner.z, volume: 0.18, pitch: 0.45 });
           return ok;
         },
@@ -728,7 +895,7 @@ export class ItemUse {
   private damageSlot(p: ServerPlayer, slot: number, amount: number, event: number): void {
     const stack = p.inventory.get(slot);
     if (isEmpty(stack)) return;
-    if (hurtItem(stack, amount, this.s.rand, 0)) {
+    if (hurtItem(stack, amount, this.s.rand, enchLevel('unbreaking', stack))) {
       // broadcastBreakEvent before the stack shrinks: the clients still see the item
       this.s.broadcastToTrackers(p, { t: 'entityEvent', id: p.id, event }, true);
       stack.count--;

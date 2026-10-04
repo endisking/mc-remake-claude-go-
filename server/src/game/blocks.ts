@@ -20,6 +20,7 @@ import { blockIdOf, blockNameOf, getProp, withProp, defaultState, stateOf, props
 import { FLUID, FLUID_LEVEL, FULL_COLLISION, IS_AIR, LIGHT_FILTER } from '@shared/world/blockinfo';
 import { sectionIndex } from '@shared/world/chunk';
 import { skyDarkenLevel } from '@shared/world/daylight';
+import { tickFrostedIce } from './frostwalker';
 import { getTemperature } from '@shared/world/climate';
 import { canSurvive } from '@shared/game/support';
 import { isReplaceable, DIRS, DX, DY, DZ } from '@shared/game/placement';
@@ -82,7 +83,7 @@ const RANDOM_TICKING = new Uint8Array(BLOCK_STATE_COUNT);
 for (let s = 0; s < BLOCK_STATE_COUNT; s++) {
   const n = blockNameOf(s);
   let t = false;
-  if (n === 'grass_block' || n === 'mycelium' || n === 'farmland' || n === 'sugar_cane' || n === 'cactus' || n === 'vine' || n in STEM_FRUIT) t = true;
+  if (n === 'frosted_ice' || n === 'grass_block' || n === 'mycelium' || n === 'farmland' || n === 'sugar_cane' || n === 'cactus' || n === 'vine' || n in STEM_FRUIT) t = true;
   else if (isTreeSapling(n)) t = true;
   else if (n in CROP_MAX_AGE) t = (getProp(s, 'age') as number) < CROP_MAX_AGE[n]!;
   else if (n.endsWith('_leaves')) t = leavesDecaying(s);
@@ -249,6 +250,7 @@ export class BlockBehaviors {
   }
 
   randomTick(x: number, y: number, z: number, st: number): void {
+    if (blockNameOf(st) === 'frosted_ice') return tickFrostedIce(this.s, x, y, z, st, this.skyDarken);
     const n = blockNameOf(st);
     const r = this.s.rand;
     if (n === 'grass_block' || n === 'mycelium') return this.spreadGrass(x, y, z, n);
@@ -322,6 +324,7 @@ export class BlockBehaviors {
   /** Block.tick for scheduled ticks. */
   private tickBlock(x: number, y: number, z: number, st: number): void {
     const n = blockNameOf(st);
+    if (n === 'frosted_ice') return tickFrostedIce(this.s, x, y, z, st, this.skyDarken);
     if (isGravityBlock(n)) {
       // FallingBlock.tick
       if (fallingIsFree(this.w.getState(x, y - 1, z)) && y >= 0) this.startFalling(x, y, z, st);

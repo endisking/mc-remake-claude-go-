@@ -17,6 +17,9 @@ import { giveExperienceLevels, giveExperiencePoints, deathExperience } from '@sh
 import { CombatTracker, fallLocation, type CombatSource } from '@shared/game/combattracker';
 import { EffectMap } from '@shared/game/effects';
 import { damageAfterArmor, damageAfterResistance } from '@shared/game/items';
+import { destroyVanishing } from './enchanthooks';
+import { syncSwirl } from './effectswirl';
+import { damageProtection, magicAbsorb, respirationKeepsAir, armorItems } from '@shared/game/enchantments';
 
 export interface DamageSource extends CombatSource {
   id: string;
@@ -24,6 +27,9 @@ export interface DamageSource extends CombatSource {
   bypassInvul?: boolean;
   fire?: boolean;
   fall?: boolean;
+  /** DamageSource.isBypassMagic: ignores Resistance and enchantment protection */
+  bypassMagic?: boolean;
+  magic?: boolean;
   /** mob attacks scale with difficulty against players (DamageSource.scalesWithDifficulty) */
   scalesWithDifficulty?: boolean;
   explosion?: boolean;
@@ -42,7 +48,7 @@ export const DAMAGE = {
   hotFloor: { id: 'hotFloor', fire: true },
   inWall: { id: 'inWall', bypassArmor: true },
   drown: { id: 'drown', bypassArmor: true },
-  starve: { id: 'starve', bypassArmor: true },
+  starve: { id: 'starve', bypassArmor: true, bypassMagic: true },
   cactus: { id: 'cactus' },
   fall: { id: 'fall', bypassArmor: true, fall: true },
   outOfWorld: { id: 'outOfWorld', bypassArmor: true, bypassInvul: true },
@@ -216,8 +222,13 @@ export class Survival {
       const a = this.s.items.armorOf(p);
       amount = damageAfterArmor(amount, a.armor, a.toughness);
     }
-    // getDamageAfterMagicAbsorb: Resistance (not for starvation or the void); enchantments Phase 7
-    if (src.id !== 'starve' && src.id !== 'outOfWorld') amount = damageAfterResistance(amount, l.effects.amplifier('resistance'));
+    // getDamageAfterMagicAbsorb: Resistance (not for starvation or the void), then enchantment protection (EPF)
+    if (!src.bypassMagic) {
+      if (src.id !== 'outOfWorld') amount = damageAfterResistance(amount, l.effects.amplifier('resistance'));
+      if (amount <= 0) return;
+      const epf = damageProtection(armorItems(p.inventory), src);
+      if (epf > 0) amount = magicAbsorb(amount, epf);
+    }
     if (amount <= 0) return;
     // absorption first
     const absorbed = Math.min(l.absorption, amount);
@@ -284,8 +295,9 @@ export class Survival {
     const eyeState = w.getState(Math.floor(p.x), Math.floor(p.y + ph.eyeHeight), Math.floor(p.z));
     const invulnerable = p.gameMode === 1 || p.gameMode === 3;
     if (ph.isUnderWater && blockNameOf(eyeState) !== 'bubble_column') {
-      // Water Breathing (turtle shell, conduits) stops the air supply from dropping
-      if (!invulnerable && !l.effects.has('water_breathing') && !l.effects.has('conduit_power')) {
+      // MobEffectUtil.hasWaterBreathing; Respiration may skip the decrement (decreaseAirSupply)
+      const breathes = l.effects.has('water_breathing') || l.effects.has('conduit_power');
+      if (!invulnerable && !breathes && !respirationKeepsAir(p.inventory, this.s.rand)) {
         l.airSupply--;
         if (l.airSupply === -20) {
           l.airSupply = 0;
@@ -318,6 +330,7 @@ export class Survival {
 
     // LivingEntity.tickEffects
     if (l.effects.active.size) l.effects.tick(this.s.items.effectTarget(p));
+    syncSwirl(this.s, p);
     if (l.dead) {
       this.sync(p);
       return;
@@ -526,6 +539,7 @@ export class Survival {
     // ServerPlayer.die closes the open container; grids and the cursor go back before dropAll
     this.s.containers.closeAll(p);
     if (!this.s.gameRules.keepInventory) {
+      destroyVanishing(this.s, p);
       // Inventory.dropAll: every stack flung in a random direction
       for (let i = 0; i < 41; i++) {
         const st = p.inventory.get(i);

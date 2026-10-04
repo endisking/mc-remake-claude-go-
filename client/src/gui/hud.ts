@@ -12,7 +12,7 @@ export interface ChatClick {
 }
 import { JavaRandom } from '@shared/util/random';
 import { ITEMS_BY_ID } from '@shared/data';
-import { itemName, type Inventory } from '@shared/item/stack';
+import { itemName, type Inventory, type ItemTag } from '@shared/item/stack';
 
 export interface HudPlayer {
   gameMode: number;
@@ -223,7 +223,7 @@ export class Hud {
   /** the chat screen draws the chat itself (focused) */
   chatOpen = false;
 
-  render(g: Gui, p: HudPlayer, item: (id: number, count: number, x: number, y: number, damage: number, pop: number) => void, partial = 0): void {
+  render(g: Gui, p: HudPlayer, item: (id: number, count: number, x: number, y: number, damage: number, pop: number, tag?: ItemTag) => void, partial = 0): void {
     if (!this.chatOpen) this.renderChat(g);
     const mid = Math.floor(g.width / 2);
     const spectator = p.gameMode === 3;
@@ -236,11 +236,11 @@ export class Hud {
       const off = inv.get(40);
       if (off) {
         g.blit(g.widgets, 24, 104, 29, 24, mid - 91 - 29, g.height - 23);
-        item(off.id, off.count, mid - 91 - 26, g.height - 16 - 3, off.damage, 0);
+        item(off.id, off.count, mid - 91 - 26, g.height - 16 - 3, off.damage, 0, off.tag);
       }
       for (let i = 0; i < 9; i++) {
         const st = inv.get(i);
-        if (st) item(st.id, st.count, mid - 90 + i * 20 + 2, g.height - 16 - 3, st.damage, this.popTime[i]! - partial);
+        if (st) item(st.id, st.count, mid - 90 + i * 20 + 2, g.height - 16 - 3, st.damage, this.popTime[i]! - partial, st.tag);
       }
     }
     const survival = p.gameMode === 0 || p.gameMode === 2;

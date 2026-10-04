@@ -69,6 +69,10 @@ export class ServerPlayer {
   walkDistO = 0;
   sentOffHand = -1;
   readonly inventory = new Inventory();
+  /** Player.enchantmentSeed (saved as XpSeed): the enchanting table offers */
+  enchantmentSeed = (Math.random() * 0x100000000) | 0;
+  /** creativeSlotTag for slot −1: attached to the next stack thrown from the creative inventory */
+  pendingCreativeTag: import('@shared/item/stack').ItemTag | undefined = undefined;
   /** PlayerEnderChestContainer: 27 slots, saved with the player */
   readonly enderChest: (ItemStack | null)[] = new Array(27).fill(null);
   /** Block being dug in survival: position and start tick. */
@@ -101,7 +105,7 @@ export class ServerPlayer {
 
   /** Shared entity flags byte (vanilla DATA_SHARED_FLAGS_ID bits). */
   flags(): number {
-    return (this.onFire ? 1 : 0) | (this.pose === 'crouching' ? 2 : 0) | (this.sprinting ? 8 : 0) | (this.pose === 'swimming' ? 16 : 0) | (this.gameMode === 3 ? 32 : 0);
+    return (this.onFire ? 1 : 0) | (this.pose === 'crouching' ? 2 : 0) | (this.sprinting ? 8 : 0) | (this.pose === 'swimming' ? 16 : 0) | (this.gameMode === 3 || this.living.effects.has('invisibility') ? 32 : 0) | (this.living.effects.has('glowing') ? 64 : 0);
   }
 
   /** Recompute the pose from the latest state, as vanilla does server-side. */

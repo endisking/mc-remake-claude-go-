@@ -116,6 +116,36 @@ export class ParticleEngine {
     return c;
   }
 
+  /** texture layer for flat-colour particles (potion swirls, totem), set by the game */
+  flatLayer = 0;
+
+  /** Potion swirl (SpellParticle, MobProvider): drifts up slowly, tinted with the effect colour. */
+  spell(x: number, y: number, z: number, r: number, g: number, b: number, ambient: boolean): void {
+    const rnd = this.rand;
+    const c = this.add(x, y, z, 0.5 - rnd(), r, 0.5 - rnd(), this.flatLayer, r, g, b, 0, 0.75);
+    if (c < 0) return;
+    const i = c * S;
+    this.sim[i + 7]! *= 0.2;
+    this.sim[i + 10] = Math.floor(8 / (rnd() * 0.8 + 0.2));
+    if (ambient) {
+      this.col[c * 3]! *= 0.6;
+      this.col[c * 3 + 1]! *= 0.6;
+      this.col[c * 3 + 2]! *= 0.6;
+    }
+  }
+
+  /** Totem of Undying burst (TotemParticle colours: mostly green, a quarter yellow). */
+  totem(x: number, y: number, z: number): void {
+    const rnd = this.rand;
+    for (let k = 0; k < 96; k++) {
+      const yellow = rnd() < 0.25;
+      const r = yellow ? 0.6 + rnd() * 0.2 : 0.1 + rnd() * 0.2, g = yellow ? 0.6 + rnd() * 0.3 : 0.4 + rnd() * 0.3, b = rnd() * 0.2;
+      const xd = (rnd() * 2 - 1), yd = rnd() * 1.5, zd = (rnd() * 2 - 1);
+      const c = this.add(x, y, z, xd * 0.5, yd * 0.6, zd * 0.5, this.flatLayer, r, g, b, -0.3, 1, true);
+      if (c >= 0) this.sim[c * S + 10] = 60 + Math.floor(rnd() * 12);
+    }
+  }
+
   /** Vanilla ParticleEngine.destroy: a grid of particles over the block's shape. */
   destroy(x: number, y: number, z: number, state: number, layer: number, tint: [number, number, number]): void {
     for (const bx of outlineBoxes(state)) {
