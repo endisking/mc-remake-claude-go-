@@ -283,7 +283,7 @@ export class GameServer {
   /** `owner`: the host's own connection (single-player / LAN host). */
   connect(conn: Connection, owner = false): (data: ArrayBuffer) => void {
     let player: ServerPlayer | null = null;
-    return (data: ArrayBuffer) => {
+    const onPacket = (data: ArrayBuffer) => {
       const p = decodeC2S(data);
       if (!player) {
         if (p.t !== 'hello') return;
@@ -305,6 +305,22 @@ export class GameServer {
       const pl = player;
       this.inLevel(this.levelOf(pl), () => this.handle(pl, p));
     };
+    // a bad packet or a bug in one handler must not take down the server (or every room on the host)
+    return (data: ArrayBuffer) => {
+      try {
+        onPacket(data);
+      } catch (e) {
+        this.reportError(`packet from ${player?.name ?? 'a new connection'}`, e);
+      }
+    };
+  }
+
+  private errorCount = 0;
+
+  /** Log an exception caught by the tick loop or packet handling (the first 20, then every 100th). */
+  reportError(where: string, e: unknown): void {
+    this.errorCount++;
+    if (this.errorCount <= 20 || this.errorCount % 100 === 0) console.error(`[server] error in ${where} (#${this.errorCount}):`, e);
   }
 
   disconnect(conn: Connection): void {
@@ -2146,7 +2162,12 @@ export class GameServer {
       // catch up at most 10 ticks if we fell behind (vanilla skips beyond that)
       let n = 0;
       while (now >= next && n < 10) {
-        this.tick();
+        // an exception in one tick must not stop the loop (the world would freeze and stop autosaving)
+        try {
+          this.tick();
+        } catch (e) {
+          this.reportError('tick', e);
+        }
         next += msPerTick;
         n++;
       }
