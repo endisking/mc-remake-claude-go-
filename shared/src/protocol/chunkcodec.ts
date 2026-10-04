@@ -2,7 +2,7 @@
  * Chunk column serialization, shared by the network protocol and the save format.
  * Sections are paletted: a palette of state ids + 8-bit or 16-bit indices.
  */
-import { Chunk, ChunkSection, SECTION_VOLUME } from '../world/chunk';
+import { Chunk, ChunkSection, SECTION_VOLUME, type BlockEntityData } from '../world/chunk';
 import { ByteReader, ByteWriter } from './buffer';
 
 const F_BLOCKS = 1;
@@ -90,6 +90,24 @@ export function writeChunk(w: ByteWriter, c: Chunk, withLight = true): void {
   for (let i = 0; i < 256; i++) w.i16(c.skyTop[i]!);
   for (let i = 0; i < 256; i++) w.i16(c.motionBlocking[i]!);
   for (const s of c.sections) writeSection(w, s, withLight);
+  writeBlockEntities(w, c);
+}
+
+/** Block entities: count, then (u16 key, JSON data) pairs. */
+function writeBlockEntities(w: ByteWriter, c: Chunk): void {
+  w.varint(c.blockEntities.size);
+  for (const [k, data] of c.blockEntities) {
+    w.u16(k);
+    w.str(JSON.stringify(data));
+  }
+}
+
+function readBlockEntities(r: ByteReader, c: Chunk): void {
+  const n = r.varint();
+  for (let i = 0; i < n; i++) {
+    const k = r.u16();
+    c.blockEntities.set(k, JSON.parse(r.str()) as BlockEntityData);
+  }
 }
 
 export function readChunk(r: ByteReader, withLight = true): Chunk {
@@ -98,6 +116,7 @@ export function readChunk(r: ByteReader, withLight = true): Chunk {
   for (let i = 0; i < 256; i++) c.skyTop[i] = r.i16();
   for (let i = 0; i < 256; i++) c.motionBlocking[i] = r.i16();
   for (const s of c.sections) readSection(r, s, withLight);
+  readBlockEntities(r, c);
   c.lit = withLight;
   return c;
 }

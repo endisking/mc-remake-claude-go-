@@ -134,6 +134,11 @@ export class Chunk {
   stage = 3;
   /** Incremented on every change; used by renderers/savers to detect dirtiness. */
   version = 0;
+  /**
+   * Block entities (chests, furnaces…) as plain JSON-serialisable data, keyed by
+   * blockEntityKey(x & 15, y, z & 15). Saved and sent with the chunk.
+   */
+  readonly blockEntities = new Map<number, BlockEntityData>();
 
   constructor(
     readonly x: number,
@@ -197,6 +202,14 @@ export class Chunk {
     }
     return -1;
   }
+}
+
+/** A block entity's saved data: `id` is the block entity type (e.g. 'chest', 'furnace'). */
+export type BlockEntityData = { id: string } & Record<string, unknown>;
+
+/** Key of a block entity within its chunk (local x, z; world y). */
+export function blockEntityKey(lx: number, y: number, lz: number): number {
+  return (y << 8) | (lz << 4) | lx;
 }
 
 /** Pack chunk coordinates into a single safe-integer map key. */

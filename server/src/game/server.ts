@@ -33,6 +33,7 @@ import { soundId, sourceId, type SoundSource } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
+import { Containers } from './containers';
 
 export interface Connection {
   send(data: ArrayBuffer): void;
@@ -78,6 +79,8 @@ export class GameServer {
   /** server.properties pvp */
   pvp = true;
   readonly sleep = new Sleep(this);
+  /** container menus, block entities and furnaces */
+  readonly containers = new Containers(this);
   /** gamerules playersSleepingPercentage and spawnRadius */
   playersSleepingPercentage = 100;
   spawnRadius = 10;
@@ -131,6 +134,7 @@ export class GameServer {
     const i = this.players.findIndex((p) => p.conn === conn);
     if (i < 0) return;
     const [gone] = this.players.splice(i, 1);
+    this.containers.closeAll(gone!);
     for (const o of this.players) {
       if (o.tracking.delete(gone!.id)) this.send(o, { t: 'removeEntities', ids: [gone!.id] });
       this.send(o, { t: 'playerInfo', action: 4, id: gone!.id, name: gone!.name, skin: '', gameMode: 0 });
@@ -553,6 +557,18 @@ export class GameServer {
     this.spawnEntity(e);
   }
 
+  /** Spawn an item entity with a given motion (Containers.dropItemStack and friends). */
+  spawnItem(x: number, y: number, z: number, stack: ItemStack, vx: number, vy: number, vz: number): void {
+    const e = new ItemEntity(this.nextEntityId++, stack);
+    e.x = x;
+    e.y = y;
+    e.z = z;
+    e.vx = vx;
+    e.vy = vy;
+    e.vz = vz;
+    this.spawnEntity(e);
+  }
+
   /** Q / Ctrl+Q (vanilla Player.drop with traceItem). */
   private dropFromHand(p: ServerPlayer, all: boolean): void {
     const inv = p.inventory;
@@ -831,6 +847,7 @@ export class GameServer {
   private useBlock(p: ServerPlayer, x: number, y: number, z: number): boolean {
     const st = this.world.getState(x, y, z);
     if (blockNameOf(st).endsWith('_bed')) return this.sleep.useBed(p, x, y, z);
+    if (this.containers.useBlock(p, x, y, z)) return true;
     return false;
   }
 
@@ -969,7 +986,15 @@ export class GameServer {
         this.syncSlot(p, 40);
         break;
       }
+      case 'clickWindow':
+        this.containers.handleClick(p, m);
+        break;
+      case 'closeWindow':
+        this.containers.handleClose(p, m.windowId);
+        break;
       case 'creativeSlot':
+        // slot −1: the creative inventory throws the stack out of the window
+        if (p.gameMode === 1 && m.slot === -1 && m.item > 0 && m.count > 0) this.tossItem(p, { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: 0 });
         if (p.gameMode === 1 && m.slot >= 0 && m.slot < 41) {
           p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: 0 } : null);
         }
@@ -1153,6 +1178,7 @@ export class GameServer {
     if (y < 0 || y > 255) return;
     const old = this.world.setStateRaw(x, y, z, state);
     if (old === state) return;
+    this.containers.onBlockChanged(x, y, z, old, state);
     this.light.onBlockChanged(x, y, z, old, state);
     const key = chunkKey(x >> 4, z >> 4);
     for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
@@ -1201,6 +1227,7 @@ export class GameServer {
       p.vx = p.vy = p.vz = 0;
     }
     this.tickEntities();
+    this.containers.tick();
     this.updateChunks();
     this.updateTracking();
     this.trackEntities();
