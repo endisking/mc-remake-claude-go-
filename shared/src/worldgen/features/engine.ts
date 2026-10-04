@@ -17,6 +17,7 @@ import { WORLDGEN } from './data';
 import type { GenLevel, HeightmapType } from './level';
 import { blockState, intProvider, floatProvider, heightProvider, ruleTest, stateProvider, inTag, type RuleTest } from './providers';
 import { treeFeature } from './trees';
+import { geode, monsterRoom, glowLichen, dripstoneCluster, smallDripstone, largeDripstone, replaceSingleBlock, fossil, carvingMaskDecorator } from './underground';
 
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const f = Math.fround;
@@ -132,8 +133,9 @@ function decorator(j: J): Decorator {
         if (lv.isSolid(x, m, z)) emit(x, m - dir, z);
       };
     }
+    case 'minecraft:carving_mask': return carvingMaskDecorator(c);
     default:
-      // carving_mask (lush caves, seagrass in carved water), count_multilayer and end_gateway (other dimensions)
+      // count_multilayer and end_gateway (other dimensions)
       MISSING_FEATURES.add(`decorator ${j.type}`);
       return () => {};
   }
@@ -265,6 +267,14 @@ function feature(j: J): Placer {
     case 'minecraft:sea_pickle': return seaPickle(c);
     case 'minecraft:freeze_top_layer': return freezeTopLayer;
     case 'minecraft:tree': return treeFeature(c);
+    case 'minecraft:geode': return geode(c);
+    case 'minecraft:monster_room': return monsterRoom;
+    case 'minecraft:glow_lichen': return glowLichen(c);
+    case 'minecraft:dripstone_cluster': return dripstoneCluster(c);
+    case 'minecraft:small_dripstone': return smallDripstone(c);
+    case 'minecraft:large_dripstone': return largeDripstone(c);
+    case 'minecraft:replace_single_block': return replaceSingleBlock(c);
+    case 'minecraft:fossil': return fossil(c);
     default:
       MISSING_FEATURES.add(j.type);
       return () => false;

@@ -55,4 +55,6 @@ export function decorateChunk(gen: OverworldGenerator, world: BlockWorld, cx: nu
       place(level, rand, x, 0, z);
     }
   });
+  const chunk = world.getChunk(cx, cz);
+  if (chunk) chunk.carvingMasks = null;
 }

@@ -95,12 +95,19 @@ export class Carvers {
 
   constructor(private readonly seed: bigint) {}
 
-  /** ChunkGenerator.applyCarvers for the AIR then LIQUID steps (each with its own carving mask). */
-  carve(t: CarveTarget, chunkBiome: number): void {
+  /**
+   * ChunkGenerator.applyCarvers for the AIR then LIQUID steps (each with its own carving mask).
+   * `masks` receives each step's carving mask (null when the step has no carvers) for the
+   * carving_mask decorator.
+   */
+  carve(t: CarveTarget, chunkBiome: number, masks?: (Uint8Array | null)[]): void {
     this.t = t;
     const [air, liquid] = carversFor(chunkBiome);
     for (const list of [air, liquid]) {
-      if (!list.length) continue;
+      if (!list.length) {
+        masks?.push(null);
+        continue;
+      }
       this.mask.fill(0);
       for (let sx = t.cx - 8; sx <= t.cx + 8; sx++)
         for (let sz = t.cz - 8; sz <= t.cz + 8; sz++)
@@ -108,6 +115,7 @@ export class Carvers {
             const r = new JavaRandom(largeFeatureSeed(this.seed + BigInt(j), sx, sz));
             if (r.nextFloat() <= f(carver.probability)) this.run(carver.kind, r, sx, sz);
           });
+      masks?.push(this.mask.slice());
     }
   }
 
