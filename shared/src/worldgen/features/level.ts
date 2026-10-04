@@ -23,7 +23,8 @@ function hits(kind: number, s: number): boolean {
     default: return (MATERIAL_BLOCKS_MOTION[s] === 1 || FLUID[s] !== 0) && LEAVES[s] !== 1;
   }
 }
-const colKey = (x: number, z: number) => (x + 0x8000000) * 0x10000000 + (z + 0x8000000);
+// exact for |x|, |z| < 2^25 (the 30M world border): stays below 2^53
+const colKey = (x: number, z: number) => (x + 0x2000000) * 0x4000000 + (z + 0x2000000);
 
 export class GenLevel {
   readonly minY = 0;

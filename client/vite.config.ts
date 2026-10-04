@@ -3,7 +3,10 @@ import { fileURLToPath } from 'node:url';
 import { readdirSync, existsSync } from 'node:fs';
 import type { Plugin } from 'vite';
 
-/** Exposes the list of PNGs in public/textures/overrides as `virtual:texture-overrides`. */
+/**
+ * Exposes the list of PNGs in public/textures/overrides as `virtual:texture-overrides`
+ * (block textures by file name, item sprites as `item/<name>.png`).
+ */
 function textureOverrides(): Plugin {
   const id = 'virtual:texture-overrides';
   const dir = fileURLToPath(new URL('./public/textures/overrides', import.meta.url));
@@ -13,6 +16,8 @@ function textureOverrides(): Plugin {
     load(s) {
       if (s !== '\0' + id) return null;
       const files = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.png')) : [];
+      const itemDir = `${dir}/item`;
+      if (existsSync(itemDir)) for (const f of readdirSync(itemDir)) if (f.endsWith('.png')) files.push(`item/${f}`);
       return `export default ${JSON.stringify(files)};`;
     },
     configureServer(server) {

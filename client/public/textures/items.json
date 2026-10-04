@@ -1,0 +1,1515 @@
+{
+ "columns": 32,
+ "size": 16,
+ "textures": [
+  {
+   "name": "wooden_sword",
+   "handheld": true
+  },
+  {
+   "name": "wooden_shovel",
+   "handheld": true
+  },
+  {
+   "name": "wooden_pickaxe",
+   "handheld": true
+  },
+  {
+   "name": "wooden_axe",
+   "handheld": true
+  },
+  {
+   "name": "wooden_hoe",
+   "handheld": true
+  },
+  {
+   "name": "stone_sword",
+   "handheld": true
+  },
+  {
+   "name": "stone_shovel",
+   "handheld": true
+  },
+  {
+   "name": "stone_pickaxe",
+   "handheld": true
+  },
+  {
+   "name": "stone_axe",
+   "handheld": true
+  },
+  {
+   "name": "stone_hoe",
+   "handheld": true
+  },
+  {
+   "name": "iron_sword",
+   "handheld": true
+  },
+  {
+   "name": "iron_shovel",
+   "handheld": true
+  },
+  {
+   "name": "iron_pickaxe",
+   "handheld": true
+  },
+  {
+   "name": "iron_axe",
+   "handheld": true
+  },
+  {
+   "name": "iron_hoe",
+   "handheld": true
+  },
+  {
+   "name": "golden_sword",
+   "handheld": true
+  },
+  {
+   "name": "golden_shovel",
+   "handheld": true
+  },
+  {
+   "name": "golden_pickaxe",
+   "handheld": true
+  },
+  {
+   "name": "golden_axe",
+   "handheld": true
+  },
+  {
+   "name": "golden_hoe",
+   "handheld": true
+  },
+  {
+   "name": "diamond_sword",
+   "handheld": true
+  },
+  {
+   "name": "diamond_shovel",
+   "handheld": true
+  },
+  {
+   "name": "diamond_pickaxe",
+   "handheld": true
+  },
+  {
+   "name": "diamond_axe",
+   "handheld": true
+  },
+  {
+   "name": "diamond_hoe",
+   "handheld": true
+  },
+  {
+   "name": "netherite_sword",
+   "handheld": true
+  },
+  {
+   "name": "netherite_shovel",
+   "handheld": true
+  },
+  {
+   "name": "netherite_pickaxe",
+   "handheld": true
+  },
+  {
+   "name": "netherite_axe",
+   "handheld": true
+  },
+  {
+   "name": "netherite_hoe",
+   "handheld": true
+  },
+  {
+   "name": "leather_helmet"
+  },
+  {
+   "name": "leather_chestplate"
+  },
+  {
+   "name": "leather_leggings"
+  },
+  {
+   "name": "leather_boots"
+  },
+  {
+   "name": "chainmail_helmet"
+  },
+  {
+   "name": "chainmail_chestplate"
+  },
+  {
+   "name": "chainmail_leggings"
+  },
+  {
+   "name": "chainmail_boots"
+  },
+  {
+   "name": "iron_helmet"
+  },
+  {
+   "name": "iron_chestplate"
+  },
+  {
+   "name": "iron_leggings"
+  },
+  {
+   "name": "iron_boots"
+  },
+  {
+   "name": "golden_helmet"
+  },
+  {
+   "name": "golden_chestplate"
+  },
+  {
+   "name": "golden_leggings"
+  },
+  {
+   "name": "golden_boots"
+  },
+  {
+   "name": "diamond_helmet"
+  },
+  {
+   "name": "diamond_chestplate"
+  },
+  {
+   "name": "diamond_leggings"
+  },
+  {
+   "name": "diamond_boots"
+  },
+  {
+   "name": "netherite_helmet"
+  },
+  {
+   "name": "netherite_chestplate"
+  },
+  {
+   "name": "netherite_leggings"
+  },
+  {
+   "name": "netherite_boots"
+  },
+  {
+   "name": "turtle_helmet"
+  },
+  {
+   "name": "stick",
+   "handheld": true
+  },
+  {
+   "name": "bow"
+  },
+  {
+   "name": "bow_pulling_0"
+  },
+  {
+   "name": "bow_pulling_1"
+  },
+  {
+   "name": "bow_pulling_2"
+  },
+  {
+   "name": "arrow"
+  },
+  {
+   "name": "spectral_arrow"
+  },
+  {
+   "name": "tipped_arrow"
+  },
+  {
+   "name": "crossbow"
+  },
+  {
+   "name": "crossbow_pulling_0"
+  },
+  {
+   "name": "crossbow_pulling_1"
+  },
+  {
+   "name": "crossbow_pulling_2"
+  },
+  {
+   "name": "crossbow_arrow"
+  },
+  {
+   "name": "crossbow_firework"
+  },
+  {
+   "name": "fishing_rod",
+   "handheld": "rod"
+  },
+  {
+   "name": "fishing_rod_cast",
+   "handheld": "rod"
+  },
+  {
+   "name": "carrot_on_a_stick",
+   "handheld": "rod"
+  },
+  {
+   "name": "warped_fungus_on_a_stick",
+   "handheld": "rod"
+  },
+  {
+   "name": "shears"
+  },
+  {
+   "name": "flint_and_steel"
+  },
+  {
+   "name": "trident"
+  },
+  {
+   "name": "shield"
+  },
+  {
+   "name": "spyglass"
+  },
+  {
+   "name": "elytra"
+  },
+  {
+   "name": "broken_elytra"
+  },
+  {
+   "name": "coal"
+  },
+  {
+   "name": "charcoal"
+  },
+  {
+   "name": "iron_ingot"
+  },
+  {
+   "name": "gold_ingot"
+  },
+  {
+   "name": "copper_ingot"
+  },
+  {
+   "name": "netherite_ingot"
+  },
+  {
+   "name": "iron_nugget"
+  },
+  {
+   "name": "gold_nugget"
+  },
+  {
+   "name": "raw_iron"
+  },
+  {
+   "name": "raw_gold"
+  },
+  {
+   "name": "raw_copper"
+  },
+  {
+   "name": "netherite_scrap"
+  },
+  {
+   "name": "diamond"
+  },
+  {
+   "name": "emerald"
+  },
+  {
+   "name": "lapis_lazuli"
+  },
+  {
+   "name": "quartz"
+  },
+  {
+   "name": "amethyst_shard"
+  },
+  {
+   "name": "string"
+  },
+  {
+   "name": "feather"
+  },
+  {
+   "name": "gunpowder"
+  },
+  {
+   "name": "flint"
+  },
+  {
+   "name": "bone",
+   "handheld": true
+  },
+  {
+   "name": "bone_meal"
+  },
+  {
+   "name": "leather"
+  },
+  {
+   "name": "rabbit_hide"
+  },
+  {
+   "name": "brick"
+  },
+  {
+   "name": "nether_brick"
+  },
+  {
+   "name": "clay_ball"
+  },
+  {
+   "name": "paper"
+  },
+  {
+   "name": "slime_ball"
+  },
+  {
+   "name": "magma_cream"
+  },
+  {
+   "name": "blaze_rod",
+   "handheld": true
+  },
+  {
+   "name": "blaze_powder"
+  },
+  {
+   "name": "glowstone_dust"
+  },
+  {
+   "name": "redstone"
+  },
+  {
+   "name": "sugar"
+  },
+  {
+   "name": "ghast_tear"
+  },
+  {
+   "name": "ender_pearl"
+  },
+  {
+   "name": "ender_eye"
+  },
+  {
+   "name": "prismarine_shard"
+  },
+  {
+   "name": "prismarine_crystals"
+  },
+  {
+   "name": "scute"
+  },
+  {
+   "name": "phantom_membrane"
+  },
+  {
+   "name": "nautilus_shell"
+  },
+  {
+   "name": "shulker_shell"
+  },
+  {
+   "name": "honeycomb"
+  },
+  {
+   "name": "nether_star"
+  },
+  {
+   "name": "rabbit_foot"
+  },
+  {
+   "name": "heart_of_the_sea"
+  },
+  {
+   "name": "ink_sac"
+  },
+  {
+   "name": "glow_ink_sac"
+  },
+  {
+   "name": "apple"
+  },
+  {
+   "name": "golden_apple"
+  },
+  {
+   "name": "enchanted_golden_apple"
+  },
+  {
+   "name": "bread"
+  },
+  {
+   "name": "porkchop"
+  },
+  {
+   "name": "cooked_porkchop"
+  },
+  {
+   "name": "beef"
+  },
+  {
+   "name": "cooked_beef"
+  },
+  {
+   "name": "chicken"
+  },
+  {
+   "name": "cooked_chicken"
+  },
+  {
+   "name": "mutton"
+  },
+  {
+   "name": "cooked_mutton"
+  },
+  {
+   "name": "rabbit"
+  },
+  {
+   "name": "cooked_rabbit"
+  },
+  {
+   "name": "cod"
+  },
+  {
+   "name": "cooked_cod"
+  },
+  {
+   "name": "salmon"
+  },
+  {
+   "name": "cooked_salmon"
+  },
+  {
+   "name": "tropical_fish"
+  },
+  {
+   "name": "pufferfish"
+  },
+  {
+   "name": "carrot"
+  },
+  {
+   "name": "golden_carrot"
+  },
+  {
+   "name": "potato"
+  },
+  {
+   "name": "baked_potato"
+  },
+  {
+   "name": "poisonous_potato"
+  },
+  {
+   "name": "beetroot"
+  },
+  {
+   "name": "melon_slice"
+  },
+  {
+   "name": "glistering_melon_slice"
+  },
+  {
+   "name": "sweet_berries"
+  },
+  {
+   "name": "glow_berries"
+  },
+  {
+   "name": "cookie"
+  },
+  {
+   "name": "pumpkin_pie"
+  },
+  {
+   "name": "bowl"
+  },
+  {
+   "name": "mushroom_stew"
+  },
+  {
+   "name": "rabbit_stew"
+  },
+  {
+   "name": "beetroot_soup"
+  },
+  {
+   "name": "suspicious_stew"
+  },
+  {
+   "name": "dried_kelp"
+  },
+  {
+   "name": "chorus_fruit"
+  },
+  {
+   "name": "popped_chorus_fruit"
+  },
+  {
+   "name": "spider_eye"
+  },
+  {
+   "name": "fermented_spider_eye"
+  },
+  {
+   "name": "rotten_flesh"
+  },
+  {
+   "name": "wheat"
+  },
+  {
+   "name": "wheat_seeds"
+  },
+  {
+   "name": "pumpkin_seeds"
+  },
+  {
+   "name": "melon_seeds"
+  },
+  {
+   "name": "beetroot_seeds"
+  },
+  {
+   "name": "cocoa_beans"
+  },
+  {
+   "name": "nether_wart"
+  },
+  {
+   "name": "egg"
+  },
+  {
+   "name": "sugar_cane"
+  },
+  {
+   "name": "kelp"
+  },
+  {
+   "name": "bucket"
+  },
+  {
+   "name": "water_bucket"
+  },
+  {
+   "name": "lava_bucket"
+  },
+  {
+   "name": "milk_bucket"
+  },
+  {
+   "name": "powder_snow_bucket"
+  },
+  {
+   "name": "cod_bucket"
+  },
+  {
+   "name": "salmon_bucket"
+  },
+  {
+   "name": "tropical_fish_bucket"
+  },
+  {
+   "name": "pufferfish_bucket"
+  },
+  {
+   "name": "axolotl_bucket"
+  },
+  {
+   "name": "white_dye"
+  },
+  {
+   "name": "orange_dye"
+  },
+  {
+   "name": "magenta_dye"
+  },
+  {
+   "name": "light_blue_dye"
+  },
+  {
+   "name": "yellow_dye"
+  },
+  {
+   "name": "lime_dye"
+  },
+  {
+   "name": "pink_dye"
+  },
+  {
+   "name": "gray_dye"
+  },
+  {
+   "name": "light_gray_dye"
+  },
+  {
+   "name": "cyan_dye"
+  },
+  {
+   "name": "purple_dye"
+  },
+  {
+   "name": "blue_dye"
+  },
+  {
+   "name": "brown_dye"
+  },
+  {
+   "name": "green_dye"
+  },
+  {
+   "name": "red_dye"
+  },
+  {
+   "name": "black_dye"
+  },
+  {
+   "name": "axolotl_spawn_egg"
+  },
+  {
+   "name": "bat_spawn_egg"
+  },
+  {
+   "name": "bee_spawn_egg"
+  },
+  {
+   "name": "blaze_spawn_egg"
+  },
+  {
+   "name": "cat_spawn_egg"
+  },
+  {
+   "name": "cave_spider_spawn_egg"
+  },
+  {
+   "name": "chicken_spawn_egg"
+  },
+  {
+   "name": "cod_spawn_egg"
+  },
+  {
+   "name": "cow_spawn_egg"
+  },
+  {
+   "name": "creeper_spawn_egg"
+  },
+  {
+   "name": "dolphin_spawn_egg"
+  },
+  {
+   "name": "donkey_spawn_egg"
+  },
+  {
+   "name": "drowned_spawn_egg"
+  },
+  {
+   "name": "elder_guardian_spawn_egg"
+  },
+  {
+   "name": "enderman_spawn_egg"
+  },
+  {
+   "name": "endermite_spawn_egg"
+  },
+  {
+   "name": "evoker_spawn_egg"
+  },
+  {
+   "name": "fox_spawn_egg"
+  },
+  {
+   "name": "ghast_spawn_egg"
+  },
+  {
+   "name": "glow_squid_spawn_egg"
+  },
+  {
+   "name": "goat_spawn_egg"
+  },
+  {
+   "name": "guardian_spawn_egg"
+  },
+  {
+   "name": "hoglin_spawn_egg"
+  },
+  {
+   "name": "horse_spawn_egg"
+  },
+  {
+   "name": "husk_spawn_egg"
+  },
+  {
+   "name": "llama_spawn_egg"
+  },
+  {
+   "name": "magma_cube_spawn_egg"
+  },
+  {
+   "name": "mooshroom_spawn_egg"
+  },
+  {
+   "name": "mule_spawn_egg"
+  },
+  {
+   "name": "ocelot_spawn_egg"
+  },
+  {
+   "name": "panda_spawn_egg"
+  },
+  {
+   "name": "parrot_spawn_egg"
+  },
+  {
+   "name": "phantom_spawn_egg"
+  },
+  {
+   "name": "pig_spawn_egg"
+  },
+  {
+   "name": "piglin_spawn_egg"
+  },
+  {
+   "name": "piglin_brute_spawn_egg"
+  },
+  {
+   "name": "pillager_spawn_egg"
+  },
+  {
+   "name": "polar_bear_spawn_egg"
+  },
+  {
+   "name": "pufferfish_spawn_egg"
+  },
+  {
+   "name": "rabbit_spawn_egg"
+  },
+  {
+   "name": "ravager_spawn_egg"
+  },
+  {
+   "name": "salmon_spawn_egg"
+  },
+  {
+   "name": "sheep_spawn_egg"
+  },
+  {
+   "name": "shulker_spawn_egg"
+  },
+  {
+   "name": "silverfish_spawn_egg"
+  },
+  {
+   "name": "skeleton_spawn_egg"
+  },
+  {
+   "name": "skeleton_horse_spawn_egg"
+  },
+  {
+   "name": "slime_spawn_egg"
+  },
+  {
+   "name": "spider_spawn_egg"
+  },
+  {
+   "name": "squid_spawn_egg"
+  },
+  {
+   "name": "stray_spawn_egg"
+  },
+  {
+   "name": "strider_spawn_egg"
+  },
+  {
+   "name": "trader_llama_spawn_egg"
+  },
+  {
+   "name": "tropical_fish_spawn_egg"
+  },
+  {
+   "name": "turtle_spawn_egg"
+  },
+  {
+   "name": "vex_spawn_egg"
+  },
+  {
+   "name": "villager_spawn_egg"
+  },
+  {
+   "name": "vindicator_spawn_egg"
+  },
+  {
+   "name": "wandering_trader_spawn_egg"
+  },
+  {
+   "name": "witch_spawn_egg"
+  },
+  {
+   "name": "wither_skeleton_spawn_egg"
+  },
+  {
+   "name": "wolf_spawn_egg"
+  },
+  {
+   "name": "zoglin_spawn_egg"
+  },
+  {
+   "name": "zombie_spawn_egg"
+  },
+  {
+   "name": "zombie_horse_spawn_egg"
+  },
+  {
+   "name": "zombie_villager_spawn_egg"
+  },
+  {
+   "name": "zombified_piglin_spawn_egg"
+  },
+  {
+   "name": "music_disc_11"
+  },
+  {
+   "name": "music_disc_13"
+  },
+  {
+   "name": "music_disc_cat"
+  },
+  {
+   "name": "music_disc_blocks"
+  },
+  {
+   "name": "music_disc_chirp"
+  },
+  {
+   "name": "music_disc_far"
+  },
+  {
+   "name": "music_disc_mall"
+  },
+  {
+   "name": "music_disc_mellohi"
+  },
+  {
+   "name": "music_disc_stal"
+  },
+  {
+   "name": "music_disc_strad"
+  },
+  {
+   "name": "music_disc_ward"
+  },
+  {
+   "name": "music_disc_wait"
+  },
+  {
+   "name": "music_disc_pigstep"
+  },
+  {
+   "name": "glass_bottle"
+  },
+  {
+   "name": "potion"
+  },
+  {
+   "name": "splash_potion"
+  },
+  {
+   "name": "lingering_potion"
+  },
+  {
+   "name": "experience_bottle"
+  },
+  {
+   "name": "dragon_breath"
+  },
+  {
+   "name": "honey_bottle"
+  },
+  {
+   "name": "book"
+  },
+  {
+   "name": "writable_book"
+  },
+  {
+   "name": "written_book"
+  },
+  {
+   "name": "enchanted_book"
+  },
+  {
+   "name": "knowledge_book"
+  },
+  {
+   "name": "map"
+  },
+  {
+   "name": "filled_map"
+  },
+  {
+   "name": "compass_00"
+  },
+  {
+   "name": "compass_01"
+  },
+  {
+   "name": "compass_02"
+  },
+  {
+   "name": "compass_03"
+  },
+  {
+   "name": "compass_04"
+  },
+  {
+   "name": "compass_05"
+  },
+  {
+   "name": "compass_06"
+  },
+  {
+   "name": "compass_07"
+  },
+  {
+   "name": "compass_08"
+  },
+  {
+   "name": "compass_09"
+  },
+  {
+   "name": "compass_10"
+  },
+  {
+   "name": "compass_11"
+  },
+  {
+   "name": "compass_12"
+  },
+  {
+   "name": "compass_13"
+  },
+  {
+   "name": "compass_14"
+  },
+  {
+   "name": "compass_15"
+  },
+  {
+   "name": "compass_16"
+  },
+  {
+   "name": "compass_17"
+  },
+  {
+   "name": "compass_18"
+  },
+  {
+   "name": "compass_19"
+  },
+  {
+   "name": "compass_20"
+  },
+  {
+   "name": "compass_21"
+  },
+  {
+   "name": "compass_22"
+  },
+  {
+   "name": "compass_23"
+  },
+  {
+   "name": "compass_24"
+  },
+  {
+   "name": "compass_25"
+  },
+  {
+   "name": "compass_26"
+  },
+  {
+   "name": "compass_27"
+  },
+  {
+   "name": "compass_28"
+  },
+  {
+   "name": "compass_29"
+  },
+  {
+   "name": "compass_30"
+  },
+  {
+   "name": "compass_31"
+  },
+  {
+   "name": "clock_00"
+  },
+  {
+   "name": "clock_01"
+  },
+  {
+   "name": "clock_02"
+  },
+  {
+   "name": "clock_03"
+  },
+  {
+   "name": "clock_04"
+  },
+  {
+   "name": "clock_05"
+  },
+  {
+   "name": "clock_06"
+  },
+  {
+   "name": "clock_07"
+  },
+  {
+   "name": "clock_08"
+  },
+  {
+   "name": "clock_09"
+  },
+  {
+   "name": "clock_10"
+  },
+  {
+   "name": "clock_11"
+  },
+  {
+   "name": "clock_12"
+  },
+  {
+   "name": "clock_13"
+  },
+  {
+   "name": "clock_14"
+  },
+  {
+   "name": "clock_15"
+  },
+  {
+   "name": "clock_16"
+  },
+  {
+   "name": "clock_17"
+  },
+  {
+   "name": "clock_18"
+  },
+  {
+   "name": "clock_19"
+  },
+  {
+   "name": "clock_20"
+  },
+  {
+   "name": "clock_21"
+  },
+  {
+   "name": "clock_22"
+  },
+  {
+   "name": "clock_23"
+  },
+  {
+   "name": "clock_24"
+  },
+  {
+   "name": "clock_25"
+  },
+  {
+   "name": "clock_26"
+  },
+  {
+   "name": "clock_27"
+  },
+  {
+   "name": "clock_28"
+  },
+  {
+   "name": "clock_29"
+  },
+  {
+   "name": "clock_30"
+  },
+  {
+   "name": "clock_31"
+  },
+  {
+   "name": "clock_32"
+  },
+  {
+   "name": "clock_33"
+  },
+  {
+   "name": "clock_34"
+  },
+  {
+   "name": "clock_35"
+  },
+  {
+   "name": "clock_36"
+  },
+  {
+   "name": "clock_37"
+  },
+  {
+   "name": "clock_38"
+  },
+  {
+   "name": "clock_39"
+  },
+  {
+   "name": "clock_40"
+  },
+  {
+   "name": "clock_41"
+  },
+  {
+   "name": "clock_42"
+  },
+  {
+   "name": "clock_43"
+  },
+  {
+   "name": "clock_44"
+  },
+  {
+   "name": "clock_45"
+  },
+  {
+   "name": "clock_46"
+  },
+  {
+   "name": "clock_47"
+  },
+  {
+   "name": "clock_48"
+  },
+  {
+   "name": "clock_49"
+  },
+  {
+   "name": "clock_50"
+  },
+  {
+   "name": "clock_51"
+  },
+  {
+   "name": "clock_52"
+  },
+  {
+   "name": "clock_53"
+  },
+  {
+   "name": "clock_54"
+  },
+  {
+   "name": "clock_55"
+  },
+  {
+   "name": "clock_56"
+  },
+  {
+   "name": "clock_57"
+  },
+  {
+   "name": "clock_58"
+  },
+  {
+   "name": "clock_59"
+  },
+  {
+   "name": "clock_60"
+  },
+  {
+   "name": "clock_61"
+  },
+  {
+   "name": "clock_62"
+  },
+  {
+   "name": "clock_63"
+  },
+  {
+   "name": "minecart"
+  },
+  {
+   "name": "chest_minecart"
+  },
+  {
+   "name": "furnace_minecart"
+  },
+  {
+   "name": "tnt_minecart"
+  },
+  {
+   "name": "hopper_minecart"
+  },
+  {
+   "name": "command_block_minecart"
+  },
+  {
+   "name": "oak_boat"
+  },
+  {
+   "name": "spruce_boat"
+  },
+  {
+   "name": "birch_boat"
+  },
+  {
+   "name": "jungle_boat"
+  },
+  {
+   "name": "acacia_boat"
+  },
+  {
+   "name": "dark_oak_boat"
+  },
+  {
+   "name": "saddle"
+  },
+  {
+   "name": "lead"
+  },
+  {
+   "name": "name_tag"
+  },
+  {
+   "name": "item_frame"
+  },
+  {
+   "name": "glow_item_frame"
+  },
+  {
+   "name": "painting"
+  },
+  {
+   "name": "armor_stand"
+  },
+  {
+   "name": "leather_horse_armor"
+  },
+  {
+   "name": "iron_horse_armor"
+  },
+  {
+   "name": "golden_horse_armor"
+  },
+  {
+   "name": "diamond_horse_armor"
+  },
+  {
+   "name": "end_crystal"
+  },
+  {
+   "name": "fire_charge"
+  },
+  {
+   "name": "firework_rocket"
+  },
+  {
+   "name": "firework_star"
+  },
+  {
+   "name": "flower_banner_pattern"
+  },
+  {
+   "name": "creeper_banner_pattern"
+  },
+  {
+   "name": "skull_banner_pattern"
+  },
+  {
+   "name": "mojang_banner_pattern"
+  },
+  {
+   "name": "globe_banner_pattern"
+  },
+  {
+   "name": "piglin_banner_pattern"
+  },
+  {
+   "name": "totem_of_undying"
+  },
+  {
+   "name": "snowball"
+  },
+  {
+   "name": "bundle"
+  },
+  {
+   "name": "debug_stick",
+   "handheld": true
+  },
+  {
+   "name": "oak_door"
+  },
+  {
+   "name": "spruce_door"
+  },
+  {
+   "name": "birch_door"
+  },
+  {
+   "name": "jungle_door"
+  },
+  {
+   "name": "acacia_door"
+  },
+  {
+   "name": "dark_oak_door"
+  },
+  {
+   "name": "crimson_door"
+  },
+  {
+   "name": "warped_door"
+  },
+  {
+   "name": "iron_door"
+  },
+  {
+   "name": "oak_sign"
+  },
+  {
+   "name": "spruce_sign"
+  },
+  {
+   "name": "birch_sign"
+  },
+  {
+   "name": "jungle_sign"
+  },
+  {
+   "name": "acacia_sign"
+  },
+  {
+   "name": "dark_oak_sign"
+  },
+  {
+   "name": "crimson_sign"
+  },
+  {
+   "name": "warped_sign"
+  },
+  {
+   "name": "candle"
+  },
+  {
+   "name": "white_candle"
+  },
+  {
+   "name": "orange_candle"
+  },
+  {
+   "name": "magenta_candle"
+  },
+  {
+   "name": "light_blue_candle"
+  },
+  {
+   "name": "yellow_candle"
+  },
+  {
+   "name": "lime_candle"
+  },
+  {
+   "name": "pink_candle"
+  },
+  {
+   "name": "gray_candle"
+  },
+  {
+   "name": "light_gray_candle"
+  },
+  {
+   "name": "cyan_candle"
+  },
+  {
+   "name": "purple_candle"
+  },
+  {
+   "name": "blue_candle"
+  },
+  {
+   "name": "brown_candle"
+  },
+  {
+   "name": "green_candle"
+  },
+  {
+   "name": "red_candle"
+  },
+  {
+   "name": "black_candle"
+  },
+  {
+   "name": "lantern"
+  },
+  {
+   "name": "soul_lantern"
+  },
+  {
+   "name": "chain"
+  },
+  {
+   "name": "cauldron"
+  },
+  {
+   "name": "hopper"
+  },
+  {
+   "name": "brewing_stand"
+  },
+  {
+   "name": "flower_pot"
+  },
+  {
+   "name": "cake"
+  },
+  {
+   "name": "repeater"
+  },
+  {
+   "name": "comparator"
+  },
+  {
+   "name": "campfire"
+  },
+  {
+   "name": "soul_campfire"
+  },
+  {
+   "name": "bell"
+  },
+  {
+   "name": "barrier"
+  },
+  {
+   "name": "bamboo",
+   "handheld": true
+  },
+  {
+   "name": "pointed_dripstone"
+  },
+  {
+   "name": "turtle_egg"
+  },
+  {
+   "name": "structure_void"
+  },
+  {
+   "name": "light"
+  }
+ ]
+}

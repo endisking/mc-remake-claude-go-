@@ -213,29 +213,29 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Cave carver <!--p3:cave_carver-->
 - [x] Ravine (canyon) carver <!--p3:ravine_canyon_carver-->
 - [x] Underwater caves and underwater ravines <!--p3:underwater_caves_and_underwater_ravines-->
-- [ ] Lakes (water and lava) <!--p3:lakes_water_and_lava-->
+- [x] Lakes (water and lava) <!--p3:lakes_water_and_lava-->
 - [ ] Springs (water and lava) <!--p3:springs_water_and_lava-->
-- [ ] Ice and snow placement by temperature <!--p3:ice_and_snow_placement_by_temperature-->
+- [x] Ice and snow placement by temperature <!--p3:ice_and_snow_placement_by_temperature-->
 
 ### Ores & underground (1.17.1 heights)
 
-- [ ] Coal ore <!--p3:coal_ore-->
-- [ ] Iron ore <!--p3:iron_ore-->
-- [ ] Gold ore (incl. badlands extra) <!--p3:gold_ore_incl_badlands_extra-->
-- [ ] Redstone ore <!--p3:redstone_ore-->
-- [ ] Diamond ore <!--p3:diamond_ore-->
-- [ ] Lapis ore <!--p3:lapis_ore-->
-- [ ] Emerald ore (mountains) <!--p3:emerald_ore_mountains-->
-- [ ] Copper ore <!--p3:copper_ore-->
-- [ ] Deepslate layer (Y 0–16) and deepslate ore variants <!--p3:deepslate_layer_y_0_16_and_deepslate_ore_variants-->
-- [ ] Tuff blobs <!--p3:tuff_blobs-->
-- [ ] Dirt, gravel, granite, diorite, andesite blobs <!--p3:dirt_gravel_granite_diorite_andesite_blobs-->
-- [ ] Infested stone (mountains) <!--p3:infested_stone_mountains-->
-- [ ] Amethyst geodes <!--p3:amethyst_geodes-->
-- [ ] Glow lichen in caves <!--p3:glow_lichen_in_caves-->
-- [ ] Fossils <!--p3:fossils-->
-- [ ] Dungeons (monster rooms) <!--p3:dungeons_monster_rooms-->
-- [ ] Dripstone clusters (rare, in caves) <!--p3:dripstone_clusters_rare_in_caves-->
+- [x] Coal ore <!--p3:coal_ore-->
+- [x] Iron ore <!--p3:iron_ore-->
+- [x] Gold ore (incl. badlands extra) <!--p3:gold_ore_incl_badlands_extra-->
+- [x] Redstone ore <!--p3:redstone_ore-->
+- [x] Diamond ore <!--p3:diamond_ore-->
+- [x] Lapis ore <!--p3:lapis_ore-->
+- [x] Emerald ore (mountains) <!--p3:emerald_ore_mountains-->
+- [x] Copper ore <!--p3:copper_ore-->
+- [x] Deepslate blobs (Y 0–16; 1.17.1 has no deepslate layer) and deepslate ore variants <!--p3:deepslate_layer_y_0_16_and_deepslate_ore_variants-->
+- [x] Tuff blobs <!--p3:tuff_blobs-->
+- [x] Dirt, gravel, granite, diorite, andesite blobs <!--p3:dirt_gravel_granite_diorite_andesite_blobs-->
+- [x] Infested stone (mountains) <!--p3:infested_stone_mountains-->
+- [x] Amethyst geodes <!--p3:amethyst_geodes-->
+- [x] Glow lichen in caves <!--p3:glow_lichen_in_caves-->
+- [x] Fossils (original fossil shapes, vanilla placement rules) <!--p3:fossils-->
+- [x] Dungeons (monster rooms) <!--p3:dungeons_monster_rooms-->
+- [x] Dripstone clusters (rare, in caves) <!--p3:dripstone_clusters_rare_in_caves-->
 - [ ] Nether quartz ore <!--p3:nether_quartz_ore-->
 - [ ] Nether gold ore <!--p3:nether_gold_ore-->
 - [ ] Ancient debris <!--p3:ancient_debris-->
@@ -331,36 +331,36 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Acacia tree <!--p3:acacia_tree-->
 - [ ] Dark oak tree <!--p3:dark_oak_tree-->
 - [ ] Swamp oak tree (with vines) <!--p3:swamp_oak_tree_with_vines-->
-- [ ] Huge red mushroom <!--p3:huge_red_mushroom-->
-- [ ] Huge brown mushroom <!--p3:huge_brown_mushroom-->
+- [x] Huge red mushroom <!--p3:huge_red_mushroom-->
+- [x] Huge brown mushroom <!--p3:huge_brown_mushroom-->
 - [ ] Azalea tree (bone meal only in 1.17.1) <!--p3:azalea_tree_bone_meal_only_in_1_17_1-->
 - [ ] Bee nests on trees <!--p3:bee_nests_on_trees-->
 - [ ] Cocoa pods <!--p3:cocoa_pods-->
-- [ ] Vines <!--p3:vines-->
-- [ ] Grass and ferns <!--p3:grass_and_ferns-->
-- [ ] Tall grass and large ferns <!--p3:tall_grass_and_large_ferns-->
-- [ ] Flowers by biome <!--p3:flowers_by_biome-->
-- [ ] Flower forest flowers <!--p3:flower_forest_flowers-->
-- [ ] Sunflower plains <!--p3:sunflower_plains-->
-- [ ] Sugar cane <!--p3:sugar_cane-->
-- [ ] Cacti <!--p3:cacti-->
-- [ ] Pumpkins <!--p3:pumpkins-->
-- [ ] Melons <!--p3:melons-->
-- [ ] Sweet berry bushes <!--p3:sweet_berry_bushes-->
-- [ ] Lily pads <!--p3:lily_pads-->
-- [ ] Dead bushes <!--p3:dead_bushes-->
-- [ ] Mushrooms <!--p3:mushrooms-->
-- [ ] Bamboo and podzol <!--p3:bamboo_and_podzol-->
-- [ ] Kelp <!--p3:kelp-->
-- [ ] Seagrass <!--p3:seagrass-->
-- [ ] Sea pickles <!--p3:sea_pickles-->
-- [ ] Coral reefs <!--p3:coral_reefs-->
-- [ ] Icebergs <!--p3:icebergs-->
-- [ ] Blue ice <!--p3:blue_ice-->
-- [ ] Ice spikes <!--p3:ice_spikes-->
-- [ ] Desert wells <!--p3:desert_wells-->
-- [ ] Boulders (mossy cobblestone) <!--p3:boulders_mossy_cobblestone-->
-- [ ] Pointed dripstone in caves <!--p3:pointed_dripstone_in_caves-->
+- [x] Vines <!--p3:vines-->
+- [x] Grass and ferns <!--p3:grass_and_ferns-->
+- [x] Tall grass and large ferns <!--p3:tall_grass_and_large_ferns-->
+- [x] Flowers by biome <!--p3:flowers_by_biome-->
+- [x] Flower forest flowers <!--p3:flower_forest_flowers-->
+- [x] Sunflower plains <!--p3:sunflower_plains-->
+- [x] Sugar cane <!--p3:sugar_cane-->
+- [x] Cacti <!--p3:cacti-->
+- [x] Pumpkins <!--p3:pumpkins-->
+- [x] Melons <!--p3:melons-->
+- [x] Sweet berry bushes <!--p3:sweet_berry_bushes-->
+- [x] Lily pads <!--p3:lily_pads-->
+- [x] Dead bushes <!--p3:dead_bushes-->
+- [x] Mushrooms <!--p3:mushrooms-->
+- [x] Bamboo and podzol <!--p3:bamboo_and_podzol-->
+- [x] Kelp <!--p3:kelp-->
+- [x] Seagrass <!--p3:seagrass-->
+- [x] Sea pickles <!--p3:sea_pickles-->
+- [x] Coral reefs <!--p3:coral_reefs-->
+- [x] Icebergs <!--p3:icebergs-->
+- [x] Blue ice <!--p3:blue_ice-->
+- [x] Ice spikes <!--p3:ice_spikes-->
+- [x] Desert wells <!--p3:desert_wells-->
+- [x] Boulders (mossy cobblestone) <!--p3:boulders_mossy_cobblestone-->
+- [x] Pointed dripstone in caves <!--p3:pointed_dripstone_in_caves-->
 
 ### Overworld structures
 
@@ -2870,11 +2870,11 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Kick / ban <!--p9:kick_ban-->
 - [ ] Spawn protection (off by default) <!--p9:spawn_protection_off_by_default-->
 - [ ] Per-player inventories and spawns <!--p9:per_player_inventories_and_spawns-->
-- [ ] Saves: region-like format <!--p9:saves_region_like_format-->
-- [ ] Saves: IndexedDB for single-player <!--p9:saves_indexeddb_for_single_player-->
-- [ ] Saves: disk for dedicated server <!--p9:saves_disk_for_dedicated_server-->
-- [ ] Autosave every 5 minutes <!--p9:autosave_every_5_minutes-->
-- [ ] World export/import as zip <!--p9:world_export_import_as_zip-->
+- [x] Saves: region-like format <!--p9:saves_region_like_format-->
+- [x] Saves: IndexedDB for single-player <!--p9:saves_indexeddb_for_single_player-->
+- [x] Saves: disk for dedicated server <!--p9:saves_disk_for_dedicated_server-->
+- [x] Autosave every 5 minutes <!--p9:autosave_every_5_minutes-->
+- [x] World export/import as zip <!--p9:world_export_import_as_zip-->
 
 ### Commands
 
@@ -4253,7 +4253,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 - [ ] Title screen with rotating panorama from our own world <!--p11:title_screen_with_rotating_panorama_from_our_own_world-->
 - [ ] Random splash text (original lines) <!--p11:random_splash_text_original_lines-->
-- [ ] Single-player world list <!--p11:single_player_world_list-->
+- [x] Single-player world list <!--p11:single_player_world_list-->
 - [ ] Create world: name, seed, game mode, difficulty, world type (default/superflat/large biomes/amplified), cheats toggle <!--p11:create_world_name_seed_game_mode_difficulty_world_type_default_superflat_large_biomes_amplified_cheats_toggle-->
 - [ ] Edit/delete/re-create world <!--p11:edit_delete_re_create_world-->
 - [ ] Multiplayer server list (add/edit/remove, ping) <!--p11:multiplayer_server_list_add_edit_remove_ping-->

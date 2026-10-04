@@ -36,6 +36,7 @@ are still silent — currently none). Stand-ins that should get dedicated record
 |---|---|---|---|---|---|
 | 2026-10-03 | 1 | 9.3 | 4.6 | 0.50 | RD 6, 1280×720, SwiftShader (software GL in the CI container). JS CPU per frame 2.2 ms, 304 visible sections. |
 | 2026-10-04 | 2 | 8.9 | 5.0 | 0.43 | Same setup. JS CPU per frame 2.07 ms (down from 2.2); the frame rate is bound by SwiftShader fill rate. |
+| 2026-10-04 | 3 (mid) | 10.0 | 5.0 | 0.47 | Same setup, now real 1.17.1 terrain with trees and plants. JS CPU per frame 2.19 ms, 202 visible sections. |
 
 ---
 
@@ -175,3 +176,42 @@ phantom reset and "monsters nearby" check (Phase 6) and bed explosions (Phase 8)
 pass; benchmark row above.
 
 Next: Phase 3 — world generation with the 1.17.1 rules (noise terrain, biomes, carvers, ores, trees, structures).
+
+## 2026-10-04 — Phase 3: world generation (in progress) and release tooling
+
+Done:
+- Biomes: the full 1.13–1.17 layer stack (shared/src/worldgen/biome/layers.ts, 64-bit layer LCG) matching
+  cubiomes for 7 seeds, plus the voronoi zoom (SHA-256 obfuscated seed) checked against cubiomes voronoiAccess3D.
+- Terrain: NoiseBasedChunkGenerator density matching 256 reference heights from 1.16.5, with float emulation and
+  the 1.17.1 top/bottom slides. Surface builders for every biome, bedrock pattern, exact climate (temperature with
+  height, frozen noise).
+- Carvers: vanilla 1.16/1.17 cave, canyon, underwater cave and canyon algorithms using the Mth sin table.
+- Pipeline: chunks go through carved → decorated → full stages like the ChunkStatus pyramid. Features write into
+  the 3×3 neighbourhood (WorldGenRegion.ensureCanWrite). Unloaded chunks are kept in memory.
+- Feature engine (data-driven from the 1.17.1 data-generator reports):
+  - Decorators: count, count_extra, chance, square, range, heightmap, heightmap_spread_double, spread_32_above,
+    water_depth_threshold, count_noise, count_noise_biased, lava_lake, iceberg, dark_oak_tree, cave_surface.
+    Positions are drawn depth-first, so the feature placed at each position consumes the random in the same order
+    as Java streams.
+  - Features: ore, scattered_ore, disk, ice_patch, lake, spring, random_patch (all block placers), flower,
+    simple_block, the three selectors, seagrass, kelp, sea_pickle, freeze_top_layer.
+  - Trees: every 1.17.1 overworld trunk placer, foliage placer and tree decorator. Decorators see the positions in
+    real java.util.HashSet order (tested against a JVM). Leaf distances are set.
+  - Feature indices include the 18 registered structure features per step (13 surface, 2 underground,
+    1 stronghold, 2 underground decoration).
+  - Decoration costs about 9 ms per chunk, thanks to incrementally maintained heightmaps.
+- Release tooling: launcher page; `pnpm package` builds a web zip and a Windows x64 Electron app (Blockcraft.exe)
+  into build/release.
+
+Deviations / gaps:
+- Lakes skip the village-start check (no villages yet). The "sky light > 0" check for regrowing grass beside lakes
+  is approximated by "nothing motion-blocking above".
+- Heightmaps are computed from the current blocks. Vanilla freezes the *_WG heightmaps after the noise stage, so
+  ore placement next to tall features could differ slightly.
+- Springs place their source and record a fluid tick, but they don't flow until fluid simulation exists.
+- Not built yet: geodes, dungeons, dripstone, glow lichen, emerald ore, fossils, huge mushrooms, bamboo, vines
+  feature, icebergs, ice spikes, desert wells, boulders, corals, structures. Parallel agents are working on these
+  now.
+
+Next: merge the parallel work (features, fluids, saving, inventory/crafting, mobs, items, block interactions,
+first-person view, block models), run an in-game verification pass, then cut the release at 07:13 UTC.

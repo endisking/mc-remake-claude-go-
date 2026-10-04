@@ -20,6 +20,7 @@ import { widgets, optionsBackground, icons, spectatorWidgets } from './gui';
 import { allSkins } from './skins';
 import { allArmorTextures } from './armor';
 import { mobEffects } from './effects';
+import { writeItemTextures } from './items';
 import { sun, moonPhases, clouds, rain, snowflakes, destroyStages, underwater, experienceOrbs, powderSnowOutline } from './environment';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -99,8 +100,9 @@ function main(): void {
   writePng(join(outDir, 'entity', 'experience_orb.png'), experienceOrbs());
   mkdirSync(join(outDir, 'entity', 'armor'), { recursive: true });
   for (const a of allArmorTextures()) writePng(join(outDir, 'entity', 'armor', `${a.name}.png`), a.tex);
+  const itemCount = writeItemTextures(outDir);
   const overrides = existsSync(join(outDir, 'overrides')) ? readdirSync(join(outDir, 'overrides')).filter((f) => f.endsWith('.png')) : [];
-  console.log(`texgen: ${entries.length} textures (${totalFrames} frames), ${overrides.length} overrides present`);
+  console.log(`texgen: ${entries.length} textures (${totalFrames} frames), ${itemCount} item sprites, ${overrides.length} overrides present`);
 }
 
 main();
