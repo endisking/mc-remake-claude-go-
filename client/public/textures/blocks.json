@@ -2040,6 +2040,60 @@
    "cutout": true
   },
   {
+   "name": "cobweb",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dirt_path_top",
+   "frames": 1
+  },
+  {
+   "name": "dirt_path_side",
+   "frames": 1
+  },
+  {
+   "name": "tnt_side",
+   "frames": 1
+  },
+  {
+   "name": "tnt_top",
+   "frames": 1
+  },
+  {
+   "name": "tnt_bottom",
+   "frames": 1
+  },
+  {
+   "name": "prismarine_bricks",
+   "frames": 1
+  },
+  {
+   "name": "dark_prismarine",
+   "frames": 1
+  },
+  {
+   "name": "sponge",
+   "frames": 1
+  },
+  {
+   "name": "wet_sponge",
+   "frames": 1
+  },
+  {
+   "name": "gold_block",
+   "frames": 1
+  },
+  {
+   "name": "iron_block",
+   "frames": 1
+  },
+  {
+   "name": "iron_bars",
+   "frames": 1,
+   "cutout": true
+  },
+  {
    "name": "destroy_stage_0",
    "frames": 1,
    "cutout": true

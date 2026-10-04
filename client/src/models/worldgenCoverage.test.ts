@@ -61,6 +61,7 @@ const HARDCODED = [
   'acacia_stairs', 'oak_slab', 'spruce_slab', 'oak_fence', 'spruce_fence', 'acacia_fence', 'birch_fence', 'dark_oak_fence', 'bricks', 'brick_stairs', 'brick_slab',
   'hay_block', 'white_stained_glass', 'orange_stained_glass', 'white_stained_glass_pane', 'glass_pane', 'polished_andesite', 'polished_granite', 'polished_diorite',
   'stripped_oak_log', 'stripped_spruce_log', 'stripped_acacia_log', 'candle', 'trapped_chest', 'jack_o_lantern', 'carved_pumpkin', 'granite_wall', 'andesite_slab',
+  'cobweb', 'dirt_path', 'tnt', 'iron_bars', 'prismarine_bricks', 'dark_prismarine', 'sponge', 'wet_sponge', 'gold_block', 'iron_block', 'prismarine',
 ];
 
 /** Blocks the JSON names that belong to other areas (not natural terrain) and may still be pending. */

@@ -3,7 +3,7 @@
  * Block-specific models are registered into MODELS as `block/<name>`.
  */
 import type { BlockStateDef, ModelRef } from './format';
-import { MODELS } from './library';
+import { MODELS, box } from './library';
 import { NATURAL } from './natural';
 
 /** Register a model that inherits `parent` with the given texture variables. */
@@ -172,6 +172,15 @@ const EXPLICIT: Record<string, () => BlockStateDef> = {
   },
   ice: () => single({ model: model('ice', 'cube_all', { all: 'ice' }) }),
   hay_block: () => column('hay_block', 'hay_block_side', 'hay_block_top'),
+  cobweb: () => single({ model: model('cobweb', 'cross', { cross: 'cobweb' }) }),
+  tnt: () => single({ model: model('tnt', 'cube_bottom_top', { side: 'tnt_side', top: 'tnt_top', bottom: 'tnt_bottom' }) }),
+  iron_bars: () => paneDef('iron_bars', 'iron_bars', 'iron_bars'),
+  dirt_path: () => {
+    MODELS.dirt_path_base = {
+      elements: [box([0, 0, 0], [16, 15, 16], { down: 'bottom', up: 'top', north: 'side', south: 'side', west: 'side', east: 'side' }, ['down', 'north', 'south', 'west', 'east'])],
+    };
+    return randomY(model('dirt_path', 'dirt_path_base', { top: 'dirt_path_top', side: 'dirt_path_side', bottom: 'dirt' }));
+  },
 };
 
 type Rot = 0 | 90 | 180 | 270;
