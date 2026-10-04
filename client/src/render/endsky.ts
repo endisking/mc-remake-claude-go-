@@ -30,7 +30,7 @@ export function endSkyVertices(): Float32Array {
   const D = Math.PI / 180;
   const rotX = (a: number) => (p: number[]) => [p[0]!, p[1]! * Math.cos(a * D) - p[2]! * Math.sin(a * D), p[1]! * Math.sin(a * D) + p[2]! * Math.cos(a * D)];
   const rotZ = (a: number) => (p: number[]) => [p[0]! * Math.cos(a * D) - p[1]! * Math.sin(a * D), p[0]! * Math.sin(a * D) + p[1]! * Math.cos(a * D), p[2]!];
-  const faces = [(p: number[]) => p, rotX(90), rotX(-90), rotX(180), rotZ(90), rotZ(-90)];
+  const faces = [(p: number[]) => p.slice(0, 3), rotX(90), rotX(-90), rotX(180), rotZ(90), rotZ(-90)];
   const out: number[] = [];
   for (const f of faces) {
     const q = base.map((v) => [...f(v), v[3], v[4]]);

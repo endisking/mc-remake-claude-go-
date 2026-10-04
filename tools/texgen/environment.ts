@@ -237,7 +237,7 @@ export function endSky(): Tex {
     const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
     return (v(x0, y0) * (1 - sx) + v(x0 + 1, y0) * sx) * (1 - sy) + (v(x0, y0 + 1) * (1 - sx) + v(x0 + 1, y0 + 1) * sx) * sy;
   };
-  const dark = hex('#1a1620'), mid = hex('#5a4f66'), light = hex('#a99bb8');
+  const dark = hex('#4a4352'), mid = hex('#9a8fa8'), light = hex('#f0e8f8');
   for (let y = 0; y < N; y++)
     for (let x = 0; x < N; x++) {
       const n = sample(octs[0][0], 8, x, y) * 0.5 + sample(octs[1][0], 16, x, y) * 0.3 + sample(octs[2][0], 32, x, y) * 0.2;
