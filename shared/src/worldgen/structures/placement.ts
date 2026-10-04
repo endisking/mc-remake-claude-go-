@@ -268,7 +268,14 @@ function createStart(gen: OverworldGenerator, type: string, def: FeatureDef, cx:
   }
   if (def.check && !def.check(gen, seed, cx, cz, config)) return null;
   const rand = new JavaRandom(largeFeatureSeed(seed, cx, cz));
-  const pieces = def.generate({ gen, seed, cx, cz, rand, biome, config });
+  let pieces: Piece[];
+  try {
+    pieces = def.generate({ gen, seed, cx, cz, rand, biome, config });
+  } catch (e) {
+    // a broken structure must never stop world generation
+    console.error(`[worldgen] ${type} start at chunk ${cx},${cz} failed:`, e);
+    return null;
+  }
   if (!pieces.length) return null;
   return new StructureStart(type, cx, cz, pieces);
 }
@@ -317,7 +324,12 @@ export function placeStructures(gen: OverworldGenerator, lv: GenLevel, step: num
     const starts = startsReaching(gen, name, lv.cx, lv.cz);
     if (!starts.length) continue;
     const rand = randFor(def.index);
-    for (const s of starts) s.placeInChunk({ lv, rand, chunk });
+    for (const s of starts)
+      try {
+        s.placeInChunk({ lv, rand, chunk });
+      } catch (e) {
+        console.error(`[worldgen] placing ${name} at chunk ${lv.cx},${lv.cz} failed:`, e);
+      }
   }
 }
 
