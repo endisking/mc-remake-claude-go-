@@ -11,7 +11,7 @@ const filter = process.argv[3] ?? '';
 const out = new URL('./bench/out/mobs/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true });
 
-interface MobSpec { type: string; x: number; z: number; yaw?: number; data?: Record<string, number>; walk?: boolean; flags?: number; hurt?: boolean; die?: number }
+interface MobSpec { type: string; x: number; z: number; yaw?: number; data?: Record<string, number>; walk?: boolean; flags?: number; hurt?: boolean; die?: number; name?: string }
 interface Shot { cam: string; mobs: MobSpec[]; wait?: number; y?: number }
 
 const A = ['zombie', 'skeleton', 'creeper', 'spider'];
@@ -49,35 +49,46 @@ const SHOTS: Record<string, Shot> = {
     wait: 400,
   },
   dying: { cam: NEAR, mobs: row(['zombie', 'cow', 'spider', 'creeper'], { yaw: 150, die: 9 }), wait: 50 },
+  close: { cam: 'x=24.2&y=200&z=1.8&lookat=24.2,200.8,4.5&fov=65', mobs: row(['pig', 'creeper', 'zombie']) },
+  close2: { cam: 'x=24.2&y=200&z=1.8&lookat=24.2,200.8,4.5&fov=65', mobs: row(['cow', 'skeleton', 'sheep']) },
+  names: { cam: NEAR, mobs: row(['pig', 'zombie', 'sheep', 'creeper'], { name: 'Sir Oinks', data: { name_visible: 1 } }) },
   night: { cam: NEAR + '&time=18000', mobs: row(['spider', 'enderman', 'zombie', 'cave_spider']) },
 };
 
+/** Spawns mobs through the client's packet handler (the same path server packets take). */
 async function spawn(page: Page, mobs: MobSpec[]): Promise<void> {
   await page.evaluate(({ mobs, Y }) => {
     const g = (window as any).game;
+    const h = (p: Record<string, unknown>) => g.handle(p);
     let id = 900000;
     for (const s of mobs) {
-      const m = g.mobs.add(id++, s.type, s.x, Y, s.z);
-      m.setPos(s.x, Y, s.z, s.yaw ?? 0, 0, s.yaw ?? 0);
-      m.onGround = true;
-      for (const [k, v] of Object.entries(s.data ?? {})) m.setData(k, v);
-      if (s.flags) m.flags = s.flags;
+      const eid = id++;
+      const yaw = s.yaw ?? 0;
+      h({ t: 'addEntity', id: eid, type: s.type, x: s.x, y: Y, z: s.z, vx: 0, vy: 0, vz: 0, data: 0 });
+      const m = g.mobs.get(eid);
+      m.setPos(s.x, Y, s.z, yaw, 0, yaw);
+      h({ t: 'entityMove', id: eid, x: s.x, y: Y, z: s.z, yaw, pitch: 0, headYaw: yaw, onGround: true });
+      for (const [key, value] of Object.entries(s.data ?? {})) h({ t: 'mobData', id: eid, key, value });
+      if (s.name) h({ t: 'mobName', id: eid, name: s.name });
+      if (s.flags) h({ t: 'entityState', id: eid, flags: s.flags, pose: 'standing', frozen: 0 });
       if (s.hurt) {
-        setInterval(() => { m.hurtTime = 10; }, 50);
+        h({ t: 'entityEvent', id: eid, event: 2 });
+        setInterval(() => h({ t: 'entityEvent', id: eid, event: 2 }), 400);
       }
       if (s.die) {
-        g.mobs.event(m.id, 3);
+        h({ t: 'entityEvent', id: eid, event: 2 });
+        h({ t: 'entityEvent', id: eid, event: 3 });
         m.deathTime = s.die;
       }
       if (s.walk) {
-        // walk back and forth through the spot at ~0.1 blocks/tick so the limbs swing
+        // walk back and forth through the spot at 0.1 blocks/tick so the limbs swing
         let t = 0;
-        const yaw = ((s.yaw ?? 0) * Math.PI) / 180;
+        const r = (yaw * Math.PI) / 180;
         setInterval(() => {
           t++;
           const d = ((t % 30) - 15) * 0.1;
-          if (t % 30 === 0) m.setPos(s.x + Math.sin(yaw) * 1.5, Y, s.z - Math.cos(yaw) * 1.5, s.yaw ?? 0, 0, s.yaw ?? 0);
-          m.lerpTo(s.x - Math.sin(yaw) * d, Y, s.z + Math.cos(yaw) * d, s.yaw ?? 0, 0, s.yaw ?? 0, true);
+          if (t % 30 === 0) m.setPos(s.x + Math.sin(r) * 1.5, Y, s.z - Math.cos(r) * 1.5, yaw, 0, yaw);
+          h({ t: 'entityMove', id: eid, x: s.x - Math.sin(r) * d, y: Y, z: s.z + Math.cos(r) * d, yaw, pitch: 0, headYaw: yaw, onGround: true });
         }, 50);
       }
     }
@@ -88,6 +99,8 @@ const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromi
 for (const [name, shot] of Object.entries(SHOTS)) {
   if (filter && !name.includes(filter)) continue;
   const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
+  // tsx (esbuild keepNames) wraps named functions in __name inside evaluated code
+  await page.addInitScript('window.__name = (f) => f;');
   page.on('pageerror', (e) => console.log(`[${name}] pageerror`, e.message));
   page.on('console', (m) => { if (m.type() === 'error') console.log(`[${name}] console`, m.text()); });
   await page.goto(`${base}?nolock=1&fly=1&rd=3&gamemode=creative&${shot.cam.includes("time=") ? "" : "time=6000&"}${shot.cam}`);

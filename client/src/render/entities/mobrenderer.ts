@@ -13,6 +13,7 @@ import { MOB_MODELS, MOB_RENDER, MOB_TEXTURES, bakeMobModel, createPoses, type B
 import type { ClientMob } from '../../world/mobs';
 import type { ClientWorld } from '../../world/clientworld';
 import { collisionBoxes } from '@shared/world/shapes';
+import { BitmapFont } from '../../gui/gui';
 
 const VS = `#version 300 es
 layout(location = 0) in vec3 aPos;
@@ -45,14 +46,17 @@ uniform vec4 uFogColor;
 uniform vec2 uFog;
 uniform float uEmissive;
 uniform float uNoShade;
+uniform float uCutout;
+uniform float uMaxAlpha;
 in vec2 vUV;
 in float vShade;
 in float vDist;
 out vec4 outColor;
 void main() {
   vec4 c = texture(uTex, vUV);
-  if (c.a < 0.1) discard;
+  if (c.a < uCutout) discard;
   c *= uColor;
+  c.a = min(c.a, uMaxAlpha);
   float f = clamp((vDist - uFog.x) / max(uFog.y - uFog.x, 0.001), 0.0, 1.0);
   if (uEmissive > 0.5) {
     // RenderType.eyes: full bright, additive, fogged toward black
@@ -131,6 +135,12 @@ export class MobRenderer {
   private readonly shadowed: ClientMob[] = [];
   /** game ticks, for animated flames */
   ticks = 0;
+  private font: BitmapFont | null = null;
+  private nameTextures = new Map<string, { tex: WebGLTexture; w: number; h: number; used: number }>();
+  /** the entity under the crosshair (its name tag shows) */
+  target: number | null = null;
+  /** name tags are hidden with the HUD (F1) */
+  names = true;
   /** Entity Shadows video option */
   shadows = true;
 
@@ -198,6 +208,13 @@ export class MobRenderer {
         if (t) this.textures.set(n, t.tex);
       }),
       (async () => {
+        try {
+          this.font = await BitmapFont.load(`${base}font/`);
+        } catch {
+          this.font = null;
+        }
+      })(),
+      (async () => {
         this.shadowTex = (await load(`${base}misc/shadow.png`))?.tex ?? null;
         this.poofTex = (await load(`${base}particle/poof.png`))?.tex ?? null;
         for (const n of ['fire_0', 'fire_1']) {
@@ -260,6 +277,8 @@ export class MobRenderer {
     gl.uniform3f(this.u.get('uL1'), LIGHT1[0], LIGHT1[1], LIGHT1[2]);
     gl.uniform4f(this.u.get('uUVRect'), 0, 0, 1, 1);
     gl.uniform1f(this.u.get('uNoShade'), 0);
+    gl.uniform1f(this.u.get('uCutout'), 0.1);
+    gl.uniform1f(this.u.get('uMaxAlpha'), 1);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, lightmap);
     gl.activeTexture(gl.TEXTURE0);
@@ -276,6 +295,7 @@ export class MobRenderer {
     }
     for (const m of burning) this.renderFlame(m, world, camX, camY, camZ, camYaw, partial);
     this.renderPoofs(world, camX, camY, camZ, camYaw, camPitch, partial);
+    if (this.names) for (const m of shadowed) this.renderNameTag(m, world, camX, camY, camZ, camYaw, camPitch, partial);
     gl.depthFunc(gl.LESS);
     if (this.shadows) this.renderShadows(shadowed, world, viewProj, camX, camY, camZ, partial, fogStart, fogEnd, skyDarken);
     gl.bindVertexArray(null);
@@ -518,6 +538,100 @@ export class MobRenderer {
     }
     gl.uniform4f(this.u.get('uUVRect'), 0, 0, 1, 1);
     gl.uniform1f(this.u.get('uNoShade'), 0);
+    gl.enable(gl.CULL_FACE);
+  }
+
+  private nameTexture(name: string): { tex: WebGLTexture; w: number; h: number; used: number } | null {
+    const font = this.font;
+    if (!font) return null;
+    let t = this.nameTextures.get(name);
+    if (!t) {
+      // text plus vanilla's 25%-black background (1 px margin), white text without shadow
+      const w = font.width(name) + 1, h = font.lineHeight + 1;
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const ctx = c.getContext('2d')!;
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(0, 0, w, h);
+      font.draw(ctx, name, 1, 1, 0xffffff, false);
+      const gl = this.gl;
+      const tex = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      t = { tex, w, h, used: 0 };
+      this.nameTextures.set(name, t);
+      if (this.nameTextures.size > 64) {
+        // drop the least recently drawn name
+        let oldest: string | null = null, best = Infinity;
+        for (const [k, v] of this.nameTextures) if (v.used < best) [oldest, best] = [k, v.used];
+        if (oldest !== null && oldest !== name) {
+          gl.deleteTexture(this.nameTextures.get(oldest)!.tex);
+          this.nameTextures.delete(oldest);
+        }
+      }
+    }
+    t.used = this.ticks;
+    return t;
+  }
+
+  /**
+   * MobRenderer.shouldShowName + EntityRenderer.renderNameTag: a named mob's name floats 0.5
+   * above its head when looked at (or always if marked visible), within 64 blocks; the
+   * background and a faint copy show through walls, the solid text is depth-tested.
+   */
+  private renderNameTag(m: ClientMob, world: ClientWorld, camX: number, camY: number, camZ: number, camYaw: number, camPitch: number, partial: number): void {
+    if (!m.customName) return;
+    if (m.id !== this.target && !(m.data.get('name_visible') ?? 0)) return;
+    const x = m.xo + (m.x - m.xo) * partial - camX;
+    const y = m.yo + (m.y - m.yo) * partial - camY;
+    const z = m.zo + (m.z - m.zo) * partial - camZ;
+    if (x * x + y * y + z * z > 4096) return;
+    const t = this.nameTexture(m.customName);
+    if (!t) return;
+    const gl = this.gl;
+    const [, h] = m.dims();
+    const M = this.tmp2;
+    setIdentity(M);
+    M[12] = x;
+    M[13] = y + h + 0.5;
+    M[14] = z;
+    mulRotY(M, (-camYaw * Math.PI) / 180 + Math.PI);
+    mulRotX(M, (-camPitch * Math.PI) / 180);
+    mulScale(M, t.w * 0.025, t.h * 0.025, 1);
+    mulTranslate(M, 0, -1 + 1 / t.h, 0);
+    const light = world.getLight(Math.floor(m.x), Math.floor(m.y + h * 0.85), Math.floor(m.z));
+    gl.uniform2f(this.u.get('uLight'), ((light & 15) + 0.5) / 16, ((light >> 4) + 0.5) / 16);
+    gl.uniform4f(this.u.get('uUVRect'), 0, 0, 1, 1);
+    gl.uniform1f(this.u.get('uEmissive'), 0);
+    gl.uniform1f(this.u.get('uNoShade'), 1);
+    gl.uniform4f(this.u.get('uOverlay'), 0, 0, 0, 0);
+    gl.uniformMatrix4fv(this.u.get('uModel'), false, M);
+    gl.bindVertexArray(this.quadVao);
+    gl.bindTexture(gl.TEXTURE_2D, t.tex);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthMask(false);
+    gl.disable(gl.CULL_FACE);
+    // see-through pass: the 25% background (and a faint text) shows through walls
+    gl.disable(gl.DEPTH_TEST);
+    gl.uniform1f(this.u.get('uCutout'), 0.05);
+    gl.uniform1f(this.u.get('uMaxAlpha'), 0.25);
+    gl.uniform4f(this.u.get('uColor'), 1, 1, 1, 1);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    // solid text, depth-tested
+    gl.enable(gl.DEPTH_TEST);
+    gl.uniform1f(this.u.get('uCutout'), 0.5);
+    gl.uniform1f(this.u.get('uMaxAlpha'), 1);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.uniform1f(this.u.get('uCutout'), 0.1);
+    gl.uniform1f(this.u.get('uNoShade'), 0);
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
     gl.enable(gl.CULL_FACE);
   }
 

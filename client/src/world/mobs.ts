@@ -102,6 +102,8 @@ export class ClientMob {
   tickCount = 0;
   /** synced per-mob values (mobData packet) */
   readonly data = new Map<string, number>();
+  /** custom name (name tag), '' if none */
+  customName = '';
   mainHand = -1;
   offHand = 0;
   // per-type client state

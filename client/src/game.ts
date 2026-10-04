@@ -736,6 +736,11 @@ export class Game implements ScreenHost {
       case 'mobData':
         this.mobs.get(p.id)?.setData(p.key, p.value);
         break;
+      case 'mobName': {
+        const mob = this.mobs.get(p.id);
+        if (mob) mob.customName = p.name;
+        break;
+      }
       case 'blockBreakProgress':
         if (p.stage < 0) this.otherCracks.delete(p.id);
         else this.otherCracks.set(p.id, { x: p.x, y: p.y, z: p.z, stage: p.stage });
@@ -1890,6 +1895,8 @@ export class Game implements ScreenHost {
         if ((m.x - cx) ** 2 + (m.y - cy) ** 2 + (m.z - cz) ** 2 < d * d && m.id !== this.cameraEntity) visible.push(m);
       }
       this.mobRenderer.shadows = (this.settings as { entityShadows?: boolean }).entityShadows ?? true;
+      this.mobRenderer.target = this.targetEntity;
+      this.mobRenderer.names = !this.hideHud;
       this.mobRenderer.render(visible, this.world, this.viewProj, cx, cy, cz, camYaw, camPitch, partial, this.lightmap.tex, fog, fogStart, fogEnd, this.skyDarkenLevel());
     }
     // our own body in third person (a spectator's is a faint floating head)
