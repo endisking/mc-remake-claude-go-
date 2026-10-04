@@ -31,6 +31,8 @@ import { RemotePlayer, wrapDegrees } from './world/entities';
 import { Interaction } from './interaction';
 import { ParticleEngine } from './render/particles';
 import { BlockItemRenderer } from './render/blockitem';
+import { FallingBlocks } from './world/fallingblocks';
+import { FULL_COLLISION } from '@shared/world/blockinfo';
 import { HandRenderer, attackSpeedOf } from './render/hand';
 import { Hud, type HudPlayer } from './gui/hud';
 import { SpectatorGui, type PlayerInfoEntry } from './gui/spectator';
@@ -122,6 +124,8 @@ export class Game implements ScreenHost {
   private frostOverlay: ImageBitmap | null = null;
   private skyFlashTime = 0;
   readonly bolts = new Map<number, ClientBolt>();
+  /** falling sand/gravel/anvils (Phase 4 block behaviours) */
+  readonly fallingBlocks = new FallingBlocks();
   private readonly boltRand = new JavaRandom(BigInt(Date.now()));
   private lightning!: LightningRenderer;
   private orbRenderer!: OrbRenderer;
@@ -530,10 +534,12 @@ export class Game implements ScreenHost {
           this.players.delete(id);
           this.items.delete(id);
           this.bolts.delete(id);
+          this.fallingBlocks.remove(id);
         }
         break;
       case 'entityMove': {
         this.players.get(p.id)?.lerpTo(p.x, p.y, p.z, p.yaw, p.pitch, p.headYaw);
+        this.fallingBlocks.move(p.id, p.x, p.y, p.z);
         const it = this.items.get(p.id);
         if (it) {
           it.lx = p.x;
@@ -654,6 +660,7 @@ export class Game implements ScreenHost {
           this.playAt('entity.lightning_bolt.thunder', 'weather', p.x, p.y, p.z, 10000, 0.8 + r.nextFloat() * 0.2);
           this.playAt('entity.lightning_bolt.impact', 'weather', p.x, p.y, p.z, 2, 0.5 + r.nextFloat() * 0.2);
         }
+        else if (p.type === 'falling_block') this.fallingBlocks.add(p.id, p.data, p.x, p.y, p.z);
         else if (p.type === 'item' || p.type === 'experience_orb') {
           this.items.set(p.id, { x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z, steps: 0, item: 0, count: 1, age: 0, bobOffs: Math.random() * Math.PI * 2, ...(p.type === 'experience_orb' ? { orb: p.data } : {}) });
         }
@@ -692,6 +699,7 @@ export class Game implements ScreenHost {
       }
       case 'levelEvent':
         if (p.event === 2001) this.blockBroken(p.x, p.y, p.z, p.data);
+        else if (p.event === 1505) this.growthParticles(p.x, p.y, p.z, p.data);
         break;
       case 'sound': {
         const name = soundName(p.event);
@@ -856,6 +864,7 @@ export class Game implements ScreenHost {
       }
     }
     this.particles.tick();
+    this.fallingBlocks.tick();
     this.swingTick();
     this.hud.tick(this.interaction.inventory);
     this.tickHand();
@@ -1037,6 +1046,32 @@ export class Game implements ScreenHost {
   private playPlayer(event: string, volume: number, pitch: number): void {
     const p = this.player;
     this.playAt(event, 'player', p.x, p.y, p.z, volume, pitch);
+  }
+
+  /** levelEvent 1505 (BoneMealItem.addGrowthParticles): green sparkles over the grown block. */
+  private growthParticles(x: number, y: number, z: number, data: number): void {
+    const st = this.world.getState(x, y, z);
+    if (st === 0) return;
+    let count = data === 0 ? 15 : data;
+    let d = 0.5, e: number;
+    const name = blockNameOf(st);
+    if (name === 'water') {
+      count *= 3;
+      e = 1;
+      d = 3;
+    } else if (FULL_COLLISION[st] === 1) {
+      y++;
+      count *= 3;
+      d = 3;
+      e = 1;
+    } else e = 1;
+    const layer = this.particleLayer(BLOCKS_BY_NAME.get('white_concrete')!.defaultState);
+    const g = () => (Math.random() + Math.random() + Math.random() - 1.5) * 0.02;
+    this.particles.happy(x + 0.5, y + 0.5, z + 0.5, 0, 0, 0, layer);
+    for (let i = 0; i < count; i++) {
+      const k = x + 0.5 - d + Math.random() * d * 2, l = y + Math.random() * e, m = z + 0.5 - d + Math.random() * d * 2;
+      if (this.world.getState(Math.floor(k), Math.floor(l) - 1, Math.floor(m)) !== 0) this.particles.happy(k, l, m, g(), g(), g(), layer);
+    }
   }
 
   /** levelEvent 2001: break particles and the block's break sound. */
@@ -1832,6 +1867,7 @@ export class Game implements ScreenHost {
     }
     recycleHeld(this.entityRenderer);
     this.renderItems(cx, cy, cz, partial, fog, fogStart, fogEnd);
+    this.fallingBlocks.render(this.blockItems, this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
     if (this.bolts.size) {
       const ed = 64 * this.settings.entityDistance;
       this.lightning.render([...this.bolts.values()].filter((b) => (b.x - cx) ** 2 + (b.y - cy) ** 2 + (b.z - cz) ** 2 < ed * ed), this.viewProj, cx, cy, cz);
