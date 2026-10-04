@@ -843,7 +843,8 @@ export class GameServer {
       if (p.fallDistance > 0) this.survival.land(p, p.fallDistance);
       p.fallDistance = 0;
     } else if (dy < 0) p.fallDistance -= dy;
-    if (p.flying) p.fallDistance = 0;
+    // flying, Slow Falling and Levitation never build up a fall (LivingEntity.travel)
+    if (p.flying || p.living.effects.has('slow_falling') || p.living.effects.has('levitation')) p.fallDistance = 0;
   }
 
   /** BlockState.use for interactive blocks; returns true when the click was consumed. */

@@ -437,7 +437,8 @@ export class Survival {
       }
       return;
     }
-    const dmg = Math.ceil((fallDistance - 3) * mult);
+    // LivingEntity.calculateFallDamage: Jump Boost raises the safe height by a block per level
+    const dmg = Math.ceil((fallDistance - 3 - (p.living.effects.amplifier('jump_boost') + 1)) * mult);
     if (dmg > 0) {
       this.fallSounds(p, dmg, below);
       this.hurt(p, DAMAGE.fall, dmg);

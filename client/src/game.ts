@@ -1800,6 +1800,13 @@ export class Game implements ScreenHost {
     multiply(this.proj, this.proj, m);
   }
 
+  /** GameRenderer.getNightVisionScale: full strength, flickering out over the last 10 seconds. */
+  private nightVisionScale(partial: number): number {
+    const e = this.itemUse?.effects.get(16);
+    if (!e) return 0;
+    return e.duration > 200 ? 1 : 0.7 + Math.sin((e.duration - partial) * Math.PI * 0.2) * 0.3;
+  }
+
   /** GameRenderer.renderLevel portal/nausea distortion: a rotating horizontal squash of the view. */
   private applyNausea(partial: number): void {
     const f = this.oPortalTime + (this.portalTime - this.oPortalTime) * partial;
@@ -1926,12 +1933,27 @@ export class Game implements ScreenHost {
       fogStart = 0.25;
       fogEnd = 1;
     }
+    // FogRenderer: Night Vision lifts the fog colour to full brightness; Blindness pulls the fog
+    // in to 5 blocks over a second and blacks out its colour
+    const nv = this.nightVisionScale(partial);
+    if (nv > 0 && fog[0] > 0 && fog[1] > 0 && fog[2] > 0) {
+      const k = Math.min(1 / fog[0], 1 / fog[1], 1 / fog[2]);
+      for (let i = 0; i < 3; i++) fog[i] = fog[i]! * (1 - nv) + fog[i]! * k * nv;
+    }
+    const blind = this.itemUse?.effects.get(15);
+    if (blind && medium !== 'lava') {
+      const f1 = fogEnd + (5 - fogEnd) * Math.min(1, blind.duration / 20);
+      fogStart = f1 * 0.25;
+      fogEnd = f1;
+      const d = blind.duration < 20 ? (1 - blind.duration / 20) ** 2 : 0;
+      for (let i = 0; i < 3; i++) fog[i] = fog[i]! * d;
+    }
 
     this.lightmap.update({
       skyDarken: skyDarken(tod, this.world.rain, this.world.thunder),
       ambient: 0,
       gamma: s.gamma,
-      nightVision: 0,
+      nightVision: this.nightVisionScale(partial),
       flash: this.skyFlashTime > 0,
       end: false,
     });
