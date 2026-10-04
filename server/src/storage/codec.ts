@@ -1,3 +1,4 @@
+import { saveEffects, loadEffects } from '../game/effects';
 /**
  * Save-format encoding: chunk records (generation stage + lit flag + the shared chunk codec,
  * deflate-compressed when the platform has CompressionStream) and player data.
@@ -115,6 +116,9 @@ export function capturePlayer(p: ServerPlayer): PlayerData {
     enderItems: p.enderChest.map((s) => (s && s.count > 0 ? { ...s } : null)),
     selected: p.inventory.selected,
     respawn: p.respawn ? { ...p.respawn } : null,
+    // Phase 7: active effects and the enchanting seed (vanilla ActiveEffects / XpSeed)
+    effects: saveEffects(p),
+    xpSeed: p.enchantmentSeed,
   };
 }
 
@@ -159,4 +163,6 @@ export function applyPlayer(p: ServerPlayer, d: PlayerData): void {
   }
   p.inventory.selected = Math.max(0, Math.min(8, num(d.selected, 0) | 0));
   p.respawn = d.respawn ? { ...d.respawn } : null;
+  loadEffects(p, d.effects);
+  if (typeof d.xpSeed === 'number') p.enchantmentSeed = d.xpSeed | 0;
 }

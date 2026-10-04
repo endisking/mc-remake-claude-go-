@@ -11,7 +11,9 @@ import { blockEntityKey, type BlockEntityData } from '@shared/world/chunk';
 import { blockNameOf, getProp, withProp } from '@shared/world/blockstate';
 import { BLOCKS_BY_NAME } from '@shared/data';
 import { FULL_COLLISION } from '@shared/world/blockinfo';
-import { isEmpty, type ItemStack } from '@shared/item/stack';
+import { isEmpty, encodeTag, type ItemStack } from '@shared/item/stack';
+import { EnchantmentMenu } from '@shared/menu/enchanting';
+import { countBookshelves } from '@shared/game/enchantments';
 import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, StonecutterMenu, SmithingMenu, GrindstoneMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
 import { CompoundContainer, InventoryContainer, SimpleContainer, type Container } from '@shared/menu/container';
 import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, newCampfire, placeCampfireFood, tickCampfire, type CampfireData, type FurnaceData, type FurnaceKind } from '@shared/menu/furnace';
@@ -34,7 +36,7 @@ interface PlayerMenus {
   pos: [number, number, number] | null;
 }
 
-const stackKey = (s: ItemStack | null) => (isEmpty(s) ? '' : `${s.id}:${s.count}:${s.damage}`);
+const stackKey = (s: ItemStack | null) => (isEmpty(s) ? '' : `${s.id}:${s.count}:${s.damage}:${encodeTag(s.tag)}`);
 
 export class Containers {
   private readonly menus = new WeakMap<ServerPlayer, PlayerMenus>();
@@ -147,6 +149,7 @@ export class Containers {
       if (k !== s.lastSlots[i]) {
         s.lastSlots[i] = k;
         this.server.send(p, { t: 'windowSlot', windowId: m.containerId, slot: i, item: st?.id ?? 0, count: st?.count ?? 0, damage: st?.damage ?? 0 });
+        if (st?.tag) this.server.send(p, { t: 'windowSlotTag', windowId: m.containerId, slot: i, tag: encodeTag(st.tag) });
       }
     }
     for (let i = 0; i < m.data.length; i++) {
@@ -235,6 +238,35 @@ export class Containers {
         };
         return m;
       }, 'Stonecutter', [x, y, z]);
+      return true;
+    }
+    // ---- Phase 7: enchanting table ----
+    if (name === 'enchanting_table') {
+      const valid = this.validFor(p, x, y, z, (n) => n === 'enchanting_table');
+      const w = this.server.world;
+      this.open(p, (id) => new EnchantmentMenu(id, inv, {
+        bookshelves: () => countBookshelves(
+          (dx, dy, dz) => w.getState(x + dx, y + dy, z + dz) === 0,
+          (dx, dy, dz) => blockNameOf(w.getState(x + dx, y + dy, z + dz)) === 'bookshelf',
+        ),
+        seed: () => p.enchantmentSeed,
+        level: () => p.living.experienceLevel,
+        onEnchantmentPerformed: (levels) => {
+          // Player.onEnchantmentPerformed
+          const l = p.living;
+          l.experienceLevel -= levels;
+          if (l.experienceLevel < 0) {
+            l.experienceLevel = 0;
+            l.experienceProgress = 0;
+            l.totalExperience = 0;
+          }
+          p.enchantmentSeed = this.server.rand.nextInt();
+          l.lastSentExp = -1;
+          this.server.survival.sync(p);
+        },
+        sound: () => this.server.playSound(null, 'block.enchantment_table.use', 'block', x + 0.5, y + 0.5, z + 0.5, 1, this.server.rand.nextFloat() * 0.1 + 0.9),
+        valid,
+      }), 'Enchant', [x, y, z]);
       return true;
     }
     if (name === 'grindstone') {

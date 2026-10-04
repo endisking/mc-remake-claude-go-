@@ -41,6 +41,9 @@ export interface LevelMeta {
 
 /** Per-player save (playerdata/<name>.dat equivalent). */
 export interface PlayerData {
+  /** Phase 7 (optional for older saves) */
+  effects?: unknown;
+  xpSeed?: number;
   version: number;
   name: string;
   x: number;

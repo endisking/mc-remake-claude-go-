@@ -18,6 +18,8 @@ import { AABB, noCollision } from '@shared/entity/aabb';
 import { ItemEntity, LightningBolt, ExperienceOrb, experienceOrbValue, type ServerEntity } from './entity';
 import { Sleep } from './sleep';
 import { ServerEffects } from './effects';
+import { minerStateOf, toolLoot, afterMine, mending, installEnchantCommand, setEnchantResync, attackExtras, afterHit, thorns } from './enchanthooks';
+import { damageBonus } from '@shared/game/enchantments';
 import { FluidTicks } from './fluidticks';
 import { legacyBlock, FLUID_OF } from '@shared/game/fluids';
 import { isRainingAt } from '@shared/world/weather';
@@ -148,6 +150,8 @@ export class GameServer {
 
   constructor(readonly opts: ServerOptions) {
     this.rand = new JavaRandom(opts.randomSeed ?? BigInt(Date.now()));
+    installEnchantCommand();
+    setEnchantResync((p, slot) => this.syncSlot(p, slot));
     // development scenes (model showcase, tests) keep the flat dev terrain; worlds use the 1.17 generator
     this.generator = opts.scene || opts.devTerrain ? new DevGenerator(opts.seed, opts.scene) : new OverworldGenerator(opts.seed);
     this.world.biomeZoomSeed = obfuscateSeed(opts.seed);
@@ -494,9 +498,9 @@ export class GameServer {
   }
 
   private minerState(p: ServerPlayer) {
-    const held = p.inventory.selectedStack;
     const eyeState = this.world.getState(Math.floor(p.x), Math.floor(p.y + 1.62), Math.floor(p.z));
-    return { item: held?.id ?? 0, efficiency: 0, haste: 0, miningFatigue: 0, underwater: FLUID[eyeState] === 1, aquaAffinity: false, onGround: p.onGround || p.flying };
+    // Phase 7: Efficiency, Aqua Affinity, Haste/Conduit Power, Mining Fatigue
+    return minerStateOf(p, eyeState);
   }
 
   private broadcastBreakProgress(p: ServerPlayer, x: number, y: number, z: number, stage: number): void {
@@ -520,10 +524,12 @@ export class GameServer {
     if (drops && breaker && breaker.gameMode !== 1) {
       const held = breaker.inventory.selectedStack;
       const harvest = canHarvest(held?.id ?? 0, state);
-      const items = blockDrops(state, { silkTouch: false, canHarvest: harvest, random: () => this.rand.nextFloat() });
+      const tl = toolLoot(breaker);
+      const items = blockDrops(state, { silkTouch: tl.silkTouch, fortune: tl.fortune, canHarvest: harvest, random: () => this.rand.nextFloat() });
+      afterMine(this, breaker, state);
       for (const it of items) this.popResource(x, y, z, it);
       // Block.spawnAfterBreak → popExperience (OreBlock / RedStoneOreBlock / SpawnerBlock)
-      const xp = harvest ? oreExperience(name, this.rand) : 0;
+      const xp = harvest && !tl.silkTouch ? oreExperience(name, this.rand) : 0;
       // Block.popExperience: only with doTileDrops
       if (xp > 0 && this.gameRules.doTileDrops) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
     }
@@ -707,7 +713,9 @@ export class GameServer {
         p.takeXpDelay = 2;
         for (const o of this.players) if (o === p || o.tracking.has(e.id)) this.send(o, { t: 'takeItem', itemId: e.id, collectorId: p.id, count: 1 });
         const before = p.living.experienceLevel;
-        this.survival.giveExperience(p, e.value, false);
+        // Phase 7: Mending repairs gear first
+        const left = mending(this, p, e.value);
+        if (left > 0) this.survival.giveExperience(p, left, false);
         this.levelUpSound(p, before);
         if (--e.count === 0) e.removed = true;
       }
@@ -958,17 +966,36 @@ export class GameServer {
     ph.y = p.y;
     ph.z = p.z;
     ph.updateFluidState();
+    const ex = attackExtras(p);
     const res = computeAttack({
       item, attackStrengthTicker: p.attackStrengthTicker, sprinting: p.sprinting, fallDistance: p.fallDistance, onGround: p.onGround,
       onClimbable: ph.onClimbable(), inWater: ph.isInWater, walked: p.walkDist - p.walkDistO, speed: 0.1,
+      attackBonus: ex.attackBonus, enchantBonus: damageBonus(p.inventory.selectedStack, 'undefined'), knockbackBonus: ex.knockback, blind: ex.blind, sweeping: ex.sweeping,
     });
     p.attackStrengthTicker = 0;
     if (!this.pvp) return;
     const r = this.rand;
     const sx = p.x, sy = p.y, sz = p.z;
     if (res.knockback > 0 && res.charged && p.sprinting) this.playSound(null, 'entity.player.attack.knockback', 'player', sx, sy, sz, 1, 1);
+    // Fire Aspect: the target burns for a moment during the hit, then 4 s per level
+    const lit = ex.fireAspect > 0 && t.living.remainingFireTicks <= 0;
+    if (lit) this.survival.setOnFire(t, 1);
     const hit = this.survival.hurt(t, DAMAGE.playerAttack, res.damage, p);
     if (hit) {
+      if (ex.fireAspect > 0) this.survival.setOnFire(t, ex.fireAspect * 4);
+      // sweep: everyone else within reach around the target takes the sweep damage
+      if (res.sweep) {
+        const yr2 = (p.yaw * Math.PI) / 180;
+        for (const o of this.players) {
+          if (o === p || o === t || o.gameMode === 3 || o.living.dead) continue;
+          if (Math.abs(o.x - t.x) > 1.3 || Math.abs(o.y - t.y) > 0.25 + 1.8 || Math.abs(o.z - t.z) > 1.3) continue;
+          if ((o.x - p.x) ** 2 + (o.y - p.y) ** 2 + (o.z - p.z) ** 2 >= 9) continue;
+          this.knockback(o, 0.4, Math.sin(yr2), -Math.cos(yr2));
+          this.survival.hurt(o, DAMAGE.playerAttack, res.sweepDamage, p);
+        }
+      }
+      thorns(this, t, p);
+      afterHit(this, p);
       const yr = (p.yaw * Math.PI) / 180;
       if (res.knockback > 0) {
         this.knockback(t, res.knockback * 0.5, Math.sin(yr), -Math.cos(yr));
@@ -981,6 +1008,7 @@ export class GameServer {
       if (res.critical) this.broadcastToTrackers(t, { t: 'animate', id: t.id, action: 4 }, true);
       p.living.food.addExhaustion(EXHAUSTION.attack);
     } else {
+      if (lit) t.living.remainingFireTicks = 0;
       this.playSound(null, 'entity.player.attack.nodamage', 'player', sx, sy, sz, 1, 1);
     }
     void r;

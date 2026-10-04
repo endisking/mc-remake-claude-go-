@@ -55,7 +55,7 @@ import { blockForItem } from '@shared/game/loot';
 import { BLOCKS_BY_NAME, ITEMS_BY_ID, ITEMS_BY_NAME } from '@shared/data';
 import { itemName, decodeTag, type ItemStack, type ItemTag } from '@shared/item/stack';
 import { EffectsClient, nauseaMatrix } from './effects';
-import { EnchantScreen } from './gui/enchantscreen';
+import './gui/enchantmentscreen';
 import { entityEnchLevel } from '@shared/game/enchantments';
 import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
@@ -452,6 +452,7 @@ export class Game implements ScreenHost, ContainerHost {
     this.heldModels.clear();
     this.hand = new HandRenderer(this.gl, this.entityRenderer, (st) => this.heldItemModel(st), () => this.textures.tex, mainBake.textures.get('fire_1')!.layer);
     this.interaction = new Interaction({
+      localEffects: this.localEffects,
       world: this.world,
       player: this.player,
       get gameMode() { return game.gameMode; },
@@ -784,6 +785,13 @@ export class Game implements ScreenHost, ContainerHost {
         if (sl) sl.container.setItem(sl.slot, st);
         break;
       }
+      case 'windowSlotTag': {
+        const m = this.windowMenu(p.windowId);
+        const sl = m?.slots[p.slot];
+        const st = sl?.getItem();
+        if (st) st.tag = decodeTag(p.tag);
+        break;
+      }
       case 'windowData': {
         const m = this.windowMenu(p.windowId);
         if (m) m.data[p.property] = p.value;
@@ -874,7 +882,6 @@ export class Game implements ScreenHost, ContainerHost {
       case 'removeEffect':
       case 'effectParticles':
       case 'playerAttributes':
-      case 'enchantMenu':
         this.effectsClient.handle(p);
         break;
       case 'heldSlot':
@@ -1273,26 +1280,6 @@ export class Game implements ScreenHost, ContainerHost {
   /** Phase 7: synced status effects, attributes, swirl particles and the enchanting window */
   readonly effectsClient: EffectsClient = new EffectsClient(this);
 
-  /** The server opened/closed the enchanting table window. */
-  onEnchantMenu(open: boolean): void {
-    if (open) {
-      if (!(this.screen instanceof EnchantScreen)) {
-        this.setScreen(new EnchantScreen({
-          gui: this.gui,
-          inventory: this.interaction.inventory,
-          xpLevel: () => this.xpLevel,
-          creative: () => this.gameMode === 1,
-          sendEnchantAction: (a, b, sl) => this.sendEnchantAction(a, b, sl),
-          setScreen: (sc) => this.setScreen(sc),
-        }, this.effectsClient));
-      }
-    } else if (this.screen instanceof EnchantScreen) this.setScreen(null);
-  }
-
-  /** Enchanting window action (see enchantAction in the protocol). */
-  sendEnchantAction(action: number, button: number, slot: number): void {
-    this.send({ t: 'enchantAction', action, button, slot });
-  }
   /**
    * The item the local player is using (LivingEntity.useItem): hand, item name, ticks left
    * (getUseItemRemainingTicks, counted down each tick by the owner of the use), total use
@@ -2357,7 +2344,12 @@ export class Game implements ScreenHost, ContainerHost {
         g.fill(0, 0, g.width, g.height, ((Math.floor(220 * f1) & 255) << 24) | 0x101020);
       }
     }
-    if (this.screen) this.screen.render(this.mouseGX, this.mouseGY);
+    if (this.screen) {
+      this.screen.render(this.mouseGX, this.mouseGY);
+      // EffectRenderingInventoryScreen: active effects listed left of the survival/creative inventory
+      const sc = this.screen as unknown as { leftPos?: number; topPos?: number };
+      if ((this.screen instanceof InventoryScreen || this.screen instanceof CreativeScreen) && sc.leftPos !== undefined) this.effectsClient.renderInventoryList(this.gui, sc.leftPos, sc.topPos ?? 0);
+    }
   }
 
   // ------------------------------------------------------------------ chat (Phase 9)

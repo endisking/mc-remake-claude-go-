@@ -4,6 +4,7 @@
  * placing with client-side prediction, pick block, item drops, hotbar selection.
  */
 import { destroyProgress } from '@shared/game/mining';
+import { enchLevel, entityEnchLevel } from '@shared/game/enchantments';
 import { stateForPlacement, isReplaceable, companionPlacement, DX, DY, DZ } from '@shared/game/placement';
 import { canSurvive } from '@shared/game/support';
 import { blockForItem, itemForBlock } from '@shared/game/loot';
@@ -19,6 +20,8 @@ import type { ClientWorld } from './world/clientworld';
 import type { PlayerPhysics } from '@shared/entity/playerphysics';
 
 export interface InteractionHost {
+  /** local status effects (name → amplifier), Phase 7 */
+  readonly localEffects?: Map<string, number>;
   world: ClientWorld;
   player: PlayerPhysics;
   gameMode: number;
@@ -70,7 +73,12 @@ export class Interaction {
     const p = this.host.player;
     const held = this.inventory.selectedStack;
     const eye = this.host.world.getState(Math.floor(p.x), Math.floor(p.y + p.eyeHeight), Math.floor(p.z));
-    return { item: held?.id ?? 0, efficiency: 0, haste: 0, miningFatigue: 0, underwater: FLUID[eye] === 1, aquaAffinity: false, onGround: p.onGround };
+    const fx = this.host.localEffects;
+    const dig = Math.max(fx?.get('haste') ?? -1, fx?.get('conduit_power') ?? -1);
+    return {
+      item: held?.id ?? 0, efficiency: enchLevel('efficiency', held), haste: dig + 1, miningFatigue: (fx?.get('mining_fatigue') ?? -1) + 1,
+      underwater: FLUID[eye] === 1, aquaAffinity: entityEnchLevel('aqua_affinity', this.inventory) > 0, onGround: p.onGround,
+    };
   }
 
   private breakLocally(x: number, y: number, z: number): void {

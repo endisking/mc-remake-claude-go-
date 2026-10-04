@@ -27,7 +27,7 @@ export const enum ClickType {
 /** The clicked slot id for "outside the window" (drop the carried stack). */
 export const SLOT_OUTSIDE = -999;
 
-export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter' | 'smithing' | 'grindstone';
+export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter' | 'smithing' | 'grindstone' | 'enchantment' | 'brewing_stand';
 
 export interface MenuPlayer {
   readonly inventory: Inventory;
@@ -1075,7 +1075,12 @@ export class GrindstoneMenu extends Menu {
 }
 
 /** Menu with mirror containers (client prediction for server-opened windows). */
+/** Client mirrors for menus defined in other modules (enchanting, brewing): registered at import. */
+export const CLIENT_MENU_FACTORIES = new Map<string, (id: number, inv: Container) => Menu>();
+
 export function createClientMenu(type: MenuType, id: number, inv: Container): Menu {
+  const extra = CLIENT_MENU_FACTORIES.get(type);
+  if (extra) return extra(id, inv);
   switch (type) {
     case 'inventory':
       return new InventoryMenu(inv);
@@ -1099,6 +1104,9 @@ export function createClientMenu(type: MenuType, id: number, inv: Container): Me
       return new SmithingMenu(id, inv);
     case 'grindstone':
       return new GrindstoneMenu(id, inv);
+    case 'enchantment':
+    case 'brewing_stand':
+      throw new Error(`menu module for ${type} not loaded`);
   }
 }
 

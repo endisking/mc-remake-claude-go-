@@ -1,13 +1,12 @@
 /**
  * Client-side status effects (LocalPlayer active effects, Gui.renderEffects,
  * EffectRenderingInventoryScreen, potion swirl particles, nausea/night vision/blindness
- * screen effects, totem activation) plus the enchanting table window state.
+ * screen effects, totem activation).
  */
 import type { S2C } from '@shared/protocol/packets';
 import { EFFECT_BY_ID, formatDuration, romanLevel, nightVisionScale, blindnessFogEnd, type MobEffect } from '@shared/game/effects';
 import type { Gui } from './gui/gui';
 import type { PhysicsEffects } from '@shared/entity/playerphysics';
-import { decodeTag, type ItemStack } from '@shared/item/stack';
 
 export interface ClientEffect {
   effect: MobEffect;
@@ -16,15 +15,6 @@ export interface ClientEffect {
   ambient: boolean;
   visible: boolean;
   showIcon: boolean;
-}
-
-export interface EnchantMenuState {
-  costs: number[];
-  clues: number[];
-  levels: number[];
-  seed: number;
-  item: ItemStack | null;
-  lapis: number;
 }
 
 /** MobEffectInstance.compareTo (reversed for drawing: Ordering.natural().reverse()). */
@@ -48,11 +38,10 @@ export class EffectsClient {
   itemActivationTicks = 0;
   itemActivationOffX = 0;
   itemActivationOffY = 0;
-  enchant: EnchantMenuState | null = null;
   icons: ImageBitmap | null = null;
   frames: ImageBitmap | null = null;
 
-  constructor(private readonly host: { entityId: number; localEffects: Map<string, number>; onEnchantMenu(open: boolean): void }) {}
+  constructor(private readonly host: { entityId: number; localEffects: Map<string, number> }) {}
 
   async load(): Promise<void> {
     const img = async (u: string) => createImageBitmap(await (await fetch(u)).blob());
@@ -87,19 +76,6 @@ export class EffectsClient {
       case 'playerAttributes':
         this.maxHealth = p.maxHealth;
         this.absorption = p.absorption;
-        break;
-      case 'enchantMenu':
-        if (!p.open) {
-          this.enchant = null;
-          this.host.onEnchantMenu(false);
-          break;
-        }
-        this.enchant = {
-          costs: p.costs, clues: p.clues, levels: p.levels, seed: p.seed,
-          item: p.item > 0 && p.itemCount > 0 ? { id: p.item, count: p.itemCount, damage: 0, tag: decodeTag(p.itemTag) } : null,
-          lapis: p.lapis,
-        };
-        this.host.onEnchantMenu(true);
         break;
     }
   }

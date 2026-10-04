@@ -216,22 +216,22 @@ export class ServerEffects {
   drinkMilk(p: ServerPlayer): void {
     this.removeAll(p);
   }
+}
 
-  /** Saved form of the player's effects (vanilla ActiveEffects NBT list). */
-  save(p: ServerPlayer): { id: string; amp: number; dur: number; ambient: boolean; visible: boolean; icon: boolean }[] {
-    return [...p.living.effects.map.values()].map((e) => ({ id: e.effect.name, amp: e.amplifier, dur: e.duration, ambient: e.ambient, visible: e.visible, icon: e.showIcon }));
-  }
+/** Saved form of the player's effects (vanilla ActiveEffects NBT list). */
+export function saveEffects(p: ServerPlayer): { id: string; amp: number; dur: number; ambient: boolean; visible: boolean; icon: boolean }[] {
+  return [...p.living.effects.map.values()].map((e) => ({ id: e.effect.name, amp: e.amplifier, dur: e.duration, ambient: e.ambient, visible: e.visible, icon: e.showIcon }));
+}
 
-  /** Restore saved effects (before the player is announced; modifiers re-applied). */
-  load(p: ServerPlayer, list: unknown): void {
-    if (!Array.isArray(list)) return;
-    for (const e of list as { id?: unknown; amp?: unknown; dur?: unknown; ambient?: unknown; visible?: unknown; icon?: unknown }[]) {
-      if (typeof e?.id !== 'string' || !EFFECT_BY_NAME.has(e.id) || typeof e.dur !== 'number' || e.dur <= 0) continue;
-      const fx = p.living.effects;
-      const inst = new EffectInstance(effectByName(e.id), e.dur, typeof e.amp === 'number' ? e.amp : 0, { ambient: !!e.ambient, visible: e.visible !== false, showIcon: e.icon !== false });
-      fx.map.set(e.id, inst);
-      fx.dirty = true;
-    }
-    p.living.maxHealth = p.living.effects.attributeValue('max_health', 20);
+/** Restore saved effects (before the player is announced; modifiers re-applied). */
+export function loadEffects(p: ServerPlayer, list: unknown): void {
+  if (!Array.isArray(list)) return;
+  for (const e of list as { id?: unknown; amp?: unknown; dur?: unknown; ambient?: unknown; visible?: unknown; icon?: unknown }[]) {
+    if (typeof e?.id !== 'string' || !EFFECT_BY_NAME.has(e.id) || typeof e.dur !== 'number' || e.dur <= 0) continue;
+    const fx = p.living.effects;
+    const inst = new EffectInstance(effectByName(e.id), e.dur, typeof e.amp === 'number' ? e.amp : 0, { ambient: !!e.ambient, visible: e.visible !== false, showIcon: e.icon !== false });
+    fx.map.set(e.id, inst);
+    fx.dirty = true;
   }
+  p.living.maxHealth = p.living.effects.attributeValue('max_health', 20);
 }

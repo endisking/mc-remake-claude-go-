@@ -15,6 +15,7 @@ import { soundTypeOf } from '@shared/world/soundtype';
 import { giveExperienceLevels, giveExperiencePoints, deathExperience } from '@shared/game/experience';
 import { CombatTracker, fallLocation, type CombatSource } from '@shared/game/combattracker';
 import { ActiveEffects, resistanceReduce } from '@shared/game/effects';
+import { destroyVanishing } from './enchanthooks';
 import { damageProtection, magicAbsorb, respirationKeepsAir, armorItems } from '@shared/game/enchantments';
 
 export interface DamageSource extends CombatSource {
@@ -492,6 +493,7 @@ export class Survival {
     // ServerPlayer.die closes the open container; grids and the cursor go back before dropAll
     this.s.containers.closeAll(p);
     if (!this.s.gameRules.keepInventory) {
+      destroyVanishing(this.s, p);
       // Inventory.dropAll: every stack flung in a random direction
       for (let i = 0; i < 41; i++) {
         const st = p.inventory.get(i);
