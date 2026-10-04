@@ -239,6 +239,39 @@ describe('survival', () => {
     a.send({ t: 'move', x: 31.5, y: 101, z: 7.5, yaw: 0, pitch: 0, onGround: true });
   };
 
+  it('death messages: falling off a ladder, being doomed to fall by a player', () => {
+    const { server, a, p } = setup();
+    const chat = () => a.received.filter((m) => m.t === 'chat').map((m) => JSON.parse((m as { json: string }).json).text as string);
+    // climb a ladder column to y 125, step off and fall 24 blocks
+    for (let y = 101; y < 126; y++) server.setBlock(31, y, 7, stateOf('ladder', { facing: 'north' }));
+    for (let y = 101; y <= 125; y += 0.5) {
+      a.send({ t: 'move', x: 31.5, y, z: 7.5, yaw: 0, pitch: 0, onGround: false });
+      server.tick();
+    }
+    for (let y = 101; y < 126; y++) server.setBlock(31, y, 7, 0);
+    for (let y = 125; y > 101; y -= 0.5) a.send({ t: 'move', x: 31.5, y, z: 7.5, yaw: 0, pitch: 0, onGround: false });
+    a.send({ t: 'move', x: 31.5, y: 101, z: 7.5, yaw: 0, pitch: 0, onGround: true });
+    expect(p.living.dead).toBe(true);
+    expect(chat().at(-1)).toBe('A fell off a ladder');
+    expect(a.received.find((m) => m.t === 'playerDied')).toMatchObject({ message: 'A fell off a ladder' });
+    // respawn; walking on the ground forgets the ladder
+    a.send({ t: 'respawn' });
+    for (let i = 0; i < 61; i++) server.tick();
+    a.send({ t: 'chat', message: '/tp 31.5 101 7.5' });
+    a.send({ t: 'move', x: 31.5, y: 101, z: 7.5, yaw: 0, pitch: 0, onGround: true });
+    server.tick();
+    // B punches A, then A falls to its death: doomed to fall by B
+    const b = client(server, 'B');
+    for (let i = 0; i < 3; i++) server.tick();
+    const pb = server.players[1]!;
+    pb.x = 31.5; pb.y = 101; pb.z = 9;
+    for (let i = 0; i < 61; i++) server.tick();
+    b.send({ t: 'attack', target: p.id, sneaking: false });
+    expect(p.living.health).toBeLessThan(20);
+    fall(a, 131);
+    expect(chat().at(-1)).toBe('A was doomed to fall by B');
+  });
+
   it('fall damage is ceil(distance − 3), with 10 ticks of invulnerability frames', () => {
     const { server, a, p } = setup();
     // no natural regeneration during the test

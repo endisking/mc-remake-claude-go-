@@ -13,8 +13,9 @@ import { AABB } from '@shared/entity/aabb';
 import { isRainingAt } from '@shared/world/weather';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { giveExperienceLevels, giveExperiencePoints, deathExperience } from '@shared/game/experience';
+import { CombatTracker, fallLocation, type CombatSource } from '@shared/game/combattracker';
 
-export interface DamageSource {
+export interface DamageSource extends CombatSource {
   id: string;
   bypassArmor?: boolean;
   bypassInvul?: boolean;
@@ -40,34 +41,6 @@ export const DAMAGE = {
   lightningBolt: { id: 'lightningBolt' },
   playerAttack: { id: 'player' },
 } as const satisfies Record<string, DamageSource>;
-
-/** Death messages (vanilla wording; %s = player name). */
-const DEATH: Record<string, string> = {
-  inFire: '%s went up in flames',
-  onFire: '%s burned to death',
-  lava: '%s tried to swim in lava',
-  hotFloor: '%s discovered the floor was lava',
-  inWall: '%s suffocated in a wall',
-  drown: '%s drowned',
-  starve: '%s starved to death',
-  cactus: '%s was pricked to death',
-  fall: '%s hit the ground too hard',
-  outOfWorld: '%s fell out of the world',
-  generic: '%s died',
-  sweetBerryBush: '%s was poked to death by a sweet berry bush',
-  freeze: '%s froze to death',
-  lightningBolt: '%s was struck by lightning',
-  player: '%s was slain by %k',
-};
-const FALL_MESSAGES: Record<string, string> = {
-  generic: '%s fell from a high place',
-  ladder: '%s fell off a ladder',
-  vines: '%s fell off some vines',
-  weeping_vines: '%s fell off some weeping vines',
-  twisting_vines: '%s fell off some twisting vines',
-  scaffolding: '%s fell off scaffolding',
-  water: '%s fell out of the water',
-};
 
 export interface GameRules {
   naturalRegeneration: boolean;
@@ -116,11 +89,12 @@ export class LivingState {
   lastSentSaturationZero = false;
   lastSentAir = -1;
   lastSentExp = -1;
-  /** where the current fall started (for "fell off a ladder" messages) */
+  /** block last climbed (LivingEntity.lastClimbablePos), cleared back on the ground */
   lastClimbable: string | null = null;
-  lastClimbableTick = -1000;
-  lastFallDistanceWhenHurt = 0;
-  lastAttacker: string | null = null;
+  /** LivingEntity.lastHurtByPlayer, remembered for 100 ticks (kill credit) */
+  lastHurtByPlayer: string | null = null;
+  lastHurtByPlayerTime = 0;
+  readonly combat = new CombatTracker();
   /** ticks since the player last slept (phantoms, Phase 6) */
   timeSinceRest = 0;
   /** Entity.ticksFrozen (powder snow; 140 = fully frozen) */
@@ -147,8 +121,12 @@ export class Survival {
   /** LivingEntity.hurt (+ Player/ServerPlayer checks). Returns whether damage was applied. */
   hurt(p: ServerPlayer, src: DamageSource, amount: number, attacker: ServerPlayer | null = null): boolean {
     const l = p.living;
-    if (attacker) l.lastAttacker = attacker.name;
     if (this.invulnerableTo(p, src) || l.dead) return false;
+    if (attacker) {
+      src = { ...src, entity: { name: attacker.name, player: true } };
+      l.lastHurtByPlayer = attacker.name;
+      l.lastHurtByPlayerTime = 100;
+    }
     if (l.spawnInvulnerableTime > 0 && src.id !== 'outOfWorld') return false;
     if (amount <= 0) return false;
     let fresh = true;
@@ -175,7 +153,6 @@ export class Survival {
     // entity event 2/36/37/44/57: hurt animation + the hurt sound for the player itself
     const event = src.id === 'drown' ? 36 : src.id === 'onFire' ? 37 : src.id === 'sweetBerryBush' ? 44 : src.id === 'freeze' ? 57 : 2;
     if (fresh) this.s.broadcastToTrackers(p, { t: 'entityEvent', id: p.id, event }, true);
-    l.lastFallDistanceWhenHurt = p.fallDistance;
     const r = this.s.rand;
     const voice = (r.nextFloat() - r.nextFloat()) * 0.2 + 1;
     if (l.dead) {
@@ -198,6 +175,8 @@ export class Survival {
     amount -= absorbed;
     if (amount === 0) return;
     if (!src.bypassArmor) l.food.addExhaustion(EXHAUSTION.damage);
+    // Player.actuallyHurt: the combat entry is recorded before the health drops
+    l.combat.recordDamage(src, l.health, amount, this.s.gameTime, fallLocation(l.lastClimbable, p.phys.isInWater), p.fallDistance, true);
     l.health = Math.max(0, l.health - amount);
   }
 
@@ -276,16 +255,15 @@ export class Survival {
     if (l.ticksFrozen !== before) p.stateDirty = true;
     if (this.s.gameTime % 40 === 0 && l.ticksFrozen >= 140 && p.gameMode !== 3) this.hurt(p, DAMAGE.freeze, 1);
 
-    // climbing resets falls (and remembers where the fall started for the death message)
-    const feet = w.getState(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z));
-    if (CLIMBABLE[blockIdAt(feet)]) {
+    // LivingEntity.onClimbable: climbing resets falls and remembers the block for death messages
+    if (p.gameMode !== 3 && ph.onClimbable()) {
       p.fallDistance = 0;
-      l.lastClimbable = blockNameOf(feet).replace(/_plant$/, '').replace(/^vine$/, 'vines').replace(/^cave_vines$/, 'vines');
-      l.lastClimbableTick = this.s.gameTime;
-    } else if (ph.isInWater) {
-      l.lastClimbable = 'water';
-      l.lastClimbableTick = this.s.gameTime;
-    }
+      l.lastClimbable = blockNameOf(w.getState(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z)));
+    } else if (p.onGround) l.lastClimbable = null;
+    // kill credit for the last player to hurt us lasts 5 s; combat entries 5 s (15 s in a fight)
+    if (l.lastHurtByPlayerTime > 0) l.lastHurtByPlayerTime--;
+    else l.lastHurtByPlayer = null;
+    l.combat.recheckStatus(this.s.gameTime, !l.dead);
 
     // Player.tick: hunger; Player.aiStep: peaceful regeneration
     if (p.gameMode === 0 || p.gameMode === 2) {
@@ -477,7 +455,7 @@ export class Survival {
     const l = p.living;
     l.remainingFireTicks = 0;
     l.deathTime = 0;
-    const msg = this.deathMessage(p, src);
+    const msg = this.deathMessage(p);
     if (this.s.gameRules.showDeathMessages) {
       for (const o of this.s.players) this.s.send(o, { t: 'chat', json: JSON.stringify({ text: msg }) });
     }
@@ -502,13 +480,10 @@ export class Survival {
     this.sync(p);
   }
 
-  private deathMessage(p: ServerPlayer, src: DamageSource): string {
+  /** LivingEntity.die → CombatTracker.getDeathMessage (kill credit: the tracker's killer, else lastHurtByPlayer). */
+  private deathMessage(p: ServerPlayer): string {
     const l = p.living;
-    if (src.fall && l.lastFallDistanceWhenHurt > 5) {
-      const fromClimb = l.lastClimbable && this.s.gameTime - l.lastClimbableTick < 100 ? l.lastClimbable : 'generic';
-      return (FALL_MESSAGES[fromClimb] ?? FALL_MESSAGES.generic!).replace('%s', p.name);
-    }
-    return (DEATH[src.id] ?? DEATH.generic!).replace('%s', p.name).replace('%k', l.lastAttacker ?? 'someone');
+    return l.combat.getDeathMessage(p.name, l.lastHurtByPlayer ? { name: l.lastHurtByPlayer, player: true } : null);
   }
 
   /** PlayerList.respawn: back to spawn with fresh survival state. */
