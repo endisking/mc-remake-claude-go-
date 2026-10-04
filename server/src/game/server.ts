@@ -9,6 +9,7 @@ import { serializeChunk, deserializeChunk, packRecord, unpackRecord, capturePlay
 import { SAVE_FORMAT_VERSION, type WorldStorage, type LevelMeta, type PlayerData } from '../storage/types';
 import { DevGenerator } from '@shared/worldgen/devgen';
 import { OverworldGenerator } from '@shared/worldgen/overworld/generator';
+import { findSpawnBiome } from '@shared/worldgen/structures/placement';
 import { NetherGenerator } from '@shared/worldgen/nether/generator';
 import { ServerLevel, DIMENSION_TYPES, type DimensionType, type LevelGenerator } from './level';
 import { Portals } from './portals';
@@ -466,14 +467,53 @@ export class GameServer {
     }
   }
 
-  /** World spawn: on top of the terrain at the world origin (fixed once found). */
+  /**
+   * World spawn (fixed once found). With the 1.17 generator: MinecraftServer.setInitialSpawn — a spawn
+   * biome within 256 blocks of the origin, then a chunk spiral for a grass column with no fluid on top
+   * (PlayerRespawnLogic.getSpawnPosInChunk), so new players don't start in an ocean or a desert.
+   * Other terrain: on top of the terrain at the world origin.
+   */
   spawnPosition(): [number, number, number] {
     if (!this.worldSpawnSet) {
-      const spawn = this.inLevel(this.levels.get('overworld')!, () => this.prepareChunk(0, 0));
-      this.worldSpawn = [8, spawn.topY(8, 8) + 1, 8];
+      const ow = this.levels.get('overworld')!;
+      const found = ow.generator instanceof OverworldGenerator ? this.inLevel(ow, () => this.findInitialSpawn(ow.generator as OverworldGenerator)) : null;
+      this.worldSpawn = found ?? [8, this.inLevel(ow, () => this.prepareChunk(0, 0)).topY(8, 8) + 1, 8];
       this.worldSpawnSet = true;
     }
     return [this.worldSpawn[0] + 0.5, this.worldSpawn[1], this.worldSpawn[2] + 0.5];
+  }
+
+  private findInitialSpawn(gen: OverworldGenerator): [number, number, number] | null {
+    const pos = findSpawnBiome(gen);
+    const ccx = pos ? pos[0] >> 4 : 0, ccz = pos ? pos[1] >> 4 : 0;
+    // getOverworldRespawnPos: down from the top, stop at fluid; the biome's top material (grass) is a valid spawn
+    const columnSpawn = (c: Chunk, lx: number, lz: number, anySolid: boolean): number => {
+      for (let y = c.topY(lx, lz); y > 0; y--) {
+        const st = c.getState(lx, y, lz);
+        const n = blockNameOf(st);
+        if (n === 'water' || n === 'lava' || n === 'bubble_column' || n === 'kelp' || n === 'kelp_plant' || n === 'seagrass' || n === 'tall_seagrass' || getProp(st, 'waterlogged') === 'true') return -1;
+        if (n === 'grass_block' || n === 'podzol' || (anySolid && !n.endsWith('leaves') && collisionBoxes(st).length > 0)) return y + 1;
+      }
+      return -1;
+    };
+    // spiral over up to 11×11 chunks (vanilla: 32×32; the first chunk of a spawn biome almost always has grass)
+    let i = 0, j = 0, k = 0, l = -1;
+    for (let n = 0; n < 121; n++) {
+      const c = this.prepareChunk(ccx + i, ccz + j);
+      for (let lx = 0; lx < 16; lx++)
+        for (let lz = 0; lz < 16; lz++) {
+          const y = columnSpawn(c, lx, lz, pos === null);
+          if (y > 0) return [((ccx + i) << 4) + lx, y, ((ccz + j) << 4) + lz];
+        }
+      if (i === j || (i < 0 && i === -j) || (i > 0 && i === 1 - j)) {
+        const t = k;
+        k = -l;
+        l = t;
+      }
+      i += k;
+      j += l;
+    }
+    return null;
   }
 
   actionBar(p: ServerPlayer, text: string): void {

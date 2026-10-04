@@ -171,6 +171,14 @@ function findBiomeHorizontal(gen: OverworldGenerator, x: number, z: number, radi
   return pos;
 }
 
+/** BiomeSource.PLAYER_SPAWN_BIOMES (1.17). */
+const SPAWN_BIOMES = new Set<number>([B.forest, B.plains, B.taiga, B.taiga_hills, B.wooded_hills, B.jungle, B.jungle_hills]);
+
+/** MinecraftServer.setInitialSpawn: findBiomeHorizontal(0, seaLevel, 0, 256, spawn biomes, new Random(seed)). */
+export function findSpawnBiome(gen: OverworldGenerator): [number, number] | null {
+  return findBiomeHorizontal(gen, 0, 0, 256, (b) => SPAWN_BIOMES.has(b), new JavaRandom(gen.seed));
+}
+
 /** Resumable ChunkGenerator.generateStrongholds state (positions are produced ring by ring, in order). */
 interface RingState { r: JavaRandom; d: number; l: number; m: number; spread: number; n: number; list: [number, number][] }
 const ringStates = new Map<bigint, RingState>();
