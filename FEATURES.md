@@ -787,8 +787,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Nether Brick Fence (`nether_brick_fence`) <!--block:nether_brick_fence-->
 - [ ] Nether Brick Stairs (`nether_brick_stairs`) <!--block:nether_brick_stairs-->
 - [ ] Nether Wart (`nether_wart`) <!--block:nether_wart-->
-- [ ] Enchanting Table (`enchanting_table`) <!--block:enchanting_table-->
-- [ ] Brewing Stand (`brewing_stand`) <!--block:brewing_stand-->
+- [x] Enchanting Table (`enchanting_table`) <!--block:enchanting_table-->
+- [x] Brewing Stand (`brewing_stand`) <!--block:brewing_stand-->
 - [ ] Cauldron (`cauldron`) <!--block:cauldron-->
 - [ ] Cauldron (`water_cauldron`) <!--block:water_cauldron-->
 - [ ] Cauldron (`lava_cauldron`) <!--block:lava_cauldron-->
@@ -858,9 +858,9 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Creeper Head (`creeper_wall_head`) <!--block:creeper_wall_head-->
 - [ ] Dragon Head (`dragon_head`) <!--block:dragon_head-->
 - [ ] Dragon Head (`dragon_wall_head`) <!--block:dragon_wall_head-->
-- [ ] Anvil (`anvil`) <!--block:anvil-->
-- [ ] Chipped Anvil (`chipped_anvil`) <!--block:chipped_anvil-->
-- [ ] Damaged Anvil (`damaged_anvil`) <!--block:damaged_anvil-->
+- [x] Anvil (`anvil`) <!--block:anvil-->
+- [x] Chipped Anvil (`chipped_anvil`) <!--block:chipped_anvil-->
+- [x] Damaged Anvil (`damaged_anvil`) <!--block:damaged_anvil-->
 - [ ] Trapped Chest (`trapped_chest`) <!--block:trapped_chest-->
 - [ ] Light Weighted Pressure Plate (`light_weighted_pressure_plate`) <!--block:light_weighted_pressure_plate-->
 - [ ] Heavy Weighted Pressure Plate (`heavy_weighted_pressure_plate`) <!--block:heavy_weighted_pressure_plate-->
@@ -1204,7 +1204,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Blast Furnace (`blast_furnace`) <!--block:blast_furnace-->
 - [ ] Cartography Table (`cartography_table`) <!--block:cartography_table-->
 - [ ] Fletching Table (`fletching_table`) <!--block:fletching_table-->
-- [ ] Grindstone (`grindstone`) <!--block:grindstone-->
+- [x] Grindstone (`grindstone`) <!--block:grindstone-->
 - [ ] Lectern (`lectern`) <!--block:lectern-->
 - [ ] Smithing Table (`smithing_table`) <!--block:smithing_table-->
 - [ ] Stonecutter (`stonecutter`) <!--block:stonecutter-->
@@ -1442,10 +1442,10 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Smithing table (netherite upgrades) <!--p5:smithing_table_netherite_upgrades-->
 - [ ] Loom (banner patterns) <!--p5:loom_banner_patterns-->
 - [ ] Cartography table <!--p5:cartography_table-->
-- [ ] Grindstone <!--p5:grindstone-->
-- [ ] Anvil (repair, combine, rename, XP cost, prior-work penalty, Too Expensive!) <!--p5:anvil_repair_combine_rename_xp_cost_prior_work_penalty_too_expensive-->
-- [ ] Enchanting table screen <!--p5:enchanting_table_screen-->
-- [ ] Brewing stand screen <!--p5:brewing_stand_screen-->
+- [x] Grindstone <!--p5:grindstone-->
+- [x] Anvil (repair, combine, rename, XP cost, prior-work penalty, Too Expensive!) <!--p5:anvil_repair_combine_rename_xp_cost_prior_work_penalty_too_expensive-->
+- [x] Enchanting table screen <!--p5:enchanting_table_screen-->
+- [x] Brewing stand screen <!--p5:brewing_stand_screen-->
 - [x] Chest / double chest / barrel / shulker screens <!--p5:chest_double_chest_barrel_shulker_screens-->
 - [x] Hopper screen <!--p5:hopper_screen-->
 - [x] Dispenser/dropper screen <!--p5:dispenser_dropper_screen-->
@@ -1469,7 +1469,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Bundle (1.17.1: exists, not obtainable in survival) <!--p5:bundle_1_17_1_exists_not_obtainable_in_survival-->
 - [x] Bows and arrows <!--p5:bows_and_arrows-->
 - [x] Food eating effects <!--p5:food_eating_effects-->
-- [ ] Tooltips (names, enchantments, durability, lore) <!--p5:tooltips_names_enchantments_durability_lore-->
+- [x] Tooltips (names, enchantments, durability, lore) <!--p5:tooltips_names_enchantments_durability_lore-->
 
 ### Items (every 1.17.1 non-block item)
 
@@ -1646,7 +1646,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Blaze Rod (`blaze_rod`) <!--item:blaze_rod-->
 - [ ] Ghast Tear (`ghast_tear`) <!--item:ghast_tear-->
 - [ ] Gold Nugget (`gold_nugget`) <!--item:gold_nugget-->
-- [ ] Potion (`potion`) <!--item:potion-->
+- [x] Potion (`potion`) <!--item:potion-->
 - [ ] Glass Bottle (`glass_bottle`) <!--item:glass_bottle-->
 - [ ] Spider Eye (`spider_eye`) <!--item:spider_eye-->
 - [ ] Fermented Spider Eye (`fermented_spider_eye`) <!--item:fermented_spider_eye-->
@@ -1721,7 +1721,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Zombie Horse Spawn Egg (`zombie_horse_spawn_egg`) ⊘ <!--item:zombie_horse_spawn_egg-->
 - [ ] Zombie Villager Spawn Egg (`zombie_villager_spawn_egg`) ⊘ <!--item:zombie_villager_spawn_egg-->
 - [ ] Zombified Piglin Spawn Egg (`zombified_piglin_spawn_egg`) ⊘ <!--item:zombified_piglin_spawn_egg-->
-- [ ] Bottle o' Enchanting (`experience_bottle`) <!--item:experience_bottle-->
+- [x] Bottle o' Enchanting (`experience_bottle`) <!--item:experience_bottle-->
 - [ ] Fire Charge (`fire_charge`) <!--item:fire_charge-->
 - [ ] Book and Quill (`writable_book`) <!--item:writable_book-->
 - [ ] Written Book (`written_book`) <!--item:written_book-->
@@ -1737,7 +1737,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Pumpkin Pie (`pumpkin_pie`) <!--item:pumpkin_pie-->
 - [ ] Firework Rocket (`firework_rocket`) <!--item:firework_rocket-->
 - [ ] Firework Star (`firework_star`) <!--item:firework_star-->
-- [ ] Enchanted Book (`enchanted_book`) <!--item:enchanted_book-->
+- [x] Enchanted Book (`enchanted_book`) <!--item:enchanted_book-->
 - [ ] Nether Brick (`nether_brick`) <!--item:nether_brick-->
 - [ ] Prismarine Shard (`prismarine_shard`) <!--item:prismarine_shard-->
 - [ ] Prismarine Crystals (`prismarine_crystals`) <!--item:prismarine_crystals-->
@@ -1763,10 +1763,10 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Beetroot Seeds (`beetroot_seeds`) <!--item:beetroot_seeds-->
 - [ ] Beetroot Soup (`beetroot_soup`) <!--item:beetroot_soup-->
 - [ ] Dragon's Breath (`dragon_breath`) <!--item:dragon_breath-->
-- [ ] Splash Potion (`splash_potion`) <!--item:splash_potion-->
+- [x] Splash Potion (`splash_potion`) <!--item:splash_potion-->
 - [ ] Spectral Arrow (`spectral_arrow`) <!--item:spectral_arrow-->
 - [ ] Tipped Arrow (`tipped_arrow`) <!--item:tipped_arrow-->
-- [ ] Lingering Potion (`lingering_potion`) <!--item:lingering_potion-->
+- [x] Lingering Potion (`lingering_potion`) <!--item:lingering_potion-->
 - [x] Shield (`shield`) <!--item:shield-->
 - [x] Totem of Undying (`totem_of_undying`) <!--item:totem_of_undying-->
 - [ ] Shulker Shell (`shulker_shell`) <!--item:shulker_shell-->
@@ -2580,7 +2580,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Other entities
 
-- [ ] Area Effect Cloud (`area_effect_cloud`) <!--entity:area_effect_cloud-->
+- [x] Area Effect Cloud (`area_effect_cloud`) <!--entity:area_effect_cloud-->
 - [ ] Armor Stand (`armor_stand`) <!--entity:armor_stand-->
 - [x] Arrow (`arrow`) <!--entity:arrow-->
 - [ ] Boat (`boat`) <!--entity:boat-->
@@ -2614,8 +2614,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Spectral Arrow (`spectral_arrow`) <!--entity:spectral_arrow-->
 - [x] Thrown Egg (`egg`) <!--entity:egg-->
 - [x] Thrown Ender Pearl (`ender_pearl`) <!--entity:ender_pearl-->
-- [ ] Thrown Bottle o' Enchanting (`experience_bottle`) <!--entity:experience_bottle-->
-- [ ] Potion (`potion`) <!--entity:potion-->
+- [x] Thrown Bottle o' Enchanting (`experience_bottle`) <!--entity:experience_bottle-->
+- [x] Potion (`potion`) <!--entity:potion-->
 - [ ] Trident (`trident`) <!--entity:trident-->
 - [ ] Wither Skull (`wither_skull`) <!--entity:wither_skull-->
 - [ ] Fishing Bobber (`fishing_bobber`) <!--entity:fishing_bobber-->
@@ -2634,7 +2634,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Shields: disabled by axes <!--p7:shields_disabled_by_axes-->
 - [x] Armor points formula <!--p7:armor_points_formula-->
 - [x] Armor toughness formula <!--p7:armor_toughness_formula-->
-- [ ] Protection enchantment EPF <!--p7:protection_enchantment_epf-->
+- [x] Protection enchantment EPF <!--p7:protection_enchantment_epf-->
 - [ ] Invulnerability frames <!--p7:invulnerability_frames-->
 - [x] Bows (charge, power, crits) <!--p7:bows_charge_power_crits-->
 - [ ] Crossbows (charging, multishot, piercing, fireworks) <!--p7:crossbows_charging_multishot_piercing_fireworks-->
@@ -2645,40 +2645,40 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Enchanting
 
-- [ ] Enchanting table bookshelf counting <!--p7:enchanting_table_bookshelf_counting-->
-- [ ] Exact 1.17.1 enchantment selection algorithm <!--p7:exact_1_17_1_enchantment_selection_algorithm-->
-- [ ] Enchanted books <!--p7:enchanted_books-->
-- [ ] Treasure-only enchantments <!--p7:treasure_only_enchantments-->
+- [x] Enchanting table bookshelf counting <!--p7:enchanting_table_bookshelf_counting-->
+- [x] Exact 1.17.1 enchantment selection algorithm <!--p7:exact_1_17_1_enchantment_selection_algorithm-->
+- [x] Enchanted books <!--p7:enchanted_books-->
+- [x] Treasure-only enchantments <!--p7:treasure_only_enchantments-->
 - [ ] Curses <!--p7:curses-->
-- [ ] Enchantment glint rendering <!--p7:enchantment_glint_rendering-->
+- [x] Enchantment glint rendering <!--p7:enchantment_glint_rendering-->
 - [ ] Lapis cost and XP level cost <!--p7:lapis_cost_and_xp_level_cost-->
-- [ ] Enchantment: Protection (max 4) <!--ench:protection-->
-- [ ] Enchantment: Fire Protection (max 4) <!--ench:fire_protection-->
-- [ ] Enchantment: Feather Falling (max 4) <!--ench:feather_falling-->
+- [x] Enchantment: Protection (max 4) <!--ench:protection-->
+- [x] Enchantment: Fire Protection (max 4) <!--ench:fire_protection-->
+- [x] Enchantment: Feather Falling (max 4) <!--ench:feather_falling-->
 - [ ] Enchantment: Blast Protection (max 4) <!--ench:blast_protection-->
 - [ ] Enchantment: Projectile Protection (max 4) <!--ench:projectile_protection-->
-- [ ] Enchantment: Respiration (max 3) <!--ench:respiration-->
-- [ ] Enchantment: Aqua Affinity (max 1) <!--ench:aqua_affinity-->
-- [ ] Enchantment: Thorns (max 3) <!--ench:thorns-->
-- [ ] Enchantment: Depth Strider (max 3) <!--ench:depth_strider-->
-- [ ] Enchantment: Frost Walker (max 2) [treasure] <!--ench:frost_walker-->
+- [x] Enchantment: Respiration (max 3) <!--ench:respiration-->
+- [x] Enchantment: Aqua Affinity (max 1) <!--ench:aqua_affinity-->
+- [x] Enchantment: Thorns (max 3) <!--ench:thorns-->
+- [x] Enchantment: Depth Strider (max 3) <!--ench:depth_strider-->
+- [x] Enchantment: Frost Walker (max 2) [treasure] <!--ench:frost_walker-->
 - [ ] Enchantment: Curse of Binding (max 1) [treasure] [curse] <!--ench:binding_curse-->
 - [ ] Enchantment: Soul Speed (max 3) [treasure] <!--ench:soul_speed-->
-- [ ] Enchantment: Sharpness (max 5) <!--ench:sharpness-->
-- [ ] Enchantment: Smite (max 5) <!--ench:smite-->
-- [ ] Enchantment: Bane of Arthropods (max 5) <!--ench:bane_of_arthropods-->
-- [ ] Enchantment: Knockback (max 2) <!--ench:knockback-->
-- [ ] Enchantment: Fire Aspect (max 2) <!--ench:fire_aspect-->
-- [ ] Enchantment: Looting (max 3) <!--ench:looting-->
-- [ ] Enchantment: Sweeping Edge (max 3) <!--ench:sweeping-->
-- [ ] Enchantment: Efficiency (max 5) <!--ench:efficiency-->
-- [ ] Enchantment: Silk Touch (max 1) <!--ench:silk_touch-->
-- [ ] Enchantment: Unbreaking (max 3) <!--ench:unbreaking-->
-- [ ] Enchantment: Fortune (max 3) <!--ench:fortune-->
-- [ ] Enchantment: Power (max 5) <!--ench:power-->
-- [ ] Enchantment: Punch (max 2) <!--ench:punch-->
-- [ ] Enchantment: Flame (max 1) <!--ench:flame-->
-- [ ] Enchantment: Infinity (max 1) <!--ench:infinity-->
+- [x] Enchantment: Sharpness (max 5) <!--ench:sharpness-->
+- [x] Enchantment: Smite (max 5) <!--ench:smite-->
+- [x] Enchantment: Bane of Arthropods (max 5) <!--ench:bane_of_arthropods-->
+- [x] Enchantment: Knockback (max 2) <!--ench:knockback-->
+- [x] Enchantment: Fire Aspect (max 2) <!--ench:fire_aspect-->
+- [x] Enchantment: Looting (max 3) <!--ench:looting-->
+- [x] Enchantment: Sweeping Edge (max 3) <!--ench:sweeping-->
+- [x] Enchantment: Efficiency (max 5) <!--ench:efficiency-->
+- [x] Enchantment: Silk Touch (max 1) <!--ench:silk_touch-->
+- [x] Enchantment: Unbreaking (max 3) <!--ench:unbreaking-->
+- [x] Enchantment: Fortune (max 3) <!--ench:fortune-->
+- [x] Enchantment: Power (max 5) <!--ench:power-->
+- [x] Enchantment: Punch (max 2) <!--ench:punch-->
+- [x] Enchantment: Flame (max 1) <!--ench:flame-->
+- [x] Enchantment: Infinity (max 1) <!--ench:infinity-->
 - [ ] Enchantment: Luck of the Sea (max 3) <!--ench:luck_of_the_sea-->
 - [ ] Enchantment: Lure (max 3) <!--ench:lure-->
 - [ ] Enchantment: Loyalty (max 3) <!--ench:loyalty-->
@@ -2688,18 +2688,18 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Enchantment: Multishot (max 1) <!--ench:multishot-->
 - [ ] Enchantment: Quick Charge (max 3) <!--ench:quick_charge-->
 - [ ] Enchantment: Piercing (max 4) <!--ench:piercing-->
-- [ ] Enchantment: Mending (max 1) [treasure] <!--ench:mending-->
-- [ ] Enchantment: Curse of Vanishing (max 1) [treasure] [curse] <!--ench:vanishing_curse-->
+- [x] Enchantment: Mending (max 1) [treasure] <!--ench:mending-->
+- [x] Enchantment: Curse of Vanishing (max 1) [treasure] [curse] <!--ench:vanishing_curse-->
 
 ### Brewing & effects
 
-- [ ] Brewing stand (blaze powder fuel, 400-tick brew) <!--p7:brewing_stand_blaze_powder_fuel_400_tick_brew-->
-- [ ] Every potion recipe (base, extended, enhanced, corrupted) <!--p7:every_potion_recipe_base_extended_enhanced_corrupted-->
-- [ ] Splash potions <!--p7:splash_potions-->
-- [ ] Lingering potions <!--p7:lingering_potions-->
+- [x] Brewing stand (blaze powder fuel, 400-tick brew) <!--p7:brewing_stand_blaze_powder_fuel_400_tick_brew-->
+- [x] Every potion recipe (base, extended, enhanced, corrupted) <!--p7:every_potion_recipe_base_extended_enhanced_corrupted-->
+- [x] Splash potions <!--p7:splash_potions-->
+- [x] Lingering potions <!--p7:lingering_potions-->
 - [ ] Tipped arrows <!--p7:tipped_arrows-->
-- [ ] Status effect HUD icons and inventory list <!--p7:status_effect_hud_icons_and_inventory_list-->
-- [ ] Effect particles (ambient for beacons) <!--p7:effect_particles_ambient_for_beacons-->
+- [x] Status effect HUD icons and inventory list <!--p7:status_effect_hud_icons_and_inventory_list-->
+- [x] Effect particles (ambient for beacons) <!--p7:effect_particles_ambient_for_beacons-->
 - [x] Milk clears effects <!--p7:milk_clears_effects-->
 - [ ] Beacon effects <!--p7:beacon_effects-->
 - [ ] Conduit power and attack <!--p7:conduit_power_and_attack-->
@@ -2717,7 +2717,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Effect: Resistance <!--effect:Resistance-->
 - [x] Effect: Fire Resistance <!--effect:FireResistance-->
 - [x] Effect: Water Breathing <!--effect:WaterBreathing-->
-- [ ] Effect: Invisibility <!--effect:Invisibility-->
+- [x] Effect: Invisibility <!--effect:Invisibility-->
 - [x] Effect: Blindness <!--effect:Blindness-->
 - [x] Effect: Night Vision <!--effect:NightVision-->
 - [x] Effect: Hunger <!--effect:Hunger-->
@@ -2727,12 +2727,12 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Effect: Health Boost <!--effect:HealthBoost-->
 - [x] Effect: Absorption <!--effect:Absorption-->
 - [x] Effect: Saturation <!--effect:Saturation-->
-- [ ] Effect: Glowing <!--effect:Glowing-->
+- [x] Effect: Glowing <!--effect:Glowing-->
 - [x] Effect: Levitation <!--effect:Levitation-->
 - [ ] Effect: Luck <!--effect:Luck-->
 - [ ] Effect: Bad Luck <!--effect:BadLuck-->
 - [x] Effect: Slow Falling <!--effect:SlowFalling-->
-- [ ] Effect: Conduit Power <!--effect:ConduitPower-->
+- [x] Effect: Conduit Power <!--effect:ConduitPower-->
 - [x] Effect: Dolphin's Grace <!--effect:DolphinsGrace-->
 - [ ] Effect: Bad Omen <!--effect:BadOmen-->
 - [ ] Effect: Hero of the Village <!--effect:HeroOfTheVillage-->
@@ -2887,8 +2887,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] /difficulty <!--cmd:difficulty-->
 - [x] /seed <!--cmd:seed-->
 - [x] /kill <!--cmd:kill-->
-- [ ] /effect <!--cmd:effect-->
-- [ ] /enchant <!--cmd:enchant-->
+- [x] /effect <!--cmd:effect-->
+- [x] /enchant <!--cmd:enchant-->
 - [ ] /summon <!--cmd:summon-->
 - [x] /setblock <!--cmd:setblock-->
 - [x] /fill <!--cmd:fill-->
