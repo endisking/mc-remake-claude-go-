@@ -171,6 +171,55 @@ export const STRUCTURE_LOOT: Record<string, StructureLootTable> = {
       { rolls: [2, 3], entries: [e('experience_bottle', 7), e('string', 4, n(1, 6)), e('arrow', 4, n(2, 7)), e('tripwire_hook', 3, n(1, 3)), e('iron_ingot', 3, n(1, 3)), e('book', 1, ER)] },
     ],
   },
+  // villages (chests/village/*)
+  'chests/village/village_plains_house': {
+    pools: [{ rolls: [3, 8], entries: [e('gold_nugget', 1, n(1, 3)), e('dandelion', 2), e('poppy', 1), e('potato', 10, n(1, 7)), e('bread', 10, n(1, 4)), e('apple', 10, n(1, 5)), e('book', 1), e('feather', 1), e('emerald', 2, n(1, 4)), e('oak_sapling', 5, n(1, 2))] }],
+  },
+  'chests/village/village_desert_house': {
+    pools: [{ rolls: [3, 8], entries: [e('clay_ball', 1), e('green_dye', 1), e('cactus', 10, n(1, 4)), e('wheat', 10, n(1, 7)), e('bread', 10, n(1, 4)), e('book', 1), e('dead_bush', 2, n(1, 3)), e('emerald', 1, n(1, 3))] }],
+  },
+  'chests/village/village_savanna_house': {
+    pools: [{ rolls: [3, 8], entries: [e('gold_nugget', 1, n(1, 3)), e('grass', 5), e('tall_grass', 5), e('bread', 10, n(1, 4)), e('wheat_seeds', 10, n(1, 5)), e('emerald', 1, n(1, 4)), e('acacia_sapling', 10, n(1, 2)), e('saddle', 1), e('torch', 1, n(1, 2)), e('bucket', 1)] }],
+  },
+  'chests/village/village_snowy_house': {
+    pools: [{ rolls: [3, 8], entries: [e('blue_ice', 1), e('snow_block', 4), e('potato', 10, n(1, 7)), e('bread', 10, n(1, 4)), e('beetroot_seeds', 10, n(1, 5)), e('beetroot_soup', 1), e('furnace', 1), e('emerald', 1, n(1, 4)), e('snowball', 10, n(1, 7)), e('coal', 5, n(1, 4))] }],
+  },
+  'chests/village/village_taiga_house': {
+    pools: [{ rolls: [3, 8], entries: [e('iron_nugget', 1, n(1, 5)), e('fern', 2), e('large_fern', 2), e('potato', 10, n(1, 7)), e('sweet_berries', 5, n(1, 7)), e('bread', 10, n(1, 4)), e('pumpkin_seeds', 5, n(1, 5)), e('pumpkin_pie', 1), e('emerald', 1, n(1, 4)), e('spruce_sapling', 5, n(1, 5)), e('spruce_sign', 1), e('spruce_log', 10, n(1, 5))] }],
+  },
+  'chests/village/village_weaponsmith': {
+    pools: [{ rolls: [3, 8], entries: [e('diamond', 3, n(1, 3)), e('iron_ingot', 10, n(1, 5)), e('gold_ingot', 5, n(1, 3)), e('bread', 15, n(1, 3)), e('apple', 15, n(1, 3)), e('iron_pickaxe', 5), e('iron_sword', 5), e('iron_chestplate', 5), e('iron_helmet', 5), e('iron_leggings', 5), e('iron_boots', 5), e('obsidian', 5, n(3, 7)), e('oak_sapling', 5, n(3, 7)), e('saddle', 3), e('iron_horse_armor', 1), e('golden_horse_armor', 1), e('diamond_horse_armor', 1)] }],
+  },
+  'chests/village/village_toolsmith': {
+    pools: [{ rolls: [3, 8], entries: [e('diamond', 1, n(1, 3)), e('iron_ingot', 5, n(1, 5)), e('gold_ingot', 1, n(1, 3)), e('bread', 15, n(1, 3)), e('iron_pickaxe', 5), e('coal', 1, n(1, 3)), e('stick', 20, n(1, 3)), e('iron_shovel', 5)] }],
+  },
+  'chests/village/village_armorer': {
+    pools: [{ rolls: [1, 5], entries: [e('iron_ingot', 2, n(1, 3)), e('bread', 4, n(1, 4)), e('iron_helmet', 1), e('emerald', 1)] }],
+  },
+  'chests/village/village_cartographer': {
+    pools: [{ rolls: [1, 5], entries: [e('map', 10, n(1, 3)), e('paper', 15, n(1, 5)), e('compass', 5), e('bread', 15, n(1, 4)), e('stick', 5, n(1, 2))] }],
+  },
+  'chests/village/village_mason': {
+    pools: [{ rolls: [1, 5], entries: [e('clay_ball', 1, n(1, 3)), e('flower_pot', 1), e('stone', 2), e('stone_bricks', 2), e('bread', 4, n(1, 4)), e('yellow_dye', 1), e('smooth_stone', 1), e('emerald', 1)] }],
+  },
+  'chests/village/village_shepherd': {
+    pools: [{ rolls: [1, 5], entries: [e('white_wool', 6, n(1, 8)), e('black_wool', 3, n(1, 3)), e('gray_wool', 2, n(1, 3)), e('brown_wool', 2, n(1, 3)), e('light_gray_wool', 2, n(1, 3)), e('emerald', 1), e('shears', 1), e('wheat', 6, n(1, 6))] }],
+  },
+  'chests/village/village_butcher': {
+    pools: [{ rolls: [1, 5], entries: [e('emerald', 1), e('porkchop', 6), e('wheat', 6), e('beef', 6), e('mutton', 6), e('coal', 3, n(1, 3))] }],
+  },
+  'chests/village/village_fletcher': {
+    pools: [{ rolls: [1, 5], entries: [e('emerald', 1), e('arrow', 2), e('feather', 6), e('egg', 2), e('flint', 6), e('stick', 6)] }],
+  },
+  'chests/village/village_fisher': {
+    pools: [{ rolls: [1, 5], entries: [e('emerald', 1), e('cod', 2), e('salmon', 1), e('water_bucket', 1), e('barrel', 1), e('wheat_seeds', 3), e('coal', 2)] }],
+  },
+  'chests/village/village_tannery': {
+    pools: [{ rolls: [1, 5], entries: [e('leather', 1, n(1, 3)), e('leather_chestplate', 2), e('leather_boots', 2), e('leather_helmet', 2), e('bread', 5, n(1, 4)), e('leather_leggings', 2), e('saddle', 1), e('emerald', 1, n(1, 4))] }],
+  },
+  'chests/village/village_temple': {
+    pools: [{ rolls: [3, 8], entries: [e('redstone', 2, n(1, 4)), e('bread', 7, n(1, 4)), e('rotten_flesh', 7, n(1, 4)), e('lapis_lazuli', 1, n(1, 4)), e('gold_ingot', 1, n(1, 4)), e('emerald', 1, n(1, 4))] }],
+  },
 };
 
 // The plain-JSON view in CHEST_LOOT (for code that only needs item names and weights).
