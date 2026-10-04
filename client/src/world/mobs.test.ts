@@ -157,6 +157,24 @@ describe('client mobs', () => {
     expect(p).toEqual({ t: 'mobData', id: 42, key: 'swell_dir', value: -1 });
   });
 
+  it('rabbit hops for 10 ticks after event 1 or leaving the ground', () => {
+    const m = new ClientMob(1, 'rabbit');
+    m.handleEvent(1);
+    expect(m.jumpCompletion(0)).toBe(0);
+    for (let i = 0; i < 5; i++) m.tick();
+    expect(m.jumpCompletion(0)).toBeCloseTo(0.5);
+    for (let i = 0; i < 6; i++) m.tick();
+    expect(m.jumpCompletion(0)).toBe(0);
+  });
+
+  it('iron golem arm slam lasts 10 ticks (event 4)', () => {
+    const m = new ClientMob(1, 'iron_golem');
+    m.handleEvent(4);
+    expect(m.attackAnimationTick).toBe(10);
+    for (let i = 0; i < 10; i++) m.tick();
+    expect(m.attackAnimationTick).toBe(0);
+  });
+
   it('recognises mob types from minecraft-data', () => {
     expect(isMobType('zombie')).toBe(true);
     expect(isMobType('pig')).toBe(true);
