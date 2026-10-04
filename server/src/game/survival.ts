@@ -489,6 +489,8 @@ export class Survival {
     }
     this.s.broadcastToTrackers(p, { t: 'entityEvent', id: p.id, event: 3 }, true);
     this.s.send(p, { t: 'playerDied', message: msg, score: l.score });
+    // ServerPlayer.die closes the open container; grids and the cursor go back before dropAll
+    this.s.containers.closeAll(p);
     if (!this.s.gameRules.keepInventory) {
       // Inventory.dropAll: every stack flung in a random direction
       for (let i = 0; i < 41; i++) {

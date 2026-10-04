@@ -115,7 +115,7 @@ export abstract class Screen {
   mouseMove(mx: number, my: number): void {
     this.pressed?.onDrag(mx, my);
   }
-  mouseUp(): void {
+  mouseUp(_button = 0): void {
     this.pressed?.onRelease();
     this.pressed = null;
   }
@@ -127,6 +127,10 @@ export abstract class Screen {
   mouseScrolled(_mx: number, _my: number, _delta: number): void {}
   /** Called every game tick while open. */
   tick(): void {}
+  /** A printable character typed (after keyDown); return true if used. */
+  charTyped(_ch: string): boolean {
+    return false;
+  }
   /** Return true if the key was handled. */
   keyDown(_code: string): boolean {
     return false;

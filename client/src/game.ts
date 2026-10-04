@@ -3,6 +3,7 @@
  * frame loop and renderers.
  */
 import { animateFluids } from './world/fluidambience';
+import { animateCookingBlocks } from './world/blockambience';
 import { decodeS2C, encodeC2S, PROTOCOL_VERSION, type C2S, type S2C } from '@shared/protocol/packets';
 import { BIOMES } from '@shared/data';
 import { chunkKey } from '@shared/world/chunk';
@@ -63,12 +64,18 @@ import { JavaRandom } from '@shared/util/random';
 import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
+import { AbstractContainerScreen, InventoryScreen, screenForMenu, type ContainerHost } from './gui/containerscreen';
+import { CreativeScreen } from './gui/creative';
+import { saveHotbar, savedHotbars } from './gui/hotbars';
+import { InventoryMenu, createClientMenu, type Menu, type MenuType } from '@shared/menu/menu';
+import { InventoryContainer } from '@shared/menu/container';
+import { decodeStacks } from '@shared/protocol/packets';
 import { saveSettings } from './settings';
 import { ItemTextures } from './render/itemtextures';
 import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './gui/itemicons';
 import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
-export class Game implements ScreenHost {
+export class Game implements ScreenHost, ContainerHost {
   readonly gl: WebGL2RenderingContext;
   readonly world = new ClientWorld();
   readonly input: Input;
@@ -276,10 +283,12 @@ export class Game implements ScreenHost {
       toGui(e);
       this.screen?.mouseMove(this.mouseGX, this.mouseGY);
     });
-    window.addEventListener('mouseup', () => this.screen?.mouseUp());
+    window.addEventListener('mouseup', (e) => this.screen?.mouseUp(e.button));
     window.addEventListener('keydown', (e) => {
       if (this.screen) {
-        if (this.screen.keyDown(e.code)) e.preventDefault();
+        const sc = this.screen;
+        if (sc.keyDown(e.code)) e.preventDefault();
+        if (this.screen === sc && e.key.length === 1 && !e.ctrlKey && !e.metaKey && sc.charTyped(e.key)) e.preventDefault();
       }
     });
     this.input.onLockChange = (locked) => {
@@ -304,6 +313,8 @@ export class Game implements ScreenHost {
   setScreen(s: Screen | null): void {
     this.screen?.onClose();
     this.screen = s;
+    // keys and clicks made while a screen was up don't carry over to the world
+    this.input.clearPressed();
     if (s) {
       s.init();
       this.gui.canvas.classList.add('interactive');
@@ -533,6 +544,94 @@ export class Game implements ScreenHost {
     this.transport?.send(encodeC2S(p));
   }
 
+  // ------------------------------------------------------------------ containers (ContainerHost)
+  private invMenu: InventoryMenu | null = null;
+  /** The always-present player inventory menu (window 0). */
+  get inventoryMenu(): InventoryMenu {
+    if (!this.invMenu) this.invMenu = new InventoryMenu(new InventoryContainer(this.interaction.inventory));
+    return this.invMenu;
+  }
+  get playerInventory() {
+    return this.interaction.inventory;
+  }
+  isKeyDown(code: string): boolean {
+    return this.input.isDown(code);
+  }
+  /** E: the survival inventory, or the creative inventory in creative mode. */
+  openInventory(): void {
+    if (this.gameMode === 3) return;
+    if (this.gameMode === 1) this.setScreen(new CreativeScreen(this));
+    else this.setScreen(new InventoryScreen(this, this.inventoryMenu));
+  }
+  private previewModel: RemotePlayer | null = null;
+  private readonly previewProj = new Float32Array(16);
+  /**
+   * InventoryScreen.renderEntityInInventory: the local player drawn into the GUI box, body and
+   * head turned toward the mouse. Rendered with WebGL into the box's pixels, then copied onto
+   * the GUI canvas (which is drawn over the 3D view).
+   */
+  renderPlayerPreview(x: number, y: number, scale: number, lookX: number, lookY: number, box: [number, number, number, number] = [x - 25, y - 67, 50, 70]): void {
+    const sm = this.selfModel;
+    if (!sm || !this.entityRenderer) return;
+    const gl = this.gl, g = this.gui, k = g.scale;
+    const pm = (this.previewModel ??= new RemotePlayer(-1000, sm.name, sm.skin));
+    // vanilla: f = atan(lookX / 40) (radians) used directly as degrees ×20 / ×40
+    const ya = Math.atan(lookX / 40), pa = Math.atan(lookY / 40);
+    const pl = this.player;
+    pm.x = pm.xo = pl.x;
+    pm.y = pm.yo = pl.y;
+    pm.z = pm.zo = pl.z;
+    pm.bodyYaw = pm.bodyYawO = ya * 20;
+    pm.headYaw = pm.headYawO = ya * 40;
+    pm.pitch = pm.pitchO = -pa * 20;
+    pm.pose = sm.pose === 'crouching' ? 'crouching' : 'standing';
+    pm.tickCount = sm.tickCount;
+    pm.flags = 0;
+    pm.hurtTime = 0;
+    const cw = this.canvas.width, ch = this.canvas.height;
+    const GW = cw / k, GH = ch / k;
+    const m = this.previewProj;
+    m.fill(0);
+    m[0] = (2 * scale) / GW;
+    m[5] = (2 * scale) / GH;
+    m[10] = -0.1;
+    m[12] = (2 * x) / GW - 1;
+    m[13] = 1 - (2 * y) / GH;
+    m[15] = 1;
+    const [bx, by, bw, bh] = box;
+    const px = Math.round(bx * k), py = Math.round(by * k), pw = Math.round(bw * k), ph = Math.round(bh * k);
+    gl.viewport(0, 0, cw, ch);
+    gl.enable(gl.SCISSOR_TEST);
+    gl.scissor(px, ch - py - ph, pw, ph);
+    gl.clearColor(0, 0, 0, 1);
+    gl.depthMask(true);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    this.entityRenderer.renderPlayers([pm], this.world, m, pl.x, pl.y, pl.z, 1, this.lightmap.tex, [0, 0, 0], 1e6, 1e6);
+    gl.disable(gl.SCISSOR_TEST);
+    g.ctx.drawImage(this.canvas, px, py, pw, ph, bx, by, bw, bh);
+  }
+
+  private loadOrSaveHotbar(row: number, load: boolean): void {
+    const inv = this.interaction.inventory;
+    if (load) {
+      const saved = savedHotbars()[row]!;
+      for (let j = 0; j < 9; j++) {
+        const st = saved[j] ? { ...saved[j]! } : null;
+        inv.set(j, st);
+        this.send({ t: 'creativeSlot', slot: j, item: st?.id ?? 0, count: st?.count ?? 0, damage: st?.damage ?? 0 });
+      }
+    } else {
+      saveHotbar(row, inv.slots.slice(0, 9));
+      this.hud.setOverlay(`Saved toolbar (restore with ${keyName(this.binds.key('loadToolbarActivator'))}+${keyName(this.binds.key(`hotbar.${row + 1}`))})`);
+    }
+  }
+
+  /** The menu a window id refers to (0 = inventory). */
+  private windowMenu(id: number): Menu | null {
+    if (id === 0) return this.inventoryMenu;
+    return this.screen instanceof AbstractContainerScreen && this.screen.menu.containerId === id ? this.screen.menu : null;
+  }
+
   private handle(p: S2C): void {
     switch (p.t) {
       case 'login':
@@ -660,6 +759,44 @@ export class Game implements ScreenHost {
       case 'setCamera':
         this.cameraEntity = p.id === this.entityId ? null : p.id;
         break;
+      case 'openWindow': {
+        const menu = createClientMenu(p.type as MenuType, p.windowId, new InventoryContainer(this.interaction.inventory));
+        this.setScreen(screenForMenu(this, menu, p.title));
+        break;
+      }
+      case 'windowItems': {
+        const m = this.windowMenu(p.windowId);
+        if (!m) break;
+        const list = decodeStacks(p.items);
+        for (let i = 0; i < m.slots.length && i < list.length - 1; i++) m.slots[i]!.container.setItem(m.slots[i]!.slot, list[i]!);
+        m.carried = list[list.length - 1] ?? null;
+        break;
+      }
+      case 'windowSlot': {
+        const st = p.item > 0 && p.count > 0 ? { id: p.item, count: p.count, damage: p.damage } : null;
+        if (p.windowId === -1) {
+          const sc = this.screen;
+          if (sc instanceof AbstractContainerScreen) sc.menu.carried = st;
+          break;
+        }
+        const m = this.windowMenu(p.windowId);
+        const sl = m?.slots[p.slot];
+        if (sl) sl.container.setItem(sl.slot, st);
+        break;
+      }
+      case 'windowData': {
+        const m = this.windowMenu(p.windowId);
+        if (m) m.data[p.property] = p.value;
+        break;
+      }
+      case 'closeWindow': {
+        const sc = this.screen;
+        if (sc instanceof AbstractContainerScreen && sc.menu.containerId === p.windowId) {
+          sc.closedByServer = true;
+          this.setScreen(null);
+        }
+        break;
+      }
       case 'entityMotion':
         // LocalPlayer.lerpMotion (knockback)
         if (p.id === this.entityId) {
@@ -907,6 +1044,7 @@ export class Game implements ScreenHost {
     if (this.world.doDaylightCycle) this.world.dayTime++;
     this.world.gameTime++;
     animateFluids(this.world, this.player.x, this.player.y, this.player.z, this.sfxRand, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
+    animateCookingBlocks(this.world, this.player.x, this.player.y, this.player.z, this.sfxRand, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
     this.prevX = this.x;
     this.prevY = this.y;
     this.prevZ = this.z;
@@ -1004,8 +1142,15 @@ export class Game implements ScreenHost {
         for (let d = 1; d <= 9; d++) if (b.consume(`hotbar.${d}`)) this.spectatorGui.onHotbarSelected(d - 1);
       } else {
         if (b.consume('pickItem')) ia.pickBlock(this.target);
-        for (let d = 1; d <= 9; d++) if (b.consume(`hotbar.${d}`)) ia.select(d - 1);
+        for (let d = 1; d <= 9; d++) {
+          if (!b.consume(`hotbar.${d}`)) continue;
+          // creative: C/X + number saves/restores a toolbar (CreativeModeInventoryScreen.handleHotbarLoadOrSave)
+          const load = b.down('loadToolbarActivator'), save = b.down('saveToolbarActivator');
+          if (this.gameMode !== 1 || (!load && !save)) ia.select(d - 1);
+          else this.loadOrSaveHotbar(d - 1, load);
+        }
       }
+      if (b.consume('inventory')) this.openInventory();
       // vanilla: Ctrl (Screen.hasControlDown) + drop throws the whole stack
       if (b.consume('swapOffhand')) ia.swapOffhand();
       // vanilla handleKeybinds: T opens chat, / opens it with the slash typed

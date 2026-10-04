@@ -454,10 +454,10 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Bells <!--p4:bells-->
 - [ ] Campfires (cooking, signal smoke, damage) <!--p4:campfires_cooking_signal_smoke_damage-->
 - [ ] Beehives and bee nests <!--p4:beehives_and_bee_nests-->
-- [ ] Chests and double chests <!--p4:chests_and_double_chests-->
-- [ ] Ender chests <!--p4:ender_chests-->
+- [x] Chests and double chests <!--p4:chests_and_double_chests-->
+- [x] Ender chests <!--p4:ender_chests-->
 - [ ] Shulker boxes <!--p4:shulker_boxes-->
-- [ ] Barrels <!--p4:barrels-->
+- [x] Barrels <!--p4:barrels-->
 - [ ] Snow layers <!--p4:snow_layers-->
 - [ ] Ice melting and frosted ice <!--p4:ice_melting_and_frosted_ice-->
 - [ ] Sugar cane, cactus, bamboo, kelp growth <!--p4:sugar_cane_cactus_bamboo_kelp_growth-->
@@ -1421,34 +1421,34 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Inventory & screens
 
-- [ ] Player inventory screen (2×2 crafting, armor, offhand) <!--p5:player_inventory_screen_2_2_crafting_armor_offhand-->
-- [ ] Shift-click quick move <!--p5:shift_click_quick_move-->
-- [ ] Click-drag splitting (left and right) <!--p5:click_drag_splitting_left_and_right-->
-- [ ] Right-click halves / place one <!--p5:right_click_halves_place_one-->
-- [ ] Number-key hotbar swaps <!--p5:number_key_hotbar_swaps-->
-- [ ] Double-click collect <!--p5:double_click_collect-->
-- [ ] Drop outside window <!--p5:drop_outside_window-->
-- [ ] Offhand slot <!--p5:offhand_slot-->
-- [ ] Creative inventory with tabs <!--p5:creative_inventory_with_tabs-->
-- [ ] Creative search <!--p5:creative_search-->
-- [ ] Creative survival-inventory tab and destroy-item slot <!--p5:creative_survival_inventory_tab_and_destroy_item_slot-->
-- [ ] Hotbar saving (creative) <!--p5:hotbar_saving_creative-->
-- [ ] Crafting table <!--p5:crafting_table-->
-- [ ] Furnace <!--p5:furnace-->
-- [ ] Blast furnace <!--p5:blast_furnace-->
-- [ ] Smoker <!--p5:smoker-->
-- [ ] Campfire cooking <!--p5:campfire_cooking-->
-- [ ] Stonecutter <!--p5:stonecutter-->
-- [ ] Smithing table (netherite upgrades) <!--p5:smithing_table_netherite_upgrades-->
+- [x] Player inventory screen (2×2 crafting, armor, offhand) <!--p5:player_inventory_screen_2_2_crafting_armor_offhand-->
+- [x] Shift-click quick move <!--p5:shift_click_quick_move-->
+- [x] Click-drag splitting (left and right) <!--p5:click_drag_splitting_left_and_right-->
+- [x] Right-click halves / place one <!--p5:right_click_halves_place_one-->
+- [x] Number-key hotbar swaps <!--p5:number_key_hotbar_swaps-->
+- [x] Double-click collect <!--p5:double_click_collect-->
+- [x] Drop outside window <!--p5:drop_outside_window-->
+- [x] Offhand slot <!--p5:offhand_slot-->
+- [x] Creative inventory with tabs <!--p5:creative_inventory_with_tabs-->
+- [x] Creative search <!--p5:creative_search-->
+- [x] Creative survival-inventory tab and destroy-item slot <!--p5:creative_survival_inventory_tab_and_destroy_item_slot-->
+- [x] Hotbar saving (creative) <!--p5:hotbar_saving_creative-->
+- [x] Crafting table <!--p5:crafting_table-->
+- [x] Furnace <!--p5:furnace-->
+- [x] Blast furnace <!--p5:blast_furnace-->
+- [x] Smoker <!--p5:smoker-->
+- [x] Campfire cooking <!--p5:campfire_cooking-->
+- [x] Stonecutter <!--p5:stonecutter-->
+- [x] Smithing table (netherite upgrades) <!--p5:smithing_table_netherite_upgrades-->
 - [ ] Loom (banner patterns) <!--p5:loom_banner_patterns-->
 - [ ] Cartography table <!--p5:cartography_table-->
 - [ ] Grindstone <!--p5:grindstone-->
 - [ ] Anvil (repair, combine, rename, XP cost, prior-work penalty, Too Expensive!) <!--p5:anvil_repair_combine_rename_xp_cost_prior_work_penalty_too_expensive-->
 - [ ] Enchanting table screen <!--p5:enchanting_table_screen-->
 - [ ] Brewing stand screen <!--p5:brewing_stand_screen-->
-- [ ] Chest / double chest / barrel / shulker screens <!--p5:chest_double_chest_barrel_shulker_screens-->
-- [ ] Hopper screen <!--p5:hopper_screen-->
-- [ ] Dispenser/dropper screen <!--p5:dispenser_dropper_screen-->
+- [x] Chest / double chest / barrel / shulker screens <!--p5:chest_double_chest_barrel_shulker_screens-->
+- [x] Hopper screen <!--p5:hopper_screen-->
+- [x] Dispenser/dropper screen <!--p5:dispenser_dropper_screen-->
 - [ ] Beacon screen <!--p5:beacon_screen-->
 - [ ] Horse / llama inventory <!--p5:horse_llama_inventory-->
 - [ ] Villager trading screen <!--p5:villager_trading_screen-->
@@ -1456,9 +1456,9 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Book and quill editing <!--p5:book_and_quill_editing-->
 - [ ] Recipe book <!--p5:recipe_book-->
 - [ ] Durability and item breaking <!--p5:durability_and_item_breaking-->
-- [ ] Fuel values <!--p5:fuel_values-->
-- [ ] Smelting recipes (furnace, blast furnace, smoker, campfire) with XP <!--p5:smelting_recipes_furnace_blast_furnace_smoker_campfire_with_xp-->
-- [ ] Stonecutting recipes <!--p5:stonecutting_recipes-->
+- [x] Fuel values <!--p5:fuel_values-->
+- [x] Smelting recipes (furnace, blast furnace, smoker, campfire) with XP <!--p5:smelting_recipes_furnace_blast_furnace_smoker_campfire_with_xp-->
+- [x] Stonecutting recipes <!--p5:stonecutting_recipes-->
 - [ ] Special recipes (dyeing, banners, fireworks, maps, books, shields, suspicious stew, tipped arrows, repair) <!--p5:special_recipes_dyeing_banners_fireworks_maps_books_shields_suspicious_stew_tipped_arrows_repair-->
 - [ ] Maps (filling, zooming, locking, markers, banners) <!--p5:maps_filling_zooming_locking_markers_banners-->
 - [ ] Compass <!--p5:compass-->
@@ -1805,645 +1805,645 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Crafting recipes (per result item)
 
-- [ ] Recipe → Granite <!--recipe:granite-->
-- [ ] Recipe → Polished Granite <!--recipe:polished_granite-->
-- [ ] Recipe → Diorite <!--recipe:diorite-->
-- [ ] Recipe → Polished Diorite <!--recipe:polished_diorite-->
-- [ ] Recipe → Andesite <!--recipe:andesite-->
-- [ ] Recipe → Polished Andesite <!--recipe:polished_andesite-->
-- [ ] Recipe → Polished Deepslate <!--recipe:polished_deepslate-->
-- [ ] Recipe → Dripstone Block <!--recipe:dripstone_block-->
-- [ ] Recipe → Coarse Dirt <!--recipe:coarse_dirt-->
-- [ ] Recipe → Oak Planks <!--recipe:oak_planks-->
-- [ ] Recipe → Spruce Planks <!--recipe:spruce_planks-->
-- [ ] Recipe → Birch Planks <!--recipe:birch_planks-->
-- [ ] Recipe → Jungle Planks <!--recipe:jungle_planks-->
-- [ ] Recipe → Acacia Planks <!--recipe:acacia_planks-->
-- [ ] Recipe → Dark Oak Planks <!--recipe:dark_oak_planks-->
-- [ ] Recipe → Crimson Planks <!--recipe:crimson_planks-->
-- [ ] Recipe → Warped Planks <!--recipe:warped_planks-->
-- [ ] Recipe → Block of Coal <!--recipe:coal_block-->
-- [ ] Recipe → Block of Raw Iron <!--recipe:raw_iron_block-->
-- [ ] Recipe → Block of Raw Copper <!--recipe:raw_copper_block-->
-- [ ] Recipe → Block of Raw Gold <!--recipe:raw_gold_block-->
-- [ ] Recipe → Block of Amethyst <!--recipe:amethyst_block-->
-- [ ] Recipe → Block of Iron <!--recipe:iron_block-->
-- [ ] Recipe → Block of Copper <!--recipe:copper_block-->
-- [ ] Recipe → Block of Gold <!--recipe:gold_block-->
-- [ ] Recipe → Block of Diamond <!--recipe:diamond_block-->
-- [ ] Recipe → Block of Netherite <!--recipe:netherite_block-->
-- [ ] Recipe → Cut Copper <!--recipe:cut_copper-->
-- [ ] Recipe → Exposed Cut Copper <!--recipe:exposed_cut_copper-->
-- [ ] Recipe → Weathered Cut Copper <!--recipe:weathered_cut_copper-->
-- [ ] Recipe → Oxidized Cut Copper <!--recipe:oxidized_cut_copper-->
-- [ ] Recipe → Cut Copper Stairs <!--recipe:cut_copper_stairs-->
-- [ ] Recipe → Exposed Cut Copper Stairs <!--recipe:exposed_cut_copper_stairs-->
-- [ ] Recipe → Weathered Cut Copper Stairs <!--recipe:weathered_cut_copper_stairs-->
-- [ ] Recipe → Oxidized Cut Copper Stairs <!--recipe:oxidized_cut_copper_stairs-->
-- [ ] Recipe → Cut Copper Slab <!--recipe:cut_copper_slab-->
-- [ ] Recipe → Exposed Cut Copper Slab <!--recipe:exposed_cut_copper_slab-->
-- [ ] Recipe → Weathered Cut Copper Slab <!--recipe:weathered_cut_copper_slab-->
-- [ ] Recipe → Oxidized Cut Copper Slab <!--recipe:oxidized_cut_copper_slab-->
-- [ ] Recipe → Waxed Block of Copper <!--recipe:waxed_copper_block-->
-- [ ] Recipe → Waxed Exposed Copper <!--recipe:waxed_exposed_copper-->
-- [ ] Recipe → Waxed Weathered Copper <!--recipe:waxed_weathered_copper-->
-- [ ] Recipe → Waxed Oxidized Copper <!--recipe:waxed_oxidized_copper-->
-- [ ] Recipe → Waxed Cut Copper <!--recipe:waxed_cut_copper-->
-- [ ] Recipe → Waxed Exposed Cut Copper <!--recipe:waxed_exposed_cut_copper-->
-- [ ] Recipe → Waxed Weathered Cut Copper <!--recipe:waxed_weathered_cut_copper-->
-- [ ] Recipe → Waxed Oxidized Cut Copper <!--recipe:waxed_oxidized_cut_copper-->
-- [ ] Recipe → Waxed Cut Copper Stairs <!--recipe:waxed_cut_copper_stairs-->
-- [ ] Recipe → Waxed Exposed Cut Copper Stairs <!--recipe:waxed_exposed_cut_copper_stairs-->
-- [ ] Recipe → Waxed Weathered Cut Copper Stairs <!--recipe:waxed_weathered_cut_copper_stairs-->
-- [ ] Recipe → Waxed Oxidized Cut Copper Stairs <!--recipe:waxed_oxidized_cut_copper_stairs-->
-- [ ] Recipe → Waxed Cut Copper Slab <!--recipe:waxed_cut_copper_slab-->
-- [ ] Recipe → Waxed Exposed Cut Copper Slab <!--recipe:waxed_exposed_cut_copper_slab-->
-- [ ] Recipe → Waxed Weathered Cut Copper Slab <!--recipe:waxed_weathered_cut_copper_slab-->
-- [ ] Recipe → Waxed Oxidized Cut Copper Slab <!--recipe:waxed_oxidized_cut_copper_slab-->
-- [ ] Recipe → Stripped Oak Wood <!--recipe:stripped_oak_wood-->
-- [ ] Recipe → Stripped Spruce Wood <!--recipe:stripped_spruce_wood-->
-- [ ] Recipe → Stripped Birch Wood <!--recipe:stripped_birch_wood-->
-- [ ] Recipe → Stripped Jungle Wood <!--recipe:stripped_jungle_wood-->
-- [ ] Recipe → Stripped Acacia Wood <!--recipe:stripped_acacia_wood-->
-- [ ] Recipe → Stripped Dark Oak Wood <!--recipe:stripped_dark_oak_wood-->
-- [ ] Recipe → Stripped Crimson Hyphae <!--recipe:stripped_crimson_hyphae-->
-- [ ] Recipe → Stripped Warped Hyphae <!--recipe:stripped_warped_hyphae-->
-- [ ] Recipe → Oak Wood <!--recipe:oak_wood-->
-- [ ] Recipe → Spruce Wood <!--recipe:spruce_wood-->
-- [ ] Recipe → Birch Wood <!--recipe:birch_wood-->
-- [ ] Recipe → Jungle Wood <!--recipe:jungle_wood-->
-- [ ] Recipe → Acacia Wood <!--recipe:acacia_wood-->
-- [ ] Recipe → Dark Oak Wood <!--recipe:dark_oak_wood-->
-- [ ] Recipe → Crimson Hyphae <!--recipe:crimson_hyphae-->
-- [ ] Recipe → Warped Hyphae <!--recipe:warped_hyphae-->
-- [ ] Recipe → Tinted Glass <!--recipe:tinted_glass-->
-- [ ] Recipe → Block of Lapis Lazuli <!--recipe:lapis_block-->
-- [ ] Recipe → Sandstone <!--recipe:sandstone-->
-- [ ] Recipe → Chiseled Sandstone <!--recipe:chiseled_sandstone-->
-- [ ] Recipe → Cut Sandstone <!--recipe:cut_sandstone-->
-- [ ] Recipe → White Wool <!--recipe:white_wool-->
-- [ ] Recipe → Orange Wool <!--recipe:orange_wool-->
-- [ ] Recipe → Magenta Wool <!--recipe:magenta_wool-->
-- [ ] Recipe → Light Blue Wool <!--recipe:light_blue_wool-->
-- [ ] Recipe → Yellow Wool <!--recipe:yellow_wool-->
-- [ ] Recipe → Lime Wool <!--recipe:lime_wool-->
-- [ ] Recipe → Pink Wool <!--recipe:pink_wool-->
-- [ ] Recipe → Gray Wool <!--recipe:gray_wool-->
-- [ ] Recipe → Light Gray Wool <!--recipe:light_gray_wool-->
-- [ ] Recipe → Cyan Wool <!--recipe:cyan_wool-->
-- [ ] Recipe → Purple Wool <!--recipe:purple_wool-->
-- [ ] Recipe → Blue Wool <!--recipe:blue_wool-->
-- [ ] Recipe → Brown Wool <!--recipe:brown_wool-->
-- [ ] Recipe → Green Wool <!--recipe:green_wool-->
-- [ ] Recipe → Red Wool <!--recipe:red_wool-->
-- [ ] Recipe → Black Wool <!--recipe:black_wool-->
-- [ ] Recipe → Moss Carpet <!--recipe:moss_carpet-->
-- [ ] Recipe → Oak Slab <!--recipe:oak_slab-->
-- [ ] Recipe → Spruce Slab <!--recipe:spruce_slab-->
-- [ ] Recipe → Birch Slab <!--recipe:birch_slab-->
-- [ ] Recipe → Jungle Slab <!--recipe:jungle_slab-->
-- [ ] Recipe → Acacia Slab <!--recipe:acacia_slab-->
-- [ ] Recipe → Dark Oak Slab <!--recipe:dark_oak_slab-->
-- [ ] Recipe → Crimson Slab <!--recipe:crimson_slab-->
-- [ ] Recipe → Warped Slab <!--recipe:warped_slab-->
-- [ ] Recipe → Stone Slab <!--recipe:stone_slab-->
-- [ ] Recipe → Smooth Stone Slab <!--recipe:smooth_stone_slab-->
-- [ ] Recipe → Sandstone Slab <!--recipe:sandstone_slab-->
-- [ ] Recipe → Cut Sandstone Slab <!--recipe:cut_sandstone_slab-->
-- [ ] Recipe → Cobblestone Slab <!--recipe:cobblestone_slab-->
-- [ ] Recipe → Brick Slab <!--recipe:brick_slab-->
-- [ ] Recipe → Stone Brick Slab <!--recipe:stone_brick_slab-->
-- [ ] Recipe → Nether Brick Slab <!--recipe:nether_brick_slab-->
-- [ ] Recipe → Quartz Slab <!--recipe:quartz_slab-->
-- [ ] Recipe → Red Sandstone Slab <!--recipe:red_sandstone_slab-->
-- [ ] Recipe → Cut Red Sandstone Slab <!--recipe:cut_red_sandstone_slab-->
-- [ ] Recipe → Purpur Slab <!--recipe:purpur_slab-->
-- [ ] Recipe → Prismarine Slab <!--recipe:prismarine_slab-->
-- [ ] Recipe → Prismarine Brick Slab <!--recipe:prismarine_brick_slab-->
-- [ ] Recipe → Dark Prismarine Slab <!--recipe:dark_prismarine_slab-->
-- [ ] Recipe → Bricks <!--recipe:bricks-->
-- [ ] Recipe → Bookshelf <!--recipe:bookshelf-->
-- [ ] Recipe → Mossy Cobblestone <!--recipe:mossy_cobblestone-->
-- [ ] Recipe → Torch <!--recipe:torch-->
-- [ ] Recipe → End Rod <!--recipe:end_rod-->
-- [ ] Recipe → Purpur Block <!--recipe:purpur_block-->
-- [ ] Recipe → Purpur Pillar <!--recipe:purpur_pillar-->
-- [ ] Recipe → Purpur Stairs <!--recipe:purpur_stairs-->
-- [ ] Recipe → Oak Stairs <!--recipe:oak_stairs-->
-- [ ] Recipe → Chest <!--recipe:chest-->
-- [ ] Recipe → Crafting Table <!--recipe:crafting_table-->
-- [ ] Recipe → Furnace <!--recipe:furnace-->
-- [ ] Recipe → Ladder <!--recipe:ladder-->
-- [ ] Recipe → Cobblestone Stairs <!--recipe:cobblestone_stairs-->
-- [ ] Recipe → Snow <!--recipe:snow-->
-- [ ] Recipe → Snow Block <!--recipe:snow_block-->
-- [ ] Recipe → Clay <!--recipe:clay-->
-- [ ] Recipe → Jukebox <!--recipe:jukebox-->
-- [ ] Recipe → Oak Fence <!--recipe:oak_fence-->
-- [ ] Recipe → Spruce Fence <!--recipe:spruce_fence-->
-- [ ] Recipe → Birch Fence <!--recipe:birch_fence-->
-- [ ] Recipe → Jungle Fence <!--recipe:jungle_fence-->
-- [ ] Recipe → Acacia Fence <!--recipe:acacia_fence-->
-- [ ] Recipe → Dark Oak Fence <!--recipe:dark_oak_fence-->
-- [ ] Recipe → Crimson Fence <!--recipe:crimson_fence-->
-- [ ] Recipe → Warped Fence <!--recipe:warped_fence-->
-- [ ] Recipe → Jack o'Lantern <!--recipe:jack_o_lantern-->
-- [ ] Recipe → Polished Basalt <!--recipe:polished_basalt-->
-- [ ] Recipe → Soul Torch <!--recipe:soul_torch-->
-- [ ] Recipe → Glowstone <!--recipe:glowstone-->
-- [ ] Recipe → Stone Bricks <!--recipe:stone_bricks-->
-- [ ] Recipe → Mossy Stone Bricks <!--recipe:mossy_stone_bricks-->
-- [ ] Recipe → Chiseled Stone Bricks <!--recipe:chiseled_stone_bricks-->
-- [ ] Recipe → Deepslate Bricks <!--recipe:deepslate_bricks-->
-- [ ] Recipe → Deepslate Tiles <!--recipe:deepslate_tiles-->
-- [ ] Recipe → Chiseled Deepslate <!--recipe:chiseled_deepslate-->
-- [ ] Recipe → Iron Bars <!--recipe:iron_bars-->
-- [ ] Recipe → Chain <!--recipe:chain-->
-- [ ] Recipe → Glass Pane <!--recipe:glass_pane-->
-- [ ] Recipe → Melon <!--recipe:melon-->
-- [ ] Recipe → Brick Stairs <!--recipe:brick_stairs-->
-- [ ] Recipe → Stone Brick Stairs <!--recipe:stone_brick_stairs-->
-- [ ] Recipe → Nether Bricks <!--recipe:nether_bricks-->
-- [ ] Recipe → Chiseled Nether Bricks <!--recipe:chiseled_nether_bricks-->
-- [ ] Recipe → Nether Brick Fence <!--recipe:nether_brick_fence-->
-- [ ] Recipe → Nether Brick Stairs <!--recipe:nether_brick_stairs-->
-- [ ] Recipe → Enchanting Table <!--recipe:enchanting_table-->
-- [ ] Recipe → End Stone Bricks <!--recipe:end_stone_bricks-->
-- [ ] Recipe → Sandstone Stairs <!--recipe:sandstone_stairs-->
-- [ ] Recipe → Ender Chest <!--recipe:ender_chest-->
-- [ ] Recipe → Block of Emerald <!--recipe:emerald_block-->
-- [ ] Recipe → Spruce Stairs <!--recipe:spruce_stairs-->
-- [ ] Recipe → Birch Stairs <!--recipe:birch_stairs-->
-- [ ] Recipe → Jungle Stairs <!--recipe:jungle_stairs-->
-- [ ] Recipe → Crimson Stairs <!--recipe:crimson_stairs-->
-- [ ] Recipe → Warped Stairs <!--recipe:warped_stairs-->
-- [ ] Recipe → Beacon <!--recipe:beacon-->
-- [ ] Recipe → Cobblestone Wall <!--recipe:cobblestone_wall-->
-- [ ] Recipe → Mossy Cobblestone Wall <!--recipe:mossy_cobblestone_wall-->
-- [ ] Recipe → Brick Wall <!--recipe:brick_wall-->
-- [ ] Recipe → Prismarine Wall <!--recipe:prismarine_wall-->
-- [ ] Recipe → Red Sandstone Wall <!--recipe:red_sandstone_wall-->
-- [ ] Recipe → Mossy Stone Brick Wall <!--recipe:mossy_stone_brick_wall-->
-- [ ] Recipe → Granite Wall <!--recipe:granite_wall-->
-- [ ] Recipe → Stone Brick Wall <!--recipe:stone_brick_wall-->
-- [ ] Recipe → Nether Brick Wall <!--recipe:nether_brick_wall-->
-- [ ] Recipe → Andesite Wall <!--recipe:andesite_wall-->
-- [ ] Recipe → Red Nether Brick Wall <!--recipe:red_nether_brick_wall-->
-- [ ] Recipe → Sandstone Wall <!--recipe:sandstone_wall-->
-- [ ] Recipe → End Stone Brick Wall <!--recipe:end_stone_brick_wall-->
-- [ ] Recipe → Diorite Wall <!--recipe:diorite_wall-->
-- [ ] Recipe → Blackstone Wall <!--recipe:blackstone_wall-->
-- [ ] Recipe → Polished Blackstone Wall <!--recipe:polished_blackstone_wall-->
-- [ ] Recipe → Polished Blackstone Brick Wall <!--recipe:polished_blackstone_brick_wall-->
-- [ ] Recipe → Cobbled Deepslate Wall <!--recipe:cobbled_deepslate_wall-->
-- [ ] Recipe → Polished Deepslate Wall <!--recipe:polished_deepslate_wall-->
-- [ ] Recipe → Deepslate Brick Wall <!--recipe:deepslate_brick_wall-->
-- [ ] Recipe → Deepslate Tile Wall <!--recipe:deepslate_tile_wall-->
-- [ ] Recipe → Anvil <!--recipe:anvil-->
-- [ ] Recipe → Chiseled Quartz Block <!--recipe:chiseled_quartz_block-->
-- [ ] Recipe → Block of Quartz <!--recipe:quartz_block-->
-- [ ] Recipe → Quartz Bricks <!--recipe:quartz_bricks-->
-- [ ] Recipe → Quartz Pillar <!--recipe:quartz_pillar-->
-- [ ] Recipe → Quartz Stairs <!--recipe:quartz_stairs-->
-- [ ] Recipe → White Terracotta <!--recipe:white_terracotta-->
-- [ ] Recipe → Orange Terracotta <!--recipe:orange_terracotta-->
-- [ ] Recipe → Magenta Terracotta <!--recipe:magenta_terracotta-->
-- [ ] Recipe → Light Blue Terracotta <!--recipe:light_blue_terracotta-->
-- [ ] Recipe → Yellow Terracotta <!--recipe:yellow_terracotta-->
-- [ ] Recipe → Lime Terracotta <!--recipe:lime_terracotta-->
-- [ ] Recipe → Pink Terracotta <!--recipe:pink_terracotta-->
-- [ ] Recipe → Gray Terracotta <!--recipe:gray_terracotta-->
-- [ ] Recipe → Light Gray Terracotta <!--recipe:light_gray_terracotta-->
-- [ ] Recipe → Cyan Terracotta <!--recipe:cyan_terracotta-->
-- [ ] Recipe → Purple Terracotta <!--recipe:purple_terracotta-->
-- [ ] Recipe → Blue Terracotta <!--recipe:blue_terracotta-->
-- [ ] Recipe → Brown Terracotta <!--recipe:brown_terracotta-->
-- [ ] Recipe → Green Terracotta <!--recipe:green_terracotta-->
-- [ ] Recipe → Red Terracotta <!--recipe:red_terracotta-->
-- [ ] Recipe → Black Terracotta <!--recipe:black_terracotta-->
-- [ ] Recipe → Hay Bale <!--recipe:hay_block-->
-- [ ] Recipe → White Carpet <!--recipe:white_carpet-->
-- [ ] Recipe → Orange Carpet <!--recipe:orange_carpet-->
-- [ ] Recipe → Magenta Carpet <!--recipe:magenta_carpet-->
-- [ ] Recipe → Light Blue Carpet <!--recipe:light_blue_carpet-->
-- [ ] Recipe → Yellow Carpet <!--recipe:yellow_carpet-->
-- [ ] Recipe → Lime Carpet <!--recipe:lime_carpet-->
-- [ ] Recipe → Pink Carpet <!--recipe:pink_carpet-->
-- [ ] Recipe → Gray Carpet <!--recipe:gray_carpet-->
-- [ ] Recipe → Light Gray Carpet <!--recipe:light_gray_carpet-->
-- [ ] Recipe → Cyan Carpet <!--recipe:cyan_carpet-->
-- [ ] Recipe → Purple Carpet <!--recipe:purple_carpet-->
-- [ ] Recipe → Blue Carpet <!--recipe:blue_carpet-->
-- [ ] Recipe → Brown Carpet <!--recipe:brown_carpet-->
-- [ ] Recipe → Green Carpet <!--recipe:green_carpet-->
-- [ ] Recipe → Red Carpet <!--recipe:red_carpet-->
-- [ ] Recipe → Black Carpet <!--recipe:black_carpet-->
-- [ ] Recipe → Packed Ice <!--recipe:packed_ice-->
-- [ ] Recipe → Acacia Stairs <!--recipe:acacia_stairs-->
-- [ ] Recipe → Dark Oak Stairs <!--recipe:dark_oak_stairs-->
-- [ ] Recipe → White Stained Glass <!--recipe:white_stained_glass-->
-- [ ] Recipe → Orange Stained Glass <!--recipe:orange_stained_glass-->
-- [ ] Recipe → Magenta Stained Glass <!--recipe:magenta_stained_glass-->
-- [ ] Recipe → Light Blue Stained Glass <!--recipe:light_blue_stained_glass-->
-- [ ] Recipe → Yellow Stained Glass <!--recipe:yellow_stained_glass-->
-- [ ] Recipe → Lime Stained Glass <!--recipe:lime_stained_glass-->
-- [ ] Recipe → Pink Stained Glass <!--recipe:pink_stained_glass-->
-- [ ] Recipe → Gray Stained Glass <!--recipe:gray_stained_glass-->
-- [ ] Recipe → Light Gray Stained Glass <!--recipe:light_gray_stained_glass-->
-- [ ] Recipe → Cyan Stained Glass <!--recipe:cyan_stained_glass-->
-- [ ] Recipe → Purple Stained Glass <!--recipe:purple_stained_glass-->
-- [ ] Recipe → Blue Stained Glass <!--recipe:blue_stained_glass-->
-- [ ] Recipe → Brown Stained Glass <!--recipe:brown_stained_glass-->
-- [ ] Recipe → Green Stained Glass <!--recipe:green_stained_glass-->
-- [ ] Recipe → Red Stained Glass <!--recipe:red_stained_glass-->
-- [ ] Recipe → Black Stained Glass <!--recipe:black_stained_glass-->
-- [ ] Recipe → White Stained Glass Pane <!--recipe:white_stained_glass_pane-->
-- [ ] Recipe → Orange Stained Glass Pane <!--recipe:orange_stained_glass_pane-->
-- [ ] Recipe → Magenta Stained Glass Pane <!--recipe:magenta_stained_glass_pane-->
-- [ ] Recipe → Light Blue Stained Glass Pane <!--recipe:light_blue_stained_glass_pane-->
-- [ ] Recipe → Yellow Stained Glass Pane <!--recipe:yellow_stained_glass_pane-->
-- [ ] Recipe → Lime Stained Glass Pane <!--recipe:lime_stained_glass_pane-->
-- [ ] Recipe → Pink Stained Glass Pane <!--recipe:pink_stained_glass_pane-->
-- [ ] Recipe → Gray Stained Glass Pane <!--recipe:gray_stained_glass_pane-->
-- [ ] Recipe → Light Gray Stained Glass Pane <!--recipe:light_gray_stained_glass_pane-->
-- [ ] Recipe → Cyan Stained Glass Pane <!--recipe:cyan_stained_glass_pane-->
-- [ ] Recipe → Purple Stained Glass Pane <!--recipe:purple_stained_glass_pane-->
-- [ ] Recipe → Blue Stained Glass Pane <!--recipe:blue_stained_glass_pane-->
-- [ ] Recipe → Brown Stained Glass Pane <!--recipe:brown_stained_glass_pane-->
-- [ ] Recipe → Green Stained Glass Pane <!--recipe:green_stained_glass_pane-->
-- [ ] Recipe → Red Stained Glass Pane <!--recipe:red_stained_glass_pane-->
-- [ ] Recipe → Black Stained Glass Pane <!--recipe:black_stained_glass_pane-->
-- [ ] Recipe → Prismarine <!--recipe:prismarine-->
-- [ ] Recipe → Prismarine Bricks <!--recipe:prismarine_bricks-->
-- [ ] Recipe → Dark Prismarine <!--recipe:dark_prismarine-->
-- [ ] Recipe → Prismarine Stairs <!--recipe:prismarine_stairs-->
-- [ ] Recipe → Prismarine Brick Stairs <!--recipe:prismarine_brick_stairs-->
-- [ ] Recipe → Dark Prismarine Stairs <!--recipe:dark_prismarine_stairs-->
-- [ ] Recipe → Sea Lantern <!--recipe:sea_lantern-->
-- [ ] Recipe → Red Sandstone <!--recipe:red_sandstone-->
-- [ ] Recipe → Chiseled Red Sandstone <!--recipe:chiseled_red_sandstone-->
-- [ ] Recipe → Cut Red Sandstone <!--recipe:cut_red_sandstone-->
-- [ ] Recipe → Red Sandstone Stairs <!--recipe:red_sandstone_stairs-->
-- [ ] Recipe → Magma Block <!--recipe:magma_block-->
-- [ ] Recipe → Nether Wart Block <!--recipe:nether_wart_block-->
-- [ ] Recipe → Red Nether Bricks <!--recipe:red_nether_bricks-->
-- [ ] Recipe → Bone Block <!--recipe:bone_block-->
-- [ ] Recipe → Shulker Box <!--recipe:shulker_box-->
-- [ ] Recipe → White Concrete Powder <!--recipe:white_concrete_powder-->
-- [ ] Recipe → Orange Concrete Powder <!--recipe:orange_concrete_powder-->
-- [ ] Recipe → Magenta Concrete Powder <!--recipe:magenta_concrete_powder-->
-- [ ] Recipe → Light Blue Concrete Powder <!--recipe:light_blue_concrete_powder-->
-- [ ] Recipe → Yellow Concrete Powder <!--recipe:yellow_concrete_powder-->
-- [ ] Recipe → Lime Concrete Powder <!--recipe:lime_concrete_powder-->
-- [ ] Recipe → Pink Concrete Powder <!--recipe:pink_concrete_powder-->
-- [ ] Recipe → Gray Concrete Powder <!--recipe:gray_concrete_powder-->
-- [ ] Recipe → Light Gray Concrete Powder <!--recipe:light_gray_concrete_powder-->
-- [ ] Recipe → Cyan Concrete Powder <!--recipe:cyan_concrete_powder-->
-- [ ] Recipe → Purple Concrete Powder <!--recipe:purple_concrete_powder-->
-- [ ] Recipe → Blue Concrete Powder <!--recipe:blue_concrete_powder-->
-- [ ] Recipe → Brown Concrete Powder <!--recipe:brown_concrete_powder-->
-- [ ] Recipe → Green Concrete Powder <!--recipe:green_concrete_powder-->
-- [ ] Recipe → Red Concrete Powder <!--recipe:red_concrete_powder-->
-- [ ] Recipe → Black Concrete Powder <!--recipe:black_concrete_powder-->
-- [ ] Recipe → Blue Ice <!--recipe:blue_ice-->
-- [ ] Recipe → Conduit <!--recipe:conduit-->
-- [ ] Recipe → Polished Granite Stairs <!--recipe:polished_granite_stairs-->
-- [ ] Recipe → Smooth Red Sandstone Stairs <!--recipe:smooth_red_sandstone_stairs-->
-- [ ] Recipe → Mossy Stone Brick Stairs <!--recipe:mossy_stone_brick_stairs-->
-- [ ] Recipe → Polished Diorite Stairs <!--recipe:polished_diorite_stairs-->
-- [ ] Recipe → Mossy Cobblestone Stairs <!--recipe:mossy_cobblestone_stairs-->
-- [ ] Recipe → End Stone Brick Stairs <!--recipe:end_stone_brick_stairs-->
-- [ ] Recipe → Stone Stairs <!--recipe:stone_stairs-->
-- [ ] Recipe → Smooth Sandstone Stairs <!--recipe:smooth_sandstone_stairs-->
-- [ ] Recipe → Smooth Quartz Stairs <!--recipe:smooth_quartz_stairs-->
-- [ ] Recipe → Granite Stairs <!--recipe:granite_stairs-->
-- [ ] Recipe → Andesite Stairs <!--recipe:andesite_stairs-->
-- [ ] Recipe → Red Nether Brick Stairs <!--recipe:red_nether_brick_stairs-->
-- [ ] Recipe → Polished Andesite Stairs <!--recipe:polished_andesite_stairs-->
-- [ ] Recipe → Diorite Stairs <!--recipe:diorite_stairs-->
-- [ ] Recipe → Cobbled Deepslate Stairs <!--recipe:cobbled_deepslate_stairs-->
-- [ ] Recipe → Polished Deepslate Stairs <!--recipe:polished_deepslate_stairs-->
-- [ ] Recipe → Deepslate Brick Stairs <!--recipe:deepslate_brick_stairs-->
-- [ ] Recipe → Deepslate Tile Stairs <!--recipe:deepslate_tile_stairs-->
-- [ ] Recipe → Polished Granite Slab <!--recipe:polished_granite_slab-->
-- [ ] Recipe → Smooth Red Sandstone Slab <!--recipe:smooth_red_sandstone_slab-->
-- [ ] Recipe → Mossy Stone Brick Slab <!--recipe:mossy_stone_brick_slab-->
-- [ ] Recipe → Polished Diorite Slab <!--recipe:polished_diorite_slab-->
-- [ ] Recipe → Mossy Cobblestone Slab <!--recipe:mossy_cobblestone_slab-->
-- [ ] Recipe → End Stone Brick Slab <!--recipe:end_stone_brick_slab-->
-- [ ] Recipe → Smooth Sandstone Slab <!--recipe:smooth_sandstone_slab-->
-- [ ] Recipe → Smooth Quartz Slab <!--recipe:smooth_quartz_slab-->
-- [ ] Recipe → Granite Slab <!--recipe:granite_slab-->
-- [ ] Recipe → Andesite Slab <!--recipe:andesite_slab-->
-- [ ] Recipe → Red Nether Brick Slab <!--recipe:red_nether_brick_slab-->
-- [ ] Recipe → Polished Andesite Slab <!--recipe:polished_andesite_slab-->
-- [ ] Recipe → Diorite Slab <!--recipe:diorite_slab-->
-- [ ] Recipe → Cobbled Deepslate Slab <!--recipe:cobbled_deepslate_slab-->
-- [ ] Recipe → Polished Deepslate Slab <!--recipe:polished_deepslate_slab-->
-- [ ] Recipe → Deepslate Brick Slab <!--recipe:deepslate_brick_slab-->
-- [ ] Recipe → Deepslate Tile Slab <!--recipe:deepslate_tile_slab-->
-- [ ] Recipe → Scaffolding <!--recipe:scaffolding-->
-- [ ] Recipe → Redstone Dust <!--recipe:redstone-->
-- [ ] Recipe → Redstone Torch <!--recipe:redstone_torch-->
-- [ ] Recipe → Block of Redstone <!--recipe:redstone_block-->
-- [ ] Recipe → Redstone Repeater <!--recipe:repeater-->
-- [ ] Recipe → Redstone Comparator <!--recipe:comparator-->
-- [ ] Recipe → Piston <!--recipe:piston-->
-- [ ] Recipe → Sticky Piston <!--recipe:sticky_piston-->
-- [ ] Recipe → Slime Block <!--recipe:slime_block-->
-- [ ] Recipe → Honey Block <!--recipe:honey_block-->
-- [ ] Recipe → Observer <!--recipe:observer-->
-- [ ] Recipe → Hopper <!--recipe:hopper-->
-- [ ] Recipe → Dispenser <!--recipe:dispenser-->
-- [ ] Recipe → Dropper <!--recipe:dropper-->
-- [ ] Recipe → Lectern <!--recipe:lectern-->
-- [ ] Recipe → Target <!--recipe:target-->
-- [ ] Recipe → Lever <!--recipe:lever-->
-- [ ] Recipe → Lightning Rod <!--recipe:lightning_rod-->
-- [ ] Recipe → Daylight Detector <!--recipe:daylight_detector-->
-- [ ] Recipe → Tripwire Hook <!--recipe:tripwire_hook-->
-- [ ] Recipe → Trapped Chest <!--recipe:trapped_chest-->
-- [ ] Recipe → TNT <!--recipe:tnt-->
-- [ ] Recipe → Redstone Lamp <!--recipe:redstone_lamp-->
-- [ ] Recipe → Note Block <!--recipe:note_block-->
-- [ ] Recipe → Stone Button <!--recipe:stone_button-->
-- [ ] Recipe → Polished Blackstone Button <!--recipe:polished_blackstone_button-->
-- [ ] Recipe → Oak Button <!--recipe:oak_button-->
-- [ ] Recipe → Spruce Button <!--recipe:spruce_button-->
-- [ ] Recipe → Birch Button <!--recipe:birch_button-->
-- [ ] Recipe → Jungle Button <!--recipe:jungle_button-->
-- [ ] Recipe → Acacia Button <!--recipe:acacia_button-->
-- [ ] Recipe → Dark Oak Button <!--recipe:dark_oak_button-->
-- [ ] Recipe → Crimson Button <!--recipe:crimson_button-->
-- [ ] Recipe → Warped Button <!--recipe:warped_button-->
-- [ ] Recipe → Stone Pressure Plate <!--recipe:stone_pressure_plate-->
-- [ ] Recipe → Polished Blackstone Pressure Plate <!--recipe:polished_blackstone_pressure_plate-->
-- [ ] Recipe → Light Weighted Pressure Plate <!--recipe:light_weighted_pressure_plate-->
-- [ ] Recipe → Heavy Weighted Pressure Plate <!--recipe:heavy_weighted_pressure_plate-->
-- [ ] Recipe → Oak Pressure Plate <!--recipe:oak_pressure_plate-->
-- [ ] Recipe → Spruce Pressure Plate <!--recipe:spruce_pressure_plate-->
-- [ ] Recipe → Birch Pressure Plate <!--recipe:birch_pressure_plate-->
-- [ ] Recipe → Jungle Pressure Plate <!--recipe:jungle_pressure_plate-->
-- [ ] Recipe → Acacia Pressure Plate <!--recipe:acacia_pressure_plate-->
-- [ ] Recipe → Dark Oak Pressure Plate <!--recipe:dark_oak_pressure_plate-->
-- [ ] Recipe → Crimson Pressure Plate <!--recipe:crimson_pressure_plate-->
-- [ ] Recipe → Warped Pressure Plate <!--recipe:warped_pressure_plate-->
-- [ ] Recipe → Iron Door <!--recipe:iron_door-->
-- [ ] Recipe → Oak Door <!--recipe:oak_door-->
-- [ ] Recipe → Spruce Door <!--recipe:spruce_door-->
-- [ ] Recipe → Birch Door <!--recipe:birch_door-->
-- [ ] Recipe → Jungle Door <!--recipe:jungle_door-->
-- [ ] Recipe → Acacia Door <!--recipe:acacia_door-->
-- [ ] Recipe → Dark Oak Door <!--recipe:dark_oak_door-->
-- [ ] Recipe → Crimson Door <!--recipe:crimson_door-->
-- [ ] Recipe → Warped Door <!--recipe:warped_door-->
-- [ ] Recipe → Iron Trapdoor <!--recipe:iron_trapdoor-->
-- [ ] Recipe → Oak Trapdoor <!--recipe:oak_trapdoor-->
-- [ ] Recipe → Spruce Trapdoor <!--recipe:spruce_trapdoor-->
-- [ ] Recipe → Birch Trapdoor <!--recipe:birch_trapdoor-->
-- [ ] Recipe → Jungle Trapdoor <!--recipe:jungle_trapdoor-->
-- [ ] Recipe → Acacia Trapdoor <!--recipe:acacia_trapdoor-->
-- [ ] Recipe → Dark Oak Trapdoor <!--recipe:dark_oak_trapdoor-->
-- [ ] Recipe → Crimson Trapdoor <!--recipe:crimson_trapdoor-->
-- [ ] Recipe → Warped Trapdoor <!--recipe:warped_trapdoor-->
-- [ ] Recipe → Oak Fence Gate <!--recipe:oak_fence_gate-->
-- [ ] Recipe → Spruce Fence Gate <!--recipe:spruce_fence_gate-->
-- [ ] Recipe → Birch Fence Gate <!--recipe:birch_fence_gate-->
-- [ ] Recipe → Jungle Fence Gate <!--recipe:jungle_fence_gate-->
-- [ ] Recipe → Acacia Fence Gate <!--recipe:acacia_fence_gate-->
-- [ ] Recipe → Dark Oak Fence Gate <!--recipe:dark_oak_fence_gate-->
-- [ ] Recipe → Crimson Fence Gate <!--recipe:crimson_fence_gate-->
-- [ ] Recipe → Warped Fence Gate <!--recipe:warped_fence_gate-->
-- [ ] Recipe → Powered Rail <!--recipe:powered_rail-->
-- [ ] Recipe → Detector Rail <!--recipe:detector_rail-->
-- [ ] Recipe → Rail <!--recipe:rail-->
-- [ ] Recipe → Activator Rail <!--recipe:activator_rail-->
-- [ ] Recipe → Minecart <!--recipe:minecart-->
-- [ ] Recipe → Minecart with Chest <!--recipe:chest_minecart-->
-- [ ] Recipe → Minecart with Furnace <!--recipe:furnace_minecart-->
-- [ ] Recipe → Minecart with TNT <!--recipe:tnt_minecart-->
-- [ ] Recipe → Minecart with Hopper <!--recipe:hopper_minecart-->
-- [ ] Recipe → Carrot on a Stick <!--recipe:carrot_on_a_stick-->
-- [ ] Recipe → Warped Fungus on a Stick <!--recipe:warped_fungus_on_a_stick-->
-- [ ] Recipe → Oak Boat <!--recipe:oak_boat-->
-- [ ] Recipe → Spruce Boat <!--recipe:spruce_boat-->
-- [ ] Recipe → Birch Boat <!--recipe:birch_boat-->
-- [ ] Recipe → Jungle Boat <!--recipe:jungle_boat-->
-- [ ] Recipe → Acacia Boat <!--recipe:acacia_boat-->
-- [ ] Recipe → Dark Oak Boat <!--recipe:dark_oak_boat-->
-- [ ] Recipe → Turtle Shell <!--recipe:turtle_helmet-->
-- [ ] Recipe → Flint and Steel <!--recipe:flint_and_steel-->
-- [ ] Recipe → Bow <!--recipe:bow-->
-- [ ] Recipe → Arrow <!--recipe:arrow-->
-- [ ] Recipe → Coal <!--recipe:coal-->
-- [ ] Recipe → Diamond <!--recipe:diamond-->
-- [ ] Recipe → Emerald <!--recipe:emerald-->
-- [ ] Recipe → Lapis Lazuli <!--recipe:lapis_lazuli-->
-- [ ] Recipe → Raw Iron <!--recipe:raw_iron-->
-- [ ] Recipe → Iron Ingot <!--recipe:iron_ingot-->
-- [ ] Recipe → Raw Copper <!--recipe:raw_copper-->
-- [ ] Recipe → Copper Ingot <!--recipe:copper_ingot-->
-- [ ] Recipe → Raw Gold <!--recipe:raw_gold-->
-- [ ] Recipe → Gold Ingot <!--recipe:gold_ingot-->
-- [ ] Recipe → Netherite Ingot <!--recipe:netherite_ingot-->
-- [ ] Recipe → Wooden Sword <!--recipe:wooden_sword-->
-- [ ] Recipe → Wooden Shovel <!--recipe:wooden_shovel-->
-- [ ] Recipe → Wooden Pickaxe <!--recipe:wooden_pickaxe-->
-- [ ] Recipe → Wooden Axe <!--recipe:wooden_axe-->
-- [ ] Recipe → Wooden Hoe <!--recipe:wooden_hoe-->
-- [ ] Recipe → Stone Sword <!--recipe:stone_sword-->
-- [ ] Recipe → Stone Shovel <!--recipe:stone_shovel-->
-- [ ] Recipe → Stone Pickaxe <!--recipe:stone_pickaxe-->
-- [ ] Recipe → Stone Axe <!--recipe:stone_axe-->
-- [ ] Recipe → Stone Hoe <!--recipe:stone_hoe-->
-- [ ] Recipe → Golden Sword <!--recipe:golden_sword-->
-- [ ] Recipe → Golden Shovel <!--recipe:golden_shovel-->
-- [ ] Recipe → Golden Pickaxe <!--recipe:golden_pickaxe-->
-- [ ] Recipe → Golden Axe <!--recipe:golden_axe-->
-- [ ] Recipe → Golden Hoe <!--recipe:golden_hoe-->
-- [ ] Recipe → Iron Sword <!--recipe:iron_sword-->
-- [ ] Recipe → Iron Shovel <!--recipe:iron_shovel-->
-- [ ] Recipe → Iron Pickaxe <!--recipe:iron_pickaxe-->
-- [ ] Recipe → Iron Axe <!--recipe:iron_axe-->
-- [ ] Recipe → Iron Hoe <!--recipe:iron_hoe-->
-- [ ] Recipe → Diamond Sword <!--recipe:diamond_sword-->
-- [ ] Recipe → Diamond Shovel <!--recipe:diamond_shovel-->
-- [ ] Recipe → Diamond Pickaxe <!--recipe:diamond_pickaxe-->
-- [ ] Recipe → Diamond Axe <!--recipe:diamond_axe-->
-- [ ] Recipe → Diamond Hoe <!--recipe:diamond_hoe-->
-- [ ] Recipe → Stick <!--recipe:stick-->
-- [ ] Recipe → Bowl <!--recipe:bowl-->
-- [ ] Recipe → Mushroom Stew <!--recipe:mushroom_stew-->
-- [ ] Recipe → Wheat <!--recipe:wheat-->
-- [ ] Recipe → Bread <!--recipe:bread-->
-- [ ] Recipe → Leather Cap <!--recipe:leather_helmet-->
-- [ ] Recipe → Leather Tunic <!--recipe:leather_chestplate-->
-- [ ] Recipe → Leather Pants <!--recipe:leather_leggings-->
-- [ ] Recipe → Leather Boots <!--recipe:leather_boots-->
-- [ ] Recipe → Iron Helmet <!--recipe:iron_helmet-->
-- [ ] Recipe → Iron Chestplate <!--recipe:iron_chestplate-->
-- [ ] Recipe → Iron Leggings <!--recipe:iron_leggings-->
-- [ ] Recipe → Iron Boots <!--recipe:iron_boots-->
-- [ ] Recipe → Diamond Helmet <!--recipe:diamond_helmet-->
-- [ ] Recipe → Diamond Chestplate <!--recipe:diamond_chestplate-->
-- [ ] Recipe → Diamond Leggings <!--recipe:diamond_leggings-->
-- [ ] Recipe → Diamond Boots <!--recipe:diamond_boots-->
-- [ ] Recipe → Golden Helmet <!--recipe:golden_helmet-->
-- [ ] Recipe → Golden Chestplate <!--recipe:golden_chestplate-->
-- [ ] Recipe → Golden Leggings <!--recipe:golden_leggings-->
-- [ ] Recipe → Golden Boots <!--recipe:golden_boots-->
-- [ ] Recipe → Painting <!--recipe:painting-->
-- [ ] Recipe → Golden Apple <!--recipe:golden_apple-->
-- [ ] Recipe → Oak Sign <!--recipe:oak_sign-->
-- [ ] Recipe → Spruce Sign <!--recipe:spruce_sign-->
-- [ ] Recipe → Birch Sign <!--recipe:birch_sign-->
-- [ ] Recipe → Jungle Sign <!--recipe:jungle_sign-->
-- [ ] Recipe → Acacia Sign <!--recipe:acacia_sign-->
-- [ ] Recipe → Dark Oak Sign <!--recipe:dark_oak_sign-->
-- [ ] Recipe → Crimson Sign <!--recipe:crimson_sign-->
-- [ ] Recipe → Warped Sign <!--recipe:warped_sign-->
-- [ ] Recipe → Bucket <!--recipe:bucket-->
-- [ ] Recipe → Leather <!--recipe:leather-->
-- [ ] Recipe → Dried Kelp Block <!--recipe:dried_kelp_block-->
-- [ ] Recipe → Paper <!--recipe:paper-->
-- [ ] Recipe → Book <!--recipe:book-->
-- [ ] Recipe → Slimeball <!--recipe:slime_ball-->
-- [ ] Recipe → Compass <!--recipe:compass-->
-- [ ] Recipe → Fishing Rod <!--recipe:fishing_rod-->
-- [ ] Recipe → Clock <!--recipe:clock-->
-- [ ] Recipe → Spyglass <!--recipe:spyglass-->
-- [ ] Recipe → White Dye <!--recipe:white_dye-->
-- [ ] Recipe → Orange Dye <!--recipe:orange_dye-->
-- [ ] Recipe → Magenta Dye <!--recipe:magenta_dye-->
-- [ ] Recipe → Light Blue Dye <!--recipe:light_blue_dye-->
-- [ ] Recipe → Yellow Dye <!--recipe:yellow_dye-->
-- [ ] Recipe → Lime Dye <!--recipe:lime_dye-->
-- [ ] Recipe → Pink Dye <!--recipe:pink_dye-->
-- [ ] Recipe → Gray Dye <!--recipe:gray_dye-->
-- [ ] Recipe → Light Gray Dye <!--recipe:light_gray_dye-->
-- [ ] Recipe → Cyan Dye <!--recipe:cyan_dye-->
-- [ ] Recipe → Purple Dye <!--recipe:purple_dye-->
-- [ ] Recipe → Blue Dye <!--recipe:blue_dye-->
-- [ ] Recipe → Brown Dye <!--recipe:brown_dye-->
-- [ ] Recipe → Red Dye <!--recipe:red_dye-->
-- [ ] Recipe → Black Dye <!--recipe:black_dye-->
-- [ ] Recipe → Bone Meal <!--recipe:bone_meal-->
-- [ ] Recipe → Sugar <!--recipe:sugar-->
-- [ ] Recipe → Cake <!--recipe:cake-->
-- [ ] Recipe → White Bed <!--recipe:white_bed-->
-- [ ] Recipe → Orange Bed <!--recipe:orange_bed-->
-- [ ] Recipe → Magenta Bed <!--recipe:magenta_bed-->
-- [ ] Recipe → Light Blue Bed <!--recipe:light_blue_bed-->
-- [ ] Recipe → Yellow Bed <!--recipe:yellow_bed-->
-- [ ] Recipe → Lime Bed <!--recipe:lime_bed-->
-- [ ] Recipe → Pink Bed <!--recipe:pink_bed-->
-- [ ] Recipe → Gray Bed <!--recipe:gray_bed-->
-- [ ] Recipe → Light Gray Bed <!--recipe:light_gray_bed-->
-- [ ] Recipe → Cyan Bed <!--recipe:cyan_bed-->
-- [ ] Recipe → Purple Bed <!--recipe:purple_bed-->
-- [ ] Recipe → Blue Bed <!--recipe:blue_bed-->
-- [ ] Recipe → Brown Bed <!--recipe:brown_bed-->
-- [ ] Recipe → Green Bed <!--recipe:green_bed-->
-- [ ] Recipe → Red Bed <!--recipe:red_bed-->
-- [ ] Recipe → Black Bed <!--recipe:black_bed-->
-- [ ] Recipe → Cookie <!--recipe:cookie-->
-- [ ] Recipe → Shears <!--recipe:shears-->
-- [ ] Recipe → Dried Kelp <!--recipe:dried_kelp-->
-- [ ] Recipe → Pumpkin Seeds <!--recipe:pumpkin_seeds-->
-- [ ] Recipe → Melon Seeds <!--recipe:melon_seeds-->
-- [ ] Recipe → Gold Nugget <!--recipe:gold_nugget-->
-- [ ] Recipe → Glass Bottle <!--recipe:glass_bottle-->
-- [ ] Recipe → Fermented Spider Eye <!--recipe:fermented_spider_eye-->
-- [ ] Recipe → Blaze Powder <!--recipe:blaze_powder-->
-- [ ] Recipe → Magma Cream <!--recipe:magma_cream-->
-- [ ] Recipe → Brewing Stand <!--recipe:brewing_stand-->
-- [ ] Recipe → Cauldron <!--recipe:cauldron-->
-- [ ] Recipe → Eye of Ender <!--recipe:ender_eye-->
-- [ ] Recipe → Glistering Melon Slice <!--recipe:glistering_melon_slice-->
-- [ ] Recipe → Fire Charge <!--recipe:fire_charge-->
-- [ ] Recipe → Book and Quill <!--recipe:writable_book-->
-- [ ] Recipe → Item Frame <!--recipe:item_frame-->
-- [ ] Recipe → Glow Item Frame <!--recipe:glow_item_frame-->
-- [ ] Recipe → Flower Pot <!--recipe:flower_pot-->
-- [ ] Recipe → Empty Map <!--recipe:map-->
-- [ ] Recipe → Golden Carrot <!--recipe:golden_carrot-->
-- [ ] Recipe → Pumpkin Pie <!--recipe:pumpkin_pie-->
-- [ ] Recipe → Firework Rocket <!--recipe:firework_rocket-->
-- [ ] Recipe → Rabbit Stew <!--recipe:rabbit_stew-->
-- [ ] Recipe → Armor Stand <!--recipe:armor_stand-->
-- [ ] Recipe → Leather Horse Armor <!--recipe:leather_horse_armor-->
-- [ ] Recipe → Lead <!--recipe:lead-->
-- [ ] Recipe → White Banner <!--recipe:white_banner-->
-- [ ] Recipe → Orange Banner <!--recipe:orange_banner-->
-- [ ] Recipe → Magenta Banner <!--recipe:magenta_banner-->
-- [ ] Recipe → Light Blue Banner <!--recipe:light_blue_banner-->
-- [ ] Recipe → Yellow Banner <!--recipe:yellow_banner-->
-- [ ] Recipe → Lime Banner <!--recipe:lime_banner-->
-- [ ] Recipe → Pink Banner <!--recipe:pink_banner-->
-- [ ] Recipe → Gray Banner <!--recipe:gray_banner-->
-- [ ] Recipe → Light Gray Banner <!--recipe:light_gray_banner-->
-- [ ] Recipe → Cyan Banner <!--recipe:cyan_banner-->
-- [ ] Recipe → Purple Banner <!--recipe:purple_banner-->
-- [ ] Recipe → Blue Banner <!--recipe:blue_banner-->
-- [ ] Recipe → Brown Banner <!--recipe:brown_banner-->
-- [ ] Recipe → Green Banner <!--recipe:green_banner-->
-- [ ] Recipe → Red Banner <!--recipe:red_banner-->
-- [ ] Recipe → Black Banner <!--recipe:black_banner-->
-- [ ] Recipe → End Crystal <!--recipe:end_crystal-->
-- [ ] Recipe → Beetroot Soup <!--recipe:beetroot_soup-->
-- [ ] Recipe → Spectral Arrow <!--recipe:spectral_arrow-->
-- [ ] Recipe → Shield <!--recipe:shield-->
-- [ ] Recipe → Iron Nugget <!--recipe:iron_nugget-->
-- [ ] Recipe → Crossbow <!--recipe:crossbow-->
-- [ ] Recipe → Loom <!--recipe:loom-->
-- [ ] Recipe → Banner Pattern <!--recipe:flower_banner_pattern-->
-- [ ] Recipe → Banner Pattern <!--recipe:creeper_banner_pattern-->
-- [ ] Recipe → Banner Pattern <!--recipe:skull_banner_pattern-->
-- [ ] Recipe → Banner Pattern <!--recipe:mojang_banner_pattern-->
-- [ ] Recipe → Composter <!--recipe:composter-->
-- [ ] Recipe → Barrel <!--recipe:barrel-->
-- [ ] Recipe → Smoker <!--recipe:smoker-->
-- [ ] Recipe → Blast Furnace <!--recipe:blast_furnace-->
-- [ ] Recipe → Cartography Table <!--recipe:cartography_table-->
-- [ ] Recipe → Fletching Table <!--recipe:fletching_table-->
-- [ ] Recipe → Grindstone <!--recipe:grindstone-->
-- [ ] Recipe → Smithing Table <!--recipe:smithing_table-->
-- [ ] Recipe → Stonecutter <!--recipe:stonecutter-->
-- [ ] Recipe → Lantern <!--recipe:lantern-->
-- [ ] Recipe → Soul Lantern <!--recipe:soul_lantern-->
-- [ ] Recipe → Campfire <!--recipe:campfire-->
-- [ ] Recipe → Soul Campfire <!--recipe:soul_campfire-->
-- [ ] Recipe → Beehive <!--recipe:beehive-->
-- [ ] Recipe → Honey Bottle <!--recipe:honey_bottle-->
-- [ ] Recipe → Honeycomb Block <!--recipe:honeycomb_block-->
-- [ ] Recipe → Lodestone <!--recipe:lodestone-->
-- [ ] Recipe → Blackstone Slab <!--recipe:blackstone_slab-->
-- [ ] Recipe → Blackstone Stairs <!--recipe:blackstone_stairs-->
-- [ ] Recipe → Polished Blackstone <!--recipe:polished_blackstone-->
-- [ ] Recipe → Polished Blackstone Slab <!--recipe:polished_blackstone_slab-->
-- [ ] Recipe → Polished Blackstone Stairs <!--recipe:polished_blackstone_stairs-->
-- [ ] Recipe → Chiseled Polished Blackstone <!--recipe:chiseled_polished_blackstone-->
-- [ ] Recipe → Polished Blackstone Bricks <!--recipe:polished_blackstone_bricks-->
-- [ ] Recipe → Polished Blackstone Brick Slab <!--recipe:polished_blackstone_brick_slab-->
-- [ ] Recipe → Polished Blackstone Brick Stairs <!--recipe:polished_blackstone_brick_stairs-->
-- [ ] Recipe → Respawn Anchor <!--recipe:respawn_anchor-->
-- [ ] Recipe → Candle <!--recipe:candle-->
-- [ ] Recipe → White Candle <!--recipe:white_candle-->
-- [ ] Recipe → Orange Candle <!--recipe:orange_candle-->
-- [ ] Recipe → Magenta Candle <!--recipe:magenta_candle-->
-- [ ] Recipe → Light Blue Candle <!--recipe:light_blue_candle-->
-- [ ] Recipe → Yellow Candle <!--recipe:yellow_candle-->
-- [ ] Recipe → Lime Candle <!--recipe:lime_candle-->
-- [ ] Recipe → Pink Candle <!--recipe:pink_candle-->
-- [ ] Recipe → Gray Candle <!--recipe:gray_candle-->
-- [ ] Recipe → Light Gray Candle <!--recipe:light_gray_candle-->
-- [ ] Recipe → Cyan Candle <!--recipe:cyan_candle-->
-- [ ] Recipe → Purple Candle <!--recipe:purple_candle-->
-- [ ] Recipe → Blue Candle <!--recipe:blue_candle-->
-- [ ] Recipe → Brown Candle <!--recipe:brown_candle-->
-- [ ] Recipe → Green Candle <!--recipe:green_candle-->
-- [ ] Recipe → Red Candle <!--recipe:red_candle-->
-- [ ] Recipe → Black Candle <!--recipe:black_candle-->
+- [x] Recipe → Granite <!--recipe:granite-->
+- [x] Recipe → Polished Granite <!--recipe:polished_granite-->
+- [x] Recipe → Diorite <!--recipe:diorite-->
+- [x] Recipe → Polished Diorite <!--recipe:polished_diorite-->
+- [x] Recipe → Andesite <!--recipe:andesite-->
+- [x] Recipe → Polished Andesite <!--recipe:polished_andesite-->
+- [x] Recipe → Polished Deepslate <!--recipe:polished_deepslate-->
+- [x] Recipe → Dripstone Block <!--recipe:dripstone_block-->
+- [x] Recipe → Coarse Dirt <!--recipe:coarse_dirt-->
+- [x] Recipe → Oak Planks <!--recipe:oak_planks-->
+- [x] Recipe → Spruce Planks <!--recipe:spruce_planks-->
+- [x] Recipe → Birch Planks <!--recipe:birch_planks-->
+- [x] Recipe → Jungle Planks <!--recipe:jungle_planks-->
+- [x] Recipe → Acacia Planks <!--recipe:acacia_planks-->
+- [x] Recipe → Dark Oak Planks <!--recipe:dark_oak_planks-->
+- [x] Recipe → Crimson Planks <!--recipe:crimson_planks-->
+- [x] Recipe → Warped Planks <!--recipe:warped_planks-->
+- [x] Recipe → Block of Coal <!--recipe:coal_block-->
+- [x] Recipe → Block of Raw Iron <!--recipe:raw_iron_block-->
+- [x] Recipe → Block of Raw Copper <!--recipe:raw_copper_block-->
+- [x] Recipe → Block of Raw Gold <!--recipe:raw_gold_block-->
+- [x] Recipe → Block of Amethyst <!--recipe:amethyst_block-->
+- [x] Recipe → Block of Iron <!--recipe:iron_block-->
+- [x] Recipe → Block of Copper <!--recipe:copper_block-->
+- [x] Recipe → Block of Gold <!--recipe:gold_block-->
+- [x] Recipe → Block of Diamond <!--recipe:diamond_block-->
+- [x] Recipe → Block of Netherite <!--recipe:netherite_block-->
+- [x] Recipe → Cut Copper <!--recipe:cut_copper-->
+- [x] Recipe → Exposed Cut Copper <!--recipe:exposed_cut_copper-->
+- [x] Recipe → Weathered Cut Copper <!--recipe:weathered_cut_copper-->
+- [x] Recipe → Oxidized Cut Copper <!--recipe:oxidized_cut_copper-->
+- [x] Recipe → Cut Copper Stairs <!--recipe:cut_copper_stairs-->
+- [x] Recipe → Exposed Cut Copper Stairs <!--recipe:exposed_cut_copper_stairs-->
+- [x] Recipe → Weathered Cut Copper Stairs <!--recipe:weathered_cut_copper_stairs-->
+- [x] Recipe → Oxidized Cut Copper Stairs <!--recipe:oxidized_cut_copper_stairs-->
+- [x] Recipe → Cut Copper Slab <!--recipe:cut_copper_slab-->
+- [x] Recipe → Exposed Cut Copper Slab <!--recipe:exposed_cut_copper_slab-->
+- [x] Recipe → Weathered Cut Copper Slab <!--recipe:weathered_cut_copper_slab-->
+- [x] Recipe → Oxidized Cut Copper Slab <!--recipe:oxidized_cut_copper_slab-->
+- [x] Recipe → Waxed Block of Copper <!--recipe:waxed_copper_block-->
+- [x] Recipe → Waxed Exposed Copper <!--recipe:waxed_exposed_copper-->
+- [x] Recipe → Waxed Weathered Copper <!--recipe:waxed_weathered_copper-->
+- [x] Recipe → Waxed Oxidized Copper <!--recipe:waxed_oxidized_copper-->
+- [x] Recipe → Waxed Cut Copper <!--recipe:waxed_cut_copper-->
+- [x] Recipe → Waxed Exposed Cut Copper <!--recipe:waxed_exposed_cut_copper-->
+- [x] Recipe → Waxed Weathered Cut Copper <!--recipe:waxed_weathered_cut_copper-->
+- [x] Recipe → Waxed Oxidized Cut Copper <!--recipe:waxed_oxidized_cut_copper-->
+- [x] Recipe → Waxed Cut Copper Stairs <!--recipe:waxed_cut_copper_stairs-->
+- [x] Recipe → Waxed Exposed Cut Copper Stairs <!--recipe:waxed_exposed_cut_copper_stairs-->
+- [x] Recipe → Waxed Weathered Cut Copper Stairs <!--recipe:waxed_weathered_cut_copper_stairs-->
+- [x] Recipe → Waxed Oxidized Cut Copper Stairs <!--recipe:waxed_oxidized_cut_copper_stairs-->
+- [x] Recipe → Waxed Cut Copper Slab <!--recipe:waxed_cut_copper_slab-->
+- [x] Recipe → Waxed Exposed Cut Copper Slab <!--recipe:waxed_exposed_cut_copper_slab-->
+- [x] Recipe → Waxed Weathered Cut Copper Slab <!--recipe:waxed_weathered_cut_copper_slab-->
+- [x] Recipe → Waxed Oxidized Cut Copper Slab <!--recipe:waxed_oxidized_cut_copper_slab-->
+- [x] Recipe → Stripped Oak Wood <!--recipe:stripped_oak_wood-->
+- [x] Recipe → Stripped Spruce Wood <!--recipe:stripped_spruce_wood-->
+- [x] Recipe → Stripped Birch Wood <!--recipe:stripped_birch_wood-->
+- [x] Recipe → Stripped Jungle Wood <!--recipe:stripped_jungle_wood-->
+- [x] Recipe → Stripped Acacia Wood <!--recipe:stripped_acacia_wood-->
+- [x] Recipe → Stripped Dark Oak Wood <!--recipe:stripped_dark_oak_wood-->
+- [x] Recipe → Stripped Crimson Hyphae <!--recipe:stripped_crimson_hyphae-->
+- [x] Recipe → Stripped Warped Hyphae <!--recipe:stripped_warped_hyphae-->
+- [x] Recipe → Oak Wood <!--recipe:oak_wood-->
+- [x] Recipe → Spruce Wood <!--recipe:spruce_wood-->
+- [x] Recipe → Birch Wood <!--recipe:birch_wood-->
+- [x] Recipe → Jungle Wood <!--recipe:jungle_wood-->
+- [x] Recipe → Acacia Wood <!--recipe:acacia_wood-->
+- [x] Recipe → Dark Oak Wood <!--recipe:dark_oak_wood-->
+- [x] Recipe → Crimson Hyphae <!--recipe:crimson_hyphae-->
+- [x] Recipe → Warped Hyphae <!--recipe:warped_hyphae-->
+- [x] Recipe → Tinted Glass <!--recipe:tinted_glass-->
+- [x] Recipe → Block of Lapis Lazuli <!--recipe:lapis_block-->
+- [x] Recipe → Sandstone <!--recipe:sandstone-->
+- [x] Recipe → Chiseled Sandstone <!--recipe:chiseled_sandstone-->
+- [x] Recipe → Cut Sandstone <!--recipe:cut_sandstone-->
+- [x] Recipe → White Wool <!--recipe:white_wool-->
+- [x] Recipe → Orange Wool <!--recipe:orange_wool-->
+- [x] Recipe → Magenta Wool <!--recipe:magenta_wool-->
+- [x] Recipe → Light Blue Wool <!--recipe:light_blue_wool-->
+- [x] Recipe → Yellow Wool <!--recipe:yellow_wool-->
+- [x] Recipe → Lime Wool <!--recipe:lime_wool-->
+- [x] Recipe → Pink Wool <!--recipe:pink_wool-->
+- [x] Recipe → Gray Wool <!--recipe:gray_wool-->
+- [x] Recipe → Light Gray Wool <!--recipe:light_gray_wool-->
+- [x] Recipe → Cyan Wool <!--recipe:cyan_wool-->
+- [x] Recipe → Purple Wool <!--recipe:purple_wool-->
+- [x] Recipe → Blue Wool <!--recipe:blue_wool-->
+- [x] Recipe → Brown Wool <!--recipe:brown_wool-->
+- [x] Recipe → Green Wool <!--recipe:green_wool-->
+- [x] Recipe → Red Wool <!--recipe:red_wool-->
+- [x] Recipe → Black Wool <!--recipe:black_wool-->
+- [x] Recipe → Moss Carpet <!--recipe:moss_carpet-->
+- [x] Recipe → Oak Slab <!--recipe:oak_slab-->
+- [x] Recipe → Spruce Slab <!--recipe:spruce_slab-->
+- [x] Recipe → Birch Slab <!--recipe:birch_slab-->
+- [x] Recipe → Jungle Slab <!--recipe:jungle_slab-->
+- [x] Recipe → Acacia Slab <!--recipe:acacia_slab-->
+- [x] Recipe → Dark Oak Slab <!--recipe:dark_oak_slab-->
+- [x] Recipe → Crimson Slab <!--recipe:crimson_slab-->
+- [x] Recipe → Warped Slab <!--recipe:warped_slab-->
+- [x] Recipe → Stone Slab <!--recipe:stone_slab-->
+- [x] Recipe → Smooth Stone Slab <!--recipe:smooth_stone_slab-->
+- [x] Recipe → Sandstone Slab <!--recipe:sandstone_slab-->
+- [x] Recipe → Cut Sandstone Slab <!--recipe:cut_sandstone_slab-->
+- [x] Recipe → Cobblestone Slab <!--recipe:cobblestone_slab-->
+- [x] Recipe → Brick Slab <!--recipe:brick_slab-->
+- [x] Recipe → Stone Brick Slab <!--recipe:stone_brick_slab-->
+- [x] Recipe → Nether Brick Slab <!--recipe:nether_brick_slab-->
+- [x] Recipe → Quartz Slab <!--recipe:quartz_slab-->
+- [x] Recipe → Red Sandstone Slab <!--recipe:red_sandstone_slab-->
+- [x] Recipe → Cut Red Sandstone Slab <!--recipe:cut_red_sandstone_slab-->
+- [x] Recipe → Purpur Slab <!--recipe:purpur_slab-->
+- [x] Recipe → Prismarine Slab <!--recipe:prismarine_slab-->
+- [x] Recipe → Prismarine Brick Slab <!--recipe:prismarine_brick_slab-->
+- [x] Recipe → Dark Prismarine Slab <!--recipe:dark_prismarine_slab-->
+- [x] Recipe → Bricks <!--recipe:bricks-->
+- [x] Recipe → Bookshelf <!--recipe:bookshelf-->
+- [x] Recipe → Mossy Cobblestone <!--recipe:mossy_cobblestone-->
+- [x] Recipe → Torch <!--recipe:torch-->
+- [x] Recipe → End Rod <!--recipe:end_rod-->
+- [x] Recipe → Purpur Block <!--recipe:purpur_block-->
+- [x] Recipe → Purpur Pillar <!--recipe:purpur_pillar-->
+- [x] Recipe → Purpur Stairs <!--recipe:purpur_stairs-->
+- [x] Recipe → Oak Stairs <!--recipe:oak_stairs-->
+- [x] Recipe → Chest <!--recipe:chest-->
+- [x] Recipe → Crafting Table <!--recipe:crafting_table-->
+- [x] Recipe → Furnace <!--recipe:furnace-->
+- [x] Recipe → Ladder <!--recipe:ladder-->
+- [x] Recipe → Cobblestone Stairs <!--recipe:cobblestone_stairs-->
+- [x] Recipe → Snow <!--recipe:snow-->
+- [x] Recipe → Snow Block <!--recipe:snow_block-->
+- [x] Recipe → Clay <!--recipe:clay-->
+- [x] Recipe → Jukebox <!--recipe:jukebox-->
+- [x] Recipe → Oak Fence <!--recipe:oak_fence-->
+- [x] Recipe → Spruce Fence <!--recipe:spruce_fence-->
+- [x] Recipe → Birch Fence <!--recipe:birch_fence-->
+- [x] Recipe → Jungle Fence <!--recipe:jungle_fence-->
+- [x] Recipe → Acacia Fence <!--recipe:acacia_fence-->
+- [x] Recipe → Dark Oak Fence <!--recipe:dark_oak_fence-->
+- [x] Recipe → Crimson Fence <!--recipe:crimson_fence-->
+- [x] Recipe → Warped Fence <!--recipe:warped_fence-->
+- [x] Recipe → Jack o'Lantern <!--recipe:jack_o_lantern-->
+- [x] Recipe → Polished Basalt <!--recipe:polished_basalt-->
+- [x] Recipe → Soul Torch <!--recipe:soul_torch-->
+- [x] Recipe → Glowstone <!--recipe:glowstone-->
+- [x] Recipe → Stone Bricks <!--recipe:stone_bricks-->
+- [x] Recipe → Mossy Stone Bricks <!--recipe:mossy_stone_bricks-->
+- [x] Recipe → Chiseled Stone Bricks <!--recipe:chiseled_stone_bricks-->
+- [x] Recipe → Deepslate Bricks <!--recipe:deepslate_bricks-->
+- [x] Recipe → Deepslate Tiles <!--recipe:deepslate_tiles-->
+- [x] Recipe → Chiseled Deepslate <!--recipe:chiseled_deepslate-->
+- [x] Recipe → Iron Bars <!--recipe:iron_bars-->
+- [x] Recipe → Chain <!--recipe:chain-->
+- [x] Recipe → Glass Pane <!--recipe:glass_pane-->
+- [x] Recipe → Melon <!--recipe:melon-->
+- [x] Recipe → Brick Stairs <!--recipe:brick_stairs-->
+- [x] Recipe → Stone Brick Stairs <!--recipe:stone_brick_stairs-->
+- [x] Recipe → Nether Bricks <!--recipe:nether_bricks-->
+- [x] Recipe → Chiseled Nether Bricks <!--recipe:chiseled_nether_bricks-->
+- [x] Recipe → Nether Brick Fence <!--recipe:nether_brick_fence-->
+- [x] Recipe → Nether Brick Stairs <!--recipe:nether_brick_stairs-->
+- [x] Recipe → Enchanting Table <!--recipe:enchanting_table-->
+- [x] Recipe → End Stone Bricks <!--recipe:end_stone_bricks-->
+- [x] Recipe → Sandstone Stairs <!--recipe:sandstone_stairs-->
+- [x] Recipe → Ender Chest <!--recipe:ender_chest-->
+- [x] Recipe → Block of Emerald <!--recipe:emerald_block-->
+- [x] Recipe → Spruce Stairs <!--recipe:spruce_stairs-->
+- [x] Recipe → Birch Stairs <!--recipe:birch_stairs-->
+- [x] Recipe → Jungle Stairs <!--recipe:jungle_stairs-->
+- [x] Recipe → Crimson Stairs <!--recipe:crimson_stairs-->
+- [x] Recipe → Warped Stairs <!--recipe:warped_stairs-->
+- [x] Recipe → Beacon <!--recipe:beacon-->
+- [x] Recipe → Cobblestone Wall <!--recipe:cobblestone_wall-->
+- [x] Recipe → Mossy Cobblestone Wall <!--recipe:mossy_cobblestone_wall-->
+- [x] Recipe → Brick Wall <!--recipe:brick_wall-->
+- [x] Recipe → Prismarine Wall <!--recipe:prismarine_wall-->
+- [x] Recipe → Red Sandstone Wall <!--recipe:red_sandstone_wall-->
+- [x] Recipe → Mossy Stone Brick Wall <!--recipe:mossy_stone_brick_wall-->
+- [x] Recipe → Granite Wall <!--recipe:granite_wall-->
+- [x] Recipe → Stone Brick Wall <!--recipe:stone_brick_wall-->
+- [x] Recipe → Nether Brick Wall <!--recipe:nether_brick_wall-->
+- [x] Recipe → Andesite Wall <!--recipe:andesite_wall-->
+- [x] Recipe → Red Nether Brick Wall <!--recipe:red_nether_brick_wall-->
+- [x] Recipe → Sandstone Wall <!--recipe:sandstone_wall-->
+- [x] Recipe → End Stone Brick Wall <!--recipe:end_stone_brick_wall-->
+- [x] Recipe → Diorite Wall <!--recipe:diorite_wall-->
+- [x] Recipe → Blackstone Wall <!--recipe:blackstone_wall-->
+- [x] Recipe → Polished Blackstone Wall <!--recipe:polished_blackstone_wall-->
+- [x] Recipe → Polished Blackstone Brick Wall <!--recipe:polished_blackstone_brick_wall-->
+- [x] Recipe → Cobbled Deepslate Wall <!--recipe:cobbled_deepslate_wall-->
+- [x] Recipe → Polished Deepslate Wall <!--recipe:polished_deepslate_wall-->
+- [x] Recipe → Deepslate Brick Wall <!--recipe:deepslate_brick_wall-->
+- [x] Recipe → Deepslate Tile Wall <!--recipe:deepslate_tile_wall-->
+- [x] Recipe → Anvil <!--recipe:anvil-->
+- [x] Recipe → Chiseled Quartz Block <!--recipe:chiseled_quartz_block-->
+- [x] Recipe → Block of Quartz <!--recipe:quartz_block-->
+- [x] Recipe → Quartz Bricks <!--recipe:quartz_bricks-->
+- [x] Recipe → Quartz Pillar <!--recipe:quartz_pillar-->
+- [x] Recipe → Quartz Stairs <!--recipe:quartz_stairs-->
+- [x] Recipe → White Terracotta <!--recipe:white_terracotta-->
+- [x] Recipe → Orange Terracotta <!--recipe:orange_terracotta-->
+- [x] Recipe → Magenta Terracotta <!--recipe:magenta_terracotta-->
+- [x] Recipe → Light Blue Terracotta <!--recipe:light_blue_terracotta-->
+- [x] Recipe → Yellow Terracotta <!--recipe:yellow_terracotta-->
+- [x] Recipe → Lime Terracotta <!--recipe:lime_terracotta-->
+- [x] Recipe → Pink Terracotta <!--recipe:pink_terracotta-->
+- [x] Recipe → Gray Terracotta <!--recipe:gray_terracotta-->
+- [x] Recipe → Light Gray Terracotta <!--recipe:light_gray_terracotta-->
+- [x] Recipe → Cyan Terracotta <!--recipe:cyan_terracotta-->
+- [x] Recipe → Purple Terracotta <!--recipe:purple_terracotta-->
+- [x] Recipe → Blue Terracotta <!--recipe:blue_terracotta-->
+- [x] Recipe → Brown Terracotta <!--recipe:brown_terracotta-->
+- [x] Recipe → Green Terracotta <!--recipe:green_terracotta-->
+- [x] Recipe → Red Terracotta <!--recipe:red_terracotta-->
+- [x] Recipe → Black Terracotta <!--recipe:black_terracotta-->
+- [x] Recipe → Hay Bale <!--recipe:hay_block-->
+- [x] Recipe → White Carpet <!--recipe:white_carpet-->
+- [x] Recipe → Orange Carpet <!--recipe:orange_carpet-->
+- [x] Recipe → Magenta Carpet <!--recipe:magenta_carpet-->
+- [x] Recipe → Light Blue Carpet <!--recipe:light_blue_carpet-->
+- [x] Recipe → Yellow Carpet <!--recipe:yellow_carpet-->
+- [x] Recipe → Lime Carpet <!--recipe:lime_carpet-->
+- [x] Recipe → Pink Carpet <!--recipe:pink_carpet-->
+- [x] Recipe → Gray Carpet <!--recipe:gray_carpet-->
+- [x] Recipe → Light Gray Carpet <!--recipe:light_gray_carpet-->
+- [x] Recipe → Cyan Carpet <!--recipe:cyan_carpet-->
+- [x] Recipe → Purple Carpet <!--recipe:purple_carpet-->
+- [x] Recipe → Blue Carpet <!--recipe:blue_carpet-->
+- [x] Recipe → Brown Carpet <!--recipe:brown_carpet-->
+- [x] Recipe → Green Carpet <!--recipe:green_carpet-->
+- [x] Recipe → Red Carpet <!--recipe:red_carpet-->
+- [x] Recipe → Black Carpet <!--recipe:black_carpet-->
+- [x] Recipe → Packed Ice <!--recipe:packed_ice-->
+- [x] Recipe → Acacia Stairs <!--recipe:acacia_stairs-->
+- [x] Recipe → Dark Oak Stairs <!--recipe:dark_oak_stairs-->
+- [x] Recipe → White Stained Glass <!--recipe:white_stained_glass-->
+- [x] Recipe → Orange Stained Glass <!--recipe:orange_stained_glass-->
+- [x] Recipe → Magenta Stained Glass <!--recipe:magenta_stained_glass-->
+- [x] Recipe → Light Blue Stained Glass <!--recipe:light_blue_stained_glass-->
+- [x] Recipe → Yellow Stained Glass <!--recipe:yellow_stained_glass-->
+- [x] Recipe → Lime Stained Glass <!--recipe:lime_stained_glass-->
+- [x] Recipe → Pink Stained Glass <!--recipe:pink_stained_glass-->
+- [x] Recipe → Gray Stained Glass <!--recipe:gray_stained_glass-->
+- [x] Recipe → Light Gray Stained Glass <!--recipe:light_gray_stained_glass-->
+- [x] Recipe → Cyan Stained Glass <!--recipe:cyan_stained_glass-->
+- [x] Recipe → Purple Stained Glass <!--recipe:purple_stained_glass-->
+- [x] Recipe → Blue Stained Glass <!--recipe:blue_stained_glass-->
+- [x] Recipe → Brown Stained Glass <!--recipe:brown_stained_glass-->
+- [x] Recipe → Green Stained Glass <!--recipe:green_stained_glass-->
+- [x] Recipe → Red Stained Glass <!--recipe:red_stained_glass-->
+- [x] Recipe → Black Stained Glass <!--recipe:black_stained_glass-->
+- [x] Recipe → White Stained Glass Pane <!--recipe:white_stained_glass_pane-->
+- [x] Recipe → Orange Stained Glass Pane <!--recipe:orange_stained_glass_pane-->
+- [x] Recipe → Magenta Stained Glass Pane <!--recipe:magenta_stained_glass_pane-->
+- [x] Recipe → Light Blue Stained Glass Pane <!--recipe:light_blue_stained_glass_pane-->
+- [x] Recipe → Yellow Stained Glass Pane <!--recipe:yellow_stained_glass_pane-->
+- [x] Recipe → Lime Stained Glass Pane <!--recipe:lime_stained_glass_pane-->
+- [x] Recipe → Pink Stained Glass Pane <!--recipe:pink_stained_glass_pane-->
+- [x] Recipe → Gray Stained Glass Pane <!--recipe:gray_stained_glass_pane-->
+- [x] Recipe → Light Gray Stained Glass Pane <!--recipe:light_gray_stained_glass_pane-->
+- [x] Recipe → Cyan Stained Glass Pane <!--recipe:cyan_stained_glass_pane-->
+- [x] Recipe → Purple Stained Glass Pane <!--recipe:purple_stained_glass_pane-->
+- [x] Recipe → Blue Stained Glass Pane <!--recipe:blue_stained_glass_pane-->
+- [x] Recipe → Brown Stained Glass Pane <!--recipe:brown_stained_glass_pane-->
+- [x] Recipe → Green Stained Glass Pane <!--recipe:green_stained_glass_pane-->
+- [x] Recipe → Red Stained Glass Pane <!--recipe:red_stained_glass_pane-->
+- [x] Recipe → Black Stained Glass Pane <!--recipe:black_stained_glass_pane-->
+- [x] Recipe → Prismarine <!--recipe:prismarine-->
+- [x] Recipe → Prismarine Bricks <!--recipe:prismarine_bricks-->
+- [x] Recipe → Dark Prismarine <!--recipe:dark_prismarine-->
+- [x] Recipe → Prismarine Stairs <!--recipe:prismarine_stairs-->
+- [x] Recipe → Prismarine Brick Stairs <!--recipe:prismarine_brick_stairs-->
+- [x] Recipe → Dark Prismarine Stairs <!--recipe:dark_prismarine_stairs-->
+- [x] Recipe → Sea Lantern <!--recipe:sea_lantern-->
+- [x] Recipe → Red Sandstone <!--recipe:red_sandstone-->
+- [x] Recipe → Chiseled Red Sandstone <!--recipe:chiseled_red_sandstone-->
+- [x] Recipe → Cut Red Sandstone <!--recipe:cut_red_sandstone-->
+- [x] Recipe → Red Sandstone Stairs <!--recipe:red_sandstone_stairs-->
+- [x] Recipe → Magma Block <!--recipe:magma_block-->
+- [x] Recipe → Nether Wart Block <!--recipe:nether_wart_block-->
+- [x] Recipe → Red Nether Bricks <!--recipe:red_nether_bricks-->
+- [x] Recipe → Bone Block <!--recipe:bone_block-->
+- [x] Recipe → Shulker Box <!--recipe:shulker_box-->
+- [x] Recipe → White Concrete Powder <!--recipe:white_concrete_powder-->
+- [x] Recipe → Orange Concrete Powder <!--recipe:orange_concrete_powder-->
+- [x] Recipe → Magenta Concrete Powder <!--recipe:magenta_concrete_powder-->
+- [x] Recipe → Light Blue Concrete Powder <!--recipe:light_blue_concrete_powder-->
+- [x] Recipe → Yellow Concrete Powder <!--recipe:yellow_concrete_powder-->
+- [x] Recipe → Lime Concrete Powder <!--recipe:lime_concrete_powder-->
+- [x] Recipe → Pink Concrete Powder <!--recipe:pink_concrete_powder-->
+- [x] Recipe → Gray Concrete Powder <!--recipe:gray_concrete_powder-->
+- [x] Recipe → Light Gray Concrete Powder <!--recipe:light_gray_concrete_powder-->
+- [x] Recipe → Cyan Concrete Powder <!--recipe:cyan_concrete_powder-->
+- [x] Recipe → Purple Concrete Powder <!--recipe:purple_concrete_powder-->
+- [x] Recipe → Blue Concrete Powder <!--recipe:blue_concrete_powder-->
+- [x] Recipe → Brown Concrete Powder <!--recipe:brown_concrete_powder-->
+- [x] Recipe → Green Concrete Powder <!--recipe:green_concrete_powder-->
+- [x] Recipe → Red Concrete Powder <!--recipe:red_concrete_powder-->
+- [x] Recipe → Black Concrete Powder <!--recipe:black_concrete_powder-->
+- [x] Recipe → Blue Ice <!--recipe:blue_ice-->
+- [x] Recipe → Conduit <!--recipe:conduit-->
+- [x] Recipe → Polished Granite Stairs <!--recipe:polished_granite_stairs-->
+- [x] Recipe → Smooth Red Sandstone Stairs <!--recipe:smooth_red_sandstone_stairs-->
+- [x] Recipe → Mossy Stone Brick Stairs <!--recipe:mossy_stone_brick_stairs-->
+- [x] Recipe → Polished Diorite Stairs <!--recipe:polished_diorite_stairs-->
+- [x] Recipe → Mossy Cobblestone Stairs <!--recipe:mossy_cobblestone_stairs-->
+- [x] Recipe → End Stone Brick Stairs <!--recipe:end_stone_brick_stairs-->
+- [x] Recipe → Stone Stairs <!--recipe:stone_stairs-->
+- [x] Recipe → Smooth Sandstone Stairs <!--recipe:smooth_sandstone_stairs-->
+- [x] Recipe → Smooth Quartz Stairs <!--recipe:smooth_quartz_stairs-->
+- [x] Recipe → Granite Stairs <!--recipe:granite_stairs-->
+- [x] Recipe → Andesite Stairs <!--recipe:andesite_stairs-->
+- [x] Recipe → Red Nether Brick Stairs <!--recipe:red_nether_brick_stairs-->
+- [x] Recipe → Polished Andesite Stairs <!--recipe:polished_andesite_stairs-->
+- [x] Recipe → Diorite Stairs <!--recipe:diorite_stairs-->
+- [x] Recipe → Cobbled Deepslate Stairs <!--recipe:cobbled_deepslate_stairs-->
+- [x] Recipe → Polished Deepslate Stairs <!--recipe:polished_deepslate_stairs-->
+- [x] Recipe → Deepslate Brick Stairs <!--recipe:deepslate_brick_stairs-->
+- [x] Recipe → Deepslate Tile Stairs <!--recipe:deepslate_tile_stairs-->
+- [x] Recipe → Polished Granite Slab <!--recipe:polished_granite_slab-->
+- [x] Recipe → Smooth Red Sandstone Slab <!--recipe:smooth_red_sandstone_slab-->
+- [x] Recipe → Mossy Stone Brick Slab <!--recipe:mossy_stone_brick_slab-->
+- [x] Recipe → Polished Diorite Slab <!--recipe:polished_diorite_slab-->
+- [x] Recipe → Mossy Cobblestone Slab <!--recipe:mossy_cobblestone_slab-->
+- [x] Recipe → End Stone Brick Slab <!--recipe:end_stone_brick_slab-->
+- [x] Recipe → Smooth Sandstone Slab <!--recipe:smooth_sandstone_slab-->
+- [x] Recipe → Smooth Quartz Slab <!--recipe:smooth_quartz_slab-->
+- [x] Recipe → Granite Slab <!--recipe:granite_slab-->
+- [x] Recipe → Andesite Slab <!--recipe:andesite_slab-->
+- [x] Recipe → Red Nether Brick Slab <!--recipe:red_nether_brick_slab-->
+- [x] Recipe → Polished Andesite Slab <!--recipe:polished_andesite_slab-->
+- [x] Recipe → Diorite Slab <!--recipe:diorite_slab-->
+- [x] Recipe → Cobbled Deepslate Slab <!--recipe:cobbled_deepslate_slab-->
+- [x] Recipe → Polished Deepslate Slab <!--recipe:polished_deepslate_slab-->
+- [x] Recipe → Deepslate Brick Slab <!--recipe:deepslate_brick_slab-->
+- [x] Recipe → Deepslate Tile Slab <!--recipe:deepslate_tile_slab-->
+- [x] Recipe → Scaffolding <!--recipe:scaffolding-->
+- [x] Recipe → Redstone Dust <!--recipe:redstone-->
+- [x] Recipe → Redstone Torch <!--recipe:redstone_torch-->
+- [x] Recipe → Block of Redstone <!--recipe:redstone_block-->
+- [x] Recipe → Redstone Repeater <!--recipe:repeater-->
+- [x] Recipe → Redstone Comparator <!--recipe:comparator-->
+- [x] Recipe → Piston <!--recipe:piston-->
+- [x] Recipe → Sticky Piston <!--recipe:sticky_piston-->
+- [x] Recipe → Slime Block <!--recipe:slime_block-->
+- [x] Recipe → Honey Block <!--recipe:honey_block-->
+- [x] Recipe → Observer <!--recipe:observer-->
+- [x] Recipe → Hopper <!--recipe:hopper-->
+- [x] Recipe → Dispenser <!--recipe:dispenser-->
+- [x] Recipe → Dropper <!--recipe:dropper-->
+- [x] Recipe → Lectern <!--recipe:lectern-->
+- [x] Recipe → Target <!--recipe:target-->
+- [x] Recipe → Lever <!--recipe:lever-->
+- [x] Recipe → Lightning Rod <!--recipe:lightning_rod-->
+- [x] Recipe → Daylight Detector <!--recipe:daylight_detector-->
+- [x] Recipe → Tripwire Hook <!--recipe:tripwire_hook-->
+- [x] Recipe → Trapped Chest <!--recipe:trapped_chest-->
+- [x] Recipe → TNT <!--recipe:tnt-->
+- [x] Recipe → Redstone Lamp <!--recipe:redstone_lamp-->
+- [x] Recipe → Note Block <!--recipe:note_block-->
+- [x] Recipe → Stone Button <!--recipe:stone_button-->
+- [x] Recipe → Polished Blackstone Button <!--recipe:polished_blackstone_button-->
+- [x] Recipe → Oak Button <!--recipe:oak_button-->
+- [x] Recipe → Spruce Button <!--recipe:spruce_button-->
+- [x] Recipe → Birch Button <!--recipe:birch_button-->
+- [x] Recipe → Jungle Button <!--recipe:jungle_button-->
+- [x] Recipe → Acacia Button <!--recipe:acacia_button-->
+- [x] Recipe → Dark Oak Button <!--recipe:dark_oak_button-->
+- [x] Recipe → Crimson Button <!--recipe:crimson_button-->
+- [x] Recipe → Warped Button <!--recipe:warped_button-->
+- [x] Recipe → Stone Pressure Plate <!--recipe:stone_pressure_plate-->
+- [x] Recipe → Polished Blackstone Pressure Plate <!--recipe:polished_blackstone_pressure_plate-->
+- [x] Recipe → Light Weighted Pressure Plate <!--recipe:light_weighted_pressure_plate-->
+- [x] Recipe → Heavy Weighted Pressure Plate <!--recipe:heavy_weighted_pressure_plate-->
+- [x] Recipe → Oak Pressure Plate <!--recipe:oak_pressure_plate-->
+- [x] Recipe → Spruce Pressure Plate <!--recipe:spruce_pressure_plate-->
+- [x] Recipe → Birch Pressure Plate <!--recipe:birch_pressure_plate-->
+- [x] Recipe → Jungle Pressure Plate <!--recipe:jungle_pressure_plate-->
+- [x] Recipe → Acacia Pressure Plate <!--recipe:acacia_pressure_plate-->
+- [x] Recipe → Dark Oak Pressure Plate <!--recipe:dark_oak_pressure_plate-->
+- [x] Recipe → Crimson Pressure Plate <!--recipe:crimson_pressure_plate-->
+- [x] Recipe → Warped Pressure Plate <!--recipe:warped_pressure_plate-->
+- [x] Recipe → Iron Door <!--recipe:iron_door-->
+- [x] Recipe → Oak Door <!--recipe:oak_door-->
+- [x] Recipe → Spruce Door <!--recipe:spruce_door-->
+- [x] Recipe → Birch Door <!--recipe:birch_door-->
+- [x] Recipe → Jungle Door <!--recipe:jungle_door-->
+- [x] Recipe → Acacia Door <!--recipe:acacia_door-->
+- [x] Recipe → Dark Oak Door <!--recipe:dark_oak_door-->
+- [x] Recipe → Crimson Door <!--recipe:crimson_door-->
+- [x] Recipe → Warped Door <!--recipe:warped_door-->
+- [x] Recipe → Iron Trapdoor <!--recipe:iron_trapdoor-->
+- [x] Recipe → Oak Trapdoor <!--recipe:oak_trapdoor-->
+- [x] Recipe → Spruce Trapdoor <!--recipe:spruce_trapdoor-->
+- [x] Recipe → Birch Trapdoor <!--recipe:birch_trapdoor-->
+- [x] Recipe → Jungle Trapdoor <!--recipe:jungle_trapdoor-->
+- [x] Recipe → Acacia Trapdoor <!--recipe:acacia_trapdoor-->
+- [x] Recipe → Dark Oak Trapdoor <!--recipe:dark_oak_trapdoor-->
+- [x] Recipe → Crimson Trapdoor <!--recipe:crimson_trapdoor-->
+- [x] Recipe → Warped Trapdoor <!--recipe:warped_trapdoor-->
+- [x] Recipe → Oak Fence Gate <!--recipe:oak_fence_gate-->
+- [x] Recipe → Spruce Fence Gate <!--recipe:spruce_fence_gate-->
+- [x] Recipe → Birch Fence Gate <!--recipe:birch_fence_gate-->
+- [x] Recipe → Jungle Fence Gate <!--recipe:jungle_fence_gate-->
+- [x] Recipe → Acacia Fence Gate <!--recipe:acacia_fence_gate-->
+- [x] Recipe → Dark Oak Fence Gate <!--recipe:dark_oak_fence_gate-->
+- [x] Recipe → Crimson Fence Gate <!--recipe:crimson_fence_gate-->
+- [x] Recipe → Warped Fence Gate <!--recipe:warped_fence_gate-->
+- [x] Recipe → Powered Rail <!--recipe:powered_rail-->
+- [x] Recipe → Detector Rail <!--recipe:detector_rail-->
+- [x] Recipe → Rail <!--recipe:rail-->
+- [x] Recipe → Activator Rail <!--recipe:activator_rail-->
+- [x] Recipe → Minecart <!--recipe:minecart-->
+- [x] Recipe → Minecart with Chest <!--recipe:chest_minecart-->
+- [x] Recipe → Minecart with Furnace <!--recipe:furnace_minecart-->
+- [x] Recipe → Minecart with TNT <!--recipe:tnt_minecart-->
+- [x] Recipe → Minecart with Hopper <!--recipe:hopper_minecart-->
+- [x] Recipe → Carrot on a Stick <!--recipe:carrot_on_a_stick-->
+- [x] Recipe → Warped Fungus on a Stick <!--recipe:warped_fungus_on_a_stick-->
+- [x] Recipe → Oak Boat <!--recipe:oak_boat-->
+- [x] Recipe → Spruce Boat <!--recipe:spruce_boat-->
+- [x] Recipe → Birch Boat <!--recipe:birch_boat-->
+- [x] Recipe → Jungle Boat <!--recipe:jungle_boat-->
+- [x] Recipe → Acacia Boat <!--recipe:acacia_boat-->
+- [x] Recipe → Dark Oak Boat <!--recipe:dark_oak_boat-->
+- [x] Recipe → Turtle Shell <!--recipe:turtle_helmet-->
+- [x] Recipe → Flint and Steel <!--recipe:flint_and_steel-->
+- [x] Recipe → Bow <!--recipe:bow-->
+- [x] Recipe → Arrow <!--recipe:arrow-->
+- [x] Recipe → Coal <!--recipe:coal-->
+- [x] Recipe → Diamond <!--recipe:diamond-->
+- [x] Recipe → Emerald <!--recipe:emerald-->
+- [x] Recipe → Lapis Lazuli <!--recipe:lapis_lazuli-->
+- [x] Recipe → Raw Iron <!--recipe:raw_iron-->
+- [x] Recipe → Iron Ingot <!--recipe:iron_ingot-->
+- [x] Recipe → Raw Copper <!--recipe:raw_copper-->
+- [x] Recipe → Copper Ingot <!--recipe:copper_ingot-->
+- [x] Recipe → Raw Gold <!--recipe:raw_gold-->
+- [x] Recipe → Gold Ingot <!--recipe:gold_ingot-->
+- [x] Recipe → Netherite Ingot <!--recipe:netherite_ingot-->
+- [x] Recipe → Wooden Sword <!--recipe:wooden_sword-->
+- [x] Recipe → Wooden Shovel <!--recipe:wooden_shovel-->
+- [x] Recipe → Wooden Pickaxe <!--recipe:wooden_pickaxe-->
+- [x] Recipe → Wooden Axe <!--recipe:wooden_axe-->
+- [x] Recipe → Wooden Hoe <!--recipe:wooden_hoe-->
+- [x] Recipe → Stone Sword <!--recipe:stone_sword-->
+- [x] Recipe → Stone Shovel <!--recipe:stone_shovel-->
+- [x] Recipe → Stone Pickaxe <!--recipe:stone_pickaxe-->
+- [x] Recipe → Stone Axe <!--recipe:stone_axe-->
+- [x] Recipe → Stone Hoe <!--recipe:stone_hoe-->
+- [x] Recipe → Golden Sword <!--recipe:golden_sword-->
+- [x] Recipe → Golden Shovel <!--recipe:golden_shovel-->
+- [x] Recipe → Golden Pickaxe <!--recipe:golden_pickaxe-->
+- [x] Recipe → Golden Axe <!--recipe:golden_axe-->
+- [x] Recipe → Golden Hoe <!--recipe:golden_hoe-->
+- [x] Recipe → Iron Sword <!--recipe:iron_sword-->
+- [x] Recipe → Iron Shovel <!--recipe:iron_shovel-->
+- [x] Recipe → Iron Pickaxe <!--recipe:iron_pickaxe-->
+- [x] Recipe → Iron Axe <!--recipe:iron_axe-->
+- [x] Recipe → Iron Hoe <!--recipe:iron_hoe-->
+- [x] Recipe → Diamond Sword <!--recipe:diamond_sword-->
+- [x] Recipe → Diamond Shovel <!--recipe:diamond_shovel-->
+- [x] Recipe → Diamond Pickaxe <!--recipe:diamond_pickaxe-->
+- [x] Recipe → Diamond Axe <!--recipe:diamond_axe-->
+- [x] Recipe → Diamond Hoe <!--recipe:diamond_hoe-->
+- [x] Recipe → Stick <!--recipe:stick-->
+- [x] Recipe → Bowl <!--recipe:bowl-->
+- [x] Recipe → Mushroom Stew <!--recipe:mushroom_stew-->
+- [x] Recipe → Wheat <!--recipe:wheat-->
+- [x] Recipe → Bread <!--recipe:bread-->
+- [x] Recipe → Leather Cap <!--recipe:leather_helmet-->
+- [x] Recipe → Leather Tunic <!--recipe:leather_chestplate-->
+- [x] Recipe → Leather Pants <!--recipe:leather_leggings-->
+- [x] Recipe → Leather Boots <!--recipe:leather_boots-->
+- [x] Recipe → Iron Helmet <!--recipe:iron_helmet-->
+- [x] Recipe → Iron Chestplate <!--recipe:iron_chestplate-->
+- [x] Recipe → Iron Leggings <!--recipe:iron_leggings-->
+- [x] Recipe → Iron Boots <!--recipe:iron_boots-->
+- [x] Recipe → Diamond Helmet <!--recipe:diamond_helmet-->
+- [x] Recipe → Diamond Chestplate <!--recipe:diamond_chestplate-->
+- [x] Recipe → Diamond Leggings <!--recipe:diamond_leggings-->
+- [x] Recipe → Diamond Boots <!--recipe:diamond_boots-->
+- [x] Recipe → Golden Helmet <!--recipe:golden_helmet-->
+- [x] Recipe → Golden Chestplate <!--recipe:golden_chestplate-->
+- [x] Recipe → Golden Leggings <!--recipe:golden_leggings-->
+- [x] Recipe → Golden Boots <!--recipe:golden_boots-->
+- [x] Recipe → Painting <!--recipe:painting-->
+- [x] Recipe → Golden Apple <!--recipe:golden_apple-->
+- [x] Recipe → Oak Sign <!--recipe:oak_sign-->
+- [x] Recipe → Spruce Sign <!--recipe:spruce_sign-->
+- [x] Recipe → Birch Sign <!--recipe:birch_sign-->
+- [x] Recipe → Jungle Sign <!--recipe:jungle_sign-->
+- [x] Recipe → Acacia Sign <!--recipe:acacia_sign-->
+- [x] Recipe → Dark Oak Sign <!--recipe:dark_oak_sign-->
+- [x] Recipe → Crimson Sign <!--recipe:crimson_sign-->
+- [x] Recipe → Warped Sign <!--recipe:warped_sign-->
+- [x] Recipe → Bucket <!--recipe:bucket-->
+- [x] Recipe → Leather <!--recipe:leather-->
+- [x] Recipe → Dried Kelp Block <!--recipe:dried_kelp_block-->
+- [x] Recipe → Paper <!--recipe:paper-->
+- [x] Recipe → Book <!--recipe:book-->
+- [x] Recipe → Slimeball <!--recipe:slime_ball-->
+- [x] Recipe → Compass <!--recipe:compass-->
+- [x] Recipe → Fishing Rod <!--recipe:fishing_rod-->
+- [x] Recipe → Clock <!--recipe:clock-->
+- [x] Recipe → Spyglass <!--recipe:spyglass-->
+- [x] Recipe → White Dye <!--recipe:white_dye-->
+- [x] Recipe → Orange Dye <!--recipe:orange_dye-->
+- [x] Recipe → Magenta Dye <!--recipe:magenta_dye-->
+- [x] Recipe → Light Blue Dye <!--recipe:light_blue_dye-->
+- [x] Recipe → Yellow Dye <!--recipe:yellow_dye-->
+- [x] Recipe → Lime Dye <!--recipe:lime_dye-->
+- [x] Recipe → Pink Dye <!--recipe:pink_dye-->
+- [x] Recipe → Gray Dye <!--recipe:gray_dye-->
+- [x] Recipe → Light Gray Dye <!--recipe:light_gray_dye-->
+- [x] Recipe → Cyan Dye <!--recipe:cyan_dye-->
+- [x] Recipe → Purple Dye <!--recipe:purple_dye-->
+- [x] Recipe → Blue Dye <!--recipe:blue_dye-->
+- [x] Recipe → Brown Dye <!--recipe:brown_dye-->
+- [x] Recipe → Red Dye <!--recipe:red_dye-->
+- [x] Recipe → Black Dye <!--recipe:black_dye-->
+- [x] Recipe → Bone Meal <!--recipe:bone_meal-->
+- [x] Recipe → Sugar <!--recipe:sugar-->
+- [x] Recipe → Cake <!--recipe:cake-->
+- [x] Recipe → White Bed <!--recipe:white_bed-->
+- [x] Recipe → Orange Bed <!--recipe:orange_bed-->
+- [x] Recipe → Magenta Bed <!--recipe:magenta_bed-->
+- [x] Recipe → Light Blue Bed <!--recipe:light_blue_bed-->
+- [x] Recipe → Yellow Bed <!--recipe:yellow_bed-->
+- [x] Recipe → Lime Bed <!--recipe:lime_bed-->
+- [x] Recipe → Pink Bed <!--recipe:pink_bed-->
+- [x] Recipe → Gray Bed <!--recipe:gray_bed-->
+- [x] Recipe → Light Gray Bed <!--recipe:light_gray_bed-->
+- [x] Recipe → Cyan Bed <!--recipe:cyan_bed-->
+- [x] Recipe → Purple Bed <!--recipe:purple_bed-->
+- [x] Recipe → Blue Bed <!--recipe:blue_bed-->
+- [x] Recipe → Brown Bed <!--recipe:brown_bed-->
+- [x] Recipe → Green Bed <!--recipe:green_bed-->
+- [x] Recipe → Red Bed <!--recipe:red_bed-->
+- [x] Recipe → Black Bed <!--recipe:black_bed-->
+- [x] Recipe → Cookie <!--recipe:cookie-->
+- [x] Recipe → Shears <!--recipe:shears-->
+- [x] Recipe → Dried Kelp <!--recipe:dried_kelp-->
+- [x] Recipe → Pumpkin Seeds <!--recipe:pumpkin_seeds-->
+- [x] Recipe → Melon Seeds <!--recipe:melon_seeds-->
+- [x] Recipe → Gold Nugget <!--recipe:gold_nugget-->
+- [x] Recipe → Glass Bottle <!--recipe:glass_bottle-->
+- [x] Recipe → Fermented Spider Eye <!--recipe:fermented_spider_eye-->
+- [x] Recipe → Blaze Powder <!--recipe:blaze_powder-->
+- [x] Recipe → Magma Cream <!--recipe:magma_cream-->
+- [x] Recipe → Brewing Stand <!--recipe:brewing_stand-->
+- [x] Recipe → Cauldron <!--recipe:cauldron-->
+- [x] Recipe → Eye of Ender <!--recipe:ender_eye-->
+- [x] Recipe → Glistering Melon Slice <!--recipe:glistering_melon_slice-->
+- [x] Recipe → Fire Charge <!--recipe:fire_charge-->
+- [x] Recipe → Book and Quill <!--recipe:writable_book-->
+- [x] Recipe → Item Frame <!--recipe:item_frame-->
+- [x] Recipe → Glow Item Frame <!--recipe:glow_item_frame-->
+- [x] Recipe → Flower Pot <!--recipe:flower_pot-->
+- [x] Recipe → Empty Map <!--recipe:map-->
+- [x] Recipe → Golden Carrot <!--recipe:golden_carrot-->
+- [x] Recipe → Pumpkin Pie <!--recipe:pumpkin_pie-->
+- [x] Recipe → Firework Rocket <!--recipe:firework_rocket-->
+- [x] Recipe → Rabbit Stew <!--recipe:rabbit_stew-->
+- [x] Recipe → Armor Stand <!--recipe:armor_stand-->
+- [x] Recipe → Leather Horse Armor <!--recipe:leather_horse_armor-->
+- [x] Recipe → Lead <!--recipe:lead-->
+- [x] Recipe → White Banner <!--recipe:white_banner-->
+- [x] Recipe → Orange Banner <!--recipe:orange_banner-->
+- [x] Recipe → Magenta Banner <!--recipe:magenta_banner-->
+- [x] Recipe → Light Blue Banner <!--recipe:light_blue_banner-->
+- [x] Recipe → Yellow Banner <!--recipe:yellow_banner-->
+- [x] Recipe → Lime Banner <!--recipe:lime_banner-->
+- [x] Recipe → Pink Banner <!--recipe:pink_banner-->
+- [x] Recipe → Gray Banner <!--recipe:gray_banner-->
+- [x] Recipe → Light Gray Banner <!--recipe:light_gray_banner-->
+- [x] Recipe → Cyan Banner <!--recipe:cyan_banner-->
+- [x] Recipe → Purple Banner <!--recipe:purple_banner-->
+- [x] Recipe → Blue Banner <!--recipe:blue_banner-->
+- [x] Recipe → Brown Banner <!--recipe:brown_banner-->
+- [x] Recipe → Green Banner <!--recipe:green_banner-->
+- [x] Recipe → Red Banner <!--recipe:red_banner-->
+- [x] Recipe → Black Banner <!--recipe:black_banner-->
+- [x] Recipe → End Crystal <!--recipe:end_crystal-->
+- [x] Recipe → Beetroot Soup <!--recipe:beetroot_soup-->
+- [x] Recipe → Spectral Arrow <!--recipe:spectral_arrow-->
+- [x] Recipe → Shield <!--recipe:shield-->
+- [x] Recipe → Iron Nugget <!--recipe:iron_nugget-->
+- [x] Recipe → Crossbow <!--recipe:crossbow-->
+- [x] Recipe → Loom <!--recipe:loom-->
+- [x] Recipe → Banner Pattern <!--recipe:flower_banner_pattern-->
+- [x] Recipe → Banner Pattern <!--recipe:creeper_banner_pattern-->
+- [x] Recipe → Banner Pattern <!--recipe:skull_banner_pattern-->
+- [x] Recipe → Banner Pattern <!--recipe:mojang_banner_pattern-->
+- [x] Recipe → Composter <!--recipe:composter-->
+- [x] Recipe → Barrel <!--recipe:barrel-->
+- [x] Recipe → Smoker <!--recipe:smoker-->
+- [x] Recipe → Blast Furnace <!--recipe:blast_furnace-->
+- [x] Recipe → Cartography Table <!--recipe:cartography_table-->
+- [x] Recipe → Fletching Table <!--recipe:fletching_table-->
+- [x] Recipe → Grindstone <!--recipe:grindstone-->
+- [x] Recipe → Smithing Table <!--recipe:smithing_table-->
+- [x] Recipe → Stonecutter <!--recipe:stonecutter-->
+- [x] Recipe → Lantern <!--recipe:lantern-->
+- [x] Recipe → Soul Lantern <!--recipe:soul_lantern-->
+- [x] Recipe → Campfire <!--recipe:campfire-->
+- [x] Recipe → Soul Campfire <!--recipe:soul_campfire-->
+- [x] Recipe → Beehive <!--recipe:beehive-->
+- [x] Recipe → Honey Bottle <!--recipe:honey_bottle-->
+- [x] Recipe → Honeycomb Block <!--recipe:honeycomb_block-->
+- [x] Recipe → Lodestone <!--recipe:lodestone-->
+- [x] Recipe → Blackstone Slab <!--recipe:blackstone_slab-->
+- [x] Recipe → Blackstone Stairs <!--recipe:blackstone_stairs-->
+- [x] Recipe → Polished Blackstone <!--recipe:polished_blackstone-->
+- [x] Recipe → Polished Blackstone Slab <!--recipe:polished_blackstone_slab-->
+- [x] Recipe → Polished Blackstone Stairs <!--recipe:polished_blackstone_stairs-->
+- [x] Recipe → Chiseled Polished Blackstone <!--recipe:chiseled_polished_blackstone-->
+- [x] Recipe → Polished Blackstone Bricks <!--recipe:polished_blackstone_bricks-->
+- [x] Recipe → Polished Blackstone Brick Slab <!--recipe:polished_blackstone_brick_slab-->
+- [x] Recipe → Polished Blackstone Brick Stairs <!--recipe:polished_blackstone_brick_stairs-->
+- [x] Recipe → Respawn Anchor <!--recipe:respawn_anchor-->
+- [x] Recipe → Candle <!--recipe:candle-->
+- [x] Recipe → White Candle <!--recipe:white_candle-->
+- [x] Recipe → Orange Candle <!--recipe:orange_candle-->
+- [x] Recipe → Magenta Candle <!--recipe:magenta_candle-->
+- [x] Recipe → Light Blue Candle <!--recipe:light_blue_candle-->
+- [x] Recipe → Yellow Candle <!--recipe:yellow_candle-->
+- [x] Recipe → Lime Candle <!--recipe:lime_candle-->
+- [x] Recipe → Pink Candle <!--recipe:pink_candle-->
+- [x] Recipe → Gray Candle <!--recipe:gray_candle-->
+- [x] Recipe → Light Gray Candle <!--recipe:light_gray_candle-->
+- [x] Recipe → Cyan Candle <!--recipe:cyan_candle-->
+- [x] Recipe → Purple Candle <!--recipe:purple_candle-->
+- [x] Recipe → Blue Candle <!--recipe:blue_candle-->
+- [x] Recipe → Brown Candle <!--recipe:brown_candle-->
+- [x] Recipe → Green Candle <!--recipe:green_candle-->
+- [x] Recipe → Red Candle <!--recipe:red_candle-->
+- [x] Recipe → Black Candle <!--recipe:black_candle-->
 
 ## Phase 6 — Mobs & AI
 
