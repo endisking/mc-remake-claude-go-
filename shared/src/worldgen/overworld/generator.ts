@@ -61,8 +61,8 @@ export class OverworldGenerator {
    * ChunkStatus.FEATURES for chunk (cx, cz): runs once its 8 neighbours are carved; features may
    * write into those neighbours through `world`.
    */
-  decorate(world: BlockWorld, cx: number, cz: number): void {
-    decorateChunk(this, world, cx, cz);
+  decorate(world: BlockWorld, cx: number, cz: number): [number, number, number][] {
+    return decorateChunk(this, world, cx, cz);
   }
 
   /** Terrain + surface + bedrock for one chunk, as a fresh Chunk (sections and heightmaps filled). */

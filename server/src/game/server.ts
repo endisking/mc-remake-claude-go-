@@ -17,6 +17,7 @@ import { ServerPlayer } from './player';
 import { AABB, noCollision } from '@shared/entity/aabb';
 import { ItemEntity, LightningBolt, ExperienceOrb, experienceOrbValue, type ServerEntity } from './entity';
 import { Sleep } from './sleep';
+import { FluidTicks } from './fluidticks';
 import { isRainingAt } from '@shared/world/weather';
 import { stateForPlacement, updateShape, isReplaceable, companionPlacement, DIRS, DX, DY, DZ } from '@shared/game/placement';
 import { canSurvive } from '@shared/game/support';
@@ -78,6 +79,28 @@ export class GameServer {
   /** server.properties pvp */
   pvp = true;
   readonly sleep = new Sleep(this);
+  // ---- fluids (FlowingFluid ticks; see fluidticks.ts) ----
+  readonly fluids: FluidTicks = new FluidTicks({
+    getState: (x, y, z) => this.world.getState(x, y, z),
+    setBlock: (x, y, z, s) => {
+      this.setBlock(x, y, z, s);
+      this.updateNeighbors(x, y, z);
+    },
+    dropResources: (x, y, z, s) => {
+      for (const it of blockDrops(s, { silkTouch: false, canHarvest: true, random: () => this.rand.nextFloat() })) this.popResource(x, y, z, it);
+    },
+    fizz: (x, y, z) => {
+      const key = chunkKey(x >> 4, z >> 4);
+      for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'levelEvent', event: 1501, x, y, z, data: 0 });
+    },
+    nextInt: (n) => this.rand.nextInt(n),
+    isTickingChunk: (cx, cz) => {
+      if (this.world.getChunk(cx, cz)?.stage !== 3 || !this.isTickingChunk(cx, cz)) return false;
+      return !!(this.world.getChunk(cx - 1, cz) && this.world.getChunk(cx + 1, cz) && this.world.getChunk(cx, cz - 1) && this.world.getChunk(cx, cz + 1));
+    },
+    now: () => this.gameTime,
+  });
+  // ---- end fluids ----
   /** gamerules playersSleepingPercentage and spawnRadius */
   playersSleepingPercentage = 100;
   spawnRadius = 10;
@@ -1120,7 +1143,10 @@ export class GameServer {
     }
     if (stage >= 2 && c.stage < 2) {
       for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) if (dx || dz) this.ensureStage(cx + dx, cz + dz, 1);
-      if (this.generator instanceof OverworldGenerator) this.generator.decorate(this.world, cx, cz);
+      if (this.generator instanceof OverworldGenerator) {
+        // springs schedule their fluid tick (delay 0); it runs once the chunk is full and ticking
+        for (const [x, y, z] of this.generator.decorate(this.world, cx, cz)) this.fluids.scheduleFluidAt(x, y, z, 0);
+      }
       c.stage = 2;
     }
     if (stage >= 3 && c.stage < 3) {
@@ -1154,6 +1180,7 @@ export class GameServer {
     const old = this.world.setStateRaw(x, y, z, state);
     if (old === state) return;
     this.light.onBlockChanged(x, y, z, old, state);
+    this.fluids.blockChanged(x, y, z, old, state);
     const key = chunkKey(x >> 4, z >> 4);
     for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
   }
@@ -1168,6 +1195,7 @@ export class GameServer {
     }
     this.advanceWeather();
     this.tickLightning();
+    this.fluids.tick();
     this.sleep.tick();
     for (const p of this.players) {
       // ServerPlayer.tick: a spectator rides along with its camera entity until it sneaks
