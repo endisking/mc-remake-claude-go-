@@ -15,7 +15,7 @@ import { isEmpty, encodeTag, type ItemStack } from '@shared/item/stack';
 import { EnchantmentMenu } from '@shared/menu/enchanting';
 import { BrewingStandMenu, BrewingContainer } from '@shared/menu/brewing';
 import { newBrewingStand, tickBrewingStand, bottleBits, type BrewingData } from '@shared/game/potions';
-import { countBookshelves } from '@shared/game/enchantments';
+import { countBookshelves, grindstoneExperience } from '@shared/game/enchantments';
 import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, StonecutterMenu, SmithingMenu, GrindstoneMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
 import { CompoundContainer, InventoryContainer, SimpleContainer, type Container } from '@shared/menu/container';
 import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, newCampfire, placeCampfireFood, tickCampfire, type CampfireData, type FurnaceData, type FurnaceKind } from '@shared/menu/furnace';
@@ -289,6 +289,11 @@ export class Containers {
       this.open(p, (id) => {
         const m = new GrindstoneMenu(id, inv, valid);
         m.onUse = () => this.containerSound([x, y, z], 'block.grindstone.use', 1);
+        // Phase 7: disenchanting gives back XP at the grindstone
+        m.onExperience = (a, b) => {
+          const xp = grindstoneExperience(a, b, this.server.rand);
+          if (xp > 0) this.server.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
+        };
         return m;
       }, 'Repair & Disenchant', [x, y, z]);
       return true;

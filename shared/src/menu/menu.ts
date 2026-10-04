@@ -10,6 +10,7 @@ import {
   itemId, sameItemSameTags, splitStack, type Container,
 } from './container';
 import { craftingRemainder, craftingResult } from './recipes';
+import { grindstoneOutput } from '../game/enchantments';
 import { isFuel, cookingRecipe } from './smelting';
 import { stonecutterRecipes, type StonecutterRecipe } from './stonecutting';
 import { COOKING_TYPE, type FurnaceKind } from './furnace';
@@ -1002,17 +1003,14 @@ export class SmithingMenu extends Menu {
  * yet): two of the same damageable item combine with a 5% bonus; one item alone gives nothing.
  */
 export function grindstoneResult(a: ItemStack | null, b: ItemStack | null): ItemStack | null {
-  if (isEmpty(a) || isEmpty(b) || a.count > 1 || b.count > 1 || a.id !== b.id) return null;
-  const max = ITEMS_BY_ID[a.id]?.maxDurability ?? 0;
-  if (max <= 0) return null;
-  const k = max - a.damage, l = max - b.damage;
-  return { id: a.id, count: 1, damage: Math.max(max - (k + l + Math.floor((max * 5) / 100)), 0) };
+  // GrindstoneMenu.createResult: repair, strip non-curse enchantments (Phase 7: enchantments.ts)
+  return grindstoneOutput(a, b);
 }
 
 class GrindstoneInputSlot extends Slot {
   override mayPlace(s: ItemStack): boolean {
     // isDamageableItem || enchanted book || enchanted
-    return (ITEMS_BY_ID[s.id]?.maxDurability ?? 0) > 0 || ITEMS_BY_ID[s.id]?.name === 'enchanted_book';
+    return (ITEMS_BY_ID[s.id]?.maxDurability ?? 0) > 0 || ITEMS_BY_ID[s.id]?.name === 'enchanted_book' || (s.tag?.Enchantments?.length ?? 0) > 0;
   }
 }
 
@@ -1021,6 +1019,8 @@ export class GrindstoneMenu extends Menu {
   readonly inputs = new SimpleContainer(2);
   readonly result = new ResultContainer();
   onUse: (() => void) | null = null;
+  /** GrindstoneMenu result taken: XP from the inputs' enchantments (set by the server) */
+  onExperience: ((a: ItemStack | null, b: ItemStack | null) => void) | null = null;
   constructor(id: number, inv: Container, private readonly valid: () => boolean = () => true) {
     super('grindstone', id);
     this.inputs.onChange = () => (this.result.items[0] = grindstoneResult(this.inputs.getItem(0), this.inputs.getItem(1)));
@@ -1033,6 +1033,7 @@ export class GrindstoneMenu extends Menu {
           return false;
         }
         override onTake(p: MenuPlayer, st: ItemStack): void {
+          menu.onExperience?.(menu.inputs.getItem(0), menu.inputs.getItem(1));
           menu.inputs.setItem(0, null);
           menu.inputs.setItem(1, null);
           menu.onUse?.();

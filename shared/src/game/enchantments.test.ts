@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getEnchantmentCost, availableEnchantments, selectEnchantment, enchantOffers, clickEnchant, countBookshelves, enchantability,
   damageProtection, magicAbsorb, damageBonus, sweepingRatio, hurtItem, mendingRepair, oreDropsBonus, isCompatible, enchByName,
-  minCost, maxCost, enchLevel, hasFoil, enchantmentLine, armorAbsorb,
+  minCost, maxCost, enchLevel, hasFoil, enchantmentLine, armorAbsorb, grindstoneOutput, grindstoneExperience,
 } from './enchantments';
 import { JavaRandom } from '../util/random';
 import { ITEMS_BY_NAME } from '../data';
@@ -190,5 +190,31 @@ describe('enchantment effects', () => {
   it('tooltip lines', () => {
     expect(enchantmentLine('sharpness', 5)).toBe('Sharpness V');
     expect(enchantmentLine('mending', 1)).toBe('Mending');
+  });
+});
+
+describe('grindstone', () => {
+  it('strips non-curse enchantments, keeps curses, books become plain books', () => {
+    const sword = { ...stack('diamond_sword'), damage: 100, tag: { Enchantments: [ench('sharpness', 5), ench('vanishing_curse', 1)], RepairCost: 3 } };
+    const out = grindstoneOutput(sword, null)!;
+    expect(out.tag).toEqual({ Enchantments: [ench('vanishing_curse', 1)], RepairCost: 1 });
+    expect(out.damage).toBe(100);
+    const book = { ...stack('enchanted_book'), tag: { StoredEnchantments: [ench('mending', 1)] } };
+    expect(grindstoneOutput(book, null)).toEqual({ id: ID('book'), count: 1, damage: 0 });
+  });
+  it('repairs two items with the 5% bonus', () => {
+    const a = { ...stack('iron_pickaxe'), damage: 200 }, b = { ...stack('iron_pickaxe'), damage: 200 };
+    // max 250: (50 + 50 + 12) remaining → damage 138
+    expect(grindstoneOutput(a, b)!.damage).toBe(138);
+    expect(grindstoneOutput(a, stack('iron_axe'))).toBeNull();
+  });
+  it('experience: ceil(sum/2) + random(ceil(sum/2)) from non-curse min costs', () => {
+    const sword = { ...stack('diamond_sword'), tag: { Enchantments: [ench('sharpness', 5)] } }; // min cost 45
+    for (let i = 0; i < 20; i++) {
+      const xp = grindstoneExperience(sword, null, new JavaRandom(BigInt(i)));
+      expect(xp).toBeGreaterThanOrEqual(23);
+      expect(xp).toBeLessThanOrEqual(45);
+    }
+    expect(grindstoneExperience(stack('diamond_sword'), null, new JavaRandom(1n))).toBe(0);
   });
 });

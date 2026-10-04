@@ -487,3 +487,77 @@ export function clickEnchant(stack: ItemStack | null, lapisCount: number, player
   }
   return { ok: true, result, levelsSpent: i, lapisSpent: creative ? 0 : i };
 }
+
+// ------------------------------------------------------------------ grindstone
+
+/** AnvilMenu.calculateIncreasedRepairCost */
+export function increasedRepairCost(cost: number): number {
+  return cost * 2 + 1;
+}
+
+const isCurse = (id: string) => ENCH_BY_NAME.get(id.replace(/^minecraft:/, ''))?.curse === true;
+
+/** GrindstoneMenu.removeNonCurses: strip every non-curse enchantment, reset the repair cost. */
+export function removeNonCurses(s: ItemStack, damage: number, count: number): ItemStack {
+  const out: ItemStack = { id: s.id, count, damage };
+  const tag = s.tag ? (JSON.parse(JSON.stringify(s.tag)) as NonNullable<ItemStack['tag']>) : undefined;
+  if (tag) {
+    if (tag.Enchantments) tag.Enchantments = tag.Enchantments.filter((e) => isCurse(e.id));
+    if (tag.StoredEnchantments) tag.StoredEnchantments = tag.StoredEnchantments.filter((e) => isCurse(e.id));
+    if (tag.Enchantments?.length === 0) delete tag.Enchantments;
+    if (tag.StoredEnchantments?.length === 0) delete tag.StoredEnchantments;
+    delete tag.RepairCost;
+    out.tag = tag;
+  }
+  // an enchanted book left with nothing becomes a plain book
+  if (s.id === ENCHANTED_BOOK && !(out.tag?.StoredEnchantments?.length)) {
+    out.id = BOOK;
+    if (out.tag) delete out.tag.StoredEnchantments;
+  }
+  let cost = 0;
+  const n = (out.tag?.Enchantments?.length ?? 0) + (out.tag?.StoredEnchantments?.length ?? 0);
+  for (let i = 0; i < n; i++) cost = increasedRepairCost(cost);
+  if (cost > 0) out.tag!.RepairCost = cost;
+  if (out.tag && Object.keys(out.tag).length === 0) delete out.tag;
+  return out;
+}
+
+/** GrindstoneMenu.createResult (1.17.1). */
+export function grindstoneOutput(a: ItemStack | null, b: ItemStack | null): ItemStack | null {
+  const ea = !!a && a.count > 0, eb = !!b && b.count > 0;
+  if (!ea && !eb) return null;
+  // a lone unenchanted item has nothing to grind off; stacks never go in
+  const plain = (s: ItemStack | null, e: boolean) => e && s!.id !== ENCHANTED_BOOK && !isEnchanted(s!);
+  if ((ea && a!.count > 1) || (eb && b!.count > 1) || (!(ea && eb) && (plain(a, ea) || plain(b, eb)))) return null;
+  if (ea && eb) {
+    if (a!.id !== b!.id) return null;
+    const max = ITEMS_BY_ID[a!.id]?.maxDurability ?? 0;
+    // mergeEnchants: curses of the second item are added to the first
+    const merged: ItemStack = { id: a!.id, count: a!.count, damage: a!.damage };
+    if (a!.tag) merged.tag = JSON.parse(JSON.stringify(a!.tag)) as ItemStack['tag'];
+    for (const e of enchantmentsOf(b)) if (isCurse(e.id) && !enchantmentsOf(merged).some((x) => x.id === e.id)) enchantStack(merged, e.id, e.lvl);
+    if (max > 0) {
+      const k = max - a!.damage, l = max - b!.damage;
+      const damage = Math.max(max - (k + l + Math.floor((max * 5) / 100)), 0);
+      return removeNonCurses(merged, damage, 1);
+    }
+    if (JSON.stringify(a) !== JSON.stringify(b)) return null;
+    return removeNonCurses(merged, 0, 2);
+  }
+  const s = ea ? a! : b!;
+  return removeNonCurses(s, s.damage, s.count);
+}
+
+/** GrindstoneMenu.getExperienceAmount: half to all of the inputs' non-curse enchantment min costs. */
+export function grindstoneExperience(a: ItemStack | null, b: ItemStack | null, r: { nextInt(n: number): number }): number {
+  let l = 0;
+  for (const s of [a, b]) {
+    for (const e of enchantmentsOf(s)) {
+      const en = ENCH_BY_NAME.get(e.id.replace(/^minecraft:/, ''));
+      if (en && !en.curse) l += minCost(en, e.lvl);
+    }
+  }
+  if (l <= 0) return 0;
+  const i = Math.ceil(l / 2);
+  return i + r.nextInt(i);
+}
