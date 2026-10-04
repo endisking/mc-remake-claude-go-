@@ -111,4 +111,24 @@ for (const s of ['iron_chestplate', 'diamond_helmet']) {
 }
 console.log('armour', await state());
 await shot('armor');
+// third person (front view) to see the armour on the model
+await cmd(page, '/give @s iron_leggings 1');
+await cmd(page, '/give @s golden_boots 1');
+await page.waitForTimeout(300);
+for (const s of ['iron_leggings', 'golden_boots']) {
+  await select(s);
+  await mouse(page, 2, true);
+  await page.waitForTimeout(120);
+  await mouse(page, 2, false);
+  await page.waitForTimeout(200);
+}
+await page.evaluate(() => {
+  const i = (window as any).game.input;
+  i.press('F5');
+  i.release('F5');
+  i.press('F5');
+  i.release('F5');
+});
+await page.waitForTimeout(600);
+await shot('armor-third-person');
 await browser.close();

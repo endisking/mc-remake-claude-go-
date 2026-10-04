@@ -36,6 +36,22 @@ export function playerParts(slim = false): PartDef[] {
   ];
 }
 
+/**
+ * HumanoidModel parts for armour (64×32 layout: head 0,0; body 16,16; arm 40,16; leg 0,16;
+ * left limbs reuse the right-limb texture), inflated 1.0 for the outer layer and 0.5 for leggings. Part names and
+ * pivots match playerParts so the same poses drive them (HumanoidArmorLayer copyPropertiesTo).
+ */
+export function armorParts(inflate: number): PartDef[] {
+  return [
+    { name: 'body', pivot: [0, 24, 0], boxes: [{ from: [-4, -12, -2], size: [8, 12, 4], uv: [16, 16], inflate }] },
+    { name: 'head', pivot: [0, 24, 0], boxes: [{ from: [-4, 0, -4], size: [8, 8, 8], uv: [0, 0], inflate }] },
+    { name: 'rightArm', pivot: [-5, 22, 0], boxes: [{ from: [-3, -10, -2], size: [4, 12, 4], uv: [40, 16], inflate }] },
+    { name: 'leftArm', pivot: [5, 22, 0], boxes: [{ from: [-1, -10, -2], size: [4, 12, 4], uv: [40, 16], inflate }] },
+    { name: 'rightLeg', pivot: [-1.9, 12, 0], boxes: [{ from: [-2, -12, -2], size: [4, 12, 4], uv: [0, 16], inflate }] },
+    { name: 'leftLeg', pivot: [1.9, 12, 0], boxes: [{ from: [-2, -12, -2], size: [4, 12, 4], uv: [0, 16], inflate }] },
+  ];
+}
+
 export interface HumanoidAnim {
   /** limb swing position and amount (vanilla animationPosition / animationSpeed) */
   limbSwing: number;

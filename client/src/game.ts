@@ -370,6 +370,7 @@ export class Game implements ScreenHost {
     this.lines = new LineRenderer(this.gl);
     this.entityRenderer = new EntityRenderer(this.gl);
     await this.entityRenderer.loadSkins();
+    await this.entityRenderer.loadArmor();
     const mainBake = bakeBlockModels(this.manifest, this.settings.graphics === 'fancy');
     this.bake = mainBake.bake;
     this.texLayers = mainBake.textures;
@@ -912,6 +913,8 @@ export class Game implements ScreenHost {
       sm.hurtTime = this.hurtTime;
       sm.mainHand = this.interaction.inventory.selectedStack?.id ?? 0;
       sm.offHand = this.interaction.inventory.get(40)?.id ?? 0;
+      const inv = this.interaction.inventory;
+      sm.armor = [inv.get(36)?.id ?? 0, inv.get(37)?.id ?? 0, inv.get(38)?.id ?? 0, inv.get(39)?.id ?? 0];
       sm.tick();
     }
     this.tickLiving();

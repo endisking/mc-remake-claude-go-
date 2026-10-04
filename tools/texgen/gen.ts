@@ -18,6 +18,7 @@ import { animatedTextures } from './blocks/animated';
 import { grassColormap, foliageColormap } from './colormap';
 import { widgets, optionsBackground, icons, spectatorWidgets } from './gui';
 import { allSkins } from './skins';
+import { allArmorTextures } from './armor';
 import { sun, moonPhases, clouds, rain, snowflakes, destroyStages, underwater, experienceOrbs, powderSnowOutline } from './environment';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -94,6 +95,8 @@ function main(): void {
   writePng(join(outDir, 'environment', 'powder_snow_outline.png'), powderSnowOutline());
   mkdirSync(join(outDir, 'entity'), { recursive: true });
   writePng(join(outDir, 'entity', 'experience_orb.png'), experienceOrbs());
+  mkdirSync(join(outDir, 'entity', 'armor'), { recursive: true });
+  for (const a of allArmorTextures()) writePng(join(outDir, 'entity', 'armor', `${a.name}.png`), a.tex);
   const overrides = existsSync(join(outDir, 'overrides')) ? readdirSync(join(outDir, 'overrides')).filter((f) => f.endsWith('.png')) : [];
   console.log(`texgen: ${entries.length} textures (${totalFrames} frames), ${overrides.length} overrides present`);
 }
