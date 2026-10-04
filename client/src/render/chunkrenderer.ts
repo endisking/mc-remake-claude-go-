@@ -109,6 +109,14 @@ export class ChunkRenderer {
   private readonly sections = new Map<number, RenderSection>();
   private readonly workers: { w: Worker; busy: boolean }[] = [];
   private readonly jobs = new Map<number, RenderSection>();
+  /** Sections waiting for a (re)build, so scheduling never scans every loaded section. */
+  private readonly dirtySet = new Set<RenderSection>();
+  /** Biome tints per chunk column (the 1.17 overworld zoom ignores y): computed once, reused by all 16 sections. */
+  private readonly tintCache = new Map<number, Uint32Array>();
+  private tintCacheRadius = -1;
+  // scheduling scratch (no per-frame allocation)
+  private readonly pickS: (RenderSection | null)[] = [null, null, null, null, null, null, null, null];
+  private readonly pickD = new Float64Array(8);
   private nextJob = 1;
   private readonly uploads: MeshOutput[] = [];
   private frameNo = 0;
@@ -165,6 +173,7 @@ export class ChunkRenderer {
     };
     world.onChunkUnloaded = (cx, cz) => {
       for (let sy = 0; sy < 16; sy++) this.disposeSection(cx, sy, cz);
+      this.tintCache.delete(chunkKey(cx, cz));
     };
   }
 
@@ -182,6 +191,7 @@ export class ChunkRenderer {
     }
     if (s.building) s.rebuild = true;
     s.dirty = true;
+    this.dirtySet.add(s);
   }
 
   private disposeSection(cx: number, sy: number, cz: number): void {
@@ -190,6 +200,7 @@ export class ChunkRenderer {
     if (!s) return;
     this.freeBuffers(s);
     this.sections.delete(k);
+    this.dirtySet.delete(s);
   }
 
   private freeBuffers(s: RenderSection): void {
@@ -207,7 +218,10 @@ export class ChunkRenderer {
 
   /** LevelRenderer.allChanged: rebuild every section (F3+A). */
   allChanged(): void {
-    for (const s of this.sections.values()) s.dirty = true;
+    for (const s of this.sections.values()) {
+      s.dirty = true;
+      this.dirtySet.add(s);
+    }
   }
 
   setMesherOptions(opts: MesherOptions, manifest: TextureManifest): void {
@@ -216,7 +230,7 @@ export class ChunkRenderer {
       w.busy = true;
       w.w.postMessage({ type: 'init', manifest, opts });
     }
-    for (const s of this.sections.values()) s.dirty = true;
+    this.allChanged();
   }
 
   // ------------------------------------------------------------------ meshing
@@ -258,43 +272,84 @@ export class ChunkRenderer {
             }
         }
       }
-    this.biomes.fillSectionTints(this.world, s.sx * 16, s.sy * 16 + 8, s.sz * 16, this.tintScratch);
-    return { sx: s.sx, sy: s.sy, sz: s.sz, states, light, tints: this.tintScratch.slice() };
+    return { sx: s.sx, sy: s.sy, sz: s.sz, states, light, tints: this.sectionTints(s) };
+  }
+
+  /** Tints for a section (a fresh copy: it is transferred to the worker). */
+  private sectionTints(s: RenderSection): Uint32Array {
+    if (this.world.biomeZoomSeed === null) {
+      // dev scenes: quart biomes vary with y
+      this.biomes.fillSectionTints(this.world, s.sx * 16, s.sy * 16 + 8, s.sz * 16, this.tintScratch);
+      return this.tintScratch.slice();
+    }
+    if (this.tintCacheRadius !== this.biomes.blendRadius) {
+      this.tintCache.clear();
+      this.tintCacheRadius = this.biomes.blendRadius;
+    }
+    const key = chunkKey(s.sx, s.sz);
+    let t = this.tintCache.get(key);
+    if (!t) {
+      // all 8 neighbour columns are loaded (canBuild), so the blended area is complete
+      t = new Uint32Array(768);
+      this.biomes.fillSectionTints(this.world, s.sx * 16, 64, s.sz * 16, t);
+      this.tintCache.set(key, t);
+    }
+    return t.slice();
   }
 
   private schedule(camX: number, camY: number, camZ: number): void {
-    const free = this.workers.filter((w) => !w.busy);
-    if (!free.length) return;
-    // nearest dirty sections first
-    const cands: [number, RenderSection][] = [];
+    let nFree = 0;
+    for (const w of this.workers) if (!w.busy) nFree++;
+    if (!nFree || !this.dirtySet.size) return;
+    // pick the nFree nearest buildable dirty sections (insertion into a tiny sorted list)
     const ccx = Math.floor(camX) >> 4, ccy = Math.floor(camY) >> 4, ccz = Math.floor(camZ) >> 4;
-    for (const s of this.sections.values()) {
-      if (!s.dirty || s.building) continue;
+    const pickS = this.pickS, pickD = this.pickD;
+    const k = Math.min(nFree, pickS.length);
+    let n = 0;
+    const range = this.renderDistance + 1;
+    for (const s of this.dirtySet) {
+      if (s.building) continue;
+      if (!s.dirty) {
+        this.dirtySet.delete(s);
+        continue;
+      }
       const dx = s.sx - ccx, dz = s.sz - ccz, dy = s.sy - ccy;
-      if (Math.abs(dx) > this.renderDistance + 1 || Math.abs(dz) > this.renderDistance + 1) continue;
-      cands.push([dx * dx + dz * dz + dy * dy * 0.5, s]);
-    }
-    cands.sort((a, b) => a[0] - b[0]);
-    let wi = 0;
-    for (const [, s] of cands) {
-      if (wi >= free.length) break;
+      if (dx > range || dx < -range || dz > range || dz < -range) continue;
+      const d = dx * dx + dz * dz + dy * dy * 0.5;
+      if (n === k && d >= pickD[n - 1]!) continue;
       if (!this.canBuild(s)) continue;
-      const chunk = this.world.getChunk(s.sx, s.sz)!;
-      const sec = chunk.sections[s.sy]!;
-      s.dirty = false;
+      const sec = this.world.getChunk(s.sx, s.sz)!.sections[s.sy]!;
       if (sec.isEmpty()) {
-        // empty section: nothing to draw, fully open for cave culling
+        // empty section: nothing to draw, fully open for cave culling (no worker needed)
+        s.dirty = false;
+        this.dirtySet.delete(s);
         this.freeBuffers(s);
         s.vis = null;
         s.hasMesh = true;
         continue;
       }
+      let i = n < k ? n++ : n - 1;
+      while (i > 0 && pickD[i - 1]! > d) {
+        pickD[i] = pickD[i - 1]!;
+        pickS[i] = pickS[i - 1]!;
+        i--;
+      }
+      pickD[i] = d;
+      pickS[i] = s;
+    }
+    let wi = 0;
+    for (let i = 0; i < n; i++) {
+      const s = pickS[i]!;
+      pickS[i] = null;
+      while (this.workers[wi]!.busy) wi++;
+      const w = this.workers[wi]!;
+      s.dirty = false;
+      this.dirtySet.delete(s);
       const id = this.nextJob++;
       s.building = true;
       s.rebuild = false;
       this.jobs.set(id, s);
       const input = this.snapshot(s);
-      const w = free[wi++]!;
       w.busy = true;
       w.w.postMessage({ type: 'mesh', id, input }, [input.states.buffer, input.light.buffer, input.tints.buffer]);
     }
@@ -306,7 +361,10 @@ export class ChunkRenderer {
     if (!s) return;
     s.building = false;
     if (this.sections.get(this.key(s.sx, s.sy, s.sz)) !== s) return; // unloaded meanwhile
-    if (s.rebuild) s.dirty = true;
+    if (s.rebuild) {
+      s.dirty = true;
+      this.dirtySet.add(s);
+    }
     this.uploads.push(out);
   }
 
@@ -534,12 +592,19 @@ export class ChunkRenderer {
     gl.disable(gl.BLEND);
   }
 
+  /** Whether every section of a chunk column has its current mesh (loading screen progress). */
+  columnMeshed(cx: number, cz: number): boolean {
+    for (let sy = 0; sy < 16; sy++) {
+      const s = this.sections.get(this.key(cx, sy, cz));
+      if (!s || !s.hasMesh || s.dirty || s.building) return false;
+    }
+    return true;
+  }
+
   stats(): ChunkRenderStats {
     let pending = 0, building = 0, quads = 0;
-    for (const s of this.sections.values()) {
-      if (s.dirty && this.canBuild(s)) pending++;
-      if (s.building) building++;
-    }
+    for (const s of this.dirtySet) if (s.dirty && !s.building && this.canBuild(s)) pending++;
+    building = this.jobs.size;
     for (const s of this.visible) quads += s.quads[0]! + s.quads[1]! + s.quads[2]!;
     const avg = this.buildTimes.length ? this.buildTimes.reduce((a, b) => a + b, 0) / this.buildTimes.length : 0;
     return { sections: this.sections.size, visible: this.visible.length, pending, building, avgBuildMs: avg, quads };

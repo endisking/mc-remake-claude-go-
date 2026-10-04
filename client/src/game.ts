@@ -59,6 +59,7 @@ import { isViewBlocking, hasMenuProvider } from '@shared/world/blockprops';
 import { JavaRandom } from '@shared/util/random';
 import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
+import { LoadingTerrainScreen, type LoadingHost } from './gui/loadingscreen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
 import { ItemTextures } from './render/itemtextures';
@@ -544,6 +545,14 @@ export class Game implements ScreenHost {
         this.loggedIn = true;
         this.send({ t: 'settings', viewDistance: this.settings.renderDistance, simulationDistance: this.settings.simulationDistance });
         this.applyTestParams();
+        // "Loading terrain…" until the chunks around the player are in and meshed (test scenes and screen shots skip it)
+        if (!new URLSearchParams(location.search).has('screen') && !new URLSearchParams(location.search).has('scene')) {
+          this.setScreen(new LoadingTerrainScreen(this.loadingHost(), () => {
+            this.setScreen(null);
+            if (!this.input.locked && new URLSearchParams(location.search).get('nolock') !== '1') this.setScreen(new PauseScreen(this));
+          }));
+          break;
+        }
         if (!this.input.locked && new URLSearchParams(location.search).get('nolock') !== '1') this.setScreen(new PauseScreen(this));
         {
           const sc = new URLSearchParams(location.search).get('screen');
@@ -846,6 +855,19 @@ export class Game implements ScreenHost {
   }
 
   /** URL test hooks: ?x=&y=&z=&yaw=&pitch=&time= (used by screenshot checks and the benchmark). */
+  private loadingHost(): LoadingHost {
+    const game = this;
+    return {
+      gui: this.gui,
+      center: () => [Math.floor(this.player.x) >> 4, Math.floor(this.player.z) >> 4],
+      received: (cx, cz) => !!this.world.getChunk(cx, cz),
+      meshed: (cx, cz) => this.chunks.columnMeshed(cx, cz),
+      get renderDistance() {
+        return game.settings.renderDistance;
+      },
+    };
+  }
+
   private applyTestParams(): void {
     const q = new URLSearchParams(location.search);
     const n = (k: string) => (q.has(k) ? Number(q.get(k)) : undefined);
