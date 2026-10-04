@@ -2,6 +2,7 @@
  * The client game: networking to a (local or remote) server, world mirror, camera,
  * frame loop and renderers.
  */
+import { animateFluids } from './world/fluidambience';
 import { decodeS2C, encodeC2S, PROTOCOL_VERSION, type C2S, type S2C } from '@shared/protocol/packets';
 import { BIOMES } from '@shared/data';
 import { chunkKey } from '@shared/world/chunk';
@@ -799,6 +800,7 @@ export class Game implements ScreenHost {
     this.lightmap.tick();
     if (this.world.doDaylightCycle) this.world.dayTime++;
     this.world.gameTime++;
+    animateFluids(this.world, this.player.x, this.player.y, this.player.z, this.sfxRand, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
     this.prevX = this.x;
     this.prevY = this.y;
     this.prevZ = this.z;
