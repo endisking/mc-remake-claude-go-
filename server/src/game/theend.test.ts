@@ -4,6 +4,7 @@ import { encodeC2S, decodeS2C, PROTOCOL_VERSION, type S2C } from '@shared/protoc
 import { stateOf, blockNameOf } from '@shared/world/blockstate';
 import { JavaRandom } from '@shared/util/random';
 import { findPortalFrame, EyeOfEnder } from './theend';
+import { ExperienceOrb } from './entity';
 
 function client(server: GameServer, name: string) {
   const received: S2C[] = [];
@@ -83,12 +84,47 @@ describe('the End on the server', () => {
         expect(blockNameOf(end.world.getState(x, 49, z))).toBe('obsidian');
         for (let y = 50; y <= 52; y++) expect(end.world.getState(x, y, z)).toBe(0);
       }
-    // the exit fountain at 0, 0 (lit: there is no dragon to defeat yet)
+    // the exit fountain at 0, 0: unlit while the dragon lives
     let top = -1;
     for (let y = 0; y < 128; y++) if (blockNameOf(end.world.getState(0, y, 0)) === 'bedrock') top = y;
     expect(top).toBeGreaterThan(0);
     const portalY = top - 3;
+    expect(blockNameOf(end.world.getState(2, portalY, 0))).not.toBe('end_portal');
+    const dragon = server.theEnd.findDragon()!;
+    expect(dragon).not.toBeNull();
+    expect(dragon.health).toBe(200);
+    server.tick();
+    const adds = a.received.filter((m) => m.t === 'bossEvent') as Extract<S2C, { t: 'bossEvent' }>[];
+    expect(adds[0]).toMatchObject({ op: 0, id: dragon.id, name: 'Ender Dragon', progress: 1 });
+    // a hit lowers the bar
+    expect(dragon.hurt({ id: 'player' }, 20, p)).toBe(true);
+    server.tick();
+    const upd = (a.received.filter((m) => m.t === 'bossEvent') as Extract<S2C, { t: 'bossEvent' }>[]).pop()!;
+    expect(upd.op).toBe(2);
+    expect(upd.progress).toBeCloseTo(0.9, 1);
+    // environmental damage is ignored
+    expect(dragon.hurt({ id: 'inWall', bypassArmor: true }, 5)).toBe(false);
+    // kill it: 200 ticks of dying, then 12000 XP, the lit portal, the egg and a gateway
+    dragon.invulnerableTime = 0;
+    dragon.hurt({ id: 'player' }, 1000, p);
+    expect(dragon.dead).toBe(true);
+    for (let i = 0; i < 205; i++) server.tick();
+    expect(dragon.removed).toBe(true);
+    expect(server.theEnd.dragonKilled).toBe(true);
+    expect(server.theEnd.previouslyKilled()).toBe(true);
     expect(blockNameOf(end.world.getState(2, portalY, 0))).toBe('end_portal');
+    expect(blockNameOf(end.world.getState(0, top + 1, 0))).toBe('dragon_egg');
+    let xp = 0;
+    for (const e of end.entities.values()) if (e instanceof ExperienceOrb) xp += e.value * e.count;
+    expect(xp).toBeGreaterThanOrEqual(11990);
+    let gateways = 0;
+    for (let i = 0; i < 20; i++) {
+      const ang = 2 * (-Math.PI + 0.15707963267948966 * i);
+      if (blockNameOf(end.world.getState(Math.floor(96 * Math.cos(ang)), 75, Math.floor(96 * Math.sin(ang)))) === 'end_gateway') gateways++;
+    }
+    expect(gateways).toBe(1);
+    expect((a.received.filter((m) => m.t === 'bossEvent') as Extract<S2C, { t: 'bossEvent' }>[]).pop()!.op).toBe(1);
+    expect(server.captureMeta().dragonKilled).toBe(true);
 
     // walk into the exit portal: back to the overworld spawn, credits shown
     p.x = 2.5;

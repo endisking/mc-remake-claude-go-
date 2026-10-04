@@ -39,6 +39,9 @@ export interface LevelMeta {
   createdAt: number;
   /** nether portal POIs per dimension ("x,y,z"), for the exit-portal search */
   portalPois?: Record<string, string[]>;
+  /** EndDragonFight data: the dragon is dead (exit portal lit) / was ever killed (egg, XP) */
+  dragonKilled?: boolean;
+  previouslyKilled?: boolean;
 }
 
 /** Per-player save (playerdata/<name>.dat equivalent). */
