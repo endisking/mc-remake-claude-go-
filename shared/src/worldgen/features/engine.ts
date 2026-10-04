@@ -17,6 +17,7 @@ import { WORLDGEN } from './data';
 import type { GenLevel, HeightmapType } from './level';
 import { blockState, intProvider, floatProvider, heightProvider, ruleTest, stateProvider, inTag, type RuleTest } from './providers';
 import { treeFeature } from './trees';
+import * as surface from './surface';
 
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const f = Math.fround;
@@ -190,6 +191,15 @@ export function genCanSurvive(lv: GenLevel, x: number, y: number, z: number, s: 
       return inTag('dirt', below) || belowName === 'farmland';
     case 'pumpkin': case 'melon':
       return true;
+    // DoublePlantBlock.canSurvive: the lower half only needs the soil (the placer adds the top)
+    case 'tall_grass': case 'large_fern': case 'sunflower': case 'lilac': case 'rose_bush': case 'peony':
+      if (getProp(s, 'half') === 'upper') return belowName === name;
+      return inTag('dirt', below) || belowName === 'farmland';
+    // DeadBushBlock.mayPlaceOn: sand, terracotta or dirt
+    case 'dead_bush':
+      return inTag('sand', below) || belowName.endsWith('terracotta') && !belowName.endsWith('glazed_terracotta') || inTag('dirt', below);
+    case 'bamboo': case 'bamboo_sapling':
+      return inTag('bamboo_plantable_on', below);
   }
   return canSurvive(lv, x, y, z, s);
 }
@@ -265,6 +275,20 @@ function feature(j: J): Placer {
     case 'minecraft:sea_pickle': return seaPickle(c);
     case 'minecraft:freeze_top_layer': return freezeTopLayer;
     case 'minecraft:tree': return treeFeature(c);
+    case 'minecraft:no_bonemeal_flower': return flower(c);
+    case 'minecraft:huge_red_mushroom': return surface.hugeMushroom(c, true);
+    case 'minecraft:huge_brown_mushroom': return surface.hugeMushroom(c, false);
+    case 'minecraft:bamboo': return surface.bamboo(c);
+    case 'minecraft:vines': return surface.vines;
+    case 'minecraft:coral_tree': return surface.coralTree;
+    case 'minecraft:coral_claw': return surface.coralClaw;
+    case 'minecraft:coral_mushroom': return surface.coralMushroom;
+    case 'minecraft:iceberg': return surface.iceberg(c);
+    case 'minecraft:blue_ice': return surface.blueIce;
+    case 'minecraft:ice_spike': return surface.iceSpike;
+    case 'minecraft:desert_well': return surface.desertWell;
+    case 'minecraft:forest_rock': return surface.forestRock(c);
+    case 'minecraft:replace_single_block': return surface.replaceSingleBlock(c);
     default:
       MISSING_FEATURES.add(j.type);
       return () => false;
