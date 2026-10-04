@@ -58,6 +58,20 @@ const walk = (n: any) => {
   for (const c of n.children) walk(c);
 };
 walk(heap.head);
+// call stacks (5 frames) of the heaviest allocation sites, to see who drives them
+const stacks = new Map<string, number>();
+const walk2 = (n: any, path: string[]) => {
+  const f = n.callFrame;
+  const here = [...path, `${f.functionName || '(anon)'}:${f.lineNumber + 1}`];
+  if (n.selfSize > 0) {
+    const k = here.slice(-6).join(' < ');
+    stacks.set(k, (stacks.get(k) ?? 0) + n.selfSize);
+  }
+  for (const c of n.children) walk2(c, here);
+};
+walk2(heap.head, []);
+console.log('--- top allocation stacks (KB)');
+for (const [k, v] of [...stacks].sort((a, b) => b[1] - a[1]).slice(0, 8)) console.log((v / 1024).toFixed(0).padStart(8), k.split(' < ').reverse().join(' < '));
 console.log('--- top allocation sites (KB sampled during flight)');
 for (const [k, v] of [...alloc].sort((a, b) => b[1] - a[1]).slice(0, 25)) console.log((v / 1024).toFixed(0).padStart(8), k);
 await browser.close();
