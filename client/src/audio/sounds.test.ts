@@ -75,17 +75,16 @@ describe('sounds.json', () => {
       'entity.generic.explode', 'block.wooden_door.open', 'block.wooden_door.close', 'block.wooden_trapdoor.open', 'block.fence_gate.open',
       'block.chest.open', 'block.chest.close', 'block.furnace.fire_crackle', 'ui.button.click', 'ambient.cave', 'weather.rain',
       'entity.lightning_bolt.thunder', 'ambient.underwater.loop', 'ambient.underwater.enter', 'ambient.underwater.exit',
-      'music.game', 'music.creative', 'music.menu', 'music.under_water',
     ];
     for (const mob of ['zombie', 'skeleton', 'spider', 'pig', 'cow', 'sheep', 'chicken']) for (const k of ['ambient', 'hurt', 'death', 'step']) core.push(`entity.${mob}.${k}`);
     core.push('entity.creeper.hurt', 'entity.creeper.death', 'entity.creeper.primed', 'entity.tnt.primed');
     expect(core.filter((e) => !withAudio(e))).toEqual([]);
   });
 
-  it('music and the underwater loop are streamed; every event has 1+ variants and block groups 2+', () => {
-    for (const [ev, def] of Object.entries(manifest)) {
-      if (ev.startsWith('music.') || ev === 'ambient.underwater.loop') expect(def.sounds.every((s) => s.stream), ev).toBe(true);
-    }
+  it('there is no background music; the underwater loop is streamed; block groups have 2+ variants', () => {
+    // background music was removed at the players' request (jukebox discs are separate: record.*)
+    expect(Object.keys(manifest).filter((e) => e.startsWith('music.'))).toEqual([]);
+    expect(manifest['ambient.underwater.loop']!.sounds.every((s) => s.stream)).toBe(true);
     for (const t of Object.values(SOUND_TYPES)) expect(manifest[t.step]!.sounds.length, t.step).toBeGreaterThanOrEqual(2);
   });
 

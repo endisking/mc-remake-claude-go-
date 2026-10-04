@@ -3,6 +3,7 @@
  * frame loop and renderers.
  */
 import { animateFluids } from './world/fluidambience';
+import { toggleFullscreen } from './fullscreen';
 import { decodeS2C, encodeC2S, PROTOCOL_VERSION, type C2S, type S2C } from '@shared/protocol/packets';
 import { BIOMES } from '@shared/data';
 import { chunkKey } from '@shared/world/chunk';
@@ -77,7 +78,6 @@ import { InventoryMenu, createClientMenu, type Menu, type MenuType } from '@shar
 import { InventoryContainer } from '@shared/menu/container';
 import { decodeStacks } from '@shared/protocol/packets';
 import { saveSettings } from './settings';
-import { MusicManager, situationalMusic, MUSICS } from './audio/music';
 import { AmbientSounds } from './audio/ambient';
 import { ClientItemUse } from './itemuse';
 import { renderEffects } from './gui/effects';
@@ -215,8 +215,6 @@ export class Game implements ScreenHost, ContainerHost {
   private lightning!: LightningRenderer;
   private orbRenderer!: OrbRenderer;
   readonly sound = new SoundEngine();
-  /** vanilla MusicManager (one streamed track at a time, 10-20 min apart in game) */
-  readonly music = new MusicManager((event) => this.sound.playStream(event, 'music', 1));
   /** cave mood sounds and underwater ambience */
   private readonly ambient = new AmbientSounds({
     playAt: (event, x, y, z, volume, pitch) => this.playAt(event, 'ambient', x, y, z, volume, pitch),
@@ -367,6 +365,12 @@ export class Game implements ScreenHost, ContainerHost {
       if (this.screen) {
         const sc = this.screen;
         if (sc.keyDown(e.code)) e.preventDefault();
+        // vanilla KeyboardHandler: the fullscreen key works on every screen (unless the screen used
+        // the key itself, e.g. while rebinding it in Controls)
+        else if (e.code === this.binds.key('fullscreen')) {
+          e.preventDefault();
+          toggleFullscreen();
+        }
         if (this.screen === sc && e.key.length === 1 && !e.ctrlKey && !e.metaKey && sc.charTyped(e.key)) e.preventDefault();
       }
     });
@@ -378,6 +382,16 @@ export class Game implements ScreenHost, ContainerHost {
         this.setScreen(new PauseScreen(this, !f3));
       }
     };
+    // Ctrl is sprint, so Ctrl+W (sprint forward) would close the tab: in fullscreen the keyboard lock
+    // (fullscreen.ts) hands it to the game; otherwise the browser asks before leaving a running
+    // world. Not in the desktop app, where it would silently cancel closing the window.
+    if (!/\bElectron\//.test(navigator.userAgent)) {
+      window.addEventListener('beforeunload', (e) => {
+        if (!this.loggedIn || this.quitting) return;
+        e.preventDefault();
+        e.returnValue = '';
+      });
+    }
     // Minecraft.setWindowActive(false) with pauseOnLostFocus: the pause menu
     window.addEventListener('blur', () => {
       if (this.settings.pauseOnLostFocus && !this.screen && this.loggedIn && !this.dead) this.setScreen(new PauseScreen(this));
@@ -1670,10 +1684,7 @@ export class Game implements ScreenHost, ContainerHost {
     i.consumePress('F3');
     if (this.binds.consume('togglePerspective')) this.cameraType = (this.cameraType + 1) % 3;
     if (i.consumePress('F1')) this.hideHud = !this.hideHud;
-    if (this.binds.consume('fullscreen')) {
-      if (document.fullscreenElement) void document.exitFullscreen();
-      else void document.documentElement.requestFullscreen();
-    }
+    if (this.binds.consume('fullscreen')) toggleFullscreen();
   }
 
   // ------------------------------------------------------------------ helpers
@@ -1913,21 +1924,13 @@ export class Game implements ScreenHost, ContainerHost {
     this.wasOnGround = p.onGround;
   }
 
-  /** Music manager and ambient handlers (Minecraft.tick → musicManager.tick, LocalPlayer ambient handlers). */
+  /** Ambient handlers (LocalPlayer ambient handlers). There is no background music (removed on request). */
   private tickAudio(): void {
     const pl = this.player;
     const bx = Math.floor(pl.x), by = Math.floor(pl.y), bz = Math.floor(pl.z);
     const loaded = this.loggedIn && this.world.isLoaded(bx, bz);
     const biome = loaded ? BIOMES[this.world.getBiome(bx, by, bz)] : undefined;
     const underWater = loaded && pl.isUnderWater;
-    this.music.tick(situationalMusic({
-      inMenu: !loaded,
-      dimension: (this.dimension as 'overworld' | 'the_nether' | 'the_end') ?? 'overworld',
-      biome: biome?.name ?? 'plains',
-      biomeCategory: biome?.category ?? 'plains',
-      underWater,
-      creativeFlying: this.gameMode === 1 && pl.abilities.mayFly,
-    }, this.music.isPlaying(MUSICS.underWater)));
     if (!loaded) return;
     this.ambient.tick(this.world, {
       x: pl.x, y: pl.y, z: pl.z, eyeY: pl.y + pl.eyeHeight, underWater: underWater && this.gameMode !== 3,

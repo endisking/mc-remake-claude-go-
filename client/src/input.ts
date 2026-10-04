@@ -23,6 +23,9 @@ export class Input {
       if (!this.down.has(e.code)) this.pressed.add(e.code);
       this.down.add(e.code);
       if (this.locked && (e.code.startsWith('F') || e.code === 'Tab' || e.code === 'Space')) e.preventDefault();
+      // while playing, Ctrl/Cmd combinations are game keys (Ctrl = sprint, Ctrl+Q = drop stack), not
+      // browser shortcuts; with fullscreen's keyboard lock this also keeps Ctrl+W from closing the tab
+      if (this.locked && (e.ctrlKey || e.metaKey)) e.preventDefault();
     });
     window.addEventListener('keyup', (e) => {
       this.down.delete(e.code);

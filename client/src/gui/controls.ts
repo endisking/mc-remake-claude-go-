@@ -234,13 +234,13 @@ export class MouseSettingsScreen extends SubScreen {
 }
 
 const SOUND_SLIDERS: [SoundCategory, string][] = [
-  ['music', 'Music'], ['record', 'Jukebox/Note Blocks'], ['weather', 'Weather'], ['block', 'Blocks'], ['hostile', 'Hostile Creatures'],
+  ['record', 'Jukebox/Note Blocks'], ['weather', 'Weather'], ['block', 'Blocks'], ['hostile', 'Hostile Creatures'],
   ['neutral', 'Friendly Creatures'], ['player', 'Players'], ['ambient', 'Ambient/Environment'], ['voice', 'Voice/Speech'],
 ];
 
 export class SoundOptionsScreen extends SubScreen {
   constructor(host: ScreenHost & { setVolume(c: SoundCategory, v: number): void; volume(c: SoundCategory): number }, parent: Screen | null) {
-    super(host, parent, 'Music & Sound Options');
+    super(host, parent, 'Sound Options');
   }
   init(): void {
     const h = this.host as ScreenHost & { setVolume(c: SoundCategory, v: number): void; volume(c: SoundCategory): number };

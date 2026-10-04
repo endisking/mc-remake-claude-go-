@@ -4,6 +4,7 @@
  * Settings and Skin Customization.
  */
 import { Button, Screen, Slider, type Widget } from './screen';
+import { toggleFullscreen } from '../fullscreen';
 import type { ScreenHost } from './screens';
 
 export type Opt =
@@ -167,8 +168,7 @@ export class VideoSettingsScreen extends OptionsListScreen {
       { kind: 'cycle', label: 'Clouds', get: () => ({ off: 'OFF', fast: 'Fast', fancy: 'Fancy' })[s.clouds], next: () => (s.clouds = cyc(['fancy', 'fast', 'off'] as const, s.clouds)) },
       {
         kind: 'cycle', label: 'Fullscreen', get: () => onOff(!!document.fullscreenElement), next: () => {
-          if (document.fullscreenElement) void document.exitFullscreen();
-          else void document.documentElement.requestFullscreen?.().catch(() => {});
+          toggleFullscreen();
         },
       },
       { kind: 'cycle', label: 'Particles', get: () => ({ all: 'All', decreased: 'Decreased', minimal: 'Minimal' })[s.particles], next: () => (s.particles = cyc(['all', 'decreased', 'minimal'] as const, s.particles)) },

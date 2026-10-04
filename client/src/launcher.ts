@@ -8,30 +8,20 @@ import { listWorlds, newWorldId, deleteWorld, exportWorldZip, importWorldZip, Id
 import { safeFolderName } from '@server/storage/archive';
 import { SAVE_FORMAT_VERSION, type LevelMeta } from '@server/storage/types';
 import { SoundEngine, type SoundCategory } from './audio/engine';
-import { MusicManager, MUSICS } from './audio/music';
 import { loadSettings } from './settings';
 import { fetchLanWorlds, type LanWorld } from './net/lan';
 
-/** Menu music (vanilla Musics.MENU) and button clicks on the start page; starts after the first gesture. */
+/** Button clicks on the start page; audio starts after the first gesture. (No background music.) */
 function startMenuAudio(root: HTMLElement): void {
   const sound = new SoundEngine();
   for (const [c, v] of Object.entries(loadSettings().volumes)) sound.volumes[c as SoundCategory] = v;
   void sound.load();
-  const music = new MusicManager((event) => sound.playStream(event, 'music', 1));
   const unlock = () => sound.resume();
   window.addEventListener('pointerdown', unlock);
   window.addEventListener('keydown', unlock);
   root.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).closest('button')) sound.play('ui.button.click', 'master', 0.25, 1);
   });
-  const timer = setInterval(() => {
-    if (!root.isConnected) {
-      clearInterval(timer);
-      music.stopPlaying();
-      return;
-    }
-    music.tick(MUSICS.menu);
-  }, 50);
 }
 
 const KEY = 'blockcraft.launcher';

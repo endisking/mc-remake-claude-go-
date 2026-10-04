@@ -71,12 +71,9 @@ const played = await page.evaluate(async () => {
   return { ctx: g.sound.ctx?.state, events: [...new Set(log)], count: log.length };
 });
 console.log('played', played);
-// music (forced to start now), a streamed underwater loop, and a few mob / item / ambient events
+// a streamed underwater loop and a few mob / item / ambient events
 const extra = await page.evaluate(async () => {
   const g = (window as any).game;
-  g.music.nextSongDelay = 0;
-  await new Promise((r) => setTimeout(r, 1500));
-  const musicEvent = g.music.playingEvent;
   const loop = g.sound.playStream('ambient.underwater.loop', 'ambient', 0.5, true);
   for (const e of ['entity.zombie.ambient', 'entity.cow.hurt', 'entity.creeper.primed', 'entity.generic.explode', 'entity.generic.eat',
     'entity.player.burp', 'item.bucket.fill', 'block.lava.extinguish', 'ambient.cave', 'block.note_block.harp', 'block.fire.ambient']) {
@@ -85,9 +82,9 @@ const extra = await page.evaluate(async () => {
   await new Promise((r) => setTimeout(r, 1500));
   const loopActive = loop.active;
   loop.stop();
-  return { ctx: g.sound.ctx?.state, musicEvent, loopActive, playing: g.sound.playing.length };
+  return { ctx: g.sound.ctx?.state, loopActive, playing: g.sound.playing.length };
 });
 console.log('extra', extra);
 console.log('errors', errors.length ? errors : 'none');
 await browser.close();
-if (errors.length || decoded.bad.length || !extra.musicEvent) process.exitCode = 1;
+if (errors.length || decoded.bad.length || !extra.loopActive) process.exitCode = 1;

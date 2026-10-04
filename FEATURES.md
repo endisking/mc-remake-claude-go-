@@ -3580,8 +3580,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] `entity.mule.death` <!--sound:entity.mule.death-->
 - [ ] `entity.mule.eat` <!--sound:entity.mule.eat-->
 - [x] `entity.mule.hurt` <!--sound:entity.mule.hurt-->
-- [x] `music.creative` <!--sound:music.creative-->
-- [x] `music.credits` <!--sound:music.credits-->
+- [ ] `music.creative` (removed at the players' request) <!--sound:music.creative-->
+- [ ] `music.credits` (removed at the players' request) <!--sound:music.credits-->
 - [ ] `music_disc.11` <!--sound:music_disc.11-->
 - [ ] `music_disc.13` <!--sound:music_disc.13-->
 - [ ] `music_disc.blocks` <!--sound:music_disc.blocks-->
@@ -3595,16 +3595,16 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] `music_disc.strad` <!--sound:music_disc.strad-->
 - [ ] `music_disc.wait` <!--sound:music_disc.wait-->
 - [ ] `music_disc.ward` <!--sound:music_disc.ward-->
-- [x] `music.dragon` <!--sound:music.dragon-->
-- [x] `music.end` <!--sound:music.end-->
-- [x] `music.game` <!--sound:music.game-->
-- [x] `music.menu` <!--sound:music.menu-->
-- [x] `music.nether.basalt_deltas` <!--sound:music.nether.basalt_deltas-->
-- [x] `music.nether.nether_wastes` <!--sound:music.nether.nether_wastes-->
-- [x] `music.nether.soul_sand_valley` <!--sound:music.nether.soul_sand_valley-->
-- [x] `music.nether.crimson_forest` <!--sound:music.nether.crimson_forest-->
-- [x] `music.nether.warped_forest` <!--sound:music.nether.warped_forest-->
-- [x] `music.under_water` <!--sound:music.under_water-->
+- [ ] `music.dragon` (removed at the players' request) <!--sound:music.dragon-->
+- [ ] `music.end` (removed at the players' request) <!--sound:music.end-->
+- [ ] `music.game` (removed at the players' request) <!--sound:music.game-->
+- [ ] `music.menu` (removed at the players' request) <!--sound:music.menu-->
+- [ ] `music.nether.basalt_deltas` (removed at the players' request) <!--sound:music.nether.basalt_deltas-->
+- [ ] `music.nether.nether_wastes` (removed at the players' request) <!--sound:music.nether.nether_wastes-->
+- [ ] `music.nether.soul_sand_valley` (removed at the players' request) <!--sound:music.nether.soul_sand_valley-->
+- [ ] `music.nether.crimson_forest` (removed at the players' request) <!--sound:music.nether.crimson_forest-->
+- [ ] `music.nether.warped_forest` (removed at the players' request) <!--sound:music.nether.warped_forest-->
+- [ ] `music.under_water` (removed at the players' request) <!--sound:music.under_water-->
 - [x] `block.nether_bricks.break` <!--sound:block.nether_bricks.break-->
 - [x] `block.nether_bricks.step` <!--sound:block.nether_bricks.step-->
 - [x] `block.nether_bricks.place` <!--sound:block.nether_bricks.place-->

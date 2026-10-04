@@ -346,3 +346,21 @@ Still not vanilla:
   172.16–31.x.x and the page's own http:// host as plain `ws://`.
 - Verified: unzipped the release zip into a clean folder and ran `node server.mjs`. Two browser players joined
   through the launcher, saw each other, and a console command (`say`) reached the room.
+
+## 2026-10-04 — Fullscreen keyboard lock, no background music (0.4.4)
+
+- **Ctrl+W:** `client/src/fullscreen.ts` enters fullscreen and calls `navigator.keyboard.lock()` (Keyboard Lock API,
+  Chrome/Edge). Browser shortcuts such as Ctrl+W (sprint + forward), Ctrl+T and Ctrl+N then reach the game, and
+  leaving fullscreen takes holding Escape. While the mouse is captured, Ctrl/Cmd key combinations are
+  `preventDefault`ed.
+  - Without fullscreen, or in Firefox/Safari, a `beforeunload` prompt guards a running world. It is skipped
+    for Save and Quit and in the desktop app, where it would silently cancel closing the window.
+  - The fullscreen key now works on every screen, like vanilla's KeyboardHandler, unless the screen consumes
+    the key itself.
+  - Verified in Chromium: F11 toggles fullscreen from the pause menu, Ctrl+W keydown is default-prevented in
+    game, leaving a running world raises the beforeunload prompt, and Save and Quit doesn't.
+- **Music removed (players' request):**
+  - Deviation from vanilla: there is no menu or situational background music.
+  - Removed: `client/src/audio/music.ts` (MusicManager), the `music.*` events and `music_*` clip sets, their
+    soundgen sources, and the Music volume slider (the screen is now "Sound Options").
+  - Jukebox discs (`record` category, not implemented yet) aren't part of this removal.
