@@ -240,13 +240,21 @@ export class Interaction {
         continue;
       }
       this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
-      if (this.host.gameMode === 2) return;
+      if (this.host.gameMode === 2) {
+        // adventure: no placing, but food still gets eaten
+        if (stack) this.host.useItem?.(hand, stack);
+        return;
+      }
       if (this.placeLocally(block, target, hx, hy, hz)) {
         this.host.swing(hand);
         if (this.host.gameMode === 0 && stack) {
           stack.count--;
           if (stack.count <= 0) this.inventory.set(slot, null);
         }
+      } else if (stack) {
+        // ItemNameBlockItem (carrots, potatoes, berries): when it can't be planted it is eaten
+        const r = this.host.useItem?.(hand, stack) ?? 'pass';
+        if (r === 'swing') this.host.swing(hand);
       }
       return;
     }

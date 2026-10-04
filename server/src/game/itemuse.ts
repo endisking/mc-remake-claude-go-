@@ -141,7 +141,8 @@ export class ItemUse {
       return;
     }
     if (n === 'bucket' || n === 'water_bucket' || n === 'lava_bucket') {
-      if (this.useBucket(p, hand, slot, stack)) this.swing(p, hand);
+      // Player.mayUseItemAt: adventure players can't change blocks
+      if (p.gameMode !== 2 && this.useBucket(p, hand, slot, stack)) this.swing(p, hand);
       return;
     }
     if (canStartUsing(stack.id, { foodLevel: p.living.food.foodLevel, creative, hasArrows: this.findArrows(p) >= 0 })) {
