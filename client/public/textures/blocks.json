@@ -895,6 +895,1034 @@
    "cutout": true
   },
   {
+   "name": "oak_sapling",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "spruce_sapling",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "birch_sapling",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "jungle_sapling",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "acacia_sapling",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dark_oak_sapling",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "stripped_oak_log",
+   "frames": 1
+  },
+  {
+   "name": "stripped_oak_log_top",
+   "frames": 1
+  },
+  {
+   "name": "stripped_spruce_log",
+   "frames": 1
+  },
+  {
+   "name": "stripped_spruce_log_top",
+   "frames": 1
+  },
+  {
+   "name": "stripped_birch_log",
+   "frames": 1
+  },
+  {
+   "name": "stripped_birch_log_top",
+   "frames": 1
+  },
+  {
+   "name": "stripped_jungle_log",
+   "frames": 1
+  },
+  {
+   "name": "stripped_jungle_log_top",
+   "frames": 1
+  },
+  {
+   "name": "stripped_acacia_log",
+   "frames": 1
+  },
+  {
+   "name": "stripped_acacia_log_top",
+   "frames": 1
+  },
+  {
+   "name": "stripped_dark_oak_log",
+   "frames": 1
+  },
+  {
+   "name": "stripped_dark_oak_log_top",
+   "frames": 1
+  },
+  {
+   "name": "stripped_crimson_stem",
+   "frames": 1
+  },
+  {
+   "name": "stripped_crimson_stem_top",
+   "frames": 1
+  },
+  {
+   "name": "stripped_warped_stem",
+   "frames": 1
+  },
+  {
+   "name": "stripped_warped_stem_top",
+   "frames": 1
+  },
+  {
+   "name": "fern",
+   "frames": 1,
+   "tint": "grass",
+   "cutout": true
+  },
+  {
+   "name": "tall_grass_bottom",
+   "frames": 1,
+   "tint": "grass",
+   "cutout": true
+  },
+  {
+   "name": "tall_grass_top",
+   "frames": 1,
+   "tint": "grass",
+   "cutout": true
+  },
+  {
+   "name": "large_fern_bottom",
+   "frames": 1,
+   "tint": "grass",
+   "cutout": true
+  },
+  {
+   "name": "large_fern_top",
+   "frames": 1,
+   "tint": "grass",
+   "cutout": true
+  },
+  {
+   "name": "blue_orchid",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "allium",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "azure_bluet",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "red_tulip",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "orange_tulip",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "white_tulip",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pink_tulip",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "oxeye_daisy",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cornflower",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "lily_of_the_valley",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "wither_rose",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "lilac_bottom",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "lilac_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "rose_bush_bottom",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "rose_bush_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "peony_bottom",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "peony_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "sunflower_bottom",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "sunflower_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "sunflower_front",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "sunflower_back",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "sugar_cane",
+   "frames": 1,
+   "tint": "grass",
+   "cutout": true
+  },
+  {
+   "name": "dead_bush",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "sweet_berry_bush_stage0",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "sweet_berry_bush_stage1",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "sweet_berry_bush_stage2",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "sweet_berry_bush_stage3",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "lily_pad",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "brown_mushroom",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "red_mushroom",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "brown_mushroom_block",
+   "frames": 1
+  },
+  {
+   "name": "red_mushroom_block",
+   "frames": 1
+  },
+  {
+   "name": "mushroom_stem",
+   "frames": 1
+  },
+  {
+   "name": "mushroom_block_inside",
+   "frames": 1
+  },
+  {
+   "name": "bamboo_stalk",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "bamboo_small_leaves",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "bamboo_large_leaves",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "bamboo_stage0",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cocoa_stage0",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cocoa_stage1",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cocoa_stage2",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "sea_pickle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dead_sea_pickle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "tube_coral_block",
+   "frames": 1
+  },
+  {
+   "name": "dead_tube_coral_block",
+   "frames": 1
+  },
+  {
+   "name": "tube_coral",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dead_tube_coral",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "tube_coral_fan",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dead_tube_coral_fan",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "brain_coral_block",
+   "frames": 1
+  },
+  {
+   "name": "dead_brain_coral_block",
+   "frames": 1
+  },
+  {
+   "name": "brain_coral",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dead_brain_coral",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "brain_coral_fan",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dead_brain_coral_fan",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "bubble_coral_block",
+   "frames": 1
+  },
+  {
+   "name": "dead_bubble_coral_block",
+   "frames": 1
+  },
+  {
+   "name": "bubble_coral",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dead_bubble_coral",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "bubble_coral_fan",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dead_bubble_coral_fan",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "fire_coral_block",
+   "frames": 1
+  },
+  {
+   "name": "dead_fire_coral_block",
+   "frames": 1
+  },
+  {
+   "name": "fire_coral",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dead_fire_coral",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "fire_coral_fan",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dead_fire_coral_fan",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "horn_coral_block",
+   "frames": 1
+  },
+  {
+   "name": "dead_horn_coral_block",
+   "frames": 1
+  },
+  {
+   "name": "horn_coral",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dead_horn_coral",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "horn_coral_fan",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "dead_horn_coral_fan",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pumpkin_side",
+   "frames": 1
+  },
+  {
+   "name": "pumpkin_top",
+   "frames": 1
+  },
+  {
+   "name": "carved_pumpkin",
+   "frames": 1
+  },
+  {
+   "name": "jack_o_lantern",
+   "frames": 1
+  },
+  {
+   "name": "melon_side",
+   "frames": 1
+  },
+  {
+   "name": "melon_top",
+   "frames": 1
+  },
+  {
+   "name": "bee_nest_side",
+   "frames": 1
+  },
+  {
+   "name": "bee_nest_front",
+   "frames": 1
+  },
+  {
+   "name": "bee_nest_front_honey",
+   "frames": 1
+  },
+  {
+   "name": "bee_nest_top",
+   "frames": 1
+  },
+  {
+   "name": "bee_nest_bottom",
+   "frames": 1
+  },
+  {
+   "name": "azalea_leaves",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "flowering_azalea_leaves",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "azalea_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "flowering_azalea_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "azalea_side",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "flowering_azalea_side",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "azalea_plant",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cave_vines",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cave_vines_lit",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cave_vines_plant",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "cave_vines_plant_lit",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "spore_blossom",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "spore_blossom_base",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "hanging_roots",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "big_dripleaf_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "big_dripleaf_side",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "big_dripleaf_stem",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "small_dripleaf_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "small_dripleaf_stem",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "podzol_top",
+   "frames": 1
+  },
+  {
+   "name": "podzol_side",
+   "frames": 1
+  },
+  {
+   "name": "mycelium_top",
+   "frames": 1
+  },
+  {
+   "name": "mycelium_side",
+   "frames": 1
+  },
+  {
+   "name": "rooted_dirt",
+   "frames": 1
+  },
+  {
+   "name": "moss_block",
+   "frames": 1
+  },
+  {
+   "name": "packed_ice",
+   "frames": 1
+  },
+  {
+   "name": "blue_ice",
+   "frames": 1
+  },
+  {
+   "name": "terracotta",
+   "frames": 1
+  },
+  {
+   "name": "white_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "orange_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "magenta_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "light_blue_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "yellow_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "lime_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "pink_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "gray_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "light_gray_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "cyan_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "purple_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "blue_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "brown_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "green_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "red_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "black_terracotta",
+   "frames": 1
+  },
+  {
+   "name": "sandstone",
+   "frames": 1
+  },
+  {
+   "name": "sandstone_top",
+   "frames": 1
+  },
+  {
+   "name": "sandstone_bottom",
+   "frames": 1
+  },
+  {
+   "name": "cut_sandstone",
+   "frames": 1
+  },
+  {
+   "name": "chiseled_sandstone",
+   "frames": 1
+  },
+  {
+   "name": "red_sandstone",
+   "frames": 1
+  },
+  {
+   "name": "red_sandstone_top",
+   "frames": 1
+  },
+  {
+   "name": "red_sandstone_bottom",
+   "frames": 1
+  },
+  {
+   "name": "cut_red_sandstone",
+   "frames": 1
+  },
+  {
+   "name": "chiseled_red_sandstone",
+   "frames": 1
+  },
+  {
+   "name": "amethyst_block",
+   "frames": 1
+  },
+  {
+   "name": "budding_amethyst",
+   "frames": 1
+  },
+  {
+   "name": "small_amethyst_bud",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "medium_amethyst_bud",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "large_amethyst_bud",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "amethyst_cluster",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "calcite",
+   "frames": 1
+  },
+  {
+   "name": "tuff",
+   "frames": 1
+  },
+  {
+   "name": "smooth_basalt",
+   "frames": 1
+  },
+  {
+   "name": "dripstone_block",
+   "frames": 1
+  },
+  {
+   "name": "pointed_dripstone_up_tip_merge",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pointed_dripstone_up_tip",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pointed_dripstone_up_frustum",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pointed_dripstone_up_middle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pointed_dripstone_up_base",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pointed_dripstone_down_tip_merge",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pointed_dripstone_down_tip",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pointed_dripstone_down_frustum",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pointed_dripstone_down_middle",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "pointed_dripstone_down_base",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "glow_lichen",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "andesite",
+   "frames": 1
+  },
+  {
+   "name": "diorite",
+   "frames": 1
+  },
+  {
+   "name": "granite",
+   "frames": 1
+  },
+  {
+   "name": "obsidian",
+   "frames": 1
+  },
+  {
+   "name": "stone_bricks",
+   "frames": 1
+  },
+  {
+   "name": "mossy_stone_bricks",
+   "frames": 1
+  },
+  {
+   "name": "cracked_stone_bricks",
+   "frames": 1
+  },
+  {
+   "name": "spawner",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "chest_top",
+   "frames": 1
+  },
+  {
+   "name": "chest_side",
+   "frames": 1
+  },
+  {
+   "name": "chest_front",
+   "frames": 1
+  },
+  {
+   "name": "trapped_chest_front",
+   "frames": 1
+  },
+  {
+   "name": "netherrack",
+   "frames": 1
+  },
+  {
+   "name": "nether_gold_ore",
+   "frames": 1
+  },
+  {
+   "name": "nether_quartz_ore",
+   "frames": 1
+  },
+  {
+   "name": "soul_sand",
+   "frames": 1
+  },
+  {
+   "name": "soul_soil",
+   "frames": 1
+  },
+  {
+   "name": "basalt_side",
+   "frames": 1
+  },
+  {
+   "name": "basalt_top",
+   "frames": 1
+  },
+  {
+   "name": "blackstone",
+   "frames": 1
+  },
+  {
+   "name": "blackstone_top",
+   "frames": 1
+  },
+  {
+   "name": "crimson_nylium",
+   "frames": 1
+  },
+  {
+   "name": "crimson_nylium_side",
+   "frames": 1
+  },
+  {
+   "name": "warped_nylium",
+   "frames": 1
+  },
+  {
+   "name": "warped_nylium_side",
+   "frames": 1
+  },
+  {
+   "name": "crimson_fungus",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "warped_fungus",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "crimson_roots",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "warped_roots",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "nether_sprouts",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "nether_wart_block",
+   "frames": 1
+  },
+  {
+   "name": "warped_wart_block",
+   "frames": 1
+  },
+  {
+   "name": "shroomlight",
+   "frames": 1
+  },
+  {
+   "name": "glowstone",
+   "frames": 1
+  },
+  {
+   "name": "ancient_debris_side",
+   "frames": 1
+  },
+  {
+   "name": "ancient_debris_top",
+   "frames": 1
+  },
+  {
+   "name": "weeping_vines",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "weeping_vines_plant",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "twisting_vines",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "twisting_vines_plant",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "end_stone",
+   "frames": 1
+  },
+  {
    "name": "destroy_stage_0",
    "frames": 1,
    "cutout": true

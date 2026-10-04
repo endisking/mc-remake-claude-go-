@@ -4,6 +4,7 @@
  */
 import type { BlockStateDef, ModelRef } from './format';
 import { MODELS } from './library';
+import { NATURAL } from './natural';
 
 /** Register a model that inherits `parent` with the given texture variables. */
 function model(name: string, parent: string, textures: Record<string, string>): string {
@@ -343,7 +344,7 @@ function buttonDef(name: string, texture: string): BlockStateDef {
 }
 
 export function blockStateDef(name: string, hasTexture: (t: string) => boolean): BlockStateDef {
-  const ex = EXPLICIT[name];
+  const ex = EXPLICIT[name] ?? NATURAL[name];
   if (ex) return ex();
   if (FLUID_BLOCKS.has(name)) return { variants: {} };
   if (name.endsWith('_bed')) return bedDef(name);
