@@ -312,7 +312,8 @@ export class BlockBehaviors {
     if (n === 'ice') {
       // IceBlock.melt (overworld): becomes water
       if ((this.w.getLight(x, y, z) & 15) > 11 - LIGHT_FILTER[st]!) {
-        this.s.setBlock(x, y, z, defaultState('water'));
+        // ultra-warm dimensions: it just disappears
+        this.s.setBlock(x, y, z, this.s.level?.type.ultraWarm ? 0 : defaultState('water'));
         this.s.updateNeighbors(x, y, z);
       }
     }
