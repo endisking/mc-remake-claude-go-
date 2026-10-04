@@ -14,6 +14,8 @@ import { isRainingAt } from '@shared/world/weather';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { giveExperienceLevels, giveExperiencePoints, deathExperience } from '@shared/game/experience';
 import { CombatTracker, fallLocation, type CombatSource } from '@shared/game/combattracker';
+import { damageAfterArmor, totalArmor, armorValues } from '@shared/game/armor';
+import { ITEMS_BY_ID } from '@shared/data';
 
 export interface DamageSource extends CombatSource {
   id: string;
@@ -21,6 +23,12 @@ export interface DamageSource extends CombatSource {
   bypassInvul?: boolean;
   fire?: boolean;
   fall?: boolean;
+  /** mob attacks scale with difficulty against players (DamageSource.scalesWithDifficulty) */
+  scalesWithDifficulty?: boolean;
+  explosion?: boolean;
+  projectile?: boolean;
+  /** entity to be knocked away from (the attacker or shooter) */
+  knockbackFrom?: { x: number; z: number } | null;
 }
 
 /** Vanilla DamageSource constants used by the environment. */
@@ -51,6 +59,9 @@ export interface GameRules {
   freezeDamage: boolean;
   doImmediateRespawn: boolean;
   showDeathMessages: boolean;
+  doMobSpawning: boolean;
+  mobGriefing: boolean;
+  doMobLoot: boolean;
 }
 
 export const DEFAULT_GAME_RULES: GameRules = {
@@ -62,6 +73,9 @@ export const DEFAULT_GAME_RULES: GameRules = {
   freezeDamage: true,
   doImmediateRespawn: false,
   showDeathMessages: true,
+  doMobSpawning: true,
+  mobGriefing: true,
+  doMobLoot: true,
 };
 
 /** Survival state carried by a ServerPlayer. */
@@ -128,6 +142,13 @@ export class Survival {
       l.lastHurtByPlayerTime = 100;
     }
     if (l.spawnInvulnerableTime > 0 && src.id !== 'outOfWorld') return false;
+    // Player.hurt: mob attacks scale with difficulty
+    if (src.scalesWithDifficulty) {
+      const d = this.s.difficulty;
+      if (d === Difficulty.Peaceful) amount = 0;
+      else if (d === Difficulty.Easy) amount = Math.min(amount / 2 + 1, amount);
+      else if (d === Difficulty.Hard) amount = (amount * 3) / 2;
+    }
     if (amount <= 0) return false;
     let fresh = true;
     if (l.invulnerableTime > 10) {
@@ -141,8 +162,9 @@ export class Survival {
       this.actuallyHurt(p, src, amount);
       l.hurtTime = 10;
       // LivingEntity.hurt: knock the victim away from the attacker
-      if (attacker) {
-        let dx = attacker.x - p.x, dz = attacker.z - p.z;
+      const kb = attacker ?? src.knockbackFrom;
+      if (kb && !src.explosion) {
+        let dx = kb.x - p.x, dz = kb.z - p.z;
         while (dx * dx + dz * dz < 1e-4) {
           dx = (Math.random() - Math.random()) * 0.01;
           dz = (Math.random() - Math.random()) * 0.01;
@@ -169,7 +191,15 @@ export class Survival {
 
   private actuallyHurt(p: ServerPlayer, src: DamageSource, amount: number): void {
     const l = p.living;
-    // armour and enchantment protection arrive with items (Phase 5); absorption first
+    // armour (CombatRules.getDamageAfterAbsorb) and its durability loss; then absorption
+    if (!src.bypassArmor) {
+      const worn = [36, 37, 38, 39].map((i) => p.inventory.get(i)?.id ?? 0);
+      const a = totalArmor(worn);
+      if (a.armor > 0) {
+        this.hurtArmor(p, src, amount);
+        amount = damageAfterArmor(amount, a.armor, a.toughness);
+      }
+    }
     const absorbed = Math.min(l.absorption, amount);
     l.absorption -= absorbed;
     amount -= absorbed;
@@ -178,6 +208,25 @@ export class Survival {
     // Player.actuallyHurt: the combat entry is recorded before the health drops
     l.combat.recordDamage(src, l.health, amount, this.s.gameTime, fallLocation(l.lastClimbable, p.phys.isInWater), p.fallDistance, true);
     l.health = Math.max(0, l.health - amount);
+  }
+
+  /** Inventory.hurtArmor: every armour piece loses max(1, ⌊damage / 4⌋) durability. */
+  private hurtArmor(p: ServerPlayer, src: DamageSource, amount: number): void {
+    if (amount <= 0) return;
+    const d = Math.max(1, Math.floor(amount / 4));
+    for (let i = 36; i <= 39; i++) {
+      const st = p.inventory.get(i);
+      if (!st || !armorValues(st.id)) continue;
+      if (src.fire && /^netherite_/.test(ITEMS_BY_ID[st.id]?.name ?? '')) continue;
+      const max = ITEMS_BY_ID[st.id]?.maxDurability ?? 0;
+      if (max <= 0) continue;
+      st.damage += d;
+      if (st.damage >= max) {
+        p.inventory.set(i, null);
+        this.s.playSound(null, 'entity.item.break', 'player', p.x, p.y, p.z, 0.8, 0.8 + this.s.rand.nextFloat() * 0.4);
+      }
+      this.s.syncSlot(p, i);
+    }
   }
 
   heal(p: ServerPlayer, amount: number): void {

@@ -47,6 +47,8 @@ export const MOB_FLAG = {
   SADDLED: 1024,
   /** in love mode (breeding) */
   IN_LOVE: 2048,
+  /** drawing a bow (LivingEntity.isUsingItem): animate the pull over 20 ticks from when it was set */
+  USING_ITEM: 4096,
 } as const;
 
 /**

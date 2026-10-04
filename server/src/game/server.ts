@@ -33,6 +33,9 @@ import { soundId, sourceId, type SoundSource } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
+import { MobManager, MOB_TYPES } from './mobs/manager';
+import { Mob } from './mobs/mob';
+import { Arrow } from './mobs/arrow';
 
 export interface Connection {
   send(data: ArrayBuffer): void;
@@ -51,6 +54,8 @@ export interface ServerOptions {
   defaultGameMode?: number;
   /** Seed for the level's random source (tests); defaults to the clock like vanilla. */
   randomSeed?: bigint;
+  /** Natural/chunk-generation mob spawning (default: on, except on the flat dev terrain used by tests). */
+  spawnMobs?: boolean;
 }
 
 export class GameServer {
@@ -78,6 +83,8 @@ export class GameServer {
   /** server.properties pvp */
   pvp = true;
   readonly sleep = new Sleep(this);
+  /** mob spawning, combat, interactions and sync */
+  readonly mobs = new MobManager(this);
   /** gamerules playersSleepingPercentage and spawnRadius */
   playersSleepingPercentage = 100;
   spawnRadius = 10;
@@ -239,6 +246,7 @@ export class GameServer {
   /** LightningBolt.tick server side: strike entities, light fires (needs fire spread, Phase 4). */
   private tickBolt(b: LightningBolt): void {
     if (!b.striking) return;
+    this.mobs.thunderHit(b.x, b.y, b.z);
     for (const p of this.players) {
       if (Math.abs(p.x - b.x) > 3 + 0.3 || Math.abs(p.z - b.z) > 3 + 0.3 || p.y + 1.8 < b.y - 3 || p.y > b.y + 9) continue;
       // Entity.thunderHit
@@ -536,8 +544,12 @@ export class GameServer {
   }
 
   // ------------------------------------------------------------------ item entities
-  private spawnEntity(e: ServerEntity): void {
+  spawnEntity(e: ServerEntity): void {
     this.entities.set(e.id, e);
+  }
+
+  allocateEntityId(): number {
+    return this.nextEntityId++;
   }
 
   /** Vanilla Block.popResource: item at the block centre ± 0.25 with a small upward toss. */
@@ -721,8 +733,10 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : 0 });
+          const data = e instanceof ExperienceOrb ? e.value : e instanceof Arrow ? (e.owner ? e.owner.id + 1 : 0) : 0;
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
+          this.mobs.onStartTracking(p, e);
         } else if (!visible && p.tracking.has(e.id)) {
           p.tracking.delete(e.id);
           this.send(p, { t: 'removeEntities', ids: [e.id] });
@@ -730,7 +744,7 @@ export class GameServer {
       }
     }
     for (const e of this.entities.values()) {
-      if (e.removed) continue;
+      if (e.removed || e instanceof Mob) continue;
       if (e.x === e.sentX && e.y === e.sentY && e.z === e.sentZ) continue;
       e.sentX = e.x;
       e.sentY = e.y;
@@ -837,6 +851,11 @@ export class GameServer {
   /** ServerGamePacketListenerImpl.handleInteract (attack) → Player.attack. */
   private handleAttack(p: ServerPlayer, targetId: number): void {
     const t = this.players.find((o) => o.id === targetId);
+    const mob = t ? null : this.entities.get(targetId);
+    if (mob instanceof Mob) {
+      if (p.gameMode !== 3) this.mobs.playerAttack(p, mob);
+      return;
+    }
     // ServerPlayer.attack: a spectator's attack spectates the target instead
     if (p.gameMode === 3) {
       if (t && t !== p && t.gameMode !== 3 && !t.living.dead && (t.x - p.x) ** 2 + (t.y - p.y) ** 2 + (t.z - p.z) ** 2 < 36) this.setCamera(p, t);
@@ -956,6 +975,9 @@ export class GameServer {
       case 'attack':
         this.handleAttack(p, m.target);
         break;
+      case 'interact':
+        this.mobs.interact(p, m.target, m.hand);
+        break;
       case 'stopSleeping':
         this.sleep.wake(p, false);
         break;
@@ -1042,6 +1064,10 @@ export class GameServer {
       if (!b || ![x, y, z].every(Number.isFinite)) return;
       this.setBlock(x, y, z, b.defaultState);
       this.updateNeighbors(x, y, z);
+    } else if (a[0] === 'summon' && MOB_TYPES[a[1]?.replace(/^minecraft:/, '') ?? '']) {
+      const rel = (v: string | undefined, base: number) => (v === undefined ? base : v.startsWith('~') ? base + (Number(v.slice(1)) || 0) : Number(v));
+      const x = rel(a[2], p.x), y = rel(a[3], p.y), z = rel(a[4], p.z);
+      if ([x, y, z].every(Number.isFinite)) this.mobs.spawn(a[1]!.replace(/^minecraft:/, ''), x, y, z, 'command');
     } else if (a[0] === 'summon' && a[1]?.replace(/^minecraft:/, '') === 'lightning_bolt') {
       const rel = (v: string | undefined, base: number) => (v === undefined ? base : v.startsWith('~') ? base + (Number(v.slice(1)) || 0) : Number(v));
       const x = rel(a[2], p.x), y = rel(a[3], p.y), z = rel(a[4], p.z);
@@ -1138,7 +1164,11 @@ export class GameServer {
   private prepareChunk(cx: number, cz: number): Chunk {
     const c = this.ensureStage(cx, cz, 3);
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) this.ensureStage(cx + dx, cz + dz, 1);
-    if (!c.lit) this.light.lightChunk(c);
+    if (!c.lit) {
+      this.light.lightChunk(c);
+      // NaturalSpawner.spawnMobsForChunkGeneration for freshly generated chunks
+      if (c.stage === 3 && this.gameRules.doMobSpawning && this.mobs.naturalSpawning) this.mobs.spawnForChunkGeneration(c);
+    }
     return c;
   }
 
@@ -1200,10 +1230,12 @@ export class GameServer {
       }
       p.vx = p.vy = p.vz = 0;
     }
+    this.mobs.tick();
     this.tickEntities();
     this.updateChunks();
     this.updateTracking();
     this.trackEntities();
+    this.mobs.sync();
     this.flushLight();
     this.mspt = this.mspt * 0.9 + (performance.now() - t0) * 0.1;
   }

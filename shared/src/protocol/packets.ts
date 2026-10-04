@@ -86,6 +86,8 @@ const S2C_SCHEMA = {
   // ---- mobs (server simulation ↔ client rendering contract; see shared/src/entity/mobdata.ts)
   /** Mob render state: MOB_FLAG bits and a type-specific variant (sheep colour, slime size, enderman block). */
   mobData: [['id', 'i32'], ['flags', 'u16'], ['variant', 'i32']],
+  /** Explosion at a point (vanilla ClientboundExplodePacket without the block list): particles; power ≥ 2 and destroy = big emitter. */
+  explode: [['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['power', 'f32'], ['destroy', 'bool']],
 } as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server
@@ -119,6 +121,9 @@ const C2S_SCHEMA = {
   respawn: [],
   /** Spectator menu "Teleport to Player" (vanilla TeleportToEntity). */
   spectate: [['target', 'i32']],
+  // ---- mobs
+  /** Right-click an entity (vanilla Interact INTERACT): breeding food, shears, buckets, saddles, flint and steel. */
+  interact: [['target', 'i32'], ['hand', 'u8']],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;
