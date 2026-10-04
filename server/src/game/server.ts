@@ -196,6 +196,8 @@ export class GameServer {
     }
     this.sendAbilities(p);
     this.survival.sync(p);
+    // effects restored from the save
+    for (const e of p.living.effects.active.values()) this.items.sendEffect(p, e, false);
     this.send(p, { t: 'difficulty', difficulty: this.difficulty });
     this.send(p, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
     this.send(p, { t: 'weather', rain: this.rainLevel, thunder: this.thunderLevel * this.rainLevel });

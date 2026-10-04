@@ -113,6 +113,7 @@ export function capturePlayer(p: ServerPlayer): PlayerData {
     inventory: p.inventory.slots.map((s) => (s && s.count > 0 ? { ...s } : null)),
     selected: p.inventory.selected,
     respawn: p.respawn ? { ...p.respawn } : null,
+    effects: [...l.effects.active.values()].map((e) => ({ ...e })),
   };
 }
 
@@ -151,4 +152,9 @@ export function applyPlayer(p: ServerPlayer, d: PlayerData): void {
   }
   p.inventory.selected = Math.max(0, Math.min(8, num(d.selected, 0) | 0));
   p.respawn = d.respawn ? { ...d.respawn } : null;
+  // effects come back as they were (absorption hearts are saved separately above)
+  l.effects.active.clear();
+  if (Array.isArray(d.effects)) {
+    for (const e of d.effects) if (e && typeof e.id === 'number' && e.duration > 0) l.effects.active.set(e.id, { ...e });
+  }
 }

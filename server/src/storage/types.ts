@@ -67,6 +67,8 @@ export interface PlayerData {
   inventory: (ItemStack | null)[];
   selected: number;
   respawn: { x: number; y: number; z: number; angle: number } | null;
+  /** active status effects (vanilla ActiveEffects) */
+  effects?: { id: number; amplifier: number; duration: number; ambient: boolean; visible: boolean; showIcon: boolean }[];
 }
 
 export interface ChunkRecord {
