@@ -235,3 +235,157 @@ export class Squid extends Mob {
 export function isWater(state: number): boolean {
   return FLUID[state] === 1 || blockNameOf(state) === 'bubble_column';
 }
+
+/** RandomSwimmingGoal (fish): every ~40 ticks swim to a random water position within 10×7. */
+class FishSwimGoal extends Goal {
+  private tx = 0;
+  private ty = 0;
+  private tz = 0;
+  private time = 0;
+  constructor(private readonly f: Fish) {
+    super();
+  }
+  canUse(): boolean {
+    const f = this.f;
+    if (!f.wasTouchingWater || f.rng.nextInt(40) !== 0) return false;
+    for (let i = 0; i < 10; i++) {
+      const x = Math.floor(f.x) + f.rng.nextInt(21) - 10, y = Math.floor(f.y) + f.rng.nextInt(15) - 7, z = Math.floor(f.z) + f.rng.nextInt(21) - 10;
+      if (isWater(f.world.getState(x, y, z))) {
+        [this.tx, this.ty, this.tz] = [x + 0.5, y + 0.5, z + 0.5];
+        return true;
+      }
+    }
+    return false;
+  }
+  override start(): void {
+    this.time = 0;
+  }
+  override canContinueToUse(): boolean {
+    const f = this.f;
+    return f.wasTouchingWater && ++this.time < 200 && (f.x - this.tx) ** 2 + (f.y - this.ty) ** 2 + (f.z - this.tz) ** 2 > 1;
+  }
+  override stop(): void {
+    this.f.swimTarget = null;
+  }
+  override tick(): void {
+    this.f.swimTarget = [this.tx, this.ty, this.tz];
+  }
+}
+
+/** Fish (vanilla AbstractFish): cod and salmon swim around, flop on land and suffocate. */
+export class Fish extends Mob {
+  readonly category: MobCategory = 'water_ambient' as MobCategory;
+  readonly trackRange = 64;
+  readonly maxHealth = 3;
+  override movementSpeed = 0.7;
+  swimTarget: [number, number, number] | null = null;
+  constructor(id: number, s: Mob['s'], readonly type: 'cod' | 'salmon') {
+    super(id, s);
+  }
+  get width(): number {
+    return this.type === 'cod' ? 0.5 : 0.7;
+  }
+  get height(): number {
+    return this.type === 'cod' ? 0.3 : 0.4;
+  }
+  override get eyeHeight(): number {
+    return this.height * 0.65;
+  }
+  protected registerGoals(): void {
+    this.goalSelector.add(4, new FishSwimGoal(this));
+  }
+  override canBreatheUnderwater(): boolean {
+    return true;
+  }
+  override experienceReward(): number {
+    return 1 + this.rng.nextInt(3);
+  }
+  /** FishMoveControl: buoyancy, speed towards the target, turn towards it */
+  protected override customServerAiStep(): void {
+    if (this.wasTouchingWater) this.vy += 0.005;
+    const t = this.swimTarget;
+    if (!t) {
+      this.setSpeed(0);
+      return;
+    }
+    const sp = this.movementSpeedValue();
+    this.setSpeed(this.speed + (sp - this.speed) * 0.125);
+    const dx = t[0] - this.x, dy = t[1] - this.y, dz = t[2] - this.z;
+    const d = Math.hypot(dx, dy, dz) || 1;
+    if (dy !== 0) this.vy += this.speed * (dy / d) * 0.1;
+    if (dx !== 0 || dz !== 0) {
+      const yaw = (Math.atan2(dz, dx) * 180) / Math.PI - 90;
+      let diff = wrapDegrees(yaw - this.yaw);
+      diff = Math.max(-90, Math.min(90, diff));
+      this.yaw += diff;
+      this.yBodyRot = this.yaw;
+    }
+  }
+  override travel(strafe: number, up: number, forward: number): void {
+    if (!this.wasTouchingWater) {
+      super.travel(strafe, up, forward);
+      return;
+    }
+    // moveRelative(0.01) then drag 0.9; sinking slowly without a target
+    let len = strafe * strafe + up * up + forward * forward;
+    if (len >= 1e-7) {
+      if (len > 1) {
+        len = Math.sqrt(len);
+        strafe /= len;
+        forward /= len;
+      }
+      const r = (this.yaw * Math.PI) / 180, s = Math.sin(r), c = Math.cos(r);
+      this.vx += (strafe * c - forward * s) * 0.01;
+      this.vz += (forward * c + strafe * s) * 0.01;
+    }
+    this.move(this.vx, this.vy, this.vz);
+    this.vx *= 0.9;
+    this.vy *= 0.9;
+    this.vz *= 0.9;
+    if (!this.swimTarget) this.vy -= 0.005;
+  }
+  protected override aiStep(): void {
+    super.aiStep();
+    // flopping on land
+    if (!this.wasTouchingWater && this.onGround && !this.dead) {
+      const r = this.rng;
+      this.vx += (r.nextFloat() * 2 - 1) * 0.05;
+      this.vy += 0.4;
+      this.vz += (r.nextFloat() * 2 - 1) * 0.05;
+      this.onGround = false;
+      this.playSound(`entity.${this.type}.flop`, this.soundVolume(), this.voicePitch());
+    }
+  }
+  protected override baseTick(): void {
+    const air = this.airSupply;
+    super.baseTick();
+    if (!this.dead && !this.wasTouchingWater) {
+      this.airSupply = air - 1;
+      if (this.airSupply === -20) {
+        this.airSupply = 0;
+        this.hurt({ id: 'drown', bypassArmor: true }, 2);
+      }
+    } else this.airSupply = 300;
+  }
+  protected override causeFallDamage(): void {}
+  override ambientSound(): string {
+    return `entity.${this.type}.ambient`;
+  }
+  override hurtSound(): string {
+    return `entity.${this.type}.hurt`;
+  }
+  override deathSound(): string {
+    return `entity.${this.type}.death`;
+  }
+}
+
+export class Cod extends Fish {
+  constructor(id: number, s: Mob['s']) {
+    super(id, s, 'cod');
+  }
+}
+export class Salmon extends Fish {
+  constructor(id: number, s: Mob['s']) {
+    super(id, s, 'salmon');
+  }
+}

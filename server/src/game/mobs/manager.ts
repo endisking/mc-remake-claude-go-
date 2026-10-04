@@ -30,7 +30,7 @@ import { Pig, Cow, Sheep, Chicken, Animal, Mooshroom } from './animals';
 import { Arrow } from './arrow';
 import { Slime, isSlimeChunk, moonBrightness } from './slime';
 import { Enderman } from './enderman';
-import { Bat, Squid } from './ambient';
+import { Bat, Squid, Cod, Salmon } from './ambient';
 import { saveMob, applyMobSave, type MobSave } from './persist';
 import { commandHooks } from '../commands/hooks';
 import { MobSpawners } from './spawners';
@@ -41,12 +41,12 @@ import { itemForBlock } from '@shared/game/loot';
 type MobCtor = new (id: number, s: GameServer) => Mob;
 export const MOB_TYPES: Record<string, MobCtor> = {
   zombie: Zombie, husk: Husk, drowned: Drowned, zombie_villager: ZombieVillager, cave_spider: CaveSpider, skeleton: Skeleton, stray: Stray, creeper: Creeper, spider: Spider,
-  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, mooshroom: Mooshroom, phantom: Phantom, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid,
+  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, mooshroom: Mooshroom, phantom: Phantom, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid, cod: Cod, salmon: Salmon,
 };
 
 /** MobCategory caps (1.17.1) and the categories we spawn. */
-export const MOB_CAPS: Partial<Record<MobCategory, number>> = { monster: 70, creature: 10, ambient: 15, water_creature: 5 };
-const SPAWN_CATEGORIES: MobCategory[] = ['monster', 'creature', 'ambient', 'water_creature'];
+export const MOB_CAPS: Partial<Record<MobCategory, number>> = { monster: 70, creature: 10, ambient: 15, water_creature: 5, water_ambient: 20 };
+const SPAWN_CATEGORIES: MobCategory[] = ['monster', 'creature', 'ambient', 'water_creature', 'water_ambient'];
 /** NaturalSpawner.MAGIC_NUMBER: 17×17 chunks */
 const MAGIC_NUMBER = 289;
 
@@ -351,7 +351,7 @@ export class MobManager {
         const type = data.type;
         if (!MOB_TYPES[type]) continue;
         // isValidSpawnPostitionForType: monsters can't spawn beyond the despawn distance
-        if (cat !== 'creature' && d2 > 16384) continue;
+        if (cat !== 'creature' && d2 > (cat === 'water_ambient' ? 4096 : 16384)) continue;
         if (!this.spawnPositionOk(type, x, y, z)) continue;
         const e = ENTITIES_BY_NAME.get(type)!;
         if (!noCollision(w, AABB.ofSize(px, y, pz, e.width, e.height))) continue;
@@ -384,7 +384,7 @@ export class MobManager {
   /** SpawnPlacements: ON_GROUND (IN_WATER for drowned) with isValidSpawn / isValidEmptySpawnBlock. */
   spawnPositionOk(type: string, x: number, y: number, z: number): boolean {
     const w = this.s.world;
-    if (type === 'drowned' || type === 'squid') return FLUID[w.getState(x, y, z)] === 1 && !FULL_COLLISION[w.getState(x, y + 1, z)];
+    if (type === 'drowned' || type === 'squid' || type === 'cod' || type === 'salmon') return FLUID[w.getState(x, y, z)] === 1 && !FULL_COLLISION[w.getState(x, y + 1, z)];
     return isValidSpawnOn(w.getState(x, y - 1, z)) && isValidEmptySpawnBlock(w.getState(x, y, z)) && isValidEmptySpawnBlock(w.getState(x, y + 1, z));
   }
 
@@ -407,6 +407,8 @@ export class MobManager {
       return Math.max(w.getSkyLight(x, y, z) - darken, w.getBlockLight(x, y, z)) <= r.nextInt(4);
     }
     if (type === 'squid') return y > 45 && y < 63;
+    // WaterAnimal.checkSurfaceWaterAnimalSpawnRules: within 13 blocks below sea level
+    if (type === 'cod' || type === 'salmon') return y >= 63 - 13 && y <= 63;
     // monsters
     if (s.difficulty === Difficulty.Peaceful) return false;
     if (type === 'slime') {
@@ -508,7 +510,9 @@ export class MobManager {
     const p = this.nearestPlayer(m.x, m.y, m.z, -1, (pl) => pl.gameMode !== 3);
     if (!p) return;
     const d2 = (p.x - m.x) ** 2 + (p.y - m.y) ** 2 + (p.z - m.z) ** 2;
-    if (d2 > 128 * 128 && m.removeWhenFarAway(d2)) {
+    // MobCategory.despawnDistance: 64 for water_ambient (fish), 128 otherwise
+    const far = m.category === 'water_ambient' ? 64 : 128;
+    if (d2 > far * far && m.removeWhenFarAway(d2)) {
       m.removed = true;
       return;
     }

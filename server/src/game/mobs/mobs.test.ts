@@ -624,4 +624,16 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     expect(broke).toBeGreaterThan(200);
     expect(a.received.some((m) => m.t === 'blockBreakProgress' && m.id === z.id)).toBe(true);
   });
+
+  it('fish swim in water and flop and suffocate on land', () => {
+    const { server } = setup();
+    for (let x = 8; x <= 14; x++) for (let z = 8; z <= 14; z++) for (let y = 58; y <= 63; y++) server.setBlock(x, y, z, stateOf('water'));
+    const cod = server.mobs.spawn('cod', 11.5, 60, 11.5)!;
+    ticks(server, 200);
+    expect(cod.dead).toBe(false);
+    expect(server.world.getState(Math.floor(cod.x), Math.floor(cod.y), Math.floor(cod.z))).toBe(stateOf('water'));
+    const fish = server.mobs.spawn('salmon', 2.5, 64, 2.5)!;
+    ticks(server, 330);
+    expect(fish.health).toBeLessThan(3);
+  });
 });

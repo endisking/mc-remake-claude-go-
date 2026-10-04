@@ -28,7 +28,7 @@ import { damageAfterArmor } from '@shared/game/armor';
 import { MOB_FLAG, ENTITY_EVENT } from '@shared/entity/mobdata';
 
 export type Target = ServerPlayer | Mob;
-export type MobCategory = 'monster' | 'creature' | 'ambient' | 'water_creature' | 'misc';
+export type MobCategory = 'monster' | 'creature' | 'ambient' | 'water_creature' | 'water_ambient' | 'misc';
 
 export const isMob = (t: unknown): t is Mob => t instanceof Mob;
 
