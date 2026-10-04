@@ -19,7 +19,8 @@ import { sectionIndex } from '@shared/world/chunk';
 import { skyDarkenLevel } from '@shared/world/daylight';
 import { getTemperature } from '@shared/world/climate';
 import { canSurvive } from '@shared/game/support';
-import { isReplaceable, horizontalFacing, DIRS, DX, DY, DZ } from '@shared/game/placement';
+import { isReplaceable, DIRS, DX, DY, DZ } from '@shared/game/placement';
+import { useOpenable } from '@shared/game/openable';
 import { blockDrops, itemForBlock } from '@shared/game/loot';
 import {
   CROP_MAX_AGE, growthSpeed, growthChanceDenominator, bonemealAgeIncrease, canBeGrass, canPropagateGrass, distanceAt, leavesDistance,
@@ -1060,35 +1061,11 @@ export class BlockBehaviors {
       this.s.setBlock(x, y, z, withProp(st, 'berries', false));
       return true;
     }
-    if (n.endsWith('_door') && n !== 'iron_door') {
-      const open = !(getProp(st, 'open') as boolean);
-      this.s.setBlock(x, y, z, withProp(st, 'open', open));
-      const oy = getProp(st, 'half') === 'upper' ? y - 1 : y + 1;
-      const other = w.getState(x, oy, z);
-      if (blockNameOf(other) === n) this.s.setBlock(x, oy, z, withProp(other, 'open', open));
-      this.s.playSound(null, open ? 'block.wooden_door.open' : 'block.wooden_door.close', 'block', x + 0.5, y + 0.5, z + 0.5, 1, r.nextFloat() * 0.1 + 0.9);
-      return true;
-    }
-    if (n.endsWith('_trapdoor') && n !== 'iron_trapdoor') {
-      const open = !(getProp(st, 'open') as boolean);
-      this.s.setBlock(x, y, z, withProp(st, 'open', open));
-      this.s.playSound(null, open ? 'block.wooden_trapdoor.open' : 'block.wooden_trapdoor.close', 'block', x + 0.5, y + 0.5, z + 0.5, 1, r.nextFloat() * 0.1 + 0.9);
-      return true;
-    }
-    if (n.endsWith('_fence_gate')) {
-      let ns: number;
-      if (getProp(st, 'open') === true) ns = withProp(st, 'open', false);
-      else {
-        // FenceGateBlock.use: swing away from the player
-        const dir = horizontalFacing(p.yaw);
-        const opp = { north: 'south', south: 'north', east: 'west', west: 'east' } as Record<string, string>;
-        ns = st;
-        if (getProp(st, 'facing') === opp[dir]) ns = withProp(ns, 'facing', dir);
-        ns = withProp(ns, 'open', true);
-      }
-      this.s.setBlock(x, y, z, ns);
-      const open = getProp(ns, 'open') === true;
-      this.s.playSound(null, open ? 'block.fence_gate.open' : 'block.fence_gate.close', 'block', x + 0.5, y + 0.5, z + 0.5, 1, r.nextFloat() * 0.1 + 0.9);
+    // doors, trapdoors, fence gates (the clicking client predicts the change; everyone hears it)
+    const o = useOpenable(w, x, y, z, p.yaw);
+    if (o) {
+      for (const c of o.changes) this.s.setBlock(c.x, c.y, c.z, c.state);
+      this.s.playSound(null, o.sound, 'block', x + 0.5, y + 0.5, z + 0.5, 1, r.nextFloat() * 0.1 + 0.9);
       return true;
     }
     return false;

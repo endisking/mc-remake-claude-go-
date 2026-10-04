@@ -13,6 +13,7 @@ import { getProp, blockNameOf, stateOf } from '@shared/world/blockstate';
 const WATER = stateOf('water');
 import { FLUID } from '@shared/world/blockinfo';
 import { isInteractive, usesOnBlock } from '@shared/world/blockprops';
+import { useOpenable } from '@shared/game/openable';
 import type { BlockHit } from '@shared/world/raycast';
 import type { C2S } from '@shared/protocol/packets';
 import type { ClientWorld } from './world/clientworld';
@@ -195,6 +196,12 @@ export class Interaction {
     const holding = !!this.inventory.selectedStack || !!this.inventory.get(40);
     if (isInteractive(target.state) && !(this.host.player.shiftDown && holding)) {
       const { x, y, z, face } = target;
+      // doors, trapdoors and fence gates open immediately (vanilla client-side use()); the server confirms
+      const o = this.host.gameMode !== 3 ? useOpenable(this.host.world, x, y, z, this.host.yaw) : null;
+      if (o) for (const c of o.changes) {
+        this.host.world.setStateRaw(c.x, c.y, c.z, c.state);
+        this.host.world.markBlockDirty(c.x, c.y, c.z);
+      }
       this.host.send({ t: 'useOn', x, y, z, face, cx: target.px - x, cy: target.py - y, cz: target.pz - z, hand: 0 });
       this.host.swing(0);
       return;
