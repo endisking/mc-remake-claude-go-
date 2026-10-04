@@ -23,7 +23,7 @@ function posHash(x: number, y: number, z: number): number {
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
 
 /** A HashSet<BlockPos>: keeps insertion order, and yields Java's iteration order on request. */
-class PosSet {
+export class PosSet {
   readonly keys = new Set<string>();
   readonly list: [number, number, number][] = [];
   add(x: number, y: number, z: number): void {

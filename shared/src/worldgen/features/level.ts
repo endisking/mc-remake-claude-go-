@@ -14,6 +14,17 @@ export type HeightmapType = 'WORLD_SURFACE_WG' | 'WORLD_SURFACE' | 'OCEAN_FLOOR_
 const LEAVES = new Uint8Array(IS_AIR.length);
 for (let s = 0; s < LEAVES.length; s++) LEAVES[s] = blockNameOf(s).endsWith('_leaves') ? 1 : 0;
 
+const KIND: Record<HeightmapType, number> = { WORLD_SURFACE_WG: 0, WORLD_SURFACE: 0, OCEAN_FLOOR_WG: 1, OCEAN_FLOOR: 1, MOTION_BLOCKING: 2, MOTION_BLOCKING_NO_LEAVES: 3 };
+function hits(kind: number, s: number): boolean {
+  switch (kind) {
+    case 0: return IS_AIR[s] !== 1;
+    case 1: return MATERIAL_BLOCKS_MOTION[s] === 1;
+    case 2: return MATERIAL_BLOCKS_MOTION[s] === 1 || FLUID[s] !== 0;
+    default: return (MATERIAL_BLOCKS_MOTION[s] === 1 || FLUID[s] !== 0) && LEAVES[s] !== 1;
+  }
+}
+const colKey = (x: number, z: number) => (x + 0x8000000) * 0x10000000 + (z + 0x8000000);
+
 export class GenLevel {
   readonly minY = 0;
   readonly height = 256;
@@ -57,24 +68,37 @@ export class GenLevel {
   setState(x: number, y: number, z: number, state: number): boolean {
     if (y < 0 || y >= 256 || !this.canWrite(x, z)) return false;
     this.world.setStateRaw(x, y, z, state);
+    // keep the cached heightmaps current (Heightmap.update)
+    const col = colKey(x, z);
+    for (let k = 0; k < 4; k++) {
+      const h = this.heights[k]!.get(col);
+      if (h === undefined) continue;
+      if (hits(k, state)) {
+        if (y + 1 > h) this.heights[k]!.set(col, y + 1);
+      } else if (y + 1 === h) this.heights[k]!.delete(col);
+    }
     return true;
   }
 
+  /** Cached column heights per heightmap kind (world surface, ocean floor, motion blocking, no leaves). */
+  private readonly heights = [new Map<number, number>(), new Map<number, number>(), new Map<number, number>(), new Map<number, number>()];
+
   /** WorldGenRegion.getHeight: the first free y above the highest block matching the heightmap. */
   getHeight(type: HeightmapType, x: number, z: number): number {
-    const w = this.world;
-    for (let y = 255; y >= 0; y--) {
-      const s = w.getState(x, y, z);
-      let hit: boolean;
-      switch (type) {
-        case 'WORLD_SURFACE_WG': case 'WORLD_SURFACE': hit = IS_AIR[s] !== 1; break;
-        case 'OCEAN_FLOOR_WG': case 'OCEAN_FLOOR': hit = MATERIAL_BLOCKS_MOTION[s] === 1; break;
-        case 'MOTION_BLOCKING': hit = MATERIAL_BLOCKS_MOTION[s] === 1 || FLUID[s] !== 0; break;
-        default: hit = (MATERIAL_BLOCKS_MOTION[s] === 1 || FLUID[s] !== 0) && LEAVES[s] !== 1;
-      }
-      if (hit) return y + 1;
+    const k = KIND[type];
+    const col = colKey(x, z);
+    let h = this.heights[k]!.get(col);
+    if (h === undefined) {
+      h = 0;
+      const w = this.world;
+      for (let y = 255; y >= 0; y--)
+        if (hits(k, w.getState(x, y, z))) {
+          h = y + 1;
+          break;
+        }
+      this.heights[k]!.set(col, h);
     }
-    return 0;
+    return h;
   }
 
   /** Fluid ticks scheduled by features (springs); fluids don't flow yet, so nothing consumes them. */
