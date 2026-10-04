@@ -483,6 +483,42 @@ export function phantomMesh(): VPart[] {
   ];
 }
 
+/** EndCrystalRenderer: a dark base, a spinning glass cube (2× scale) around a spinning core. */
+export function endCrystalMesh(): VPart[] {
+  return [
+    { name: 'base', pivot: [0, 24, 0], boxes: [b(0, 16, -6, -4, -6, 12, 4, 12)] },
+    {
+      name: 'glass', pivot: [0, 4, 0], boxes: [b(0, 0, -4, -4, -4, 8, 8, 8, 4)], children: [
+        { name: 'core', pivot: [0, 0, 0], boxes: [b(32, 0, -4, -4, -4, 8, 8, 8, -0.5)] },
+      ],
+    },
+  ];
+}
+
+/** DragonModel (vanilla proportions): 24×24×64 body, five neck segments, head with jaw, two-part wings, legs, a ten-segment tail. */
+export function dragonMesh(): VPart[] {
+  const parts: VPart[] = [{ name: 'body', pivot: [0, 4, 8], boxes: [b(0, 0, -12, 0, -16, 24, 24, 64)] }];
+  for (let i = 0; i < 5; i++) parts.push({ name: `neck${i}`, pivot: [0, 14, -13 - 10 * i], boxes: [b(176, 0, -5, -5, -5, 10, 10, 10)] });
+  parts.push({
+    name: 'head', pivot: [0, 14, -58], boxes: [b(176, 20, -8, -8, -16, 16, 16, 16)], children: [
+      { name: 'jaw', pivot: [0, 4, -8], boxes: [b(176, 52, -6, 0, -8, 12, 4, 16)] },
+    ],
+  });
+  for (let i = 0; i < 10; i++) parts.push({ name: `tail${i}`, pivot: [0, 14, 61 + 10 * i], boxes: [b(176, 0, -5, -5, -5, 10, 10, 10)] });
+  for (const s of [1, -1]) {
+    const side = s > 0 ? 'left' : 'right', m = s < 0;
+    const x0 = s > 0 ? 0 : -56;
+    parts.push({
+      name: `${side}_wing`, pivot: [12 * s, 5, 2], boxes: [b(0, 88, x0, -4, -4, 56, 8, 8, 0, m), b(0, 104, x0, 0, 2, 56, 1, 56, 0, m)], children: [
+        { name: `${side}_wing_tip`, pivot: [56 * s, 0, 0], boxes: [b(0, 161, x0, -2, -2, 56, 4, 4, 0, m), b(0, 104, x0, 0, 2, 56, 1, 56, 0, m)] },
+      ],
+    });
+    parts.push({ name: `${side}_front_leg`, pivot: [12 * s, 20, 2], rot: [1.3, 0, 0], boxes: [b(192, 180, -4, -4, -4, 8, 24, 8, 0, m)] });
+    parts.push({ name: `${side}_rear_leg`, pivot: [16 * s, 16, 42], rot: [1.0, 0, 0], boxes: [b(128, 180, -8, -4, -8, 16, 32, 16, 0, m)] });
+  }
+  return parts;
+}
+
 /** IllagerModel.createBodyLayer: villager-like head and robe, crossed arms or free arms. */
 export function illagerMesh(): VPart[] {
   return [
@@ -1152,6 +1188,31 @@ const phantomAnim = (p: Poses, a: MobAnim) => {
   p.tail_tip!.xRot = -(5 + Math.cos(f * 2) * 5) * RAD;
 };
 
+/** EndCrystalRenderer.render: the cube bobs and spins (3°/tick), the core spins the other way. */
+const endCrystalAnim = (p: Poses, a: MobAnim) => {
+  const t = a.ageInTicks + a.mob.id * 7;
+  const bob = Math.sin(t * 0.2) / 2 + 0.5;
+  p.glass!.y = 4 - (bob * bob + bob) * 6.4;
+  p.glass!.yRot = t * 3 * RAD;
+  p.glass!.xRot = 0.785;
+  p.core!.yRot = -t * 6 * RAD;
+  p.core!.zRot = 0.6;
+};
+
+/** EnderDragon wing flap (one beat per ~1.6 s), neck and tail ripple. */
+const dragonAnim = (p: Poses, a: MobAnim) => {
+  const f = (a.ageInTicks + a.mob.id * 5) * 0.2;
+  const w = Math.sin(f) * 0.5 + 0.1;
+  p.left_wing!.zRot = w;
+  p.left_wing_tip!.zRot = -(Math.sin(f + 2) + 0.5) * 0.75 * 0.5;
+  p.right_wing!.zRot = -w;
+  p.right_wing_tip!.zRot = (Math.sin(f + 2) + 0.5) * 0.75 * 0.5;
+  for (let i = 0; i < 5; i++) p[`neck${i}`]!.y = 14 + Math.sin(f + i * 0.45) * 0.8;
+  p.head!.y = 14 + Math.sin(f + 2.25) * 0.8;
+  p.jaw!.xRot = (Math.sin(f) + 1) * 0.1;
+  for (let i = 0; i < 10; i++) p[`tail${i}`]!.x = Math.sin(f * 0.5 + i * 0.4) * i * 0.4;
+};
+
 /** IllagerModel.setupAnim: arms crossed when calm; raised weapon arms or a crossbow hold when hostile. */
 const illagerAnim = (p: Poses, a: MobAnim) => {
   const head = p.head!, ra = p.right_arm!, la = p.left_arm!;
@@ -1436,6 +1497,8 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   iron_golem: { tex: [128, 128], parts: ironGolemMesh(), anim: ironGolemAnim },
   wolf: { tex: [64, 32], parts: wolfMesh(), headParts: ['head'], baby: { scaleHead: false, yHead: 5, zHead: 2, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: wolfAnim },
   phantom: { tex: [64, 64], parts: phantomMesh(), anim: phantomAnim },
+  end_crystal: { tex: [64, 32], parts: endCrystalMesh(), anim: endCrystalAnim },
+  ender_dragon: { tex: [256, 256], parts: dragonMesh(), anim: dragonAnim },
   illager: { tex: [64, 64], parts: illagerMesh(), anim: illagerAnim },
   cod: { tex: [32, 32], parts: codMesh(), anim: codAnim },
   salmon: { tex: [32, 32], parts: salmonMesh(), anim: salmonAnim },
@@ -1525,6 +1588,8 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   iron_golem: { layers: [{ model: 'iron_golem', texture: 'iron_golem' }] },
   wolf: { layers: [{ model: 'wolf', texture: 'wolf' }] },
   phantom: { layers: [{ model: 'phantom', texture: 'phantom' }, { model: 'phantom', texture: 'phantom_eyes', emissive: true }] },
+  end_crystal: { layers: [{ model: 'end_crystal', texture: 'end_crystal' }] },
+  ender_dragon: { layers: [{ model: 'ender_dragon', texture: 'ender_dragon' }] },
   pillager: { layers: [{ model: 'illager', texture: 'pillager' }], scale: 0.9375 },
   vindicator: { layers: [{ model: 'illager', texture: 'vindicator' }], scale: 0.9375 },
   evoker: { layers: [{ model: 'illager', texture: 'evoker' }], scale: 0.9375 },
