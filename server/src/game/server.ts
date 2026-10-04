@@ -5,7 +5,7 @@
 import { BlockWorld } from '@shared/world/world';
 import { LightEngine } from '@shared/world/light';
 import { Chunk, chunkKey, chunkKeyX, chunkKeyZ } from '@shared/world/chunk';
-import { serializeChunk, deserializeChunk, packRecord, unpackRecord, capturePlayer, applyPlayer } from '../storage/codec';
+import { serializeChunk, deserializeChunk, packRecord, unpackRecord, capturePlayer, applyPlayer, chunkEntities } from '../storage/codec';
 import { SAVE_FORMAT_VERSION, type WorldStorage, type LevelMeta, type PlayerData } from '../storage/types';
 import { DevGenerator } from '@shared/worldgen/devgen';
 import { OverworldGenerator } from '@shared/worldgen/overworld/generator';
@@ -38,6 +38,7 @@ import { StepTracker } from '@shared/entity/steps';
 import { MobManager, MOB_TYPES } from './mobs/manager';
 import { Mob } from './mobs/mob';
 import { Arrow } from './mobs/arrow';
+import type { MobSave } from './mobs/persist';
 import { Commands, type AccessStore } from './commands';
 import { DEFAULT_ALL_GAME_RULES, type AllGameRules } from './commands/gamerules';
 
@@ -1152,8 +1153,9 @@ export class GameServer {
       if (saved) {
         c = deserializeChunk(saved.raw);
         this.stored.delete(key);
-        // mobs that unloaded with the chunk come back with it
-        this.mobs.restoreChunk(cx, cz);
+        // mobs saved with the chunk come back with it
+        const ents = chunkEntities.get(c);
+        if (ents?.length) this.mobs.load(ents as MobSave[]);
       } else {
         c = this.generator.generate(cx, cz);
         if (this.generator instanceof OverworldGenerator) c.stage = 1;
@@ -1258,6 +1260,8 @@ export class GameServer {
     if (this.shadowed.has(key)) return false;
     if (this.saveDirty.has(key) || this.savedSig.get(key) !== chunkSig(c)) return true;
     if (!blockEntities) return false;
+    // mobs move without changing blocks: chunks that hold (or held) mobs are rewritten
+    if (this.mobs.chunkNeedsSave(c.x, c.z)) return true;
     // block entities (containers) can change without a block change
     const be = (c as unknown as { blockEntities?: { size?: number; length?: number } }).blockEntities;
     return !!be && (be.size ?? be.length ?? 0) > 0;
@@ -1269,22 +1273,31 @@ export class GameServer {
     this.savedKeys.add(key);
   }
 
-  /** Keep an unloaded chunk (blocks, light, stage) so coming back finds it as it was. */
+  /** Serialize a loaded chunk with the mobs inside it (they stay in the world). */
+  private chunkRecord(c: Chunk): Uint8Array {
+    const mobs = this.mobs.save(c.x, c.z);
+    this.mobs.noteSaved(c.x, c.z, mobs.length);
+    return serializeChunk(c, mobs);
+  }
+
+  /** Keep an unloaded chunk (blocks, light, stage, mobs) so coming back finds it as it was. */
   private storeChunk(c: Chunk): void {
-    // its mobs leave with it (kept for this session, see MobManager.unloadChunk)
-    this.mobs.unloadChunk(c.x, c.z);
     const key = chunkKey(c.x, c.z);
+    // its mobs leave with it, saved inside the chunk record
+    const dirtyMobs = this.mobs.chunkNeedsSave(c.x, c.z);
+    const mobs = this.mobs.unloadChunk(c.x, c.z);
+    this.mobs.noteSaved(c.x, c.z, mobs.length);
     if (this.shadowed.delete(key)) {
       // the save has the real chunk; forget the temporary copy
       this.savedSig.delete(key);
       this.saveDirty.delete(key);
       return;
     }
-    const dirty = this.needsSave(c, key);
+    const dirty = dirtyMobs || this.needsSave(c, key);
     this.savedSig.delete(key);
     this.saveDirty.delete(key);
     if (this.opts.storage && !dirty && this.savedKeys.has(key)) return; // unchanged since saved
-    this.stored.set(key, { raw: serializeChunk(c), unsaved: true });
+    this.stored.set(key, { raw: serializeChunk(c, mobs), unsaved: true });
   }
 
   /** Write chunks unloaded since the last flush to storage. */
@@ -1336,7 +1349,7 @@ export class GameServer {
     for (const pass of [0, 1]) {
       for (const [key, c] of this.world.chunks) {
         if ((pass === 0 && (c.stage < 3 || !c.lit)) || !this.needsSave(c, key, false)) continue;
-        raws.push({ key, raw: serializeChunk(c) });
+        raws.push({ key, raw: this.chunkRecord(c) });
         this.markSaved(c, key);
         if (raws.length >= 16 || performance.now() > deadline) break;
       }
@@ -1451,7 +1464,7 @@ export class GameServer {
     const raws: { key: number; raw: Uint8Array }[] = [];
     for (const [key, c] of this.world.chunks) {
       if (!this.needsSave(c, key)) continue;
-      raws.push({ key, raw: serializeChunk(c) });
+      raws.push({ key, raw: this.chunkRecord(c) });
       this.markSaved(c, key);
     }
     for (const p of this.players) this.playerData.set(this.playerKey(p), capturePlayer(p));

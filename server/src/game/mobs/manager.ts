@@ -176,16 +176,22 @@ export class MobManager {
     return this.mobs().filter((m) => !m.dead && (cx === undefined || ((Math.floor(m.x) >> 4) === cx && (Math.floor(m.z) >> 4) === cz))).map(saveMob);
   }
 
-  /** Mobs of unloaded chunks, by chunk (session memory; world saves can persist them via save()/load()). */
-  readonly unloaded = new Map<string, MobSave[]>();
+  /** Chunks whose last saved record contained mobs (they must be rewritten even when the mobs left). */
+  private readonly savedWithMobs = new Set<number>();
 
-  /** A chunk came back: recreate the mobs that left with it. */
-  restoreChunk(cx: number, cz: number): void {
-    const k = cx + ',' + cz;
-    const list = this.unloaded.get(k);
-    if (!list) return;
-    this.unloaded.delete(k);
-    this.load(list);
+  private hasMobsIn(cx: number, cz: number): boolean {
+    return this.nearbyMobs(cx * 16 + 8, cz * 16 + 8, 8).some((m) => !m.dead && !m.removed && Math.floor(m.x) >> 4 === cx && Math.floor(m.z) >> 4 === cz);
+  }
+
+  /** Whether a chunk's record must be rewritten because of mobs (present now or in the last save). */
+  chunkNeedsSave(cx: number, cz: number): boolean {
+    return this.savedWithMobs.has(cx * 65536 + cz) || this.hasMobsIn(cx, cz);
+  }
+
+  /** Remember whether a chunk's newest record holds mobs. */
+  noteSaved(cx: number, cz: number, count: number): void {
+    if (count > 0) this.savedWithMobs.add(cx * 65536 + cz);
+    else this.savedWithMobs.delete(cx * 65536 + cz);
   }
 
   /** A chunk is unloading: save its mobs and take them out of the world (they return with the chunk). */
@@ -195,10 +201,6 @@ export class MobManager {
       if (m.dead || m.removed || Math.floor(m.x) >> 4 !== cx || Math.floor(m.z) >> 4 !== cz) continue;
       out.push(saveMob(m));
       m.removed = true;
-    }
-    if (out.length) {
-      const k = cx + ',' + cz;
-      this.unloaded.set(k, [...(this.unloaded.get(k) ?? []), ...out]);
     }
     return out;
   }

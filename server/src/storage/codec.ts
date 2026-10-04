@@ -8,8 +8,11 @@ import { ByteWriter, ByteReader } from '@shared/protocol/buffer';
 import type { ServerPlayer } from '../game/player';
 import { SAVE_FORMAT_VERSION, type PlayerData } from './types';
 
-/** 1: stage, lit, chunk; 2: + carving masks (kept until the chunk is decorated). */
-const CHUNK_FORMAT = 2;
+/** 1: stage, lit, chunk; 2: + carving masks (kept until the chunk is decorated); 3: + entities (mob saves, JSON). */
+const CHUNK_FORMAT = 3;
+
+/** Entity save data read with a chunk (deserializeChunk) — the mobs that were in it. */
+export const chunkEntities = new WeakMap<Chunk, unknown[]>();
 const COMP_NONE = 0;
 const COMP_DEFLATE = 1;
 
@@ -29,7 +32,7 @@ export async function inflate(data: Uint8Array): Promise<Uint8Array> {
 }
 
 /** Serialize a chunk synchronously (snapshot), uncompressed. */
-export function serializeChunk(c: Chunk): Uint8Array {
+export function serializeChunk(c: Chunk, entities?: unknown[]): Uint8Array {
   const w = new ByteWriter(65536);
   w.u8(CHUNK_FORMAT).u8(c.stage).u8(c.lit ? 1 : 0);
   writeChunk(w, c, true);
@@ -39,13 +42,16 @@ export function serializeChunk(c: Chunk): Uint8Array {
     w.u32(m ? m.length : 0);
     if (m) w.bytes(m);
   }
+  const ents = entities && entities.length ? new TextEncoder().encode(JSON.stringify(entities)) : null;
+  w.u32(ents ? ents.length : 0);
+  if (ents) w.bytes(ents);
   return new Uint8Array(w.finish());
 }
 
 export function deserializeChunk(raw: Uint8Array): Chunk {
   const r = new ByteReader(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer);
   const format = r.u8();
-  if (format !== 1 && format !== 2) throw new Error(`unknown chunk format ${format}`);
+  if (format !== 1 && format !== 2 && format !== 3) throw new Error(`unknown chunk format ${format}`);
   const stage = r.u8();
   const lit = r.u8() === 1;
   const c = readChunk(r, true);
@@ -58,6 +64,10 @@ export function deserializeChunk(raw: Uint8Array): Chunk {
         c.carvingMasks.push(len ? r.bytes(len) : null);
       }
     }
+  }
+  if (format >= 3) {
+    const n = r.u32();
+    if (n) chunkEntities.set(c, JSON.parse(new TextDecoder().decode(r.bytes(n))) as unknown[]);
   }
   c.stage = stage;
   c.lit = lit;

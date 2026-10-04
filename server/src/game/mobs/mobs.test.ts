@@ -21,6 +21,7 @@ import { MOB_CAPS } from './manager';
 import { Slime, isSlimeChunk } from './slime';
 import { Enderman } from './enderman';
 import { Bat, Squid } from './ambient';
+import { MemoryStorage } from '../../storage/memory';
 
 const GRASS = stateOf('grass_block', { snowy: false });
 const STONE = stateOf('stone');
@@ -498,5 +499,31 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     const back = server.mobs.mobs().filter((m) => m.type === 'cow');
     expect(back.length).toBe(1);
     expect(back[0]!.x).toBeCloseTo(cow.x, 6);
+  });
+
+  it('mobs are saved with their chunks and come back when the world reopens (no duplicates)', async () => {
+    const storage = new MemoryStorage();
+    const s1 = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true, storage, randomSeed: 1n });
+    await s1.load();
+    const a = client(s1, 'A');
+    ticks(s1, 3);
+    const p = s1.players[0]!;
+    const cow = s1.mobs.spawn('cow', p.x + 3, p.y + 1, p.z + 3) as Cow;
+    cow.ageTicks = -500;
+    const z = s1.mobs.spawn('zombie', p.x - 3, p.y + 1, p.z) as Zombie;
+    z.persistenceRequired = true;
+    ticks(s1, 2);
+    await s1.shutdown();
+    void a;
+    const s2 = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true, storage });
+    await s2.load();
+    client(s2, 'A');
+    ticks(s2, 5);
+    const cows = s2.mobs.mobs().filter((m) => m.type === 'cow') as Cow[];
+    expect(cows.length).toBe(1);
+    expect(cows[0]!.isBaby()).toBe(true);
+    expect(cows[0]!.x).toBeCloseTo(cow.x, 3);
+    expect(s2.mobs.mobs().filter((m) => m.type === 'zombie').length).toBe(1);
+    s2.stop();
   });
 });
