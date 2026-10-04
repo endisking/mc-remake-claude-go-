@@ -469,13 +469,20 @@ function saddle(): Tex {
 
 function lead(): Tex {
   const t = new Tex();
-  const pts: [number, number][] = [];
-  for (let i = 0; i < 40; i++) {
-    const a = i * 0.45;
-    pts.push([Math.round(7.5 + Math.cos(a) * (2 + i * 0.12)), Math.round(7.5 + Math.sin(a) * (2 + i * 0.12))]);
-  }
-  pts.forEach(([x, y], i) => t.set(x, y, hex(i % 3 === 0 ? '#8a6a3a' : '#c8a870')));
-  px(t, '13,13 14,14 13,14', '#8e8e94');
+  // a coiled rope: a thick ring with a twisted pattern, the loose end ending in a clasp
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const d = Math.hypot(x + 0.5 - 7, y + 0.5 - 7);
+      if (d < 3.4 || d > 6.2) continue;
+      const a = Math.atan2(y + 0.5 - 7, x + 0.5 - 7);
+      const twist = Math.floor((a / Math.PI) * 8 + d) % 2 === 0;
+      const lit = x + y < 13;
+      t.set(x, y, hex(d > 5.4 ? '#5a4220' : twist ? (lit ? '#e0c890' : '#b89a60') : lit ? '#c8a870' : '#8a6a3a'));
+    }
+  px(t, '11,11 12,12 13,12', '#8a6a3a');
+  px(t, '12,11 13,13 14,13', '#c8a870');
+  px(t, '14,14 15,14 14,15 15,15', '#a8a8b0');
+  px(t, '15,15', '#5d5d63');
   return t;
 }
 

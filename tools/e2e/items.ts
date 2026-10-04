@@ -78,4 +78,11 @@ for (const slot of [0, 1, 2, 3, 6]) {
   await page.waitForTimeout(700);
   await shot(`held-${slot}`);
 }
+// third person (front view) holding the sword and the pickaxe: handheld transform
+await page.evaluate(() => { const g = (window as any).game; g.cameraType = 2; g.pitch = 10; });
+for (const slot of [1, 0, 2]) {
+  await page.keyboard.press(`Digit${slot + 1}`);
+  await page.waitForTimeout(700);
+  await shot(`third-${slot}`);
+}
 await browser.close();

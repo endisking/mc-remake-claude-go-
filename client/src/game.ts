@@ -382,6 +382,7 @@ export class Game implements ScreenHost {
       texture: () => sprites.texture(this.gl),
       alpha: (l) => sprites.alpha[l],
       layerFor: (id) => spriteLayerFor(sprites, id),
+      layerByName: (name) => sprites.layer(name),
       handheld: (l) => sprites.handheld(l),
     };
     this.blockItems.blockOf = (id) => {

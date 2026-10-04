@@ -77,6 +77,8 @@ export interface ItemSpriteSource {
   alpha(layer: number): Uint8Array | undefined;
   /** sprite layer for an item id, or −1 */
   layerFor(itemId: number): number;
+  /** sprite layer for a texture name (e.g. "bow_pulling_1", "crossbow_arrow"), or −1 */
+  layerByName(name: string): number;
   /** held like a tool (vanilla item/handheld) */
   handheld(layer: number): boolean | 'rod';
 }
@@ -143,6 +145,15 @@ export class BlockItemRenderer {
     const l = this.sprites?.layerFor(itemId) ?? -1;
     if (l >= 0) return -(l + 1);
     return this.blockOf(itemId);
+  }
+
+  /**
+   * Model key of a named item sprite — for vanilla model overrides such as bow_pulling_0..2,
+   * crossbow_pulling_0..2 / crossbow_arrow / crossbow_firework or fishing_rod_cast.
+   */
+  spriteKey(name: string): number | null {
+    const l = this.sprites?.layerByName(name) ?? -1;
+    return l >= 0 ? -(l + 1) : null;
   }
 
   /** Display type of a model key: 'block' (3D), 'generated' (flat) or 'handheld' (tools, sticks, rods). */
