@@ -90,6 +90,7 @@ import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './g
 import { netherFogColor, netherFogRange, PortalEffect, applyPortalWobble, insidePortal, ambientLight, hasSky, animatePortals, endFogColor } from './world/dimension';
 import { EndSkyRenderer } from './render/endsky';
 import { CreditsScreen } from './gui/credits';
+import { BossOverlay } from './gui/bossbar';
 import { isPortal } from '@shared/game/portalshape';
 import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
@@ -138,6 +139,8 @@ export class Game implements ScreenHost, ContainerHost {
   private readonly nauseaTmp = mat4();
   private texLayers: Map<string, { layer: number }> | null = null;
   private readonly hud = new Hud();
+  /** boss bars (bossEvent packets) */
+  readonly bossBars = new BossOverlay();
   /** online players (vanilla PlayerInfo list) */
   readonly playerInfo = new Map<number, PlayerInfoEntry>();
   /** operator permission level from the server (vanilla LocalPlayer.permissionLevel); integrated servers start at 4 */
@@ -1134,7 +1137,11 @@ export class Game implements ScreenHost, ContainerHost {
         break;
       }
       case 'dimension':
+        this.bossBars.clear();
         this.changeDimension(p);
+        break;
+      case 'bossEvent':
+        this.bossBars.handle(p);
         break;
       case 'winGame':
         // ClientboundGameEventPacket WIN_GAME: roll the credits (the first time)
@@ -2892,6 +2899,7 @@ export class Game implements ScreenHost, ContainerHost {
         g.ctx.restore();
       }
       this.hud.render(g, this.hudState(), (id, c, x, y, dmg, pop, tag) => this.renderGuiItem(id, c, x, y, dmg, pop, tag), this.guiPartial);
+      this.bossBars.render(g);
       renderEffects(g, this.itemUse.effects.values());
       this.renderItemActivation(g);
       // PlayerTabOverlay: while the key is held, in multiplayer or with company
