@@ -861,7 +861,7 @@ export class MobManager {
         m.sentYaw = m.yaw;
         m.sentHeadYaw = m.yHeadRot;
         m.sentPitch = m.pitch;
-        m.broadcast({ t: 'entityMove', id: m.id, x: m.x, y: m.y, z: m.z, yaw: m.yBodyRot, pitch: m.pitch, headYaw: m.yHeadRot, onGround: m.onGround });
+        m.broadcast({ t: 'entityMove', id: m.id, x: m.x, y: m.y, z: m.z, yaw: m.yaw, pitch: m.pitch, headYaw: m.yHeadRot, onGround: m.onGround });
       }
       if (m.velocityDirty) {
         m.velocityDirty = false;

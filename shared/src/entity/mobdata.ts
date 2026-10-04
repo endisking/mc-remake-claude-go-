@@ -17,7 +17,7 @@
  *   Immediately after addEntity the server sends `mobData` (mobs only), `entityState` (fire
  *   flag) and `equipment` when the mob holds something (skeleton bow: mainHand = bow item id).
  * Movement: `entityMove { id, x, y, z, yaw, pitch, headYaw, onGround }` whenever position or
- *   rotation changes (interpolate over 3 ticks like players). Body yaw = `yaw`, head yaw =
+ *   rotation changes (interpolate over 3 ticks like players). `yaw` = entity yRot (the client derives body yaw like vanilla), head yaw =
  *   `headYaw`, pitch = head pitch, all in degrees (vanilla convention: yaw 0 faces +Z).
  *   Arrows: yaw/pitch follow the flight direction. `entityMotion` carries velocity (knockback).
  * Events: `entityEvent { id, event }` with vanilla ids:
