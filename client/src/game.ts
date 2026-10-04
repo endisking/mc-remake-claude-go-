@@ -82,11 +82,11 @@ export class Game implements ScreenHost {
   readonly mobs = new ClientMobs({
     sound: (ev, cat, x, y, z, vol, pitch) => this.playAt(ev, cat, x, y, z, vol, pitch),
     hasSound: (ev) => this.sound.has(ev),
-    blockStep: (x, y, z) => {
+    blockStep: (x, y, z, category) => {
       const st = this.world.getState(Math.floor(x), Math.floor(y - 0.2), Math.floor(z));
       if (st === 0) return;
       const t = soundTypeOf(st);
-      this.playAt(t.step, 'hostile', x, y, z, t.volume * 0.15, t.pitch);
+      this.playAt(t.step, category, x, y, z, t.volume * 0.15, t.pitch);
     },
     poof: (m) => this.mobRenderer?.poof(m),
     forget: (id) => this.mobRenderer?.forget(id),

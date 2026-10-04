@@ -506,7 +506,7 @@ export interface MobHooks {
   /** play a sound event at a position */
   sound(event: string, category: 'hostile' | 'neutral' | 'ambient', x: number, y: number, z: number, volume: number, pitch: number): void;
   /** block step sound under a mob without its own step sound */
-  blockStep(x: number, y: number, z: number): void;
+  blockStep(x: number, y: number, z: number, category: 'hostile' | 'neutral' | 'ambient'): void;
   /** whether a sound event exists (has audio) */
   hasSound(event: string): boolean;
   /** death poof particles */
@@ -616,7 +616,7 @@ export class ClientMobs {
         m.nextStep = Math.floor(m.moveDist) + 1;
         const ev = this.soundName(m, 'step');
         if (ev) this.hooks.sound(ev, m.info.category, m.x, m.y, m.z, 0.15, 1);
-        else this.hooks.blockStep(m.x, m.y, m.z);
+        else this.hooks.blockStep(m.x, m.y, m.z, m.info.category);
       }
     }
   }
