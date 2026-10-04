@@ -83,6 +83,16 @@ const S2C_SCHEMA = {
   playerInfo: [['action', 'u8'], ['id', 'i32'], ['name', 'str'], ['skin', 'str'], ['gameMode', 'u8']],
   /** Spectate through another entity's eyes, or back to your own (vanilla SetCamera). */
   setCamera: [['id', 'i32']],
+  /** Status effect added/updated on an entity (vanilla UpdateMobEffect); flags 1 ambient, 2 visible, 4 icon. */
+  mobEffect: [['id', 'i32'], ['effect', 'u8'], ['amplifier', 'u8'], ['duration', 'i32'], ['flags', 'u8']],
+  /** Status effect removed (vanilla RemoveMobEffect). */
+  removeMobEffect: [['id', 'i32'], ['effect', 'u8']],
+  /** Absorption hearts of the receiving player (vanilla DATA_PLAYER_ABSORPTION_ID). */
+  absorption: [['amount', 'f32']],
+  /** Armour another player wears (vanilla SetEquipment armour slots; item ids, 0 = empty). */
+  armorEquipment: [['id', 'i32'], ['feet', 'i16'], ['legs', 'i16'], ['chest', 'i16'], ['head', 'i16']],
+  /** A living entity starts/stops using an item (vanilla DATA_LIVING_ENTITY_FLAGS: eating, drinking, drawing a bow). */
+  livingUse: [['id', 'i32'], ['using', 'bool'], ['hand', 'u8'], ['item', 'i16']],
   /** A container window opened (vanilla OpenScreen): menu type ('crafting', 'generic_9x3', 'furnace'…) and title. */
   openWindow: [['windowId', 'u8'], ['type', 'str'], ['title', 'str']],
   /** Every slot of a window plus the carried stack last (vanilla ContainerSetContent); see encodeStacks. */
@@ -100,7 +110,21 @@ const S2C_SCHEMA = {
   keepAlive: [['id', 'f64']],
   /** Vanilla PlayerInfo UPDATE_LATENCY: a player's ping in milliseconds. */
   playerLatency: [['id', 'i32'], ['latency', 'varint']],
+  // ---- mobs (Phase 6) ----
+  /**
+   * Per-mob synced state (vanilla SynchedEntityData subset), one key at a time. Keys (see
+   * MOB_DATA_KEYS): color (sheep DyeColor id 0–15), sheared, baby, swell_dir (creeper −1/1),
+   * charged, aggressive (zombie arms up / skeleton aiming / enderman creepy), saddle, size
+   * (slime), carried (enderman block state), hanging (bat resting), bow (skeleton holds a bow),
+   * name_visible (custom name always shown), sitting / tame / health (wolf pose and tail).
+   */
+  mobData: [['id', 'i32'], ['key', 'str'], ['value', 'i32']],
+  /** A mob's custom name (name tag); empty clears it. Shown when looked at, or always with mobData name_visible = 1. */
+  mobName: [['id', 'i32'], ['name', 'str']],
 } as const satisfies Schema;
+
+/** Keys of the mobData packet (client: client/src/world/mobs.ts). */
+export const MOB_DATA_KEYS = ['color', 'sheared', 'baby', 'swell_dir', 'charged', 'aggressive', 'saddle', 'size', 'carried', 'hanging', 'bow', 'name_visible', 'sitting', 'tame', 'health'] as const;
 
 // ------------------------------------------------------------------ client → server
 const C2S_SCHEMA = {
@@ -133,6 +157,10 @@ const C2S_SCHEMA = {
   respawn: [],
   /** Spectator menu "Teleport to Player" (vanilla TeleportToEntity). */
   spectate: [['target', 'i32']],
+  /** Right click with an item in the air, or after a block interaction passed (vanilla UseItem). */
+  useItem: [['hand', 'u8']],
+  /** Use key released while using an item: shoot the bow (vanilla PlayerAction RELEASE_USE_ITEM). */
+  releaseUseItem: [],
   /** Click in a window (vanilla ContainerClick): slot −999 = outside; clickType 0 PICKUP, 1 QUICK_MOVE, 2 SWAP, 3 CLONE, 4 THROW, 5 QUICK_CRAFT, 6 PICKUP_ALL. */
   clickWindow: [['windowId', 'u8'], ['slot', 'i16'], ['button', 'u8'], ['clickType', 'u8']],
   /** The player closed a window (0 = the inventory). */

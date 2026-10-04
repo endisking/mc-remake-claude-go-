@@ -20,6 +20,8 @@
   .name { margin-top: 6px; word-break: break-all; }
   .tags { color: var(--muted); font-size: 11px; }
   .tags b { color: var(--accent); font-weight: 600; }
+  .cell.entity { grid-column: span 2; }
+  .cell.entity canvas { width: 256px; height: auto; }
 </style>
 </head>
 <body>
@@ -109,6 +111,34 @@ setInterval(() => {
     if (tick % ft === 0) { e.frame = (e.frame + 1) % e.t.frames; draw(e); }
   }
 }, 50);
+</script>
+<script type="module">
+// Mob textures (tools/texgen/entities.ts), each drawn whole at 4× zoom.
+const base = new URL('../client/public/textures/', location.href);
+const names = await (await fetch(new URL('entity/entities.json', base))).json().catch(() => []);
+const grid = document.getElementById('grid');
+for (const n of names) {
+  const img = new Image();
+  img.src = new URL(`entity/${n}.png`, base).href;
+  try { await img.decode(); } catch { continue; }
+  const cell = document.createElement('div');
+  cell.className = 'cell entity';
+  const c = document.createElement('canvas');
+  c.width = img.width;
+  c.height = img.height;
+  c.style.height = `${(256 * img.height) / img.width}px`;
+  c.getContext('2d').drawImage(img, 0, 0);
+  cell.append(c);
+  const label = document.createElement('div');
+  label.className = 'name';
+  label.textContent = `entity/${n}`;
+  cell.append(label);
+  const tags = document.createElement('div');
+  tags.className = 'tags';
+  tags.textContent = `${img.width}×${img.height}`;
+  cell.append(tags);
+  grid.append(cell);
+}
 </script>
 </body>
 </html>

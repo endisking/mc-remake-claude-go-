@@ -171,7 +171,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Natural regeneration (saturation-based fast regen, food ≥18 slow regen) <!--p2:natural_regeneration_saturation_based_fast_regen_food_18_slow_regen-->
 - [x] Hunger (food level), saturation, exhaustion values per action <!--p2:hunger_food_level_saturation_exhaustion_values_per_action-->
 - [x] Starvation damage by difficulty <!--p2:starvation_damage_by_difficulty-->
-- [ ] Eating (32 ticks, particles, sounds) <!--p2:eating_32_ticks_particles_sounds-->
+- [x] Eating (32 ticks, particles, sounds) <!--p2:eating_32_ticks_particles_sounds-->
 - [x] XP levels formula and XP bar <!--p2:xp_levels_formula_and_xp_bar-->
 - [x] Breathing / air bubbles / drowning <!--p2:breathing_air_bubbles_drowning-->
 - [ ] Fall damage (incl. water, hay bale, slime, honey, bed, powder snow, feather falling) <!--p2:fall_damage_incl_water_hay_bale_slime_honey_bed_powder_snow_feather_falling-->
@@ -420,29 +420,29 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Waterlogging <!--p4:waterlogging-->
 - [x] Lava + water → cobblestone / stone / obsidian <!--p4:lava_water_cobblestone_stone_obsidian-->
 - [x] Basalt generator (lava + soul soil + blue ice) <!--p4:basalt_generator_lava_soul_soil_blue_ice-->
-- [ ] Random ticks (randomTickSpeed 3) <!--p4:random_ticks_randomtickspeed_3-->
-- [ ] Crop growth (wheat, carrots, potatoes, beetroot, melon/pumpkin stems, nether wart) <!--p4:crop_growth_wheat_carrots_potatoes_beetroot_melon_pumpkin_stems_nether_wart-->
+- [x] Random ticks (randomTickSpeed 3) <!--p4:random_ticks_randomtickspeed_3-->
+- [x] Crop growth (wheat, carrots, potatoes, beetroot, melon/pumpkin stems, nether wart) <!--p4:crop_growth_wheat_carrots_potatoes_beetroot_melon_pumpkin_stems_nether_wart-->
 - [ ] Saplings and tree growth <!--p4:saplings_and_tree_growth-->
 - [ ] Bone meal on every applicable block <!--p4:bone_meal_on_every_applicable_block-->
-- [ ] Grass and mycelium spread <!--p4:grass_and_mycelium_spread-->
-- [ ] Leaf decay <!--p4:leaf_decay-->
-- [ ] Fire spread and burnout <!--p4:fire_spread_and_burnout-->
-- [ ] Soul fire <!--p4:soul_fire-->
-- [ ] TNT <!--p4:tnt-->
-- [ ] Explosions (ray-based, resistance, drops) <!--p4:explosions_ray_based_resistance_drops-->
-- [ ] Doors <!--p4:doors-->
-- [ ] Trapdoors <!--p4:trapdoors-->
-- [ ] Fence gates <!--p4:fence_gates-->
+- [x] Grass and mycelium spread <!--p4:grass_and_mycelium_spread-->
+- [x] Leaf decay <!--p4:leaf_decay-->
+- [x] Fire spread and burnout <!--p4:fire_spread_and_burnout-->
+- [x] Soul fire <!--p4:soul_fire-->
+- [x] TNT <!--p4:tnt-->
+- [x] Explosions (ray-based, resistance, drops) <!--p4:explosions_ray_based_resistance_drops-->
+- [x] Doors <!--p4:doors-->
+- [x] Trapdoors <!--p4:trapdoors-->
+- [x] Fence gates <!--p4:fence_gates-->
 - [ ] Editable signs (and glowing ink, dyes) <!--p4:editable_signs_and_glowing_ink_dyes-->
 - [ ] Item frames and glow item frames <!--p4:item_frames_and_glow_item_frames-->
 - [ ] Paintings <!--p4:paintings-->
-- [ ] Copper oxidation <!--p4:copper_oxidation-->
-- [ ] Copper waxing and scraping <!--p4:copper_waxing_and_scraping-->
+- [x] Copper oxidation <!--p4:copper_oxidation-->
+- [x] Copper waxing and scraping <!--p4:copper_waxing_and_scraping-->
 - [ ] Lightning rods <!--p4:lightning_rods-->
-- [ ] Amethyst growth <!--p4:amethyst_growth-->
+- [x] Amethyst growth <!--p4:amethyst_growth-->
 - [ ] Pointed dripstone (growth, dripping, falling, damage) <!--p4:pointed_dripstone_growth_dripping_falling_damage-->
 - [ ] Powder snow <!--p4:powder_snow-->
-- [ ] Candles and candle cakes <!--p4:candles_and_candle_cakes-->
+- [x] Candles and candle cakes <!--p4:candles_and_candle_cakes-->
 - [ ] Cauldrons (water, lava, powder snow, dyeing, washing) <!--p4:cauldrons_water_lava_powder_snow_dyeing_washing-->
 - [ ] Composters <!--p4:composters-->
 - [ ] Note blocks (all instruments by block below) <!--p4:note_blocks_all_instruments_by_block_below-->
@@ -458,14 +458,14 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Ender chests <!--p4:ender_chests-->
 - [ ] Shulker boxes <!--p4:shulker_boxes-->
 - [x] Barrels <!--p4:barrels-->
-- [ ] Snow layers <!--p4:snow_layers-->
+- [x] Snow layers <!--p4:snow_layers-->
 - [ ] Ice melting and frosted ice <!--p4:ice_melting_and_frosted_ice-->
-- [ ] Sugar cane, cactus, bamboo, kelp growth <!--p4:sugar_cane_cactus_bamboo_kelp_growth-->
-- [ ] Vines growth <!--p4:vines_growth-->
+- [x] Sugar cane, cactus, bamboo, kelp growth <!--p4:sugar_cane_cactus_bamboo_kelp_growth-->
+- [x] Vines growth <!--p4:vines_growth-->
 - [ ] Chorus growth <!--p4:chorus_growth-->
-- [ ] Farmland trampling and hydration <!--p4:farmland_trampling_and_hydration-->
-- [ ] Coral death outside water <!--p4:coral_death_outside_water-->
-- [ ] Sponge absorption <!--p4:sponge_absorption-->
+- [x] Farmland trampling and hydration <!--p4:farmland_trampling_and_hydration-->
+- [x] Coral death outside water <!--p4:coral_death_outside_water-->
+- [x] Sponge absorption <!--p4:sponge_absorption-->
 - [ ] Turtle eggs <!--p4:turtle_eggs-->
 - [ ] Sculk sensor (creative-only in 1.17.1) <!--p4:sculk_sensor_creative_only_in_1_17_1-->
 - [ ] Big dripleaf tilting <!--p4:big_dripleaf_tilting-->
@@ -1455,7 +1455,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Lectern book screen <!--p5:lectern_book_screen-->
 - [ ] Book and quill editing <!--p5:book_and_quill_editing-->
 - [ ] Recipe book <!--p5:recipe_book-->
-- [ ] Durability and item breaking <!--p5:durability_and_item_breaking-->
+- [x] Durability and item breaking <!--p5:durability_and_item_breaking-->
 - [x] Fuel values <!--p5:fuel_values-->
 - [x] Smelting recipes (furnace, blast furnace, smoker, campfire) with XP <!--p5:smelting_recipes_furnace_blast_furnace_smoker_campfire_with_xp-->
 - [x] Stonecutting recipes <!--p5:stonecutting_recipes-->
@@ -1467,8 +1467,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Spyglass <!--p5:spyglass-->
 - [ ] Fishing (bobber physics, bite timing, loot tables, Luck of the Sea, Lure) <!--p5:fishing_bobber_physics_bite_timing_loot_tables_luck_of_the_sea_lure-->
 - [ ] Bundle (1.17.1: exists, not obtainable in survival) <!--p5:bundle_1_17_1_exists_not_obtainable_in_survival-->
-- [ ] Bows and arrows <!--p5:bows_and_arrows-->
-- [ ] Food eating effects <!--p5:food_eating_effects-->
+- [x] Bows and arrows <!--p5:bows_and_arrows-->
+- [x] Food eating effects <!--p5:food_eating_effects-->
 - [ ] Tooltips (names, enchantments, durability, lore) <!--p5:tooltips_names_enchantments_durability_lore-->
 
 ### Items (every 1.17.1 non-block item)
@@ -1489,12 +1489,12 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Jungle Boat (`jungle_boat`) <!--item:jungle_boat-->
 - [ ] Acacia Boat (`acacia_boat`) <!--item:acacia_boat-->
 - [ ] Dark Oak Boat (`dark_oak_boat`) <!--item:dark_oak_boat-->
-- [ ] Turtle Shell (`turtle_helmet`) <!--item:turtle_helmet-->
+- [x] Turtle Shell (`turtle_helmet`) <!--item:turtle_helmet-->
 - [ ] Scute (`scute`) <!--item:scute-->
 - [ ] Flint and Steel (`flint_and_steel`) <!--item:flint_and_steel-->
 - [ ] Apple (`apple`) <!--item:apple-->
-- [ ] Bow (`bow`) <!--item:bow-->
-- [ ] Arrow (`arrow`) <!--item:arrow-->
+- [x] Bow (`bow`) <!--item:bow-->
+- [x] Arrow (`arrow`) <!--item:arrow-->
 - [ ] Coal (`coal`) <!--item:coal-->
 - [ ] Charcoal (`charcoal`) <!--item:charcoal-->
 - [ ] Diamond (`diamond`) <!--item:diamond-->
@@ -1548,43 +1548,43 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Gunpowder (`gunpowder`) <!--item:gunpowder-->
 - [ ] Wheat Seeds (`wheat_seeds`) <!--item:wheat_seeds-->
 - [ ] Bread (`bread`) <!--item:bread-->
-- [ ] Leather Cap (`leather_helmet`) <!--item:leather_helmet-->
-- [ ] Leather Tunic (`leather_chestplate`) <!--item:leather_chestplate-->
-- [ ] Leather Pants (`leather_leggings`) <!--item:leather_leggings-->
-- [ ] Leather Boots (`leather_boots`) <!--item:leather_boots-->
-- [ ] Chainmail Helmet (`chainmail_helmet`) <!--item:chainmail_helmet-->
-- [ ] Chainmail Chestplate (`chainmail_chestplate`) <!--item:chainmail_chestplate-->
-- [ ] Chainmail Leggings (`chainmail_leggings`) <!--item:chainmail_leggings-->
-- [ ] Chainmail Boots (`chainmail_boots`) <!--item:chainmail_boots-->
-- [ ] Iron Helmet (`iron_helmet`) <!--item:iron_helmet-->
-- [ ] Iron Chestplate (`iron_chestplate`) <!--item:iron_chestplate-->
-- [ ] Iron Leggings (`iron_leggings`) <!--item:iron_leggings-->
-- [ ] Iron Boots (`iron_boots`) <!--item:iron_boots-->
-- [ ] Diamond Helmet (`diamond_helmet`) <!--item:diamond_helmet-->
-- [ ] Diamond Chestplate (`diamond_chestplate`) <!--item:diamond_chestplate-->
-- [ ] Diamond Leggings (`diamond_leggings`) <!--item:diamond_leggings-->
-- [ ] Diamond Boots (`diamond_boots`) <!--item:diamond_boots-->
-- [ ] Golden Helmet (`golden_helmet`) <!--item:golden_helmet-->
-- [ ] Golden Chestplate (`golden_chestplate`) <!--item:golden_chestplate-->
-- [ ] Golden Leggings (`golden_leggings`) <!--item:golden_leggings-->
-- [ ] Golden Boots (`golden_boots`) <!--item:golden_boots-->
-- [ ] Netherite Helmet (`netherite_helmet`) <!--item:netherite_helmet-->
-- [ ] Netherite Chestplate (`netherite_chestplate`) <!--item:netherite_chestplate-->
-- [ ] Netherite Leggings (`netherite_leggings`) <!--item:netherite_leggings-->
-- [ ] Netherite Boots (`netherite_boots`) <!--item:netherite_boots-->
+- [x] Leather Cap (`leather_helmet`) <!--item:leather_helmet-->
+- [x] Leather Tunic (`leather_chestplate`) <!--item:leather_chestplate-->
+- [x] Leather Pants (`leather_leggings`) <!--item:leather_leggings-->
+- [x] Leather Boots (`leather_boots`) <!--item:leather_boots-->
+- [x] Chainmail Helmet (`chainmail_helmet`) <!--item:chainmail_helmet-->
+- [x] Chainmail Chestplate (`chainmail_chestplate`) <!--item:chainmail_chestplate-->
+- [x] Chainmail Leggings (`chainmail_leggings`) <!--item:chainmail_leggings-->
+- [x] Chainmail Boots (`chainmail_boots`) <!--item:chainmail_boots-->
+- [x] Iron Helmet (`iron_helmet`) <!--item:iron_helmet-->
+- [x] Iron Chestplate (`iron_chestplate`) <!--item:iron_chestplate-->
+- [x] Iron Leggings (`iron_leggings`) <!--item:iron_leggings-->
+- [x] Iron Boots (`iron_boots`) <!--item:iron_boots-->
+- [x] Diamond Helmet (`diamond_helmet`) <!--item:diamond_helmet-->
+- [x] Diamond Chestplate (`diamond_chestplate`) <!--item:diamond_chestplate-->
+- [x] Diamond Leggings (`diamond_leggings`) <!--item:diamond_leggings-->
+- [x] Diamond Boots (`diamond_boots`) <!--item:diamond_boots-->
+- [x] Golden Helmet (`golden_helmet`) <!--item:golden_helmet-->
+- [x] Golden Chestplate (`golden_chestplate`) <!--item:golden_chestplate-->
+- [x] Golden Leggings (`golden_leggings`) <!--item:golden_leggings-->
+- [x] Golden Boots (`golden_boots`) <!--item:golden_boots-->
+- [x] Netherite Helmet (`netherite_helmet`) <!--item:netherite_helmet-->
+- [x] Netherite Chestplate (`netherite_chestplate`) <!--item:netherite_chestplate-->
+- [x] Netherite Leggings (`netherite_leggings`) <!--item:netherite_leggings-->
+- [x] Netherite Boots (`netherite_boots`) <!--item:netherite_boots-->
 - [ ] Flint (`flint`) <!--item:flint-->
 - [ ] Raw Porkchop (`porkchop`) <!--item:porkchop-->
 - [ ] Cooked Porkchop (`cooked_porkchop`) <!--item:cooked_porkchop-->
 - [ ] Painting (`painting`) <!--item:painting-->
-- [ ] Golden Apple (`golden_apple`) <!--item:golden_apple-->
-- [ ] Enchanted Golden Apple (`enchanted_golden_apple`) <!--item:enchanted_golden_apple-->
-- [ ] Bucket (`bucket`) <!--item:bucket-->
-- [ ] Water Bucket (`water_bucket`) <!--item:water_bucket-->
-- [ ] Lava Bucket (`lava_bucket`) <!--item:lava_bucket-->
+- [x] Golden Apple (`golden_apple`) <!--item:golden_apple-->
+- [x] Enchanted Golden Apple (`enchanted_golden_apple`) <!--item:enchanted_golden_apple-->
+- [x] Bucket (`bucket`) <!--item:bucket-->
+- [x] Water Bucket (`water_bucket`) <!--item:water_bucket-->
+- [x] Lava Bucket (`lava_bucket`) <!--item:lava_bucket-->
 - [ ] Powder Snow Bucket (`powder_snow_bucket`) <!--item:powder_snow_bucket-->
-- [ ] Snowball (`snowball`) <!--item:snowball-->
+- [x] Snowball (`snowball`) <!--item:snowball-->
 - [ ] Leather (`leather`) <!--item:leather-->
-- [ ] Milk Bucket (`milk_bucket`) <!--item:milk_bucket-->
+- [x] Milk Bucket (`milk_bucket`) <!--item:milk_bucket-->
 - [ ] Bucket of Pufferfish (`pufferfish_bucket`) <!--item:pufferfish_bucket-->
 - [ ] Bucket of Salmon (`salmon_bucket`) <!--item:salmon_bucket-->
 - [ ] Bucket of Cod (`cod_bucket`) <!--item:cod_bucket-->
@@ -1595,7 +1595,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Paper (`paper`) <!--item:paper-->
 - [ ] Book (`book`) <!--item:book-->
 - [ ] Slimeball (`slime_ball`) <!--item:slime_ball-->
-- [ ] Egg (`egg`) <!--item:egg-->
+- [x] Egg (`egg`) <!--item:egg-->
 - [ ] Compass (`compass`) <!--item:compass-->
 - [ ] Bundle (`bundle`) ⊘ <!--item:bundle-->
 - [ ] Fishing Rod (`fishing_rod`) <!--item:fishing_rod-->
@@ -1642,7 +1642,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Raw Chicken (`chicken`) <!--item:chicken-->
 - [ ] Cooked Chicken (`cooked_chicken`) <!--item:cooked_chicken-->
 - [ ] Rotten Flesh (`rotten_flesh`) <!--item:rotten_flesh-->
-- [ ] Ender Pearl (`ender_pearl`) <!--item:ender_pearl-->
+- [x] Ender Pearl (`ender_pearl`) <!--item:ender_pearl-->
 - [ ] Blaze Rod (`blaze_rod`) <!--item:blaze_rod-->
 - [ ] Ghast Tear (`ghast_tear`) <!--item:ghast_tear-->
 - [ ] Gold Nugget (`gold_nugget`) <!--item:gold_nugget-->
@@ -1757,7 +1757,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Raw Mutton (`mutton`) <!--item:mutton-->
 - [ ] Cooked Mutton (`cooked_mutton`) <!--item:cooked_mutton-->
 - [ ] End Crystal (`end_crystal`) <!--item:end_crystal-->
-- [ ] Chorus Fruit (`chorus_fruit`) <!--item:chorus_fruit-->
+- [x] Chorus Fruit (`chorus_fruit`) <!--item:chorus_fruit-->
 - [ ] Popped Chorus Fruit (`popped_chorus_fruit`) <!--item:popped_chorus_fruit-->
 - [ ] Beetroot (`beetroot`) <!--item:beetroot-->
 - [ ] Beetroot Seeds (`beetroot_seeds`) <!--item:beetroot_seeds-->
@@ -1767,8 +1767,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Spectral Arrow (`spectral_arrow`) <!--item:spectral_arrow-->
 - [ ] Tipped Arrow (`tipped_arrow`) <!--item:tipped_arrow-->
 - [ ] Lingering Potion (`lingering_potion`) <!--item:lingering_potion-->
-- [ ] Shield (`shield`) <!--item:shield-->
-- [ ] Totem of Undying (`totem_of_undying`) <!--item:totem_of_undying-->
+- [x] Shield (`shield`) <!--item:shield-->
+- [x] Totem of Undying (`totem_of_undying`) <!--item:totem_of_undying-->
 - [ ] Shulker Shell (`shulker_shell`) <!--item:shulker_shell-->
 - [ ] Iron Nugget (`iron_nugget`) <!--item:iron_nugget-->
 - [ ] Knowledge Book (`knowledge_book`) ⊘ <!--item:knowledge_book-->
@@ -2451,7 +2451,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 ### Systems
 
 - [ ] Entity system (server-side ticking, interpolation client-side) <!--p6:entity_system_server_side_ticking_interpolation_client_side-->
-- [ ] Mob model/animation system matching vanilla body-part layout <!--p6:mob_model_animation_system_matching_vanilla_body_part_layout-->
+- [x] Mob model/animation system matching vanilla body-part layout <!--p6:mob_model_animation_system_matching_vanilla_body_part_layout-->
 - [ ] Pathfinding: walking <!--p6:pathfinding_walking-->
 - [ ] Pathfinding: swimming <!--p6:pathfinding_swimming-->
 - [ ] Pathfinding: flying <!--p6:pathfinding_flying-->
@@ -2499,8 +2499,8 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Ender Dragon (fight, crystals, perching, breath, egg, exit portal, gateways, respawning) <!--p6:ender_dragon_fight_crystals_perching_breath_egg_exit_portal_gateways_respawning-->
 - [ ] Name tags <!--p6:name_tags-->
 - [ ] Mob sounds (ambient/hurt/death/step) <!--p6:mob_sounds_ambient_hurt_death_step-->
-- [ ] Mob death animation and particles <!--p6:mob_death_animation_and_particles-->
-- [ ] Mob hurt red tint <!--p6:mob_hurt_red_tint-->
+- [x] Mob death animation and particles <!--p6:mob_death_animation_and_particles-->
+- [x] Mob hurt red tint <!--p6:mob_hurt_red_tint-->
 
 ### Mobs (every 1.17.1 mob; ⊘ = does not spawn naturally)
 
@@ -2582,7 +2582,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 - [ ] Area Effect Cloud (`area_effect_cloud`) <!--entity:area_effect_cloud-->
 - [ ] Armor Stand (`armor_stand`) <!--entity:armor_stand-->
-- [ ] Arrow (`arrow`) <!--entity:arrow-->
+- [x] Arrow (`arrow`) <!--entity:arrow-->
 - [ ] Boat (`boat`) <!--entity:boat-->
 - [ ] Dragon Fireball (`dragon_fireball`) <!--entity:dragon_fireball-->
 - [ ] End Crystal (`end_crystal`) <!--entity:end_crystal-->
@@ -2592,7 +2592,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Falling Block (`falling_block`) <!--entity:falling_block-->
 - [ ] Firework Rocket (`firework_rocket`) <!--entity:firework_rocket-->
 - [ ] Glow Item Frame (`glow_item_frame`) <!--entity:glow_item_frame-->
-- [ ] Item (`item`) <!--entity:item-->
+- [x] Item (`item`) <!--entity:item-->
 - [ ] Item Frame (`item_frame`) <!--entity:item_frame-->
 - [ ] Fireball (`fireball`) <!--entity:fireball-->
 - [ ] Leash Knot (`leash_knot`) <!--entity:leash_knot-->
@@ -2610,10 +2610,10 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Primed TNT (`tnt`) <!--entity:tnt-->
 - [ ] Shulker Bullet (`shulker_bullet`) <!--entity:shulker_bullet-->
 - [ ] Small Fireball (`small_fireball`) <!--entity:small_fireball-->
-- [ ] Snowball (`snowball`) <!--entity:snowball-->
+- [x] Snowball (`snowball`) <!--entity:snowball-->
 - [ ] Spectral Arrow (`spectral_arrow`) <!--entity:spectral_arrow-->
-- [ ] Thrown Egg (`egg`) <!--entity:egg-->
-- [ ] Thrown Ender Pearl (`ender_pearl`) <!--entity:ender_pearl-->
+- [x] Thrown Egg (`egg`) <!--entity:egg-->
+- [x] Thrown Ender Pearl (`ender_pearl`) <!--entity:ender_pearl-->
 - [ ] Thrown Bottle o' Enchanting (`experience_bottle`) <!--entity:experience_bottle-->
 - [ ] Potion (`potion`) <!--entity:potion-->
 - [ ] Trident (`trident`) <!--entity:trident-->
@@ -2626,20 +2626,20 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 ### Combat
 
 - [ ] Attack cooldown and indicator <!--p7:attack_cooldown_and_indicator-->
-- [ ] Attack damage per weapon (1.9+ values) <!--p7:attack_damage_per_weapon_1_9_values-->
+- [x] Attack damage per weapon (1.9+ values) <!--p7:attack_damage_per_weapon_1_9_values-->
 - [ ] Sweep attacks <!--p7:sweep_attacks-->
 - [ ] Critical hits <!--p7:critical_hits-->
 - [ ] Knockback (and sprint knockback) <!--p7:knockback_and_sprint_knockback-->
-- [ ] Shields: blocking <!--p7:shields_blocking-->
-- [ ] Shields: disabled by axes <!--p7:shields_disabled_by_axes-->
-- [ ] Armor points formula <!--p7:armor_points_formula-->
-- [ ] Armor toughness formula <!--p7:armor_toughness_formula-->
+- [x] Shields: blocking <!--p7:shields_blocking-->
+- [x] Shields: disabled by axes <!--p7:shields_disabled_by_axes-->
+- [x] Armor points formula <!--p7:armor_points_formula-->
+- [x] Armor toughness formula <!--p7:armor_toughness_formula-->
 - [ ] Protection enchantment EPF <!--p7:protection_enchantment_epf-->
 - [ ] Invulnerability frames <!--p7:invulnerability_frames-->
-- [ ] Bows (charge, power, crits) <!--p7:bows_charge_power_crits-->
+- [x] Bows (charge, power, crits) <!--p7:bows_charge_power_crits-->
 - [ ] Crossbows (charging, multishot, piercing, fireworks) <!--p7:crossbows_charging_multishot_piercing_fireworks-->
 - [ ] Tridents (throw, Loyalty, Riptide, Channeling, Impaling) <!--p7:tridents_throw_loyalty_riptide_channeling_impaling-->
-- [ ] Totem of Undying <!--p7:totem_of_undying-->
+- [x] Totem of Undying <!--p7:totem_of_undying-->
 - [ ] PvP damage <!--p7:pvp_damage-->
 - [ ] Difficulty scaling of mob damage <!--p7:difficulty_scaling_of_mob_damage-->
 
@@ -2700,40 +2700,40 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Tipped arrows <!--p7:tipped_arrows-->
 - [ ] Status effect HUD icons and inventory list <!--p7:status_effect_hud_icons_and_inventory_list-->
 - [ ] Effect particles (ambient for beacons) <!--p7:effect_particles_ambient_for_beacons-->
-- [ ] Milk clears effects <!--p7:milk_clears_effects-->
+- [x] Milk clears effects <!--p7:milk_clears_effects-->
 - [ ] Beacon effects <!--p7:beacon_effects-->
 - [ ] Conduit power and attack <!--p7:conduit_power_and_attack-->
 - [ ] Suspicious stew effects <!--p7:suspicious_stew_effects-->
-- [ ] Effect: Speed <!--effect:Speed-->
-- [ ] Effect: Slowness <!--effect:Slowness-->
-- [ ] Effect: Haste <!--effect:Haste-->
-- [ ] Effect: Mining Fatigue <!--effect:MiningFatigue-->
-- [ ] Effect: Strength <!--effect:Strength-->
-- [ ] Effect: Instant Health <!--effect:InstantHealth-->
-- [ ] Effect: Instant Damage <!--effect:InstantDamage-->
-- [ ] Effect: Jump Boost <!--effect:JumpBoost-->
-- [ ] Effect: Nausea <!--effect:Nausea-->
-- [ ] Effect: Regeneration <!--effect:Regeneration-->
-- [ ] Effect: Resistance <!--effect:Resistance-->
-- [ ] Effect: Fire Resistance <!--effect:FireResistance-->
-- [ ] Effect: Water Breathing <!--effect:WaterBreathing-->
+- [x] Effect: Speed <!--effect:Speed-->
+- [x] Effect: Slowness <!--effect:Slowness-->
+- [x] Effect: Haste <!--effect:Haste-->
+- [x] Effect: Mining Fatigue <!--effect:MiningFatigue-->
+- [x] Effect: Strength <!--effect:Strength-->
+- [x] Effect: Instant Health <!--effect:InstantHealth-->
+- [x] Effect: Instant Damage <!--effect:InstantDamage-->
+- [x] Effect: Jump Boost <!--effect:JumpBoost-->
+- [x] Effect: Nausea <!--effect:Nausea-->
+- [x] Effect: Regeneration <!--effect:Regeneration-->
+- [x] Effect: Resistance <!--effect:Resistance-->
+- [x] Effect: Fire Resistance <!--effect:FireResistance-->
+- [x] Effect: Water Breathing <!--effect:WaterBreathing-->
 - [ ] Effect: Invisibility <!--effect:Invisibility-->
-- [ ] Effect: Blindness <!--effect:Blindness-->
-- [ ] Effect: Night Vision <!--effect:NightVision-->
-- [ ] Effect: Hunger <!--effect:Hunger-->
-- [ ] Effect: Weakness <!--effect:Weakness-->
-- [ ] Effect: Poison <!--effect:Poison-->
-- [ ] Effect: Wither <!--effect:Wither-->
-- [ ] Effect: Health Boost <!--effect:HealthBoost-->
-- [ ] Effect: Absorption <!--effect:Absorption-->
-- [ ] Effect: Saturation <!--effect:Saturation-->
+- [x] Effect: Blindness <!--effect:Blindness-->
+- [x] Effect: Night Vision <!--effect:NightVision-->
+- [x] Effect: Hunger <!--effect:Hunger-->
+- [x] Effect: Weakness <!--effect:Weakness-->
+- [x] Effect: Poison <!--effect:Poison-->
+- [x] Effect: Wither <!--effect:Wither-->
+- [x] Effect: Health Boost <!--effect:HealthBoost-->
+- [x] Effect: Absorption <!--effect:Absorption-->
+- [x] Effect: Saturation <!--effect:Saturation-->
 - [ ] Effect: Glowing <!--effect:Glowing-->
-- [ ] Effect: Levitation <!--effect:Levitation-->
+- [x] Effect: Levitation <!--effect:Levitation-->
 - [ ] Effect: Luck <!--effect:Luck-->
 - [ ] Effect: Bad Luck <!--effect:BadLuck-->
-- [ ] Effect: Slow Falling <!--effect:SlowFalling-->
+- [x] Effect: Slow Falling <!--effect:SlowFalling-->
 - [ ] Effect: Conduit Power <!--effect:ConduitPower-->
-- [ ] Effect: Dolphin's Grace <!--effect:DolphinsGrace-->
+- [x] Effect: Dolphin's Grace <!--effect:DolphinsGrace-->
 - [ ] Effect: Bad Omen <!--effect:BadOmen-->
 - [ ] Effect: Hero of the Village <!--effect:HeroOfTheVillage-->
 
