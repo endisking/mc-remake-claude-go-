@@ -209,6 +209,21 @@ function buildKind(kind: Kind, p: Palette, r: JavaRandom): Model {
   }
 }
 
+/** Zombie village look (the abandoned variants of every pool): no doors or lights, broken windows, cobwebs. */
+function abandon(m: Model, r: JavaRandom): Model {
+  const cob = S('cobweb'), air = S('air');
+  for (let i = 0; i < m.blocks.length; i++) {
+    const st = m.blocks[i]!;
+    if (st === VOID) continue;
+    const n = blockNameOf(st);
+    if (n.endsWith('_door') || n === 'torch' || n === 'wall_torch' || n === 'lantern') m.blocks[i] = air;
+    else if (n === 'glass_pane' && r.nextInt(2) === 0) m.blocks[i] = air;
+    else if (n === 'cobblestone' && r.nextInt(4) === 0) m.blocks[i] = S('mossy_cobblestone');
+    else if (st === air && r.nextInt(14) === 0) m.blocks[i] = cob;
+  }
+  return m;
+}
+
 // ------------------------------------------------------------------ pieces
 const BRIDGE_TOPS = /^(water)$/;
 const PATHABLE = /^(grass_block|dirt|coarse_dirt|podzol|mycelium|sand|red_sand|gravel|snow_block|stone|andesite|granite|diorite)$/;
@@ -295,6 +310,8 @@ export function village(s: StartContext): Piece[] {
   const style = (s.config.start_pool as string).split('/')[1] as Style;
   const p = PALETTES[style] ?? PALETTES.plains;
   const cx = (s.cx << 4) + 8, cz = (s.cz << 4) + 8;
+  // the town-center pools hold abandoned (zombie) variants at about 2% of the weight
+  const zombie = r.nextInt(50) === 0;
   const pieces: Piece[] = [];
   const boxes: BoundingBox[] = [];
   const free = (b: BoundingBox) => !boxes.some((o) => o.intersectsXZ(b.x0, b.z0, b.x1, b.z1));
@@ -343,7 +360,8 @@ export function village(s: StartContext): Piece[] {
           kind = kk;
           break;
         }
-        const model = buildKind(kind, p, r);
+        const built = buildKind(kind, p, r);
+        const model = zombie ? abandon(built, r) : built;
         // house rotation: its front (local z = 0) faces the street
         const [px, pz] = [-fz * side, fx * side]; // outward from the street
         const rot = pz > 0 ? 0 : pz < 0 ? 2 : px > 0 ? 3 : 1;
