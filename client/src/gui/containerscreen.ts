@@ -11,6 +11,7 @@ import type { KeyBindings } from '../keybinds';
 import { ITEMS_BY_ID } from '@shared/data';
 import { isEmpty, itemName, maxStackSize, type Inventory, type ItemStack } from '@shared/item/stack';
 import { copyStack, maxDamage } from '@shared/menu/container';
+import { attackDamageOf, attackSpeedOf } from '@shared/game/combat';
 import {
   ClickType, SLOT_OUTSIDE, canItemQuickReplace, quickCraftSlotCount, ChestMenu, CraftingMenu, FurnaceMenu, InventoryMenu,
   type Menu, type MenuPlayer, type Slot,
@@ -54,6 +55,37 @@ function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
   const p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
   const [r, g, b] = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][i]!;
   return [Math.round(r! * 255), Math.round(g! * 255), Math.round(b! * 255)];
+}
+
+// ArmorMaterials defense per slot (feet, legs, chest, head), toughness, knockback resistance
+const ARMOR: Record<string, [number[], number, number]> = {
+  leather: [[1, 2, 3, 1], 0, 0], chainmail: [[1, 4, 5, 2], 0, 0], iron: [[2, 5, 6, 2], 0, 0], golden: [[1, 3, 5, 2], 0, 0],
+  diamond: [[3, 6, 8, 3], 2, 0], netherite: [[3, 6, 8, 3], 3, 0.1], turtle: [[2, 5, 6, 2], 0, 0],
+};
+const ARMOR_PARTS = ['boots', 'leggings', 'chestplate', 'helmet'];
+const ARMOR_SLOT_TEXT = ['When on Feet:', 'When on Legs:', 'When on Body:', 'When on Head:'];
+
+function fmt(v: number): string {
+  return String(Math.round(v * 100) / 100);
+}
+
+/** ItemStack.getTooltipLines: name (rarity colour) and attribute modifier lines. */
+export function itemTooltip(st: ItemStack): string[] {
+  const lines = [rarityColor(st.id) + displayName(st.id)];
+  const n = itemName(st.id);
+  const dmg = attackDamageOf(st.id), spd = attackSpeedOf(st.id);
+  if (dmg !== 1 || spd !== 4) {
+    lines.push('', '§7When in Main Hand:', `§2 ${fmt(dmg)} Attack Damage`, `§2 ${fmt(spd)} Attack Speed`);
+  }
+  const m = n.match(/^(leather|chainmail|iron|golden|diamond|netherite|turtle)_(boots|leggings|chestplate|helmet)$/);
+  if (m) {
+    const [def, tough, kb] = ARMOR[m[1]!]!;
+    const i = ARMOR_PARTS.indexOf(m[2]!);
+    lines.push('', `§7${ARMOR_SLOT_TEXT[i]}`, `§9+${def[i]} Armor`);
+    if (tough) lines.push(`§9+${tough} Armor Toughness`);
+    if (kb) lines.push(`§9+${fmt(kb * 10)} Knockback Resistance`);
+  }
+  return lines;
 }
 
 function glfwButton(dom: number): number {
@@ -177,7 +209,7 @@ export abstract class AbstractContainerScreen<M extends Menu = Menu> extends Scr
   }
 
   protected tooltipLines(st: ItemStack): string[] {
-    return [rarityColor(st.id) + displayName(st.id)];
+    return itemTooltip(st);
   }
 
   protected renderExtra(_mx: number, _my: number): void {}
