@@ -33,6 +33,9 @@ import { soundId, sourceId, type SoundSource } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
+// --- block behaviours (Phase 4: ticks, gravity, farming, doors)
+import { BlockBehaviors } from './blocks';
+import { FallingBlockEntity } from './fallingblock';
 
 export interface Connection {
   send(data: ArrayBuffer): void;
@@ -78,6 +81,8 @@ export class GameServer {
   /** server.properties pvp */
   pvp = true;
   readonly sleep = new Sleep(this);
+  /** Block behaviours: scheduled + random ticks, gravity blocks, farming, doors (blocks.ts). */
+  readonly blocks = new BlockBehaviors(this);
   /** gamerules playersSleepingPercentage and spawnRadius */
   playersSleepingPercentage = 100;
   spawnRadius = 10;
@@ -433,7 +438,10 @@ export class GameServer {
     if (drops && breaker && breaker.gameMode !== 1) {
       const held = breaker.inventory.selectedStack;
       const harvest = canHarvest(held?.id ?? 0, state);
-      const items = blockDrops(state, { silkTouch: false, canHarvest: harvest, random: () => this.rand.nextFloat() });
+      const shears = held ? itemNameOf(held.id) === 'shears' : false;
+      // a door's loot comes from its lower half (vanilla destroys the lower half with drops)
+      const lootState = name.endsWith('_door') && getProp(state, 'half') === 'upper' && blockNameOf(this.world.getState(x, y - 1, z)) === name ? this.world.getState(x, y - 1, z) : state;
+      const items = blockDrops(lootState, { silkTouch: false, shears, canHarvest: harvest, random: () => this.rand.nextFloat() });
       for (const it of items) this.popResource(x, y, z, it);
       // Block.spawnAfterBreak → popExperience (OreBlock / RedStoneOreBlock / SpawnerBlock)
       const xp = harvest ? oreExperience(name, this.rand) : 0;
@@ -494,6 +502,8 @@ export class GameServer {
     const slot = m.hand === 1 ? 40 : p.inventory.selected;
     const held = p.inventory.get(slot);
     const block = held ? blockForItem(held.id) : null;
+    // hoes, shovels, axes, bone meal (blocks.ts)
+    if (held && !block && p.gameMode !== 2 && this.blocks.useItemOn(p, slot, held, x, y, z, face)) return;
     if (!held || !block || p.gameMode === 2) return;
     const clicked = this.world.getState(x, y, z);
     let px = x, py = y, pz = z;
@@ -536,8 +546,12 @@ export class GameServer {
   }
 
   // ------------------------------------------------------------------ item entities
-  private spawnEntity(e: ServerEntity): void {
+  spawnEntity(e: ServerEntity): void {
     this.entities.set(e.id, e);
+  }
+
+  newEntityId(): number {
+    return this.nextEntityId++;
   }
 
   /** Vanilla Block.popResource: item at the block centre ± 0.25 with a small upward toss. */
@@ -721,7 +735,7 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : 0 });
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
         } else if (!visible && p.tracking.has(e.id)) {
           p.tracking.delete(e.id);
@@ -821,6 +835,7 @@ export class GameServer {
     p.onGround = m.onGround;
     this.movementSounds(p, dx, dy, dz);
     if (m.onGround) {
+      if (p.fallDistance > 0) this.blocks.fallOn(p, p.fallDistance);
       if (p.fallDistance > 0) this.survival.land(p, p.fallDistance);
       p.fallDistance = 0;
     } else if (dy < 0) p.fallDistance -= dy;
@@ -831,6 +846,7 @@ export class GameServer {
   private useBlock(p: ServerPlayer, x: number, y: number, z: number): boolean {
     const st = this.world.getState(x, y, z);
     if (blockNameOf(st).endsWith('_bed')) return this.sleep.useBed(p, x, y, z);
+    if (this.blocks.use(p, x, y, z)) return true;
     return false;
   }
 
@@ -1005,6 +1021,7 @@ export class GameServer {
   /** Minimal command handling (the full command system is Phase 9). */
   private runCommand(p: ServerPlayer, cmd: string): void {
     const a = cmd.trim().split(/\s+/);
+    if (this.blocks.command(a)) return;
     if (a[0] === 'time' && (a[1] === 'set' || a[1] === 'add')) {
       const names: Record<string, number> = { day: 1000, noon: 6000, night: 13000, midnight: 18000 };
       const v = names[a[2] ?? ''] ?? Number(a[2]);
@@ -1156,6 +1173,7 @@ export class GameServer {
     this.light.onBlockChanged(x, y, z, old, state);
     const key = chunkKey(x >> 4, z >> 4);
     for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
+    this.blocks.afterSetBlock(x, y, z, old, state);
   }
 
   // ---------------------------------------------------------------- ticking
@@ -1200,6 +1218,7 @@ export class GameServer {
       }
       p.vx = p.vy = p.vz = 0;
     }
+    this.blocks.tick();
     this.tickEntities();
     this.updateChunks();
     this.updateTracking();

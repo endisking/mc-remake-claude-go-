@@ -1,6 +1,7 @@
 /** Block survival rules (vanilla Block.canSurvive) for blocks that need support. */
 import { blockNameOf, getProp } from '../world/blockstate';
-import { FULL_COLLISION } from '../world/blockinfo';
+import { FULL_COLLISION, FLUID } from '../world/blockinfo';
+import { MATERIAL_SOLID } from '../world/blockprops';
 import type { StateGetter } from '../world/raycast';
 import { plantSurvives, DIRS, DX, DY, DZ } from './placement';
 
@@ -43,8 +44,31 @@ export function canSurvive(world: StateGetter, x: number, y: number, z: number, 
   if (name === 'snow') return sturdy(below) && belowName !== 'ice' && belowName !== 'packed_ice' && belowName !== 'barrier';
   if (name.endsWith('_carpet') || name === 'moss_carpet') return belowName !== 'air' && belowName !== 'cave_air' && belowName !== 'void_air';
   if (name.endsWith('_pressure_plate') || name.endsWith('rail') || name === 'redstone_wire' || name === 'repeater' || name === 'comparator') return sturdy(below) || isFenceLike(belowName);
-  if (name === 'sugar_cane') return belowName === 'sugar_cane' || ['grass_block', 'dirt', 'coarse_dirt', 'podzol', 'sand', 'red_sand'].includes(belowName);
-  if (name === 'cactus') return belowName === 'cactus' || belowName === 'sand' || belowName === 'red_sand';
+  if (name === 'sugar_cane') {
+    // SugarCaneBlock.canSurvive: on cane, or on dirt/sand next to water (or frosted ice)
+    if (belowName === 'sugar_cane') return true;
+    if (!['grass_block', 'dirt', 'coarse_dirt', 'podzol', 'rooted_dirt', 'moss_block', 'mycelium', 'sand', 'red_sand'].includes(belowName)) return false;
+    for (let d = 2; d < 6; d++) {
+      const n = world.getState(x + DX[d]!, y - 1, z + DZ[d]!);
+      if (FLUID[n] === 1 || blockNameOf(n) === 'frosted_ice') return true;
+    }
+    return false;
+  }
+  if (name === 'cactus') {
+    // CactusBlock.canSurvive: nothing solid (or lava) beside it, no liquid above
+    for (let d = 2; d < 6; d++) {
+      const n = world.getState(x + DX[d]!, y, z + DZ[d]!);
+      if (MATERIAL_SOLID[n] === 1 || FLUID[n] === 2) return false;
+    }
+    if (FLUID[world.getState(x, y + 1, z)] !== 0) return false;
+    return belowName === 'cactus' || belowName === 'sand' || belowName === 'red_sand';
+  }
+  if (name === 'melon_stem' || name === 'pumpkin_stem' || name === 'attached_melon_stem' || name === 'attached_pumpkin_stem') return belowName === 'farmland';
+  if (name.endsWith('_wall_sign')) {
+    const f = DIRS.indexOf(getProp(state, 'facing') as (typeof DIRS)[number]);
+    return MATERIAL_SOLID[world.getState(x - DX[f]!, y, z - DZ[f]!)] === 1;
+  }
+  if (name.endsWith('_sign')) return MATERIAL_SOLID[below] === 1;
   if (name === 'brown_mushroom' || name === 'red_mushroom') return sturdy(below);
   return true;
 }

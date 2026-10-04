@@ -12,7 +12,7 @@ import { getProp, blockNameOf, stateOf } from '@shared/world/blockstate';
 
 const WATER = stateOf('water');
 import { FLUID } from '@shared/world/blockinfo';
-import { isInteractive } from '@shared/world/blockprops';
+import { isInteractive, usesOnBlock } from '@shared/world/blockprops';
 import type { BlockHit } from '@shared/world/raycast';
 import type { C2S } from '@shared/protocol/packets';
 import type { ClientWorld } from './world/clientworld';
@@ -206,6 +206,12 @@ export class Interaction {
       const { x, y, z, face } = target;
       const hx = target.px - x, hy = target.py - y, hz = target.pz - z;
       if (!block) {
+        // tools and bone meal act on the clicked block (the server decides whether it did anything)
+        if (stack && usesOnBlock(itemNameOf(stack.id))) {
+          this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
+          this.host.swing(hand);
+          return;
+        }
         // an empty or non-placing main hand passes to the off hand (vanilla InteractionResult.PASS)
         if (hand === 0) continue;
         this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });

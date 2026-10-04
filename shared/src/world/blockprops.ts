@@ -20,7 +20,19 @@ export const isViewBlocking = isSuffocating;
  * sneaking with an item in hand). Grows as block interactions are implemented.
  */
 export function isInteractive(state: number): boolean {
+  if (isOpenableByHand(state)) return true;
   return blockNameOf(state).endsWith('_bed');
+}
+
+/** Doors, trapdoors and fence gates that open with a click (iron ones need redstone). */
+export function isOpenableByHand(state: number): boolean {
+  const n = blockNameOf(state);
+  return ((n.endsWith('_door') || n.endsWith('_trapdoor')) && !n.startsWith('iron_')) || n.endsWith('_fence_gate');
+}
+
+/** Items whose use acts on the clicked block (Item.useOn): tools that till/flatten/strip, bone meal. */
+export function usesOnBlock(itemName: string): boolean {
+  return itemName === 'bone_meal' || itemName.endsWith('_hoe') || itemName.endsWith('_shovel') || itemName.endsWith('_axe');
 }
 
 const MENU_PROVIDERS = new Set([

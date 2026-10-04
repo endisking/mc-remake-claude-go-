@@ -1,0 +1,756 @@
+/**
+ * Server-side block behaviours (vanilla 1.17.1 Block subclasses): scheduled block ticks, random
+ * ticks (ServerLevel.tickChunk), gravity blocks, grass/mycelium, leaf decay, farming (farmland,
+ * crops, stems, sugar cane, cactus, saplings), bone meal, hoe/shovel/axe use, and doors,
+ * trapdoors and fence gates opening by hand.
+ *
+ * The GameServer calls in through a handful of hooks: tick(), afterSetBlock(), use(),
+ * useItemOn() and fallOn().
+ */
+import type { GameServer } from './server';
+import type { ServerPlayer } from './player';
+import { ItemEntity } from './entity';
+import { FallingBlockEntity } from './fallingblock';
+import { TickScheduler } from './ticks';
+import { BLOCK_STATE_COUNT, BIOMES, ITEMS_BY_ID } from '@shared/data';
+import { blockIdOf, blockNameOf, getProp, withProp, defaultState, stateOf } from '@shared/world/blockstate';
+import { FLUID, FLUID_LEVEL, FULL_COLLISION, IS_AIR, LIGHT_FILTER } from '@shared/world/blockinfo';
+import { sectionIndex } from '@shared/world/chunk';
+import { skyDarkenLevel } from '@shared/world/daylight';
+import { canSurvive } from '@shared/game/support';
+import { isReplaceable, horizontalFacing, DIRS, DX, DY, DZ } from '@shared/game/placement';
+import { blockDrops, itemForBlock } from '@shared/game/loot';
+import {
+  CROP_MAX_AGE, growthSpeed, growthChanceDenominator, bonemealAgeIncrease, canBeGrass, canPropagateGrass, distanceAt, leavesDistance,
+  leavesDecaying, farmlandNearWater, maintainsFarmland, farmlandSurvives, isGravityBlock, fallingIsFree, touchesWater, concreteOf,
+  treeForSapling, MEGA_SAPLINGS, hasFlowersNear, megaOffset,
+} from '@shared/game/growth';
+import { GenLevel } from '@shared/worldgen/features/level';
+import { configuredFeature } from '@shared/worldgen/features/engine';
+import { stateProvider, type StateProvider } from '@shared/worldgen/features/providers';
+import { WORLDGEN } from '@shared/worldgen/features/data';
+import type { OverworldGenerator } from '@shared/worldgen/overworld/generator';
+import type { BlockWorld } from '@shared/world/world';
+import type { ItemStack } from '@shared/item/stack';
+
+// ------------------------------------------------------------------ static tables
+const STEM_FRUIT: Record<string, [string, string]> = { pumpkin_stem: ['pumpkin', 'attached_pumpkin_stem'], melon_stem: ['melon', 'attached_melon_stem'] };
+const ATTACHED_STEM: Record<string, [string, string]> = { attached_pumpkin_stem: ['pumpkin', 'pumpkin_stem'], attached_melon_stem: ['melon', 'melon_stem'] };
+const TALL_FLOWERS = new Set(['sunflower', 'lilac', 'rose_bush', 'peony']);
+const STRIPPABLE: Record<string, string> = {};
+for (const w of ['oak', 'spruce', 'birch', 'jungle', 'acacia', 'dark_oak']) {
+  STRIPPABLE[`${w}_log`] = `stripped_${w}_log`;
+  STRIPPABLE[`${w}_wood`] = `stripped_${w}_wood`;
+}
+for (const w of ['crimson', 'warped']) {
+  STRIPPABLE[`${w}_stem`] = `stripped_${w}_stem`;
+  STRIPPABLE[`${w}_hyphae`] = `stripped_${w}_hyphae`;
+}
+const FLATTENABLE = new Set(['grass_block', 'dirt', 'podzol', 'coarse_dirt', 'mycelium', 'rooted_dirt']);
+
+/** BlockState.isRandomlyTicking for the behaviours implemented here. */
+const RANDOM_TICKING = new Uint8Array(BLOCK_STATE_COUNT);
+for (let s = 0; s < BLOCK_STATE_COUNT; s++) {
+  const n = blockNameOf(s);
+  let t = false;
+  if (n === 'grass_block' || n === 'mycelium' || n === 'farmland' || n === 'sugar_cane' || n === 'cactus' || n in STEM_FRUIT) t = true;
+  else if (n.endsWith('_sapling')) t = true;
+  else if (n in CROP_MAX_AGE) t = (getProp(s, 'age') as number) < CROP_MAX_AGE[n]!;
+  else if (n.endsWith('_leaves')) t = leavesDecaying(s);
+  else if (n === 'snow' || n === 'ice') t = true;
+  RANDOM_TICKING[s] = t ? 1 : 0;
+}
+
+/** Feature-placing level that writes through the server (block updates, light, clients). */
+class ServerGenLevel extends GenLevel {
+  constructor(private readonly server: GameServer) {
+    super(server.world, (server.generator as unknown as OverworldGenerator), 0, 0);
+  }
+  override canWrite(): boolean {
+    return true;
+  }
+  override setState(x: number, y: number, z: number, state: number): boolean {
+    if (y < 0 || y >= 256) return false;
+    this.server.setBlock(x, y, z, state);
+    return true;
+  }
+}
+
+export class BlockBehaviors {
+  /** Scheduled block ticks (type = block id). */
+  readonly blockTicks = new TickScheduler<number>();
+  /** gamerule randomTickSpeed */
+  randomTickSpeed = 3;
+  /** ServerLevel.randValue (block position LCG) */
+  private randValue = (Math.random() * 0x100000000) | 0;
+  private hookDepth = 0;
+  private skyDarken = 0;
+  private readonly flowerProviders = new Map<number, StateProvider | null>();
+
+  constructor(private readonly s: GameServer) {}
+
+  private get w(): BlockWorld {
+    return this.s.world;
+  }
+
+  scheduleTick(x: number, y: number, z: number, state: number, delay: number, priority = 0): void {
+    this.blockTicks.schedule(this.s.gameTime, x, y, z, blockIdOf(state), delay, priority);
+  }
+
+  // ---------------------------------------------------------------- ticking
+  tick(): void {
+    const s = this.s;
+    this.skyDarken = skyDarkenLevel(s.dayTime, s.rainLevel, s.thunderLevel * s.rainLevel);
+    this.blockTicks.tick(s.gameTime, (x, z) => this.w.isLoaded(x, z) && s.isTickingChunk(x >> 4, z >> 4), (t) => {
+      const st = this.w.getState(t.x, t.y, t.z);
+      if (blockIdOf(st) === t.type) this.tickBlock(t.x, t.y, t.z, st);
+    });
+    this.randomTicks();
+  }
+
+  /** ServerLevel.tickChunk random ticks: randomTickSpeed positions per non-empty section. */
+  private randomTicks(): void {
+    const speed = this.randomTickSpeed;
+    if (speed <= 0) return;
+    const s = this.s;
+    const seen = new Set<number>();
+    const d = Math.min(s.simulationDistanceFor(), 8);
+    for (const p of s.players) {
+      if (p.gameMode === 3) continue;
+      const pcx = Math.floor(p.x) >> 4, pcz = Math.floor(p.z) >> 4;
+      for (let cx = pcx - d; cx <= pcx + d; cx++)
+        for (let cz = pcz - d; cz <= pcz + d; cz++) {
+          const key = (cx + 0x8000) * 0x10000 + (cz + 0x8000);
+          if (seen.has(key)) continue;
+          // ChunkMap.noPlayersCloseForSpawning: a non-spectator within 128 blocks of the chunk centre
+          const dx = cx * 16 + 8 - p.x, dz = cz * 16 + 8 - p.z;
+          if (dx * dx + dz * dz >= 16384) continue;
+          const c = this.w.getChunk(cx, cz);
+          if (!c) continue;
+          seen.add(key);
+          for (let sy = 0; sy < 16; sy++) {
+            const sec = c.sections[sy]!;
+            if (!sec.blocks || sec.nonAir === 0) continue;
+            for (let k = 0; k < speed; k++) {
+              this.randValue = (Math.imul(this.randValue, 3) + 1013904223) | 0;
+              const l = this.randValue >> 2;
+              const lx = l & 15, ly = (l >> 16) & 15, lz = (l >> 8) & 15;
+              const st = sec.getState(sectionIndex(lx, ly, lz));
+              if (RANDOM_TICKING[st]) this.randomTick(cx * 16 + lx, sy * 16 + ly, cz * 16 + lz, st);
+            }
+          }
+        }
+    }
+  }
+
+  /** Level.getRawBrightness(pos, 0): max(sky, block) ignoring time of day. */
+  private rawBrightness(x: number, y: number, z: number): number {
+    const l = this.w.getLight(x, y, z);
+    return Math.max(l >> 4, l & 15);
+  }
+
+  /** LevelReader.getMaxLocalRawBrightness: sky light reduced by the current sky darkening. */
+  private localBrightness(x: number, y: number, z: number): number {
+    const l = this.w.getLight(x, y, z);
+    return Math.max((l >> 4) - this.skyDarken, l & 15);
+  }
+
+  randomTick(x: number, y: number, z: number, st: number): void {
+    const n = blockNameOf(st);
+    const r = this.s.rand;
+    if (n === 'grass_block' || n === 'mycelium') return this.spreadGrass(x, y, z, n);
+    if (n.endsWith('_leaves')) {
+      if (leavesDecaying(st)) this.breakNaturally(x, y, z, false);
+      return;
+    }
+    if (n in CROP_MAX_AGE) {
+      if (n === 'beetroots' && r.nextInt(3) === 0) return;
+      return this.growCrop(x, y, z, st, n);
+    }
+    if (n.endsWith('_sapling')) {
+      if (this.localBrightness(x, y + 1, z) >= 9 && r.nextInt(7) === 0) this.advanceTree(x, y, z, st);
+      return;
+    }
+    if (n === 'sugar_cane' || n === 'cactus') return this.growColumn(x, y, z, st, n);
+    if (n in STEM_FRUIT) return this.growStem(x, y, z, st, n);
+    if (n === 'farmland') return this.farmlandTick(x, y, z, st);
+    if (n === 'snow') {
+      // SnowLayerBlock: melts under block light > 11
+      if ((this.w.getLight(x, y, z) & 15) > 11) this.breakNaturally(x, y, z, false);
+      return;
+    }
+    if (n === 'ice') {
+      // IceBlock.melt (overworld): becomes water
+      if ((this.w.getLight(x, y, z) & 15) > 11 - LIGHT_FILTER[st]!) {
+        this.s.setBlock(x, y, z, defaultState('water'));
+        this.s.updateNeighbors(x, y, z);
+      }
+    }
+  }
+
+  /** Block.tick for scheduled ticks. */
+  private tickBlock(x: number, y: number, z: number, st: number): void {
+    const n = blockNameOf(st);
+    if (isGravityBlock(n)) {
+      // FallingBlock.tick
+      if (fallingIsFree(this.w.getState(x, y - 1, z)) && y >= 0) this.startFalling(x, y, z, st);
+      return;
+    }
+    if (n.endsWith('_leaves')) {
+      const d = leavesDistance(this.w, x, y, z);
+      if (d !== getProp(st, 'distance')) this.s.setBlock(x, y, z, withProp(st, 'distance', d));
+      return;
+    }
+    if (n === 'farmland') {
+      if (!farmlandSurvives(this.w, x, y, z)) this.turnToDirt(x, y, z);
+      return;
+    }
+    if (n === 'cactus' || n === 'sugar_cane') {
+      if (!canSurvive(this.w, x, y, z, st)) this.breakNaturally(x, y, z, true);
+    }
+  }
+
+  /** Block.dropResources + removeBlock (no tool). */
+  breakNaturally(x: number, y: number, z: number, particles: boolean): void {
+    const st = this.w.getState(x, y, z);
+    this.s.setBlock(x, y, z, 0);
+    if (particles) for (const o of this.s.players) this.s.send(o, { t: 'levelEvent', event: 2001, x, y, z, data: st });
+    for (const it of blockDrops(st, { silkTouch: false, canHarvest: true, random: () => this.s.rand.nextFloat() })) this.s.popResource(x, y, z, it);
+    this.s.updateNeighbors(x, y, z);
+  }
+
+  // ---------------------------------------------------------------- block change hook
+  /** Called by GameServer.setBlock after every change: onPlace and neighbours' updateShape. */
+  afterSetBlock(x: number, y: number, z: number, old: number, st: number): void {
+    if (this.hookDepth > 16) return;
+    this.hookDepth++;
+    try {
+      const w = this.w;
+      const n = blockNameOf(st);
+      if (blockIdOf(old) !== blockIdOf(st)) {
+        // onPlace
+        if (isGravityBlock(n)) this.scheduleTick(x, y, z, st, 2);
+        if (n.endsWith('_concrete_powder') && touchesWater(w, x, y, z)) return this.s.setBlock(x, y, z, defaultState(concreteOf(n)));
+        if ((n === 'cactus' || n === 'sugar_cane') && !canSurvive(w, x, y, z, st)) this.scheduleTick(x, y, z, st, 1);
+      }
+      for (let d = 0; d < 6; d++) {
+        const nx = x + DX[d]!, ny = y + DY[d]!, nz = z + DZ[d]!;
+        if (ny < 0 || ny > 255) continue;
+        const ns = w.getState(nx, ny, nz);
+        if (IS_AIR[ns]) continue;
+        const nn = blockNameOf(ns);
+        if (isGravityBlock(nn)) {
+          if (nn.endsWith('_concrete_powder') && touchesWater(w, nx, ny, nz)) this.s.setBlock(nx, ny, nz, defaultState(concreteOf(nn)));
+          else this.scheduleTick(nx, ny, nz, ns, 2);
+        } else if (nn.endsWith('_leaves')) {
+          // LeavesBlock.updateShape
+          const i = distanceAt(st) + 1;
+          if (i !== 1 || getProp(ns, 'distance') !== i) this.scheduleTick(nx, ny, nz, ns, 1);
+        } else if (nn === 'farmland') {
+          if (d === 0 && !farmlandSurvives(w, nx, ny, nz)) this.scheduleTick(nx, ny, nz, ns, 1);
+        } else if (nn === 'cactus' || nn === 'sugar_cane') {
+          if (!canSurvive(w, nx, ny, nz, ns)) this.scheduleTick(nx, ny, nz, ns, 1);
+        } else if (nn in ATTACHED_STEM) {
+          // AttachedStemBlock.updateShape: losing its fruit turns it back into a grown stem
+          const f = DIRS.indexOf(getProp(ns, 'facing') as (typeof DIRS)[number]);
+          if (nx + DX[f]! === x && nz + DZ[f]! === z && ny === y && n !== ATTACHED_STEM[nn]![0]) {
+            this.s.setBlock(nx, ny, nz, stateOf(ATTACHED_STEM[nn]![1], { age: 7 }));
+          }
+        }
+      }
+    } finally {
+      this.hookDepth--;
+    }
+  }
+
+  // ---------------------------------------------------------------- falling blocks
+  private startFalling(x: number, y: number, z: number, st: number): void {
+    const e = new FallingBlockEntity(this.s.newEntityId(), st, (en, world, phase) => this.fallingTick(en, world, phase));
+    e.x = x + 0.5;
+    e.y = y;
+    e.z = z + 0.5;
+    const n = blockNameOf(st);
+    if (n.endsWith('anvil')) {
+      // AnvilBlock.falling: setHurtsEntities(2, 40)
+      e.hurtsEntities = true;
+      e.fallDamagePerDistance = 2;
+      e.fallDamageMax = 40;
+    }
+    this.s.spawnEntity(e);
+  }
+
+  /** FallingBlockEntity.tick server side: first-tick block removal, then landing. */
+  private fallingTick(e: FallingBlockEntity, world: BlockWorld, phase: 'start' | 'moved'): boolean {
+    const bx = Math.floor(e.x), by = Math.floor(e.y), bz = Math.floor(e.z);
+    if (phase === 'start') {
+      if (blockIdOf(world.getState(bx, by, bz)) === blockIdOf(e.state)) {
+        this.s.setBlock(bx, by, bz, 0);
+        this.s.updateNeighbors(bx, by, bz);
+        return true;
+      }
+      e.removed = true;
+      return false;
+    }
+    const name = blockNameOf(e.state);
+    const concrete = name.endsWith('_concrete_powder');
+    let px = bx, py = by, pz = bz;
+    let inWater = concrete && FLUID[world.getState(bx, by, bz)] === 1;
+    if (concrete && !inWater && e.vy * e.vy > 1) {
+      // fast powder: clip from the previous position for a water source (ClipContext.Fluid.SOURCE_ONLY)
+      for (let yy = Math.floor(e.yo); yy >= by; yy--) {
+        const ws = world.getState(bx, yy, bz);
+        if (FLUID[ws] === 1 && FLUID_LEVEL[ws] === 0) {
+          py = yy;
+          inWater = true;
+          break;
+        }
+      }
+    }
+    if (!e.onGround && !inWater) {
+      if ((e.time > 100 && (py < 1 || py > 256)) || e.time > 600) {
+        if (e.dropItem) this.spawnAtLocation(e);
+        e.removed = true;
+      }
+      return true;
+    }
+    if (e.onGround && e.hurtsEntities) this.anvilFallDamage(e);
+    const here = world.getState(px, py, pz);
+    e.vx *= 0.7;
+    e.vy *= -0.5;
+    e.vz *= 0.7;
+    if (blockNameOf(here) === 'moving_piston') return true;
+    e.removed = true;
+    if (!e.dropItem && e.state === 0) return true;
+    const canReplace = isReplaceable(here);
+    const freeBelow = fallingIsFree(world.getState(px, py - 1, pz)) && (!concrete || !inWater);
+    const survives = canSurvive(world, px, py, pz, e.state) && !freeBelow;
+    if (canReplace && survives) {
+      let st = e.state;
+      if (getProp(st, 'waterlogged') !== undefined && FLUID[here] === 1 && FLUID_LEVEL[here] === 0) st = withProp(st, 'waterlogged', true);
+      this.s.setBlock(px, py, pz, st);
+      this.s.updateNeighbors(px, py, pz);
+      // FallingBlock.onLand
+      if (concrete && (FLUID[here] === 1 || touchesWater(world, px, py, pz))) this.s.setBlock(px, py, pz, defaultState(concreteOf(name)));
+      if (name.endsWith('anvil')) this.s.playSound(null, 'block.anvil.land', 'block', px + 0.5, py + 0.5, pz + 0.5, 0.3, this.s.rand.nextFloat() * 0.1 + 0.9);
+    } else if (e.dropItem) this.spawnAtLocation(e);
+    return true;
+  }
+
+  /** FallingBlockEntity.causeFallDamage for anvils: hurt players inside, maybe chip the anvil. */
+  private anvilFallDamage(e: FallingBlockEntity): void {
+    const i = Math.ceil(e.fallDistance - 1);
+    if (i < 0) return;
+    const dmg = Math.min(Math.floor(i * e.fallDamagePerDistance), e.fallDamageMax);
+    const bb = e.bb();
+    for (const p of this.s.players) {
+      if (p.gameMode === 3 || p.living.dead) continue;
+      const pb = { minX: p.x - 0.3, maxX: p.x + 0.3, minY: p.y, maxY: p.y + 1.8, minZ: p.z - 0.3, maxZ: p.z + 0.3 };
+      if (pb.maxX > bb.minX && pb.minX < bb.maxX && pb.maxY > bb.minY && pb.minY < bb.maxY && pb.maxZ > bb.minZ && pb.minZ < bb.maxZ) {
+        this.s.survival.hurt(p, { id: 'anvil' }, dmg);
+      }
+    }
+    if (dmg > 0 && this.s.rand.nextFloat() < 0.05 + i * 0.05) {
+      // AnvilBlock.damage
+      const n = blockNameOf(e.state);
+      const next = n === 'anvil' ? 'chipped_anvil' : n === 'chipped_anvil' ? 'damaged_anvil' : null;
+      if (next) e.state = stateOf(next, { facing: getProp(e.state, 'facing') as string });
+      else {
+        e.dropItem = false;
+        e.state = 0;
+        this.s.playSound(null, 'block.anvil.destroy', 'block', e.x, e.y, e.z, 1, this.s.rand.nextFloat() * 0.1 + 0.9);
+      }
+    }
+  }
+
+  /** Entity.spawnAtLocation(block item) */
+  private spawnAtLocation(e: FallingBlockEntity): void {
+    const id = itemForBlock(e.state);
+    if (!id) return;
+    this.spawnItem(e.x, e.y, e.z, { id, count: 1, damage: 0 });
+  }
+
+  private spawnItem(x: number, y: number, z: number, stack: ItemStack): void {
+    const r = this.s.rand;
+    const it = new ItemEntity(this.s.newEntityId(), stack);
+    it.x = x;
+    it.y = y;
+    it.z = z;
+    it.vx = r.nextDouble() * 0.2 - 0.1;
+    it.vy = 0.2;
+    it.vz = r.nextDouble() * 0.2 - 0.1;
+    this.s.spawnEntity(it);
+  }
+
+  // ---------------------------------------------------------------- grass, crops, plants
+  /** SpreadingSnowyDirtBlock.randomTick */
+  private spreadGrass(x: number, y: number, z: number, name: string): void {
+    const w = this.w;
+    if (!canBeGrass(w, x, y, z)) {
+      this.s.setBlock(x, y, z, defaultState('dirt'));
+      return;
+    }
+    if (this.localBrightness(x, y + 1, z) < 9) return;
+    const r = this.s.rand;
+    const def = defaultState(name);
+    for (let i = 0; i < 4; i++) {
+      const px = x + r.nextInt(3) - 1, py = y + r.nextInt(5) - 3, pz = z + r.nextInt(3) - 1;
+      if (blockNameOf(w.getState(px, py, pz)) === 'dirt' && canPropagateGrass(w, px, py, pz)) {
+        this.s.setBlock(px, py, pz, withProp(def, 'snowy', blockNameOf(w.getState(px, py + 1, pz)) === 'snow'));
+      }
+    }
+  }
+
+  /** CropBlock.randomTick */
+  private growCrop(x: number, y: number, z: number, st: number, n: string): void {
+    if (this.rawBrightness(x, y, z) < 9) return;
+    const age = getProp(st, 'age') as number;
+    if (age >= CROP_MAX_AGE[n]!) return;
+    const f = growthSpeed(this.w, x, y, z, n);
+    if (this.s.rand.nextInt(growthChanceDenominator(f)) === 0) this.s.setBlock(x, y, z, withProp(st, 'age', age + 1));
+  }
+
+  /** SugarCaneBlock / CactusBlock.randomTick: age 0–15, up to 3 tall. */
+  private growColumn(x: number, y: number, z: number, st: number, n: string): void {
+    const w = this.w;
+    if (!IS_AIR[w.getState(x, y + 1, z)]) return;
+    let i = 1;
+    while (blockNameOf(w.getState(x, y - i, z)) === n) i++;
+    if (i >= 3) return;
+    const age = getProp(st, 'age') as number;
+    if (age === 15) {
+      this.s.setBlock(x, y + 1, z, defaultState(n));
+      this.s.setBlock(x, y, z, withProp(st, 'age', 0));
+      // the new piece checks its survival (CactusBlock: neighborChanged)
+      const top = w.getState(x, y + 1, z);
+      if (!canSurvive(w, x, y + 1, z, top)) this.breakNaturally(x, y + 1, z, true);
+    } else this.s.setBlock(x, y, z, withProp(st, 'age', age + 1));
+  }
+
+  /** StemBlock.randomTick: grow to age 7, then place the fruit on a random side. */
+  private growStem(x: number, y: number, z: number, st: number, n: string): void {
+    const w = this.w;
+    if (this.rawBrightness(x, y, z) < 9) return;
+    const r = this.s.rand;
+    const f = growthSpeed(w, x, y, z, n);
+    if (r.nextInt(growthChanceDenominator(f)) !== 0) return;
+    const age = getProp(st, 'age') as number;
+    if (age < 7) {
+      this.s.setBlock(x, y, z, withProp(st, 'age', age + 1));
+      return;
+    }
+    // Direction.Plane.HORIZONTAL.getRandomDirection: north, east, south, west
+    const dir = (['north', 'east', 'south', 'west'] as const)[r.nextInt(4)]!;
+    const d = DIRS.indexOf(dir);
+    const px = x + DX[d]!, pz = z + DZ[d]!;
+    const below = blockNameOf(w.getState(px, y - 1, pz));
+    const soil = below === 'farmland' || ['dirt', 'grass_block', 'podzol', 'coarse_dirt', 'mycelium', 'rooted_dirt', 'moss_block'].includes(below);
+    if (IS_AIR[w.getState(px, y, pz)] && soil) {
+      const [fruit, attached] = STEM_FRUIT[n]!;
+      this.s.setBlock(px, y, pz, defaultState(fruit));
+      this.s.setBlock(x, y, z, stateOf(attached, { facing: dir }));
+    }
+  }
+
+  /** FarmBlock.randomTick: moisture 7 near water or in rain, otherwise dries out, then reverts to dirt. */
+  private farmlandTick(x: number, y: number, z: number, st: number): void {
+    const m = getProp(st, 'moisture') as number;
+    const rain = this.s.isRaining() && this.w.getSkyLight(x, y + 1, z) === 15 && this.isRainingAt(x, y + 1, z);
+    if (!farmlandNearWater(this.w, x, y, z) && !rain) {
+      if (m > 0) this.s.setBlock(x, y, z, withProp(st, 'moisture', m - 1));
+      else if (!maintainsFarmland(this.w.getState(x, y + 1, z))) this.turnToDirt(x, y, z);
+    } else if (m < 7) this.s.setBlock(x, y, z, withProp(st, 'moisture', 7));
+  }
+
+  private isRainingAt(x: number, y: number, z: number): boolean {
+    const c = this.w.getChunk(x >> 4, z >> 4);
+    return !!c && c.motionBlocking[(z & 15) * 16 + (x & 15)]! <= y;
+  }
+
+  /** FarmBlock.turnToDirt (pushing standing players up onto the full block). */
+  turnToDirt(x: number, y: number, z: number): void {
+    this.s.setBlock(x, y, z, defaultState('dirt'));
+    this.s.updateNeighbors(x, y, z);
+    for (const p of this.s.players) {
+      if (Math.abs(p.x - (x + 0.5)) < 0.8 && Math.abs(p.z - (z + 0.5)) < 0.8 && p.y >= y + 0.5 && p.y < y + 1) {
+        p.y = y + 1;
+        this.s.send(p, { t: 'teleport', x: p.x, y: p.y, z: p.z, yaw: p.yaw, pitch: p.pitch });
+      }
+    }
+  }
+
+  /** Block.fallOn for the block under a landing player (farmland trampling). */
+  fallOn(p: ServerPlayer, fallDistance: number): void {
+    const x = Math.floor(p.x), y = Math.floor(p.y - 0.2), z = Math.floor(p.z);
+    const st = this.w.getState(x, y, z);
+    if (blockNameOf(st) !== 'farmland') return;
+    // FarmBlock.fallOn: random < distance − 0.5, living entity with width²·height > 0.512 (players 0.648)
+    if (this.s.rand.nextFloat() < fallDistance - 0.5) this.turnToDirt(x, y, z);
+  }
+
+  // ---------------------------------------------------------------- saplings and trees
+  /** SaplingBlock.advanceTree */
+  advanceTree(x: number, y: number, z: number, st: number): void {
+    if (getProp(st, 'stage') === 0) this.s.setBlock(x, y, z, withProp(st, 'stage', 1));
+    else this.growTree(x, y, z, st);
+  }
+
+  /** AbstractTreeGrower.growTree / AbstractMegaTreeGrower.growTree */
+  growTree(x: number, y: number, z: number, st: number): boolean {
+    const w = this.w;
+    const n = blockNameOf(st);
+    const r = this.s.rand;
+    if (MEGA_SAPLINGS.has(n)) {
+      const off = megaOffset(w, x, y, z, n);
+      if (off) {
+        const feat = treeForSapling(n, r, false, true);
+        if (!feat) return false;
+        const [i, j] = off;
+        const cells: [number, number][] = [[i, j], [i + 1, j], [i, j + 1], [i + 1, j + 1]];
+        const saved = cells.map(([a, b]) => w.getState(x + a, y, z + b));
+        for (const [a, b] of cells) this.s.setBlock(x + a, y, z + b, 0);
+        if (this.placeFeature(feat, x + i, y, z + j)) return true;
+        cells.forEach(([a, b], k) => this.s.setBlock(x + a, y, z + b, saved[k]!));
+        return false;
+      }
+    }
+    const feat = treeForSapling(n, r, hasFlowersNear(w, x, y, z), false);
+    if (!feat) return false;
+    this.s.setBlock(x, y, z, 0);
+    if (this.placeFeature(feat, x, y, z)) return true;
+    this.s.setBlock(x, y, z, st);
+    return false;
+  }
+
+  placeFeature(id: string, x: number, y: number, z: number): boolean {
+    return configuredFeature(id)(new ServerGenLevel(this.s), this.s.rand, x, y, z);
+  }
+
+  // ---------------------------------------------------------------- bone meal
+  /** BoneMealItem.growCrop for the clicked block; true when it was a valid target (item used). */
+  boneMeal(x: number, y: number, z: number): boolean {
+    const w = this.w;
+    const st = w.getState(x, y, z);
+    const n = blockNameOf(st);
+    const r = this.s.rand;
+    if (n in CROP_MAX_AGE) {
+      const age = getProp(st, 'age') as number, max = CROP_MAX_AGE[n]!;
+      if (age >= max) return false;
+      this.s.setBlock(x, y, z, withProp(st, 'age', Math.min(max, age + bonemealAgeIncrease(n, r))));
+    } else if (n in STEM_FRUIT) {
+      const age = getProp(st, 'age') as number;
+      if (age === 7) return false;
+      const na = Math.min(7, age + 2 + r.nextInt(4));
+      const ns = withProp(st, 'age', na);
+      this.s.setBlock(x, y, z, ns);
+      if (na === 7) this.growStem(x, y, z, ns, n);
+    } else if (n.endsWith('_sapling')) {
+      // SaplingBlock.isBonemealSuccess: 45%
+      if (r.nextFloat() < 0.45) this.advanceTree(x, y, z, st);
+    } else if (n === 'grass_block') {
+      if (!IS_AIR[w.getState(x, y + 1, z)]) return false;
+      this.boneMealGrass(x, y, z, st);
+    } else if (n === 'grass' || n === 'fern') {
+      // TallGrassBlock: grows into the double plant when there's room
+      const tall = defaultState(n === 'fern' ? 'large_fern' : 'tall_grass');
+      if (!IS_AIR[w.getState(x, y + 1, z)] || !canSurvive(w, x, y, z, withProp(tall, 'half', 'lower'))) return false;
+      this.placeDouble(x, y, z, tall);
+    } else if (TALL_FLOWERS.has(n)) {
+      // TallFlowerBlock: pops a copy of itself
+      this.s.popResource(x, y, z, { id: itemForBlock(st), count: 1, damage: 0 });
+    } else return false;
+    for (const o of this.s.players) this.s.send(o, { t: 'levelEvent', event: 1505, x, y, z, data: 0 });
+    return true;
+  }
+
+  private placeDouble(x: number, y: number, z: number, tall: number): void {
+    this.s.setBlock(x, y, z, withProp(tall, 'half', 'lower'));
+    this.s.setBlock(x, y + 1, z, withProp(tall, 'half', 'upper'));
+  }
+
+  /** GrassBlock.performBonemeal: 128 random walks scattering grass and the biome's flowers. */
+  private boneMealGrass(x: number, y: number, z: number, self: number): void {
+    const w = this.w;
+    const r = this.s.rand;
+    const grass = defaultState('grass');
+    const selfId = blockIdOf(self);
+    outer: for (let i = 0; i < 128; i++) {
+      let px = x, py = y + 1, pz = z;
+      for (let j = 0; j < i / 16; j++) {
+        px += r.nextInt(3) - 1;
+        py += Math.trunc(((r.nextInt(3) - 1) * r.nextInt(3)) / 2);
+        pz += r.nextInt(3) - 1;
+        if (blockIdOf(w.getState(px, py - 1, pz)) !== selfId || FULL_COLLISION[w.getState(px, py, pz)] === 1) continue outer;
+      }
+      const s = w.getState(px, py, pz);
+      if (blockNameOf(s) === 'grass' && r.nextInt(10) === 0) {
+        if (IS_AIR[w.getState(px, py + 1, pz)]) this.placeDouble(px, py, pz, defaultState('tall_grass'));
+      }
+      if (IS_AIR[s]) {
+        let place: number;
+        if (r.nextInt(8) === 0) {
+          const prov = this.flowerProvider(w.getBiome(px, py, pz));
+          if (!prov) continue;
+          place = prov(r, px, py, pz);
+        } else place = grass;
+        if (canSurvive(w, px, py, pz, place)) this.s.setBlock(px, py, pz, place);
+      }
+    }
+  }
+
+  /** BiomeGenerationSettings.getFlowerFeatures().get(0)'s state provider. */
+  private flowerProvider(biome: number): StateProvider | null {
+    if (this.flowerProviders.has(biome)) return this.flowerProviders.get(biome)!;
+    const name = BIOMES.find((b) => b.id === biome)?.name;
+    const bw = name ? WORLDGEN.biomes[name] : undefined;
+    let found: StateProvider | null = null;
+    type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const resolve = (f: J): J => (typeof f === 'string' ? WORLDGEN.configured_features[f.replace('minecraft:', '')] : f);
+    const search = (f: J): J => {
+      const j = resolve(f);
+      if (!j) return null;
+      if (j.type === 'minecraft:flower') return j;
+      const c = j.config ?? {};
+      for (const sub of [c.feature, c.default, c.feature_true, c.feature_false, ...(c.features ?? []).map((e: J) => e.feature ?? e)]) {
+        if (!sub) continue;
+        const hit = search(sub);
+        if (hit) return hit;
+      }
+      return null;
+    };
+    if (bw) {
+      for (const step of bw.features) {
+        for (const f of step) {
+          const hit = search(f);
+          if (hit) {
+            found = stateProvider(hit.config.state_provider);
+            break;
+          }
+        }
+        if (found) break;
+      }
+    }
+    this.flowerProviders.set(biome, found);
+    return found;
+  }
+
+  // ---------------------------------------------------------------- using items and blocks
+  /** Item.useOn for tools and bone meal; true when the item did something. */
+  useItemOn(p: ServerPlayer, slot: number, held: ItemStack, x: number, y: number, z: number, face: number): boolean {
+    const item = ITEMS_BY_ID[held.id]?.name ?? '';
+    const w = this.w;
+    const st = w.getState(x, y, z);
+    const n = blockNameOf(st);
+    const r = this.s.rand;
+    if (item === 'bone_meal') {
+      if (!this.boneMeal(x, y, z)) return false;
+      if (p.gameMode !== 1) this.shrink(p, slot, held);
+      return true;
+    }
+    if (item.endsWith('_hoe')) {
+      // HoeItem.TILLABLES
+      const airAbove = face !== 0 && IS_AIR[w.getState(x, y + 1, z)] === 1;
+      let to: number | null = null;
+      if ((n === 'grass_block' || n === 'dirt_path' || n === 'dirt') && airAbove) to = defaultState('farmland');
+      else if (n === 'coarse_dirt' && airAbove) to = defaultState('dirt');
+      else if (n === 'rooted_dirt') to = defaultState('dirt');
+      if (to === null) return false;
+      this.s.playSound(null, 'item.hoe.till', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+      this.s.setBlock(x, y, z, to);
+      this.s.updateNeighbors(x, y, z);
+      if (n === 'rooted_dirt') {
+        // popResourceFromFace
+        const ox = DX[face]!, oy = DY[face]!, oz = DZ[face]!;
+        this.spawnItem(x + 0.5 + (ox === 0 ? r.nextDouble() * 0.5 - 0.25 : ox * 0.625), y + 0.5 + (oy === 0 ? r.nextDouble() * 0.5 - 0.25 : oy * 0.625) - 0.125, z + 0.5 + (oz === 0 ? r.nextDouble() * 0.5 - 0.25 : oz * 0.625), { id: itemForBlock(defaultState('hanging_roots')), count: 1, damage: 0 });
+      }
+      this.hurtTool(p, slot, held);
+      return true;
+    }
+    if (item.endsWith('_shovel')) {
+      // ShovelItem: flatten to a path
+      if (face === 0 || !FLATTENABLE.has(n) || !IS_AIR[w.getState(x, y + 1, z)]) return false;
+      this.s.playSound(null, 'item.shovel.flatten', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+      this.s.setBlock(x, y, z, defaultState('dirt_path'));
+      this.s.updateNeighbors(x, y, z);
+      this.hurtTool(p, slot, held);
+      return true;
+    }
+    if (item.endsWith('_axe')) {
+      const to = STRIPPABLE[n];
+      if (!to) return false;
+      this.s.playSound(null, 'item.axe.strip', 'block', x + 0.5, y + 0.5, z + 0.5, 1, 1);
+      this.s.setBlock(x, y, z, stateOf(to, { axis: getProp(st, 'axis') as string }));
+      this.hurtTool(p, slot, held);
+      return true;
+    }
+    return false;
+  }
+
+  private shrink(p: ServerPlayer, slot: number, held: ItemStack): void {
+    held.count--;
+    if (held.count <= 0) p.inventory.set(slot, null);
+    this.s.syncSlot(p, slot);
+  }
+
+  /** ItemStack.hurtAndBreak(1): survival only. */
+  private hurtTool(p: ServerPlayer, slot: number, held: ItemStack): void {
+    if (p.gameMode === 1) return;
+    const max = ITEMS_BY_ID[held.id]?.maxDurability ?? 0;
+    if (max > 0) {
+      held.damage++;
+      if (held.damage >= max) {
+        p.inventory.set(slot, null);
+        this.s.playSound(null, 'entity.item.break', 'player', p.x, p.y, p.z, 0.8, 0.8 + this.s.rand.nextFloat() * 0.4);
+      }
+    }
+    this.s.syncSlot(p, slot);
+  }
+
+  /** BlockState.use for doors, trapdoors and fence gates; true when the click was consumed. */
+  use(p: ServerPlayer, x: number, y: number, z: number): boolean {
+    const w = this.w;
+    const st = w.getState(x, y, z);
+    const n = blockNameOf(st);
+    const r = this.s.rand;
+    if (n.endsWith('_door') && n !== 'iron_door') {
+      const open = !(getProp(st, 'open') as boolean);
+      this.s.setBlock(x, y, z, withProp(st, 'open', open));
+      const oy = getProp(st, 'half') === 'upper' ? y - 1 : y + 1;
+      const other = w.getState(x, oy, z);
+      if (blockNameOf(other) === n) this.s.setBlock(x, oy, z, withProp(other, 'open', open));
+      this.s.playSound(null, open ? 'block.wooden_door.open' : 'block.wooden_door.close', 'block', x + 0.5, y + 0.5, z + 0.5, 1, r.nextFloat() * 0.1 + 0.9);
+      return true;
+    }
+    if (n.endsWith('_trapdoor') && n !== 'iron_trapdoor') {
+      const open = !(getProp(st, 'open') as boolean);
+      this.s.setBlock(x, y, z, withProp(st, 'open', open));
+      this.s.playSound(null, open ? 'block.wooden_trapdoor.open' : 'block.wooden_trapdoor.close', 'block', x + 0.5, y + 0.5, z + 0.5, 1, r.nextFloat() * 0.1 + 0.9);
+      return true;
+    }
+    if (n.endsWith('_fence_gate')) {
+      let ns: number;
+      if (getProp(st, 'open') === true) ns = withProp(st, 'open', false);
+      else {
+        // FenceGateBlock.use: swing away from the player
+        const dir = horizontalFacing(p.yaw);
+        const opp = { north: 'south', south: 'north', east: 'west', west: 'east' } as Record<string, string>;
+        ns = st;
+        if (getProp(st, 'facing') === opp[dir]) ns = withProp(ns, 'facing', dir);
+        ns = withProp(ns, 'open', true);
+      }
+      this.s.setBlock(x, y, z, ns);
+      const open = getProp(ns, 'open') === true;
+      this.s.playSound(null, open ? 'block.fence_gate.open' : 'block.fence_gate.close', 'block', x + 0.5, y + 0.5, z + 0.5, 1, r.nextFloat() * 0.1 + 0.9);
+      return true;
+    }
+    return false;
+  }
+
+  /** /gamerule randomTickSpeed <n>; true when handled. */
+  command(args: string[]): boolean {
+    if (args[0] === 'gamerule' && args[1] === 'randomTickSpeed' && args[2] !== undefined && Number.isFinite(Number(args[2]))) {
+      this.randomTickSpeed = Math.max(0, Math.floor(Number(args[2])));
+      return true;
+    }
+    return false;
+  }
+}

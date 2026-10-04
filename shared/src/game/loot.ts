@@ -20,7 +20,27 @@ export interface LootContext {
   /** allowed to drop at all (correct tool for blocks that require one) */
   canHarvest: boolean;
   random: () => number;
+  /** Fortune level of the tool (0 = none) */
+  fortune?: number;
 }
+
+/** ApplyBonusCount.OreDrops: count × (max(0, nextInt(fortune + 2) − 1) + 1). */
+function oreDrops(c: LootContext, count: number): number {
+  const f = c.fortune ?? 0;
+  if (f <= 0) return count;
+  return count * (Math.max(0, Math.floor(c.random() * (f + 2)) - 1) + 1);
+}
+/** ApplyBonusCount.UniformBonusCount: count + nextInt(fortune × multiplier + 1). */
+function uniformBonus(c: LootContext, count: number, mult = 1): number {
+  const f = c.fortune ?? 0;
+  return f > 0 ? count + Math.floor(c.random() * (f * mult + 1)) : count;
+}
+/** BonusLevelTableCondition: chance by fortune level. */
+function tableBonus(c: LootContext, chances: number[]): boolean {
+  return c.random() < chances[Math.min(c.fortune ?? 0, chances.length - 1)]!;
+}
+const CROP_BONUS = (c: LootContext) => 3 + (c.fortune ?? 0);
+const stemSeeds = (s: number, c: LootContext, o: ItemStack[], seeds: string) => push(o, seeds, binomial(c.random, 3, ((getProp(s, 'age') as number) + 1) / 15));
 
 const ID = (n: string) => ITEMS_BY_NAME.get(n)?.id ?? 0;
 const range = (r: () => number, lo: number, hi: number) => lo + Math.floor(r() * (hi - lo + 1));
@@ -41,26 +61,41 @@ const SAPLING_OF: Record<string, string> = {
 };
 
 const RULES: Record<string, Rule> = {
-  gravel: (_s, c, o) => push(o, c.random() < 0.1 ? 'flint' : 'gravel', 1),
-  grass: (_s, c, o) => (c.shears ? push(o, 'grass', 1) : c.random() < 0.125 && push(o, 'wheat_seeds', 1)),
-  fern: (_s, c, o) => (c.shears ? push(o, 'fern', 1) : c.random() < 0.125 && push(o, 'wheat_seeds', 1)),
-  tall_grass: (s, c, o) => getProp(s, 'half') === 'lower' && (c.shears ? push(o, 'grass', 2) : c.random() < 0.125 && push(o, 'wheat_seeds', 1)),
-  large_fern: (s, c, o) => getProp(s, 'half') === 'lower' && (c.shears ? push(o, 'fern', 2) : c.random() < 0.125 && push(o, 'wheat_seeds', 1)),
+  gravel: (_s, c, o) => push(o, tableBonus(c, [0.1, 0.14285715, 0.25, 1]) ? 'flint' : 'gravel', 1),
+  grass: (_s, c, o) => (c.shears ? push(o, 'grass', 1) : c.random() < 0.125 && push(o, 'wheat_seeds', uniformBonus(c, 1, 2))),
+  fern: (_s, c, o) => (c.shears ? push(o, 'fern', 1) : c.random() < 0.125 && push(o, 'wheat_seeds', uniformBonus(c, 1, 2))),
+  tall_grass: (s, c, o) => getProp(s, 'half') === 'lower' && (c.shears ? push(o, 'grass', 2) : c.random() < 0.125 && push(o, 'wheat_seeds', uniformBonus(c, 1, 2))),
+  large_fern: (s, c, o) => getProp(s, 'half') === 'lower' && (c.shears ? push(o, 'fern', 2) : c.random() < 0.125 && push(o, 'wheat_seeds', uniformBonus(c, 1, 2))),
+  melon_stem: (s, c, o) => stemSeeds(s, c, o, 'melon_seeds'),
+  pumpkin_stem: (s, c, o) => stemSeeds(s, c, o, 'pumpkin_seeds'),
+  attached_melon_stem: (_s, c, o) => push(o, 'melon_seeds', binomial(c.random, 3, 0.53333336)),
+  attached_pumpkin_stem: (_s, c, o) => push(o, 'pumpkin_seeds', binomial(c.random, 3, 0.53333336)),
+  coal_ore: (_s, c, o) => push(o, 'coal', oreDrops(c, 1)),
+  deepslate_coal_ore: (_s, c, o) => push(o, 'coal', oreDrops(c, 1)),
+  iron_ore: (_s, c, o) => push(o, 'raw_iron', oreDrops(c, 1)),
+  deepslate_iron_ore: (_s, c, o) => push(o, 'raw_iron', oreDrops(c, 1)),
+  gold_ore: (_s, c, o) => push(o, 'raw_gold', oreDrops(c, 1)),
+  deepslate_gold_ore: (_s, c, o) => push(o, 'raw_gold', oreDrops(c, 1)),
+  diamond_ore: (_s, c, o) => push(o, 'diamond', oreDrops(c, 1)),
+  deepslate_diamond_ore: (_s, c, o) => push(o, 'diamond', oreDrops(c, 1)),
+  emerald_ore: (_s, c, o) => push(o, 'emerald', oreDrops(c, 1)),
+  deepslate_emerald_ore: (_s, c, o) => push(o, 'emerald', oreDrops(c, 1)),
+  nether_quartz_ore: (_s, c, o) => push(o, 'quartz', oreDrops(c, 1)),
   dead_bush: (_s, c, o) => (c.shears ? push(o, 'dead_bush', 1) : push(o, 'stick', range(c.random, 0, 2))),
   cobweb: (_s, c, o) => (c.shears ? push(o, 'cobweb', 1) : push(o, 'string', 1)),
   vine: (_s, c, o) => c.shears && push(o, 'vine', 1),
   glow_lichen: (_s, c, o) => c.shears && push(o, 'glow_lichen', 1),
   seagrass: (_s, c, o) => c.shears && push(o, 'seagrass', 1),
-  lapis_ore: (_s, c, o) => push(o, 'lapis_lazuli', range(c.random, 4, 9)),
-  deepslate_lapis_ore: (_s, c, o) => push(o, 'lapis_lazuli', range(c.random, 4, 9)),
-  redstone_ore: (_s, c, o) => push(o, 'redstone', range(c.random, 4, 5)),
-  deepslate_redstone_ore: (_s, c, o) => push(o, 'redstone', range(c.random, 4, 5)),
-  copper_ore: (_s, c, o) => push(o, 'raw_copper', range(c.random, 2, 3)),
-  deepslate_copper_ore: (_s, c, o) => push(o, 'raw_copper', range(c.random, 2, 3)),
-  nether_gold_ore: (_s, c, o) => push(o, 'gold_nugget', range(c.random, 2, 6)),
-  glowstone: (_s, c, o) => push(o, 'glowstone_dust', range(c.random, 2, 4)),
-  sea_lantern: (_s, c, o) => push(o, 'prismarine_crystals', range(c.random, 2, 3)),
-  melon: (_s, c, o) => push(o, 'melon_slice', range(c.random, 3, 7)),
+  lapis_ore: (_s, c, o) => push(o, 'lapis_lazuli', oreDrops(c, range(c.random, 4, 9))),
+  deepslate_lapis_ore: (_s, c, o) => push(o, 'lapis_lazuli', oreDrops(c, range(c.random, 4, 9))),
+  redstone_ore: (_s, c, o) => push(o, 'redstone', uniformBonus(c, range(c.random, 4, 5))),
+  deepslate_redstone_ore: (_s, c, o) => push(o, 'redstone', uniformBonus(c, range(c.random, 4, 5))),
+  copper_ore: (_s, c, o) => push(o, 'raw_copper', oreDrops(c, range(c.random, 2, 3))),
+  deepslate_copper_ore: (_s, c, o) => push(o, 'raw_copper', oreDrops(c, range(c.random, 2, 3))),
+  nether_gold_ore: (_s, c, o) => push(o, 'gold_nugget', oreDrops(c, range(c.random, 2, 6))),
+  glowstone: (_s, c, o) => push(o, 'glowstone_dust', Math.min(4, uniformBonus(c, range(c.random, 2, 4)))),
+  sea_lantern: (_s, c, o) => push(o, 'prismarine_crystals', Math.min(5, uniformBonus(c, range(c.random, 2, 3)))),
+  melon: (_s, c, o) => push(o, 'melon_slice', Math.min(9, uniformBonus(c, range(c.random, 3, 7)))),
   clay: (_s, _c, o) => push(o, 'clay_ball', 4),
   bookshelf: (_s, _c, o) => push(o, 'book', 3),
   snow_block: (_s, _c, o) => push(o, 'snowball', 4),
@@ -69,18 +104,19 @@ const RULES: Record<string, Rule> = {
   wheat: (s, c, o) => {
     const ripe = getProp(s, 'age') === 7;
     if (ripe) push(o, 'wheat', 1);
-    push(o, 'wheat_seeds', 1 + (ripe ? binomial(c.random, 3, 0.5714286) : 0));
+    push(o, 'wheat_seeds', 1 + (ripe ? binomial(c.random, CROP_BONUS(c), 0.5714286) : 0));
   },
-  carrots: (s, c, o) => push(o, 'carrot', 1 + (getProp(s, 'age') === 7 ? binomial(c.random, 3, 0.5714286) : 0)),
+  // carrots/potatoes: one from the first pool, 1 + binomial(3 + fortune, 0.5714286) more when ripe (2–5)
+  carrots: (s, c, o) => push(o, 'carrot', 1 + (getProp(s, 'age') === 7 ? 1 + binomial(c.random, CROP_BONUS(c), 0.5714286) : 0)),
   potatoes: (s, c, o) => {
     const ripe = getProp(s, 'age') === 7;
-    push(o, 'potato', 1 + (ripe ? binomial(c.random, 3, 0.5714286) : 0));
+    push(o, 'potato', 1 + (ripe ? 1 + binomial(c.random, CROP_BONUS(c), 0.5714286) : 0));
     if (ripe && c.random() < 0.02) push(o, 'poisonous_potato', 1);
   },
   beetroots: (s, c, o) => {
     const ripe = getProp(s, 'age') === 3;
     if (ripe) push(o, 'beetroot', 1);
-    push(o, 'beetroot_seeds', 1 + (ripe ? binomial(c.random, 3, 0.5714286) : 0));
+    push(o, 'beetroot_seeds', 1 + (ripe ? binomial(c.random, CROP_BONUS(c), 0.5714286) : 0));
   },
 };
 
@@ -94,10 +130,10 @@ export function blockDrops(state: number, ctx: LootContext): ItemStack[] {
     if (ctx.shears || ctx.silkTouch) return [{ id: ID(name), count: 1, damage: 0 }];
     const r = ctx.random;
     const sapling = SAPLING_OF[name];
-    const saplingChance = name === 'jungle_leaves' ? 0.025 : 0.05;
-    if (sapling && r() < saplingChance) push(out, sapling, 1);
-    if (r() < 0.02) push(out, 'stick', range(r, 1, 2));
-    if ((name === 'oak_leaves' || name === 'dark_oak_leaves') && r() < 0.005) push(out, 'apple', 1);
+    const saplingChances = name === 'jungle_leaves' ? [0.025, 0.027777778, 0.03125, 0.041666668, 0.1] : [0.05, 0.0625, 0.083333336, 0.1];
+    if (sapling && tableBonus(ctx, saplingChances)) push(out, sapling, 1);
+    if (tableBonus(ctx, [0.02, 0.022222223, 0.025, 0.033333335, 0.1])) push(out, 'stick', range(r, 1, 2));
+    if ((name === 'oak_leaves' || name === 'dark_oak_leaves') && tableBonus(ctx, [0.005, 0.0055555557, 0.00625, 0.008333334, 0.025])) push(out, 'apple', 1);
     return out;
   }
   if (!ctx.canHarvest) return out;

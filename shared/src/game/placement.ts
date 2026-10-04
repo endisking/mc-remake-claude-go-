@@ -7,6 +7,7 @@ import { BLOCKS_BY_NAME, BLOCKS } from '../data';
 import { STATE_TO_BLOCK, getProp, withProp, blockNameOf } from '../world/blockstate';
 import { FLUID, FLUID_LEVEL, FULL_COLLISION, IS_AIR } from '../world/blockinfo';
 import type { StateGetter } from '../world/raycast';
+import { leavesDistance, touchesWater, concreteOf } from './growth';
 
 export const DIRS = ['down', 'up', 'north', 'south', 'west', 'east'] as const;
 export type Dir = (typeof DIRS)[number];
@@ -143,6 +144,12 @@ export function updateShape(world: StateGetter, x: number, y: number, z: number,
     return withProp(state, 'up', up);
   }
   if (name.endsWith('_stairs')) return withProp(state, 'shape', stairShape(world, x, y, z, state));
+  if (FENCE_GATES.has(name)) {
+    // FenceGateBlock: lowered when a wall is on either side
+    const f = getProp(state, 'facing');
+    const sides = f === 'north' || f === 'south' ? [4, 5] : [2, 3];
+    return withProp(state, 'in_wall', sides.some((d) => WALLS.has(blockNameOf(nb(d)))));
+  }
   if (name === 'grass_block' || name === 'podzol' || name === 'mycelium') {
     const a = blockNameOf(nb(1));
     return withProp(state, 'snowy', a === 'snow_block' || a === 'snow' || a === 'powder_snow');
@@ -252,7 +259,27 @@ export function stateForPlacement(block: string, ctx: PlaceContext, existing: nu
   if (block.endsWith('_door')) {
     s = withProp(s, 'facing', playerFacing);
     s = withProp(s, 'half', 'lower');
+    return withProp(s, 'hinge', doorHinge(block, ctx, playerFacing));
+  }
+  if (block.endsWith('_sign')) {
+    // SignBlock / WallSignBlock.getStateForPlacement
+    if (face === 'up' || face === 'down') {
+      s = withProp(s, 'rotation', Math.floor(((180 + ctx.yaw) * 16) / 360 + 0.5) & 15);
+    } else {
+      const wall = BLOCKS_BY_NAME.get(block.replace('_sign', '_wall_sign'));
+      if (!wall) return null;
+      s = withProp(wall.defaultState, 'facing', face);
+    }
+    setWater();
     return s;
+  }
+  if (block.endsWith('_leaves')) {
+    // LeavesBlock.getStateForPlacement: player-placed leaves never decay
+    s = withProp(s, 'persistent', true);
+    return withProp(s, 'distance', leavesDistance(ctx.world, ctx.x, ctx.y, ctx.z));
+  }
+  if (block.endsWith('_concrete_powder') && (isWater(existing) || touchesWater(ctx.world, ctx.x, ctx.y, ctx.z))) {
+    return BLOCKS_BY_NAME.get(concreteOf(block))!.defaultState;
   }
   if (block.endsWith('_bed')) {
     // BedBlock.getStateForPlacement: the head goes one block further in the look direction
@@ -268,7 +295,7 @@ export function stateForPlacement(block: string, ctx: PlaceContext, existing: nu
     setWater();
     return updateShape(ctx.world, ctx.x, ctx.y, ctx.z, s);
   }
-  if (block.endsWith('_fence_gate')) return withProp(s, 'facing', playerFacing);
+  if (block.endsWith('_fence_gate')) return updateShape(ctx.world, ctx.x, ctx.y, ctx.z, withProp(s, 'facing', playerFacing));
   if (AXIS_BLOCKS(block)) {
     const axis = face === 'up' || face === 'down' ? 'y' : face === 'north' || face === 'south' ? 'z' : 'x';
     s = withProp(s, 'axis', axis);
@@ -333,3 +360,24 @@ export function isAirState(s: number): boolean {
 }
 
 export { STATE_TO_BLOCK };
+
+/** DoorBlock.getHinge: away from solid blocks and toward a neighbouring door, else by the click position. */
+function doorHinge(block: string, ctx: PlaceContext, dir: Dir): 'left' | 'right' {
+  const w = ctx.world;
+  const di = DIRS.indexOf(dir);
+  const ccwOf: Record<string, Dir> = { north: 'west', west: 'south', south: 'east', east: 'north' };
+  const cwOf: Record<string, Dir> = { north: 'east', east: 'south', south: 'west', west: 'north' };
+  const l = DIRS.indexOf(ccwOf[dir]!), r = DIRS.indexOf(cwOf[dir]!);
+  const at = (d: number, dy: number) => w.getState(ctx.x + DX[d]!, ctx.y + dy, ctx.z + DZ[d]!);
+  const full = (st: number) => (FULL_COLLISION[st] === 1 ? 1 : 0);
+  const i = -full(at(l, 0)) - full(at(l, 1)) + full(at(r, 0)) + full(at(r, 1));
+  const ls = at(l, 0), rs = at(r, 0);
+  const lDoor = blockNameOf(ls) === block && getProp(ls, 'half') === 'lower';
+  const rDoor = blockNameOf(rs) === block && getProp(rs, 'half') === 'lower';
+  if ((lDoor && !rDoor) || i > 0) return 'right';
+  if ((rDoor && !lDoor) || i < 0) return 'left';
+  const j = DX[di]!, k = DZ[di]!;
+  // click position relative to the door's block (the hit is on the clicked block, one step back along the face)
+  const d = ctx.hx - DX[ctx.face]!, e = ctx.hz - DZ[ctx.face]!;
+  return (j >= 0 || !(e < 0.5)) && (j <= 0 || !(e > 0.5)) && (k >= 0 || !(d > 0.5)) && (k <= 0 || !(d < 0.5)) ? 'left' : 'right';
+}
