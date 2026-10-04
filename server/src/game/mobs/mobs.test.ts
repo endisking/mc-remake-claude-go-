@@ -15,7 +15,7 @@ import { findPath, DEFAULT_MALUS, PathType, type PathMob } from './pathfinder';
 import { Mob } from './mob';
 import { Zombie, Creeper, Skeleton } from './monsters';
 import { Cow, Sheep, Chicken, Animal } from './animals';
-import { Arrow } from './arrow';
+import { Arrow } from '../arrow';
 import { bowPower } from './monsters';
 import { MOB_CAPS } from './manager';
 import { Slime, isSlimeChunk } from './slime';
@@ -260,7 +260,7 @@ describe('mobs on the server', { timeout: 60000 }, () => {
       for (const e of server.entities.values()) if (e instanceof Arrow && !arrow) arrow = e;
     }
     expect(arrow).not.toBeNull();
-    expect(arrow!.owner).toBe(s);
+    expect(arrow!.ownerId).toBe(s.id);
     expect(p.living.health).toBeLessThan(20);
   });
 
@@ -635,5 +635,25 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     const fish = server.mobs.spawn('salmon', 2.5, 64, 2.5)!;
     ticks(server, 330);
     expect(fish.health).toBeLessThan(3);
+  });
+
+  it("players' arrows hurt mobs (ArrowTarget) and credit the kill; creepers hurt mobs with their explosion", () => {
+    const { server, p } = setup();
+    const pig = server.mobs.spawn('pig', 6.5, 64, 0.5)!;
+    server.tick();
+    const a = new Arrow(server.newEntityId(), server.items.arrowHost, { id: ITEMS_BY_NAME.get('arrow')!.id, count: 1, damage: 0 });
+    a.ownerId = p.id;
+    a.x = p.x;
+    a.y = 64.5;
+    a.z = p.z;
+    a.shoot(1, 0.05, 0, 3, 0);
+    server.spawnEntity(a);
+    for (let i = 0; i < 20 && pig.health === 10; i++) server.tick();
+    expect(pig.health).toBeLessThan(10);
+    expect(pig.lastHurtByPlayer).toBe(p);
+    const cow = server.mobs.spawn('cow', 20.5, 64, 20.5)!;
+    const c = server.mobs.spawn('creeper', 21.5, 64, 20.5) as Creeper;
+    c.explodeCreeper();
+    expect(cow.health).toBeLessThan(10);
   });
 });

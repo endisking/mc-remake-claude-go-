@@ -17,6 +17,7 @@ import { Difficulty } from '@shared/game/food';
 import { fireStateAt } from './fire';
 import type { BlockWorld } from '@shared/world/world';
 import type { ItemStack } from '@shared/item/stack';
+import { Mob } from './mobs/mob';
 
 export type BlockInteraction = 'none' | 'break' | 'destroy';
 
@@ -153,7 +154,9 @@ export function explode(s: GameServer, x: number, y: number, z: number, radius: 
     if (s.difficulty === Difficulty.Peaceful) dmg = 0;
     else if (s.difficulty === Difficulty.Easy) dmg = Math.min(dmg / 2 + 1, dmg);
     else if (s.difficulty === Difficulty.Hard) dmg = (dmg * 3) / 2;
-    if (dmg > 0) s.survival.hurt(p, { id: 'explosion' }, dmg);
+    // a creeper's explosion is attributed to it ("blown up by Creeper")
+    const by = source instanceof Mob ? { name: s.mobs.displayName(source), player: false } : undefined;
+    if (dmg > 0) s.survival.hurt(p, { id: by ? 'explosion.player' : 'explosion', explosion: true, entity: by }, dmg);
     if (!(p.gameMode === 1 && p.flying)) {
       p.vx += dx * ad;
       p.vy += dy * ad;
@@ -174,6 +177,12 @@ export function explode(s: GameServer, x: number, y: number, z: number, radius: 
     const bb = e.bb();
     const ad = (1 - dist) * seenPercent(w, x, y, z, bb.minX, bb.minY, bb.minZ, bb.maxX, bb.maxY, bb.maxZ);
     const dmg = Math.trunc(((ad * ad + ad) / 2) * 7 * q + 1);
+    // mobs take the explosion damage (LivingEntity.hurt; their knockback below)
+    if (e instanceof Mob) {
+      if (e.dead) continue;
+      e.hurt({ id: source instanceof Mob ? 'explosion.player' : 'explosion', explosion: true }, dmg, source instanceof Mob ? source : null);
+      e.velocityDirty = true;
+    }
     // items and orbs have 5 health (nether stars survive)
     if ((e instanceof ItemEntity && ITEMS_BY_ID[e.stack.id]?.name !== 'nether_star') || e instanceof ExperienceOrb) {
       if (dmg >= 5) {
@@ -187,6 +196,8 @@ export function explode(s: GameServer, x: number, y: number, z: number, radius: 
   }
   // ---- finalizeExplosion
   s.playSound(null, 'entity.generic.explode', 'block', x, y, z, 4, (1 + (r.nextFloat() - r.nextFloat()) * 0.2) * 0.7);
+  // explosion particles for clients (vanilla ClientboundExplodePacket without the block list)
+  for (const o of s.players) if ((o.x - x) ** 2 + (o.z - z) ** 2 < (o.viewDistance * 16 + 16) ** 2) s.send(o, { t: 'explode', x, y, z, power: radius, destroy: mode !== 'none' });
   const list = [...toBlow.values()];
   if (mode !== 'none') {
     // Util.shuffle

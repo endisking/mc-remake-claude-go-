@@ -13,7 +13,7 @@
  * Spawning: `addEntity { id, type, x, y, z, vx, vy, vz, data }` where `type` is the minecraft-data
  *   1.17.1 entity name ("zombie", "skeleton", "creeper", "spider", "pig", "cow", "sheep",
  *   "chicken", "husk", "stray", "drowned", "enderman", "slime", "squid", "bat", "arrow").
- *   `data`: for arrows the shooter's entity id + 1 (0 = none, like vanilla); 0 for mobs.
+ *   `data`: for arrows the shooter's entity id (shared server/src/game/arrow.ts); 0 for mobs.
  *   Immediately after addEntity the server sends `mobData` (mobs only), `entityState` (fire
  *   flag) and `equipment` when the mob holds something (skeleton bow: mainHand = bow item id).
  * Movement: `entityMove { id, x, y, z, yaw, pitch, headYaw, onGround }` whenever position or

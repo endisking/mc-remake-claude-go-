@@ -367,6 +367,15 @@ export abstract class Mob extends ServerEntity {
     return true;
   }
 
+  /** ArrowTarget (server/src/game/arrow.ts): arrows shot by players (or other shooters) hit mobs. */
+  hurtByArrow(arrow: { x: number; y: number; z: number; ownerId: number }, damage: number): boolean {
+    if (this.dead) return false;
+    const owner: Target | null = this.s.players.find((p) => p.id === arrow.ownerId) ?? ((this.s.entities.get(arrow.ownerId) as Mob | undefined) ?? null);
+    const ownerName = owner ? (isMob(owner) ? this.s.mobs.displayName(owner) : owner.name) : null;
+    const src: DamageSource = { id: 'arrow', projectile: true, knockbackFrom: owner ?? arrow, entity: ownerName ? { name: ownerName, player: !!owner && !isMob(owner) } : undefined };
+    return this.hurt(src, damage, owner);
+  }
+
   protected isInvulnerableTo(_src: DamageSource): boolean {
     return false;
   }

@@ -27,7 +27,8 @@ import { DAMAGE, type DamageSource } from '../survival';
 import { Mob, isMob, targetEye, type Target, type MobCategory } from './mob';
 import { Zombie, Husk, Drowned, Skeleton, Stray, Creeper, Spider, Monster, ZombieVillager, CaveSpider } from './monsters';
 import { Pig, Cow, Sheep, Chicken, Animal, Mooshroom } from './animals';
-import { Arrow } from './arrow';
+import { Arrow, Pickup } from '../arrow';
+import { explode } from '../explosion';
 import { Slime, isSlimeChunk, moonBrightness } from './slime';
 import { Enderman } from './enderman';
 import { Bat, Squid, Cod, Salmon } from './ambient';
@@ -718,142 +719,30 @@ export class MobManager {
   /** AbstractSkeleton.performRangedAttack: arrow at the target's lower third, velocity 1.6, inaccuracy 14 − 4×difficulty. */
   shootArrow(m: Mob, t: Target, power: number, effect: string | null): Arrow {
     const s = this.s;
-    const a = new Arrow(s.allocateEntityId(), s, m);
+    const a = new Arrow(s.newEntityId(), s.items.arrowHost, { id: itemIdOf(effect ? 'tipped_arrow' : 'arrow'), count: 1, damage: 0 });
+    a.ownerId = m.id;
+    a.pickup = Pickup.Disallowed;
     a.x = m.x;
     a.y = m.y + m.eyeHeight - 0.1;
     a.z = m.z;
     // setEnchantmentEffectsFromEntity: base damage power×2 + gaussian×0.25 + difficulty×0.11
     a.baseDamage = power * 2 + m.rng.nextGaussian() * 0.25 + s.difficulty * 0.11;
-    a.effect = effect;
     const th = isMob(t) ? t.height : targetEye(t) / 0.9;
     const dx = t.x - m.x, dy = t.y + th / 3 - a.y, dz = t.z - m.z;
     const d3 = Math.hypot(dx, dz);
-    a.shoot(dx, dy + d3 * 0.2, dz, 1.6, 14 - s.difficulty * 4, m.rng);
+    a.shoot(dx, dy + d3 * 0.2, dz, 1.6, 14 - s.difficulty * 4);
     s.spawnEntity(a);
     return a;
   }
 
-  /** Explosion.explode + finalizeExplosion (vanilla ray-marched block destruction and entity exposure). */
-  explode(source: Mob | null, x: number, y: number, z: number, radius: number, destroy: boolean): void {
-    const s = this.s, w = s.world, r = s.rand;
-    const toBlow = new Map<number, [number, number, number]>();
-    for (let j = 0; j < 16; j++)
-      for (let k = 0; k < 16; k++)
-        for (let l = 0; l < 16; l++) {
-          if (!(j === 0 || j === 15 || k === 0 || k === 15 || l === 0 || l === 15)) continue;
-          let d0 = (j / 15) * 2 - 1, d1 = (k / 15) * 2 - 1, d2 = (l / 15) * 2 - 1;
-          const d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
-          d0 /= d3;
-          d1 /= d3;
-          d2 /= d3;
-          let f = radius * (0.7 + r.nextFloat() * 0.6);
-          let px = x, py = y, pz = z;
-          for (; f > 0; f -= 0.22500001) {
-            const bx = Math.floor(px), by = Math.floor(py), bz = Math.floor(pz);
-            if (by < 0 || by > 255) break;
-            const st = w.getState(bx, by, bz);
-            if (st !== 0 || FLUID[st]) {
-              const res = Math.max(blockOf(st).resistance, FLUID[st] ? 100 : 0);
-              f -= (res + 0.3) * 0.3;
-            }
-            if (f > 0 && st !== 0) toBlow.set((bx * 4096 + bz) * 512 + by, [bx, by, bz]);
-            px += d0 * 0.3;
-            py += d1 * 0.3;
-            pz += d2 * 0.3;
-          }
-        }
-    // entities
-    const f2 = radius * 2;
-    const hitEntity = (t: Target | ItemEntity | ExperienceOrb, eyeY: number, bb: AABB) => {
-      const dist = Math.sqrt((t.x - x) ** 2 + (t.y - y) ** 2 + (t.z - z) ** 2) / f2;
-      if (dist > 1) return;
-      let ex = t.x - x, ey = eyeY - y, ez = t.z - z;
-      const d13 = Math.sqrt(ex * ex + ey * ey + ez * ez);
-      if (d13 === 0) return;
-      ex /= d13;
-      ey /= d13;
-      ez /= d13;
-      const seen = this.seenPercent(x, y, z, bb);
-      const d10 = (1 - dist) * seen;
-      const dmg = Math.floor(((d10 * d10 + d10) / 2) * 7 * f2 + 1);
-      const src: DamageSource = { id: source ? 'explosion.player' : 'explosion', explosion: true, scalesWithDifficulty: true, entity: source ? { name: this.displayName(source), player: false } : undefined };
-      if (t instanceof ItemEntity || t instanceof ExperienceOrb) {
-        if (dmg >= 5) t.removed = true;
-        else {
-          t.vx += ex * d10;
-          t.vy += ey * d10;
-          t.vz += ez * d10;
-        }
-        return;
-      }
-      if (isMob(t)) {
-        if (t === source) return;
-        t.hurt(src, dmg, source);
-        t.vx += ex * d10;
-        t.vy += ey * d10;
-        t.vz += ez * d10;
-        t.velocityDirty = true;
-      } else {
-        const p = t as ServerPlayer;
-        if (p.gameMode === 3) return;
-        s.survival.hurt(p, src, dmg);
-        if (!(p.gameMode === 1 && p.flying)) {
-          p.vx += ex * d10;
-          p.vy += ey * d10;
-          p.vz += ez * d10;
-          p.knockbackDirty = true;
-        }
-      }
-    };
-    for (const p of s.players) if (!p.living.dead) hitEntity(p, p.y + targetEye(p), AABB.ofSize(p.x, p.y, p.z, 0.6, 1.8));
-    for (const e of [...s.entities.values()]) {
-      if (e.removed) continue;
-      if (Math.abs(e.x - x) > f2 + 1 || Math.abs(e.z - z) > f2 + 1 || Math.abs(e.y - y) > f2 + 1) continue;
-      if (e instanceof Mob) {
-        if (!e.dead) hitEntity(e, e.y + e.eyeHeight, e.bb());
-      } else if (e instanceof ItemEntity || e instanceof ExperienceOrb) hitEntity(e, e.y + e.height * 0.85, e.bb());
-    }
-    // finalizeExplosion: sound, particles, blocks (each drop survives with chance 1/radius)
-    s.playSound(null, 'entity.generic.explode', 'block', x, y, z, 4, (1 + (r.nextFloat() - r.nextFloat()) * 0.2) * 0.7);
-    for (const o of s.players) {
-      if ((o.x - x) ** 2 + (o.z - z) ** 2 < (o.viewDistance * 16) ** 2) s.send(o, { t: 'explode', x, y, z, power: radius, destroy });
-    }
-    if (!destroy) return;
-    const list = [...toBlow.values()];
-    for (let i = list.length - 1; i > 0; i--) {
-      const j = r.nextInt(i + 1);
-      [list[i], list[j]] = [list[j]!, list[i]!];
-    }
-    for (const [bx, by, bz] of list) {
-      const st = w.getState(bx, by, bz);
-      if (st === 0) continue;
-      const name = blockNameOf(st);
-      if (name === 'tnt') {
-        // primed TNT entities arrive with redstone; the block just goes
-      }
-      const drops = blockDrops(st, { silkTouch: false, canHarvest: true, random: () => r.nextFloat() });
-      s.setBlock(bx, by, bz, 0);
-      for (const it of drops) if (r.nextFloat() < 1 / radius) s.popResource(bx, by, bz, it);
-    }
-    for (const [bx, by, bz] of list) s.updateNeighbors(bx, by, bz);
+  mobById(id: number): Mob | null {
+    const e = this.s.entities.get(id);
+    return e instanceof Mob && !e.removed ? e : null;
   }
 
-  /** Explosion.getSeenPercent: fraction of sample points of the box with a clear line to the centre. */
-  seenPercent(x: number, y: number, z: number, bb: AABB): number {
-    const w = this.s.world;
-    const d0 = 1 / ((bb.maxX - bb.minX) * 2 + 1), d1 = 1 / ((bb.maxY - bb.minY) * 2 + 1), d2 = 1 / ((bb.maxZ - bb.minZ) * 2 + 1);
-    const d3 = (1 - Math.floor(1 / d0) * d0) / 2, d4 = (1 - Math.floor(1 / d2) * d2) / 2;
-    let i = 0, j = 0;
-    for (let k = 0; k <= 1; k += d0)
-      for (let l = 0; l <= 1; l += d1)
-        for (let m = 0; m <= 1; m += d2) {
-          const sx = bb.minX + (bb.maxX - bb.minX) * k + d3, sy = bb.minY + (bb.maxY - bb.minY) * l, sz = bb.minZ + (bb.maxZ - bb.minZ) * m + d4;
-          const dx = x - sx, dy = y - sy, dz = z - sz;
-          const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
-          if (len < 1e-9 || raycastBlocks(w, sx, sy, sz, dx, dy, dz, len, false, undefined, collisionBoxes) === null) i++;
-          j++;
-        }
-    return i / j;
+  /** Creeper explosions go through the shared Explosion (server/src/game/explosion.ts). */
+  explode(source: Mob | null, x: number, y: number, z: number, radius: number, destroy: boolean): void {
+    explode(this.s, x, y, z, radius, false, destroy ? 'destroy' : 'none', source);
   }
 
   // ------------------------------------------------------------------ network

@@ -37,7 +37,6 @@ import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
 import { MobManager, MOB_TYPES } from './mobs/manager';
 import { Mob } from './mobs/mob';
-import { Arrow as MobArrow } from './mobs/arrow';
 import type { MobSave } from './mobs/persist';
 // --- block behaviours (Phase 4: ticks, gravity, farming, doors)
 import { BlockBehaviors } from './blocks';
@@ -866,7 +865,7 @@ export class GameServer {
         const visible = dx * dx + dz * dz <= range * range;
         if (visible && !p.tracking.has(e.id)) {
           p.tracking.add(e.id);
-          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId : e instanceof MobArrow ? (e.owner ? e.owner.id + 1 : 0) : e instanceof Thrown ? e.item : 0 });
+          this.send(p, { t: 'addEntity', id: e.id, type: e.type, x: e.x, y: e.y, z: e.z, vx: e.vx, vy: e.vy, vz: e.vz, data: e instanceof ExperienceOrb ? e.value : e instanceof FallingBlockEntity ? e.state : e instanceof Arrow ? e.ownerId :  e instanceof Thrown ? e.item : 0 });
           if (e instanceof ItemEntity) this.send(p, { t: 'itemStack', id: e.id, item: e.stack.id, count: e.stack.count });
           this.mobs.onStartTracking(p, e);
         } else if (!visible && p.tracking.has(e.id)) {
