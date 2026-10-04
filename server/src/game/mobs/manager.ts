@@ -28,20 +28,24 @@ import { Mob, isMob, targetEye, type Target, type MobCategory } from './mob';
 import { Zombie, Husk, Drowned, Skeleton, Stray, Creeper, Spider } from './monsters';
 import { Pig, Cow, Sheep, Chicken, Animal } from './animals';
 import { Arrow } from './arrow';
+import { Slime, isSlimeChunk, moonBrightness } from './slime';
+import { Enderman } from './enderman';
+import { Bat, Squid } from './ambient';
+import { itemForBlock } from '@shared/game/loot';
 
 type MobCtor = new (id: number, s: GameServer) => Mob;
 export const MOB_TYPES: Record<string, MobCtor> = {
   zombie: Zombie, husk: Husk, drowned: Drowned, skeleton: Skeleton, stray: Stray, creeper: Creeper, spider: Spider,
-  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken,
+  pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid,
 };
 
 /** MobCategory caps (1.17.1) and the categories we spawn. */
 export const MOB_CAPS: Partial<Record<MobCategory, number>> = { monster: 70, creature: 10, ambient: 15, water_creature: 5 };
-const SPAWN_CATEGORIES: MobCategory[] = ['monster', 'creature'];
+const SPAWN_CATEGORIES: MobCategory[] = ['monster', 'creature', 'ambient', 'water_creature'];
 /** NaturalSpawner.MAGIC_NUMBER: 17×17 chunks */
 const MAGIC_NUMBER = 289;
 
-export type SpawnReason = 'natural' | 'chunk_generation' | 'breeding' | 'command' | 'spawner';
+export type SpawnReason = 'natural' | 'chunk_generation' | 'breeding' | 'command' | 'spawner' | 'conversion';
 
 export class MobManager {
   /** natural and chunk-generation spawning enabled for this server (null = from the server options) */
@@ -151,8 +155,8 @@ export class MobManager {
     m.yaw = m.rng.nextFloat() * 360;
     m.yHeadRot = m.yBodyRot = m.yaw;
     m.init();
-    if (reason !== 'breeding') {
-      if (m instanceof Zombie || m instanceof Skeleton) m.finalizeSpawn();
+    if (reason !== 'breeding' && reason !== 'conversion') {
+      if (m instanceof Zombie || m instanceof Skeleton || m instanceof Slime) m.finalizeSpawn();
       else if (m instanceof Animal) m.finalizeSpawn(groupIndex);
     }
     this.s.spawnEntity(m);
@@ -295,8 +299,25 @@ export class MobManager {
     if (proto instanceof Animal || type === 'pig' || type === 'cow' || type === 'sheep' || type === 'chicken') {
       return blockNameOf(w.getState(x, y - 1, z)) === 'grass_block' && Math.max(w.getSkyLight(x, y, z), w.getBlockLight(x, y, z)) > 8;
     }
+    if (type === 'bat') {
+      // Bat.checkBatSpawnRules: below sea level, dark (outside the Halloween season)
+      if (y >= 63) return false;
+      if (r.nextBoolean()) return false;
+      const darken = skyDarkenLevel(s.dayTime, s.rainLevel, s.thunderLevel * s.rainLevel);
+      return Math.max(w.getSkyLight(x, y, z) - darken, w.getBlockLight(x, y, z)) <= r.nextInt(4);
+    }
+    if (type === 'squid') return y > 45 && y < 63;
     // monsters
     if (s.difficulty === Difficulty.Peaceful) return false;
+    if (type === 'slime') {
+      // Slime.checkSlimeSpawnRules: swamps at night by moonlight, or slime chunks below y 40
+      const biome = BIOMES[w.getBiome(x, y, z)]?.name ?? '';
+      if ((biome === 'swamp' || biome === 'swamp_hills') && y > 50 && y < 70 && r.nextFloat() < 0.5 && r.nextFloat() < moonBrightness(s.dayTime)) {
+        const darken = skyDarkenLevel(s.dayTime, s.rainLevel, s.thunderLevel * s.rainLevel);
+        if (Math.max(w.getSkyLight(x, y, z) - darken, w.getBlockLight(x, y, z)) <= r.nextInt(8)) return true;
+      }
+      return r.nextInt(10) === 0 && isSlimeChunk(s.opts.seed, x >> 4, z >> 4) && y < 40;
+    }
     if (!this.isDarkEnoughToSpawn(x, y, z, r)) return false;
     if (type === 'husk' || type === 'stray') {
       const c = w.getChunk(x >> 4, z >> 4);
@@ -550,6 +571,7 @@ export class MobManager {
       const items = mobLoot(m.type, {
         looting, onFire: m.isOnFire(), killedByPlayer: byPlayer, random: () => s.rand.nextFloat(),
         sheared: m instanceof Sheep ? m.sheared : undefined, color: m instanceof Sheep ? DYE_COLORS[m.color] : undefined,
+        size: m instanceof Slime ? m.size : undefined,
       });
       for (const it of items) {
         // split into stacks
@@ -567,6 +589,10 @@ export class MobManager {
         const st = { ...eq };
         if (max > 0 && m.handDropChance <= 1) st.damage = max - m.rng.nextInt(1 + m.rng.nextInt(Math.max(max - 3, 1)));
         this.spawnAtLocation(m, st);
+      }
+      if (m instanceof Enderman && m.carried) {
+        const it = itemForBlock(m.carried);
+        if (it) this.spawnAtLocation(m, { id: it, count: 1, damage: 0 });
       }
       if (m instanceof Pig && m.saddled) this.spawnAtLocation(m, { id: itemIdOf('saddle'), count: 1, damage: 0 });
     }

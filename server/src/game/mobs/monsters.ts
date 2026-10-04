@@ -82,6 +82,10 @@ export class Zombie extends Monster {
   isSunSensitive(): boolean {
     return true;
   }
+  /** undead mobs breathe underwater (LivingEntity.canBreatheUnderwater) */
+  override canBreatheUnderwater(): boolean {
+    return true;
+  }
   override ambientSound(): string {
     return 'entity.zombie.ambient';
   }
@@ -102,8 +106,47 @@ export class Zombie extends Monster {
       this.mainHand = r.nextInt(3) === 0 ? stack('iron_sword') : stack('iron_shovel');
     }
   }
+  /** ticks with the eyes underwater, and the conversion countdown (−1 = not converting) */
+  inWaterTime = 0;
+  conversionTime = -1;
+  convertsInWater(): boolean {
+    return true;
+  }
+  convertsTo(): string {
+    return 'drowned';
+  }
+  protected conversionSound(): string {
+    return 'entity.zombie.converted_to_drowned';
+  }
+  override mobFlags(): number {
+    return super.mobFlags() | (this.conversionTime >= 0 ? MOB_FLAG.CONVERTING : 0);
+  }
   protected override customServerAiStep(): void {
+    // Zombie.tick: 30 s with the eyes underwater starts a 15 s conversion (zombie → drowned, husk → zombie)
+    if (this.conversionTime >= 0) {
+      if (--this.conversionTime < 0) this.convert();
+    } else if (this.convertsInWater()) {
+      if (this.eyeInWater) {
+        if (++this.inWaterTime >= 600) {
+          this.conversionTime = 300;
+          this.flagsDirty = true;
+        }
+      } else this.inWaterTime = -1;
+    }
     if (this.isSunSensitive() && this.isSunBurnTick()) this.setSecondsOnFire(8);
+  }
+  /** Mob.convertTo: same place, rotation, age, equipment and persistence; the old mob vanishes. */
+  private convert(): void {
+    const n = this.s.mobs.spawn(this.convertsTo(), this.x, this.y, this.z, 'conversion') as Zombie | null;
+    if (!n) return;
+    n.yaw = this.yaw;
+    n.yHeadRot = this.yHeadRot;
+    n.yBodyRot = this.yBodyRot;
+    n.baby = this.baby;
+    n.mainHand = this.mainHand;
+    n.persistenceRequired = this.persistenceRequired;
+    this.removed = true;
+    this.playSound(this.conversionSound(), 1, 1);
   }
   /** attack damage with the held weapon's modifier */
   attackDamageValue(): number {
@@ -118,6 +161,12 @@ export class Zombie extends Monster {
 
 export class Husk extends Zombie {
   override readonly type = 'husk';
+  override convertsTo(): string {
+    return 'zombie';
+  }
+  protected override conversionSound(): string {
+    return 'entity.husk.converted_to_zombie';
+  }
   override isSunSensitive(): boolean {
     return false;
   }
@@ -137,6 +186,9 @@ export class Husk extends Zombie {
 
 export class Drowned extends Zombie {
   override readonly type = 'drowned';
+  override convertsInWater(): boolean {
+    return false;
+  }
   override canBreatheUnderwater(): boolean {
     return true;
   }
@@ -254,6 +306,9 @@ export class Skeleton extends Monster {
     this.targetSelector.add(2, new NearestAttackableTargetGoal(this, true));
     this.bowGoal = new RangedBowAttackGoal(this, 1, 40, 15);
     this.meleeGoal = new MeleeAttackGoal(this, 1.2, false);
+  }
+  override canBreatheUnderwater(): boolean {
+    return true;
   }
   holdingBow(): boolean {
     return !!this.mainHand && itemName(this.mainHand.id) === 'bow';

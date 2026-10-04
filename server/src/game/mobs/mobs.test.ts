@@ -18,6 +18,9 @@ import { Cow, Sheep, Chicken, Animal } from './animals';
 import { Arrow } from './arrow';
 import { bowPower } from './monsters';
 import { MOB_CAPS } from './manager';
+import { Slime, isSlimeChunk } from './slime';
+import { Enderman } from './enderman';
+import { Bat, Squid } from './ambient';
 
 const GRASS = stateOf('grass_block', { snowy: false });
 const STONE = stateOf('stone');
@@ -386,5 +389,76 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     expect(ok).toBe(100);
     const m = server.mobs.spawn('zombie', 0.5, 64, 3.5) as Mob;
     expect(m.walkTargetValue(0, 30, 0)).toBeCloseTo(0.5, 6);
+  });
+
+  it('zombies convert to drowned after 30 s underwater plus 15 s; undead do not drown', () => {
+    const { server } = setup();
+    for (let x = 8; x <= 10; x++) for (let z = 8; z <= 10; z++) for (let y = 60; y <= 66; y++) server.world.setStateRaw(x, y, z, stateOf('water'));
+    const z = server.mobs.spawn('zombie', 9.5, 61, 9.5) as Zombie;
+    z.baby = false;
+    let drowned: Mob | undefined;
+    for (let i = 0; i < 1000 && !drowned; i++) {
+      server.tick();
+      drowned = server.mobs.mobs().find((m) => m.type === 'drowned');
+    }
+    expect(z.removed).toBe(true);
+    expect(drowned).toBeDefined();
+    expect(z.health).toBe(20);
+  });
+
+  it('slimes: sizes 1/2/4 with size² health, split on death into 2–4 smaller slimes; slime chunks', () => {
+    const { server, a } = setup();
+    const s = server.mobs.spawn('slime', 5.5, 64, 5.5) as Slime;
+    s.setSize(4);
+    expect(s.health).toBe(16);
+    expect(s.width).toBeCloseTo(2.04, 4);
+    expect(s.attackDamage).toBe(4);
+    give(a, 'diamond_sword');
+    s.health = 1;
+    s.hurt({ id: 'generic', bypassArmor: true }, 5);
+    ticks(server, 21);
+    const kids = server.mobs.mobs().filter((m) => m instanceof Slime && m !== s) as Slime[];
+    expect(kids.length).toBeGreaterThanOrEqual(2);
+    expect(kids.length).toBeLessThanOrEqual(4);
+    expect(kids.every((k) => k.size === 2 && k.health === 4)).toBe(true);
+    let n = 0;
+    for (let x = 0; x < 100; x++) for (let z = 0; z < 100; z++) if (isSlimeChunk(12345n, x, z)) n++;
+    expect(n / 10000).toBeGreaterThan(0.07);
+    expect(n / 10000).toBeLessThan(0.13);
+  });
+
+  it('endermen: provoked by being looked at, immune to arrows (teleport), hurt by water', () => {
+    const { server, a, p } = setup({ dayTime: 18000 });
+    const e = server.mobs.spawn('enderman', 0.5, 64, 6.5) as Enderman;
+    e.yaw = 180;
+    // look straight at its eyes: yaw 0 faces +Z
+    const eye = e.y + e.eyeHeight, dy = eye - (p.y + 1.62);
+    a.send({ t: 'move', x: p.x, y: p.y, z: p.z, yaw: 0, pitch: -(Math.atan2(dy, 6) * 180) / Math.PI, onGround: true });
+    for (let i = 0; i < 40 && !e.target; i++) server.tick();
+    expect(e.target).toBe(p);
+    expect(e.mobFlags() & MOB_FLAG.AGGRESSIVE).toBeTruthy();
+    const hp = e.health;
+    expect(e.hurt({ id: 'arrow', projectile: true }, 5)).toBe(false);
+    expect(e.health).toBe(hp);
+    const e2 = server.mobs.spawn('enderman', 20.5, 64, 20.5) as Enderman;
+    server.world.setStateRaw(20, 64, 20, stateOf('water'));
+    server.tick();
+    expect(e2.health).toBeLessThan(40);
+  });
+
+  it('bats hang under ceilings and fly off when a player comes near; squid swim and suffocate on land', () => {
+    const { server, a } = setup();
+    for (let x = 9; x <= 11; x++) for (let z = 9; z <= 11; z++) server.world.setStateRaw(x, 66, z, STONE);
+    const bat = server.mobs.spawn('bat', 10.5, 65.1, 10.5) as Bat;
+    server.tick();
+    expect(bat.resting).toBe(true);
+    a.send({ t: 'chat', message: '/tp 10.5 64 12.5' });
+    server.tick();
+    expect(bat.resting).toBe(false);
+    const sq = server.mobs.spawn('squid', 20.5, 64, 20.5) as Squid;
+    ticks(server, 300);
+    expect(sq.health).toBe(10);
+    ticks(server, 25);
+    expect(sq.health).toBeLessThan(10);
   });
 });
