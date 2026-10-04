@@ -331,35 +331,35 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Acacia tree <!--p3:acacia_tree-->
 - [ ] Dark oak tree <!--p3:dark_oak_tree-->
 - [ ] Swamp oak tree (with vines) <!--p3:swamp_oak_tree_with_vines-->
-- [ ] Huge red mushroom <!--p3:huge_red_mushroom-->
-- [ ] Huge brown mushroom <!--p3:huge_brown_mushroom-->
+- [x] Huge red mushroom <!--p3:huge_red_mushroom-->
+- [x] Huge brown mushroom <!--p3:huge_brown_mushroom-->
 - [ ] Azalea tree (bone meal only in 1.17.1) <!--p3:azalea_tree_bone_meal_only_in_1_17_1-->
 - [ ] Bee nests on trees <!--p3:bee_nests_on_trees-->
 - [ ] Cocoa pods <!--p3:cocoa_pods-->
-- [ ] Vines <!--p3:vines-->
-- [ ] Grass and ferns <!--p3:grass_and_ferns-->
-- [ ] Tall grass and large ferns <!--p3:tall_grass_and_large_ferns-->
-- [ ] Flowers by biome <!--p3:flowers_by_biome-->
-- [ ] Flower forest flowers <!--p3:flower_forest_flowers-->
-- [ ] Sunflower plains <!--p3:sunflower_plains-->
-- [ ] Sugar cane <!--p3:sugar_cane-->
-- [ ] Cacti <!--p3:cacti-->
-- [ ] Pumpkins <!--p3:pumpkins-->
-- [ ] Melons <!--p3:melons-->
-- [ ] Sweet berry bushes <!--p3:sweet_berry_bushes-->
-- [ ] Lily pads <!--p3:lily_pads-->
-- [ ] Dead bushes <!--p3:dead_bushes-->
-- [ ] Mushrooms <!--p3:mushrooms-->
-- [ ] Bamboo and podzol <!--p3:bamboo_and_podzol-->
-- [ ] Kelp <!--p3:kelp-->
-- [ ] Seagrass <!--p3:seagrass-->
-- [ ] Sea pickles <!--p3:sea_pickles-->
-- [ ] Coral reefs <!--p3:coral_reefs-->
-- [ ] Icebergs <!--p3:icebergs-->
-- [ ] Blue ice <!--p3:blue_ice-->
-- [ ] Ice spikes <!--p3:ice_spikes-->
-- [ ] Desert wells <!--p3:desert_wells-->
-- [ ] Boulders (mossy cobblestone) <!--p3:boulders_mossy_cobblestone-->
+- [x] Vines <!--p3:vines-->
+- [x] Grass and ferns <!--p3:grass_and_ferns-->
+- [x] Tall grass and large ferns <!--p3:tall_grass_and_large_ferns-->
+- [x] Flowers by biome <!--p3:flowers_by_biome-->
+- [x] Flower forest flowers <!--p3:flower_forest_flowers-->
+- [x] Sunflower plains <!--p3:sunflower_plains-->
+- [x] Sugar cane <!--p3:sugar_cane-->
+- [x] Cacti <!--p3:cacti-->
+- [x] Pumpkins <!--p3:pumpkins-->
+- [x] Melons <!--p3:melons-->
+- [x] Sweet berry bushes <!--p3:sweet_berry_bushes-->
+- [x] Lily pads <!--p3:lily_pads-->
+- [x] Dead bushes <!--p3:dead_bushes-->
+- [x] Mushrooms <!--p3:mushrooms-->
+- [x] Bamboo and podzol <!--p3:bamboo_and_podzol-->
+- [x] Kelp <!--p3:kelp-->
+- [x] Seagrass <!--p3:seagrass-->
+- [x] Sea pickles <!--p3:sea_pickles-->
+- [x] Coral reefs <!--p3:coral_reefs-->
+- [x] Icebergs <!--p3:icebergs-->
+- [x] Blue ice <!--p3:blue_ice-->
+- [x] Ice spikes <!--p3:ice_spikes-->
+- [x] Desert wells <!--p3:desert_wells-->
+- [x] Boulders (mossy cobblestone) <!--p3:boulders_mossy_cobblestone-->
 - [x] Pointed dripstone in caves <!--p3:pointed_dripstone_in_caves-->
 
 ### Overworld structures
