@@ -83,6 +83,16 @@ const S2C_SCHEMA = {
   playerInfo: [['action', 'u8'], ['id', 'i32'], ['name', 'str'], ['skin', 'str'], ['gameMode', 'u8']],
   /** Spectate through another entity's eyes, or back to your own (vanilla SetCamera). */
   setCamera: [['id', 'i32']],
+  /** Status effect added/updated on an entity (vanilla UpdateMobEffect); flags 1 ambient, 2 visible, 4 icon. */
+  mobEffect: [['id', 'i32'], ['effect', 'u8'], ['amplifier', 'u8'], ['duration', 'i32'], ['flags', 'u8']],
+  /** Status effect removed (vanilla RemoveMobEffect). */
+  removeMobEffect: [['id', 'i32'], ['effect', 'u8']],
+  /** Absorption hearts of the receiving player (vanilla DATA_PLAYER_ABSORPTION_ID). */
+  absorption: [['amount', 'f32']],
+  /** Armour another player wears (vanilla SetEquipment armour slots; item ids, 0 = empty). */
+  armorEquipment: [['id', 'i32'], ['feet', 'i16'], ['legs', 'i16'], ['chest', 'i16'], ['head', 'i16']],
+  /** A living entity starts/stops using an item (vanilla DATA_LIVING_ENTITY_FLAGS: eating, drinking, drawing a bow). */
+  livingUse: [['id', 'i32'], ['using', 'bool'], ['hand', 'u8'], ['item', 'i16']],
 } as const satisfies Schema;
 
 // ------------------------------------------------------------------ client → server
@@ -116,6 +126,10 @@ const C2S_SCHEMA = {
   respawn: [],
   /** Spectator menu "Teleport to Player" (vanilla TeleportToEntity). */
   spectate: [['target', 'i32']],
+  /** Right click with an item in the air, or after a block interaction passed (vanilla UseItem). */
+  useItem: [['hand', 'u8']],
+  /** Use key released while using an item: shoot the bow (vanilla PlayerAction RELEASE_USE_ITEM). */
+  releaseUseItem: [],
 } as const satisfies Schema;
 
 export type S2C = PacketsOf<typeof S2C_SCHEMA>;

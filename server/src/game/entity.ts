@@ -60,12 +60,22 @@ export class ItemEntity extends ServerEntity {
   readonly height = 0.25;
   readonly trackRange = 96;
   pickupDelay = 10;
+  /** position at the start of the tick (merge timing) */
+  prevX = 0;
+  prevY = 0;
+  prevZ = 0;
+  /** ItemEntity.health (fire, lava, cactus) and remaining burn ticks — see ItemUse.itemHazards */
+  health = 5;
+  fireTicks = 0;
   /** owner-specific pickup restriction not needed yet */
   constructor(id: number, public stack: ItemStack) {
     super(id);
   }
 
   tick(world: BlockWorld): void {
+    this.prevX = this.x;
+    this.prevY = this.y;
+    this.prevZ = this.z;
     this.age++;
     if (this.pickupDelay > 0 && this.pickupDelay !== 32767) this.pickupDelay--;
     const inWater = FLUID[world.getState(Math.floor(this.x), Math.floor(this.y + 0.1), Math.floor(this.z))] === 1;

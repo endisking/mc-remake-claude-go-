@@ -170,7 +170,7 @@ describe('bow', () => {
 });
 
 describe('effects', () => {
-  function target(health = 10): EffectTarget & { magic: number; ex: number } {
+  function target(health = 10): EffectTarget & { health: number; magic: number; ex: number } {
     return {
       health, maxHealth: 20, absorption: 0, magic: 0, ex: 0,
       heal(a) { this.health = Math.min(20, this.health + a); },
