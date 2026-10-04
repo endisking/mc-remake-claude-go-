@@ -72,6 +72,8 @@ const SHOTS: Record<string, Shot> = {
   rabbit: { cam: 'x=24.2&y=200&z=2.5&lookat=24.2,200.2,4.5&fov=60', mobs: row(['rabbit', 'rabbit', 'rabbit'], { yaw: 120 }).map((m, i) => (i === 1 ? { ...m, data: { baby: 1 } } : i === 2 ? { ...m, walk: true } : m)), wait: 900 },
   k_front: { cam: NEAR, mobs: row(['fox', 'fox', 'fox'], { yaw: 140 }).map((m, i) => (i === 1 ? { ...m, walk: true, yaw: 110 } : i === 2 ? { ...m, data: { baby: 1 } } : m)), wait: 900 },
   chick: { cam: 'x=24.2&y=200&z=3&lookat=24.2,200.3,4.5&fov=60', mobs: row(['chicken', 'chicken'], { yaw: 120 }) },
+  nether: { cam: FAR, mobs: row(['blaze', 'magma_cube', 'piglin', 'zombified_piglin', 'piglin_brute', 'blaze'], { yaw: 160 }).map((m, i) => (i === 1 ? { ...m, data: { size: 2 } } : i === 5 ? { ...m, walk: true, yaw: 110 } : m)), wait: 900 },
+  ghast: { cam: 'x=24.2&y=200&z=-8&lookat=24.2,203,4.5&fov=70', mobs: [{ type: 'ghast', x: 20.5, z: 4.5, yaw: 180 }, { type: 'ghast', x: 28.5, z: 4.5, yaw: 180, data: { aggressive: 1 } }] },
   night: { cam: NEAR + '&time=18000', mobs: row(['spider', 'enderman', 'zombie', 'cave_spider']) },
 };
 

@@ -8,6 +8,7 @@
  */
 import { emitBox, FLOATS_PER_VERTEX, type ModelBox } from './model';
 import { sheepColor, type ClientMob } from '../../world/mobs';
+import { JavaRandom } from '@shared/util/random';
 
 const PI = Math.PI;
 
@@ -712,6 +713,58 @@ export function foxMesh(): VPart[] {
   ];
 }
 
+/** BlazeModel.createBodyLayer: head and twelve rods (positioned by the animation). */
+export function blazeMesh(): VPart[] {
+  const parts: VPart[] = [{ name: 'head', pivot: [0, 0, 0], boxes: [b(0, 0, -4, -4, -4, 8, 8, 8)] }];
+  for (let i = 0; i < 12; i++) parts.push({ name: `part${i}`, pivot: [0, 0, 0], boxes: [b(0, 16, 0, 0, 0, 2, 8, 2)] });
+  return parts;
+}
+
+/** MagmaCubeModel.createBodyLayer: eight stacked slices around a core. */
+export function magmaCubeMesh(): VPart[] {
+  const parts: VPart[] = [];
+  for (let i = 0; i < 8; i++) {
+    let u = 0, v = i;
+    if (i === 2) [u, v] = [24, 10];
+    else if (i === 3) [u, v] = [24, 19];
+    parts.push({ name: `cube${i}`, pivot: [0, 0, 0], boxes: [b(u, v, -4, 16 + i, -4, 8, 1, 8)] });
+  }
+  parts.push({ name: 'inside_cube', pivot: [0, 0, 0], boxes: [b(0, 16, -2, 18, -2, 4, 4, 4)] });
+  return parts;
+}
+
+/** GhastModel.createBodyLayer: a big cube with nine tentacles of seeded lengths. */
+export function ghastMesh(): VPart[] {
+  const parts: VPart[] = [{ name: 'body', pivot: [0, 17.6, 0], boxes: [b(0, 0, -8, -8, -8, 16, 16, 16)] }];
+  const r = new JavaRandom(1660n);
+  for (let i = 0; i < 9; i++) {
+    const f = (((i % 3) - (Math.floor(i / 3) % 2) * 0.5 + 0.25) / 2 * 2 - 1) * 5;
+    const f1 = (Math.floor(i / 3) / 2 * 2 - 1) * 5;
+    const len = r.nextInt(7) + 8;
+    parts.push({ name: `tentacle${i}`, pivot: [f, 24.6, f1], boxes: [b(0, 0, -1, 0, -1, 2, len, 2)] });
+  }
+  return parts;
+}
+
+/** PiglinModel: the player body with a wide snouted head and floppy ears (64×64). */
+export function piglinMesh(): VPart[] {
+  const m = humanoidMesh(0, 0, true);
+  const head = m.find((p) => p.name === 'head')!;
+  head.boxes = [b(0, 0, -5, -8, -4, 10, 8, 8), b(31, 1, -2, -4, -5, 4, 4, 1), b(2, 4, 2, -2, -5, 1, 2, 1), b(2, 0, -3, -2, -5, 1, 2, 1)];
+  head.children = [
+    { name: 'left_ear', pivot: [4.5, -6, 0], rot: [0, 0, -PI / 6], boxes: [b(51, 6, 0, 0, -2, 1, 5, 4)] },
+    { name: 'right_ear', pivot: [-4.5, -6, 0], rot: [0, 0, PI / 6], boxes: [b(39, 6, -1, 0, -2, 1, 5, 4)] },
+  ];
+  m.find((p) => p.name === 'hat')!.boxes = [];
+  // the player's outer layers: jacket, sleeves, trouser legs
+  m.find((p) => p.name === 'body')!.boxes.push(b(16, 32, -4, 0, -2, 8, 12, 4, 0.25));
+  m.find((p) => p.name === 'right_arm')!.boxes.push(b(40, 32, -3, -2, -2, 4, 12, 4, 0.25));
+  m.find((p) => p.name === 'left_arm')!.boxes.push(b(48, 48, -1, -2, -2, 4, 12, 4, 0.25));
+  m.find((p) => p.name === 'right_leg')!.boxes.push(b(0, 32, -2, 0, -2, 4, 12, 4, 0.25));
+  m.find((p) => p.name === 'left_leg')!.boxes.push(b(0, 48, -2, 0, -2, 4, 12, 4, 0.25));
+  return m;
+}
+
 // ------------------------------------------------------------------ animation helpers
 
 const RAD = PI / 180;
@@ -1213,6 +1266,41 @@ const turtleAnim = (p: Poses, a: MobAnim) => {
   p.left_front_leg!.zRot = Math.cos(ls * 0.6662 * 0.6) * 0.5 * amt;
 };
 
+/** BlazeModel.setupAnim: three rings of rods circling at different speeds and heights. */
+const blazeAnim = (p: Poses, a: MobAnim) => {
+  const t = a.ageInTicks;
+  let f = t * PI * -0.1;
+  for (let i = 0; i < 4; i++, f++) p[`part${i}`]!.setPos(Math.cos(f) * 9, -2 + Math.cos((i * 2 + t) * 0.25), Math.sin(f) * 9);
+  f = PI / 4 + t * PI * 0.03;
+  for (let i = 4; i < 8; i++, f++) p[`part${i}`]!.setPos(Math.cos(f) * 7, 2 + Math.cos((i * 2 + t) * 0.25), Math.sin(f) * 7);
+  f = 0.47123894 + t * PI * -0.05;
+  for (let i = 8; i < 12; i++, f++) p[`part${i}`]!.setPos(Math.cos(f) * 5, 11 + Math.cos((i * 1.5 + t) * 0.5), Math.sin(f) * 5);
+  p.head!.yRot = a.netHeadYaw * RAD;
+  p.head!.xRot = a.headPitch * RAD;
+};
+
+/** MagmaCubeModel.prepareMobModel: slices spread apart as it squishes. */
+const magmaCubeAnim = (p: Poses, a: MobAnim) => {
+  const m = a.mob;
+  const f = Math.max(0, m.oSquish + (m.squish - m.oSquish) * a.partial);
+  for (let i = 0; i < 8; i++) p[`cube${i}`]!.y = -(4 - i) * f * 1.7;
+};
+
+/** GhastModel.setupAnim: tentacles sway. */
+const ghastAnim = (p: Poses, a: MobAnim) => {
+  for (let i = 0; i < 9; i++) p[`tentacle${i}`]!.xRot = 0.2 * Math.sin(a.ageInTicks * 0.3 + i) + 0.4;
+};
+
+/** PiglinModel.setupAnim: humanoid walk, flapping ears; zombified piglins reach like zombies. */
+const piglinAnim = (p: Poses, a: MobAnim) => {
+  humanoidAnim(p, a);
+  const f = a.ageInTicks * 0.1 + a.limbSwing * 0.5;
+  const f1 = 0.08 + a.limbSwingAmount * 0.4;
+  p.left_ear!.zRot = -PI / 6 - Math.cos(f * 1.2) * f1;
+  p.right_ear!.zRot = PI / 6 + Math.cos(f) * f1;
+  if (a.mob.type === 'zombified_piglin') zombieArms(p, aggressive(a), a.attackTime, a.ageInTicks);
+};
+
 const none = () => {};
 
 export const MOB_MODELS: Record<string, MobModelDef> = {
@@ -1256,6 +1344,10 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   llama: { tex: [128, 64], parts: llamaMesh(), headParts: ['head'], baby: { scaleHead: false, yHead: 10, zHead: 4, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: quadrupedAnim },
   turtle: { tex: [128, 64], parts: turtleMesh(), headParts: ['head'], baby: { scaleHead: true, yHead: 120, zHead: 0, headScale: 9, bodyScale: 6, bodyY: 120 }, anim: turtleAnim },
   fox: { tex: [48, 32], parts: foxMesh(), headParts: ['head'], baby: { scaleHead: true, yHead: 8, zHead: 3.35, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: quadrupedAnim },
+  blaze: { tex: [64, 32], parts: blazeMesh(), anim: blazeAnim },
+  magma_cube: { tex: [64, 32], parts: magmaCubeMesh(), anim: magmaCubeAnim },
+  ghast: { tex: [64, 32], parts: ghastMesh(), anim: ghastAnim },
+  piglin: { tex: [64, 64], parts: piglinMesh(), headParts: ['head', 'hat'], baby: HUMANOID_BABY, anim: piglinAnim },
   unknown: { tex: [64, 32], parts: [{ name: 'box', pivot: [0, 0, 0], boxes: [b(0, 0, -8, 8, -8, 16, 16, 16)] }], anim: none },
 };
 
@@ -1279,6 +1371,8 @@ export interface MobRenderDef {
   layers: MobLayer[];
   /** MobRenderer.scale */
   scale?: number;
+  /** always drawn at full brightness (Blaze / MagmaCube getBlockLightLevel 15) */
+  bright?: boolean;
   /** whole-model scale for babies (villagers shrink uniformly instead of using AgeableListModel) */
   babyScale?: number;
 }
@@ -1343,6 +1437,12 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   trader_llama: { layers: [{ model: 'llama', texture: 'trader_llama' }], scale: 0.8 },
   turtle: { layers: [{ model: 'turtle', texture: 'turtle' }] },
   fox: { layers: [{ model: 'fox', texture: 'fox' }] },
+  blaze: { layers: [{ model: 'blaze', texture: 'blaze' }], bright: true },
+  magma_cube: { layers: [{ model: 'magma_cube', texture: 'magma_cube' }], bright: true },
+  ghast: { layers: [{ model: 'ghast', texture: 'ghast', when: (m) => !(m.data.get('aggressive') ?? 0) }, { model: 'ghast', texture: 'ghast_shooting', when: (m) => !!(m.data.get('aggressive') ?? 0) }], scale: 4.5 },
+  piglin: { layers: [{ model: 'piglin', texture: 'piglin' }] },
+  piglin_brute: { layers: [{ model: 'piglin', texture: 'piglin_brute' }] },
+  zombified_piglin: { layers: [{ model: 'piglin', texture: 'zombified_piglin' }] },
   /** fallback for mobs without a model: a hit-box-sized box */
   unknown: { layers: [{ model: 'unknown', texture: 'unknown' }] },
 };

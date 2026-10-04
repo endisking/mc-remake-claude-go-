@@ -1155,6 +1155,103 @@ export function fox(): Tex {
   return t;
 }
 
+/** Blaze (64×32): ember-gold head with smouldering eyes, glowing rods. */
+export function blaze(): Tex {
+  const t = new Tex(64, 32);
+  const Y = hex('#e8a830'), YD = hex('#c07a18'), R = hex('#f0d060');
+  const head = box(t, 0, 0, 8, 8, 8, blotches(Y, YD, 361, 1.5, 0.6, 0.06));
+  const [fx, fy] = head.front;
+  rect(t, fx + 1, fy + 3, 2, 1, () => hex('#2a1a0a'));
+  rect(t, fx + 5, fy + 3, 2, 1, () => hex('#2a1a0a'));
+  px(t, fx + 2, fy + 3, hex('#ff5020'));
+  px(t, fx + 5, fy + 3, hex('#ff5020'));
+  hline(t, fx + 2, fy + 6, 4, hex('#5a2a0a'));
+  box(t, 0, 16, 2, 8, 2, (x, y) => ((x + y) % 3 === 0 ? R : y % 4 === 0 ? YD : Y));
+  return t;
+}
+
+/** Magma cube (64×32): dark crust slices with lava seams and a glowing core. */
+export function magmaCube(): Tex {
+  const t = new Tex(64, 32);
+  const C = hex('#3a1e14'), L = hex('#f07a1a'), LY = hex('#ffd040');
+  const crust: Paint = (x, y) => ((x * 3 + y * 5) % 7 === 0 ? L : C);
+  for (let i = 0; i < 8; i++) {
+    let u = 0, v = i;
+    if (i === 2) [u, v] = [24, 10];
+    else if (i === 3) [u, v] = [24, 19];
+    box(t, u, v, 8, 1, 8, crust, i === 3 || i === 4 ? { front: (x) => (x === 2 || x === 5 ? LY : C) } : {});
+  }
+  box(t, 0, 16, 4, 4, 4, (x, y) => ((x + y) % 2 ? LY : L));
+  return t;
+}
+
+/** Ghast (64×32): pale floating cube, sad closed face; the shooting face opens wide. */
+function ghastTex(shooting: boolean): Tex {
+  const t = new Tex(64, 32);
+  const W = hex('#f0f0ec'), WD = hex('#d8d8d4');
+  const body = box(t, 0, 0, 16, 16, 16, blotches(W, WD, 371, 2.5, 0.68, 0.03));
+  const [fx, fy] = body.front;
+  const K = hex('#3a3a3c'), RED = hex('#a83030');
+  if (shooting) {
+    rect(t, fx + 3, fy + 5, 3, 3, () => K);
+    rect(t, fx + 10, fy + 5, 3, 3, () => K);
+    px(t, fx + 4, fy + 6, RED);
+    px(t, fx + 11, fy + 6, RED);
+    rect(t, fx + 5, fy + 10, 6, 4, (x, y) => (y === 0 || x === 0 || x === 5 ? K : RED));
+  } else {
+    hline(t, fx + 3, fy + 6, 3, K);
+    hline(t, fx + 10, fy + 6, 3, K);
+    for (const x of [4, 11]) { px(t, fx + x, fy + 7, hex('#a8c8e8')); px(t, fx + x, fy + 8, hex('#a8c8e8')); }
+    hline(t, fx + 6, fy + 11, 4, K);
+  }
+  return t;
+}
+
+/** Piglin family (64×64 player layout): broad snouted head, tusks, leather and gold. */
+function piglinTex(skin: string, skinDark: string, cloth: string, gold: boolean, zombie: boolean, seed: number): Tex {
+  const t = new Tex(64, 64);
+  const S = hex(skin), SD = hex(skinDark), C = hex(cloth), G = hex('#e8c040');
+  const hide = zombie ? blotches(S, hex('#6a8a50'), seed, 2.2, 0.62, 0.06) : blotches(S, SD, seed, 2, 0.66, 0.05);
+  const head = box(t, 0, 0, 10, 8, 8, hide);
+  const [fx, fy] = head.front;
+  px(t, fx + 2, fy + 3, hex('#f0e8d8'));
+  px(t, fx + 3, fy + 3, hex('#3a1a1a'));
+  px(t, fx + 6, fy + 3, hex('#3a1a1a'));
+  px(t, fx + 7, fy + 3, hex('#f0e8d8'));
+  hline(t, fx + 2, fy + 2, 2, SD);
+  hline(t, fx + 6, fy + 2, 2, SD);
+  if (zombie) rect(t, fx + 6, fy + 4, 3, 3, () => hex('#d8d0c0')); // exposed skull patch
+  const snout = box(t, 31, 1, 4, 4, 1, () => shade(S, 1.08));
+  px(t, snout.front[0] + 1, snout.front[1] + 2, SD);
+  px(t, snout.front[0] + 2, snout.front[1] + 2, SD);
+  box(t, 2, 4, 1, 2, 1, () => hex('#f0e8d0'));
+  box(t, 2, 0, 1, 2, 1, () => hex('#f0e8d0'));
+  box(t, 51, 6, 1, 5, 4, hide);
+  box(t, 39, 6, 1, 5, 4, hide);
+  const body = box(t, 16, 16, 8, 12, 4, hide);
+  rect(t, body.front[0], body.front[1] + 4, 8, 8, () => C);
+  if (gold) hline(t, body.front[0], body.front[1] + 7, 8, G);
+  for (const [u, v] of [[40, 16], [32, 48]] as const) box(t, u, v, 4, 12, 4, hide);
+  for (const [u, v] of [[0, 16], [16, 48]] as const) {
+    const leg = box(t, u, v, 4, 12, 4, () => C);
+    for (const k of ['right', 'front', 'left', 'back'] as const) rect(t, leg[k][0], leg[k][1] + 10, 4, 2, () => hex('#3a2a1a'));
+  }
+  if (gold) {
+    // gold arm bands on the sleeve layer
+    for (const [u, v] of [[40, 32], [48, 48]] as const) {
+      const f = faceRects(u, v, 4, 12, 4);
+      for (const k of ['right', 'front', 'left', 'back'] as const) hline(t, f[k][0], f[k][1] + 2, 4, G);
+    }
+  }
+  return t;
+}
+
+export const ghast = () => ghastTex(false);
+export const ghastShooting = () => ghastTex(true);
+export const piglin = () => piglinTex('#e0a088', '#c08070', '#6a4a2a', true, false, 381);
+export const piglinBrute = () => piglinTex('#d89080', '#b87060', '#2a2a2e', true, false, 383);
+export const zombifiedPiglin = () => piglinTex('#e0a088', '#b88070', '#5a4a3a', false, true, 387);
+
 // ------------------------------------------------------------------ misc layers
 
 /** Charged creeper energy swirl (tileable, scrolled and drawn additively). */
@@ -1239,5 +1336,5 @@ export const ENTITY_TEXTURES: Record<string, () => Tex> = {
   chicken, enderman, enderman_eyes: endermanEyes, slime, bat, squid,
   glow_squid: glowSquid, creeper_armor: creeperArmor, villager, wandering_trader: wanderingTrader, witch, zombie_villager: zombieVillager,
   unknown: unknownMob,
-  rabbit, fox, llama, trader_llama: traderLlama, turtle, polar_bear: polarBear, snow_golem: snowGolem, silverfish, endermite, bee, horse, donkey, mule, skeleton_horse: skeletonHorse, zombie_horse: zombieHorse, cat, ocelot, cod, salmon, pillager, vindicator, evoker, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
+  blaze, magma_cube: magmaCube, ghast, ghast_shooting: ghastShooting, piglin, piglin_brute: piglinBrute, zombified_piglin: zombifiedPiglin, rabbit, fox, llama, trader_llama: traderLlama, turtle, polar_bear: polarBear, snow_golem: snowGolem, silverfish, endermite, bee, horse, donkey, mule, skeleton_horse: skeletonHorse, zombie_horse: zombieHorse, cat, ocelot, cod, salmon, pillager, vindicator, evoker, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
 };

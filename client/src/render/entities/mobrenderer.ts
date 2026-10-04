@@ -400,7 +400,7 @@ export class MobRenderer {
       f *= f;
       sx = sz = (1 + f * 0.4) * f1;
       sy = (1 + f * 0.1) / f1;
-    } else if (m.type === 'slime') {
+    } else if (m.type === 'slime' || m.type === 'magma_cube') {
       // SlimeRenderer.scale: size, squashed/stretched by the squish
       const size = m.slimeSize;
       const f2 = (m.oSquish + (m.squish - m.oSquish) * partial) / (size * 0.5 + 1);
@@ -430,7 +430,8 @@ export class MobRenderer {
     rPlain!.set(E);
     // lighting at the eyes
     const [, h] = m.dims();
-    const light = world.getLight(Math.floor(m.x), Math.floor(m.y + h * 0.85), Math.floor(m.z));
+    let light = world.getLight(Math.floor(m.x), Math.floor(m.y + h * 0.85), Math.floor(m.z));
+    if (rdef.bright) light = (light & 0xf0) | 15;
     gl.uniform2f(this.u.get('uLight'), ((light & 15) + 0.5) / 16, ((light >> 4) + 0.5) / 16);
     // overlay: red while hurt or dying, else the creeper's white flash
     let overlay = 0, white = false;
@@ -726,7 +727,7 @@ export class MobRenderer {
   private renderShadows(mobs: ClientMob[], world: ClientWorld, viewProj: Mat4, camX: number, camY: number, camZ: number, partial: number, fogStart: number, fogEnd: number, skyDarken: number): void {
     // casters: the mobs in view plus the shadows queued by addShadow (players)
     for (const m of mobs) {
-      let r = m.type === 'slime' ? 0.25 * m.slimeSize : m.info.shadow;
+      let r = m.type === 'slime' || m.type === 'magma_cube' ? 0.25 * m.slimeSize : m.info.shadow;
       if (m.baby) r *= 0.5;
       this.addShadow(m.xo + (m.x - m.xo) * partial, m.yo + (m.y - m.yo) * partial, m.zo + (m.z - m.zo) * partial, r);
     }
@@ -794,7 +795,7 @@ export class MobRenderer {
 
 /** Items mobs spawn holding (FinalizeSpawn equipment) until the server says otherwise. */
 const DEFAULT_HELD = new Map<string, number>(
-  ([['skeleton', 'bow'], ['stray', 'bow'], ['wither_skeleton', 'stone_sword'], ['pillager', 'crossbow'], ['vindicator', 'iron_axe']] as const)
+  ([['skeleton', 'bow'], ['stray', 'bow'], ['wither_skeleton', 'stone_sword'], ['pillager', 'crossbow'], ['vindicator', 'iron_axe'], ['zombified_piglin', 'golden_sword'], ['piglin', 'golden_sword'], ['piglin_brute', 'golden_axe']] as const)
     .map(([t, i]) => [t, ITEMS_BY_NAME.get(i)?.id ?? 0]),
 );
 
