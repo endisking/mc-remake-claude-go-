@@ -44,6 +44,7 @@ import { itemForBlock } from '@shared/game/loot';
 import { PROFESSIONS as PROFESSION_IDS } from '@shared/game/trades';
 import { Villager, WanderingTrader, AbstractVillager } from './villager';
 import { IronGolem, SnowGolem } from './golems';
+import { Witch } from './witch';
 import { Horse, Donkey, Mule, AbstractHorse, AbstractChestedHorse } from './horse';
 
 type MobCtor = new (id: number, s: GameServer) => Mob;
@@ -51,7 +52,7 @@ export const MOB_TYPES: Record<string, MobCtor> = {
   zombie: Zombie, husk: Husk, drowned: Drowned, zombie_villager: ZombieVillager, cave_spider: CaveSpider, skeleton: Skeleton, stray: Stray, creeper: Creeper, spider: Spider,
   pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, wolf: Wolf, mooshroom: Mooshroom, phantom: Phantom, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid, cod: Cod, salmon: Salmon,
   villager: Villager, wandering_trader: WanderingTrader, iron_golem: IronGolem, snow_golem: SnowGolem,
-  horse: Horse, donkey: Donkey, mule: Mule,
+  horse: Horse, donkey: Donkey, mule: Mule, witch: Witch,
 };
 
 /** MobCategory caps (1.17.1) and the categories we spawn. */
@@ -207,6 +208,8 @@ export class MobManager {
   spawn(type: string, x: number, y: number, z: number, reason: SpawnReason = 'command', groupIndex = 0): Mob | null {
     const C = MOB_TYPES[type];
     if (!C) return null;
+    // the column index is rebuilt lazily; a spawn must invalidate it even if the entity count matches
+    this.indexTick = -1;
     const m = new C(this.s.allocateEntityId(), this.s);
     m.x = x;
     m.y = y;

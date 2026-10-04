@@ -118,6 +118,13 @@ export function mobLoot(type: string, c: MobLootContext): ItemStack[] {
     case 'mule':
       entry(out, c, 'leather', 0, 2, { looting: L });
       break;
+    case 'witch': {
+      // 1–3 rolls of glowstone dust, sugar, redstone, spider eye, glass bottle, gunpowder, stick (×2 weight)
+      const pool = ['glowstone_dust', 'sugar', 'redstone', 'spider_eye', 'glass_bottle', 'gunpowder', 'stick', 'stick'];
+      const rolls = uniformInt(c.random, 1, 3);
+      for (let i = 0; i < rolls; i++) entry(out, c, pool[Math.floor(c.random() * pool.length)]!, 0, 2, { looting: L });
+      break;
+    }
     case 'iron_golem':
       entry(out, c, 'poppy', 0, 2);
       entry(out, c, 'iron_ingot', 3, 5);

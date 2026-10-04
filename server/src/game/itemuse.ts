@@ -467,7 +467,7 @@ export class ItemUse {
   }
 
   /** ThrownPotion.onHit → applySplash: effects scaled by distance within 4 blocks; level event 2002/2007. */
-  private splash(e: Thrown, hit: ThrowHit, potion: string): void {
+  splash(e: Thrown, hit: ThrowHit, potion: string): void {
     const effects = POTIONS[potion] ?? [];
     const instant = effects.some((x) => x.effect === 'instant_health' || x.effect === 'instant_damage');
     const color = potionColor({ id: e.item, count: 1, damage: 0, tag: { Potion: potion } });
@@ -486,6 +486,24 @@ export class ItemUse {
         else {
           const ticks = Math.trunc(d1 * x.duration + 0.5);
           if (ticks > 20) p.living.effects.add(x.effect, ticks, x.amplifier, target);
+        }
+      }
+    }
+    // mobs in the splash (ThrownPotion.applySplash on LivingEntity; undead swap healing/harming)
+    for (const m of this.s.mobs.nearbyMobs(hit.x, hit.z, 4)) {
+      if (m.dead) continue;
+      const d = (m.x - hit.x) ** 2 + (m.y + m.height / 2 - hit.y) ** 2 + (m.z - hit.z) ** 2;
+      if (d >= 16) continue;
+      const d1 = hit.target && (hit.target as { id?: number }).id === m.id ? 1 : 1 - Math.sqrt(d) / 4;
+      const undead = /zombie|skeleton|husk|drowned|stray|phantom|wither|zoglin/.test(m.type);
+      const owner = this.s.entities.get(e.ownerId);
+      for (const x of effects) {
+        const heal = x.effect === 'instant_health', harm = x.effect === 'instant_damage';
+        if ((heal && !undead) || (harm && undead)) m.heal(Math.trunc(d1 * (4 << x.amplifier) + 0.5));
+        else if (heal || harm) m.hurt({ id: 'indirectMagic', bypassArmor: true }, Math.trunc(d1 * (6 << x.amplifier) + 0.5), owner instanceof Mob ? owner : null);
+        else {
+          const ticks = Math.trunc(d1 * x.duration + 0.5);
+          if (ticks > 20) m.addMobEffect(x.effect, ticks, x.amplifier);
         }
       }
     }
