@@ -705,21 +705,9 @@ export abstract class Mob extends ServerEntity {
       else this.vy = 0;
     }
     void wasOnGround;
-    // step sounds (Entity.move → playStepSound)
+    // step sounds: the client plays them from the interpolated movement (client/src/world/mobs.ts)
     const horiz = Math.hypot(mx, mz);
     this.moveDist += horiz * 0.6;
-    if (this.onGround && this.moveDist > this.nextStep) {
-      this.nextStep = Math.floor(this.moveDist) + 1;
-      const below = this.world.getState(Math.floor(this.x), Math.floor(this.y - 0.2), Math.floor(this.z));
-      if (below !== 0 && !this.wasTouchingWater) {
-        const ev = this.stepSound();
-        if (ev) this.playSound(ev, 0.15, 1);
-        else {
-          const st = soundTypeOf(below);
-          this.playSound(st.step, st.volume * 0.15, st.pitch);
-        }
-      }
-    }
     if (this.onGround && mx === 0 && mz === 0 && dx === 0 && dz === 0) {
       const c = this.world.getChunk(Math.floor(this.x) >> 4, Math.floor(this.z) >> 4);
       if (c) {
