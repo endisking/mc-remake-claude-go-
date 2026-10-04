@@ -2870,11 +2870,11 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Kick / ban <!--p9:kick_ban-->
 - [ ] Spawn protection (off by default) <!--p9:spawn_protection_off_by_default-->
 - [ ] Per-player inventories and spawns <!--p9:per_player_inventories_and_spawns-->
-- [ ] Saves: region-like format <!--p9:saves_region_like_format-->
-- [ ] Saves: IndexedDB for single-player <!--p9:saves_indexeddb_for_single_player-->
-- [ ] Saves: disk for dedicated server <!--p9:saves_disk_for_dedicated_server-->
-- [ ] Autosave every 5 minutes <!--p9:autosave_every_5_minutes-->
-- [ ] World export/import as zip <!--p9:world_export_import_as_zip-->
+- [x] Saves: region-like format <!--p9:saves_region_like_format-->
+- [x] Saves: IndexedDB for single-player <!--p9:saves_indexeddb_for_single_player-->
+- [x] Saves: disk for dedicated server <!--p9:saves_disk_for_dedicated_server-->
+- [x] Autosave every 5 minutes <!--p9:autosave_every_5_minutes-->
+- [x] World export/import as zip <!--p9:world_export_import_as_zip-->
 
 ### Commands
 
@@ -4253,7 +4253,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 - [ ] Title screen with rotating panorama from our own world <!--p11:title_screen_with_rotating_panorama_from_our_own_world-->
 - [ ] Random splash text (original lines) <!--p11:random_splash_text_original_lines-->
-- [ ] Single-player world list <!--p11:single_player_world_list-->
+- [x] Single-player world list <!--p11:single_player_world_list-->
 - [ ] Create world: name, seed, game mode, difficulty, world type (default/superflat/large biomes/amplified), cheats toggle <!--p11:create_world_name_seed_game_mode_difficulty_world_type_default_superflat_large_biomes_amplified_cheats_toggle-->
 - [ ] Edit/delete/re-create world <!--p11:edit_delete_re_create_world-->
 - [ ] Multiplayer server list (add/edit/remove, ping) <!--p11:multiplayer_server_list_add_edit_remove_ping-->
