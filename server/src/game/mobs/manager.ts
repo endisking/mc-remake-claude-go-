@@ -521,7 +521,12 @@ export class MobManager {
     if (!res.critical && !res.sweep) s.playSound(null, res.charged ? 'entity.player.attack.strong' : 'entity.player.attack.weak', 'player', sx, sy, sz, 1, 1);
     // weapons lose durability (swords 1, tools 2)
     const held = p.inventory.selectedStack;
-    if (held && (ITEMS_BY_ID[held.id]?.maxDurability ?? 0) > 0) this.damageHeldItem(p, p.inventory.selected, /_sword$|trident/.test(itemName(held.id)) ? 1 : 2);
+    // Item.hurtEnemy: swords and tridents lose 1, digging tools 2, anything else nothing
+    if (held) {
+      const n = itemName(held.id);
+      const cost = /_sword$|^trident$/.test(n) ? 1 : /_(axe|pickaxe|shovel|hoe)$/.test(n) ? 2 : 0;
+      if (cost) this.damageHeldItem(p, p.inventory.selected, cost);
+    }
     void hpBefore;
     p.living.food.addExhaustion(EXHAUSTION.attack);
   }

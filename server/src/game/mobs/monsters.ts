@@ -8,7 +8,7 @@ import { Goal, Flag } from './goal';
 import { Mob, GroundNavigation, canTarget, type MobCategory, type Target } from './mob';
 import {
   FloatGoal, RandomStrollGoal, LookAtPlayerGoal, RandomLookAroundGoal, MeleeAttackGoal, HurtByTargetGoal,
-  NearestAttackableTargetGoal, LeapAtTargetGoal, FleeSunGoal,
+  NearestAttackableTargetGoal, LeapAtTargetGoal, FleeSunGoal, RestrictSunGoal,
 } from './goals';
 import { brightnessOf } from './mob';
 import { MOB_FLAG } from '@shared/entity/mobdata';
@@ -298,6 +298,7 @@ export class Skeleton extends Monster {
     return 1.74;
   }
   protected registerGoals(): void {
+    this.goalSelector.add(2, new RestrictSunGoal(this));
     this.goalSelector.add(3, new FleeSunGoal(this, 1));
     this.goalSelector.add(5, new RandomStrollGoal(this, 1));
     this.goalSelector.add(6, new LookAtPlayerGoal(this, 8));

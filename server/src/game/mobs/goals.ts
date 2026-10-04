@@ -468,3 +468,19 @@ export class FleeSunGoal extends Goal {
     this.m.navigation.moveTo(p[0], p[1], p[2], this.speed);
   }
 }
+
+/** RestrictSunGoal: by day (without a helmet) the navigation avoids sunlit nodes. */
+export class RestrictSunGoal extends Goal {
+  constructor(private readonly m: Mob) {
+    super();
+  }
+  canUse(): boolean {
+    return this.m.s.mobs.isDay() && !(this.m.mainHand && itemName(this.m.mainHand.id).endsWith('_helmet'));
+  }
+  override start(): void {
+    this.m.navigation.avoidSun = true;
+  }
+  override stop(): void {
+    this.m.navigation.avoidSun = false;
+  }
+}

@@ -1082,6 +1082,8 @@ export class GroundNavigation {
   speedModifier = 1;
   canFloat = false;
   canOpenDoors = false;
+  /** RestrictSunGoal: paths are cut before the first node under open sky */
+  avoidSun = false;
   private tickN = 0;
   private lastStuckCheck = 0;
   private lastStuckX = 0;
@@ -1140,6 +1142,17 @@ export class GroundNavigation {
     const m = this.mob;
     while (!p.done && p.index < p.nodes.length - 1 && p.next.x === Math.floor(m.x) && p.next.z === Math.floor(m.z) && Math.abs(p.next.y - m.y) < 1) p.advance();
     if (p.done) return false;
+    // GroundPathNavigation.trimPath with avoidSun
+    if (this.avoidSun && !m.canSeeSky(Math.floor(m.x), Math.floor(m.y + 0.5), Math.floor(m.z))) {
+      for (let i = p.index; i < p.nodes.length; i++) {
+        const n = p.nodes[i]!;
+        if (m.canSeeSky(n.x, n.y, n.z)) {
+          p.nodes.length = i;
+          break;
+        }
+      }
+      if (p.done) return false;
+    }
     this.speedModifier = speed;
     this.lastStuckCheck = this.tickN;
     this.lastStuckX = m.x;
