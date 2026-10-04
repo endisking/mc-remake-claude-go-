@@ -52,6 +52,8 @@ export const MOB_INFO: Record<string, MobInfo> = {
   iron_golem: N(0.7),
   wolf: N(0.5),
   phantom: H(0.75, { flying: true, step: null }),
+  cod: N(0.3, { category: 'neutral', step: null }),
+  salmon: N(0.4, { category: 'neutral', step: null }),
   pillager: H(0.5),
   vindicator: H(0.5),
   evoker: H(0.5),
@@ -118,6 +120,8 @@ export class ClientMob {
   mainHand = -1;
   offHand = 0;
   // per-type client state
+  /** in water (set by the renderer from the block at the mob; fish flop on land) */
+  inWater = true;
   /** IronGolem.attackAnimationTick (entity event 4) */
   attackAnimationTick = 0;
   /** Sheep.eatAnimationTick */

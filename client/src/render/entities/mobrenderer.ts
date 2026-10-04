@@ -13,7 +13,7 @@ import { ITEMS_BY_NAME } from '@shared/data';
 import { MOB_MODELS, MOB_RENDER, MOB_TEXTURES, MOB_SCROLLING, bakeMobModel, createPoses, type BakedMobModel, type MobAnim, type MobModelDef, type Poses, type VPose } from './mobmodels';
 import type { ClientMob } from '../../world/mobs';
 import type { ClientWorld } from '../../world/clientworld';
-import { collisionBoxes } from '@shared/world/shapes';
+import { FLUID, FULL_COLLISION } from '@shared/world/blockinfo';
 import { BitmapFont } from '../../gui/gui';
 
 const VS = `#version 300 es
@@ -357,6 +357,19 @@ export class MobRenderer {
     if (m.type === 'phantom') {
       // PhantomRenderer.setupRotations: the body pitches with its flight
       mulRotX(E, ((m.pitchO + (m.pitch - m.pitchO) * partial) * Math.PI) / 180);
+    }
+    if (m.type === 'cod' || m.type === 'salmon') {
+      // CodRenderer / SalmonRenderer.setupRotations: body wiggle; stranded fish lie on their side
+      m.inWater = FLUID[world.getState(Math.floor(m.x), Math.floor(m.y + 0.1), Math.floor(m.z))] === 1;
+      const salmon = m.type === 'salmon';
+      const age = m.tickCount + partial;
+      const f = salmon ? (m.inWater ? 1 : 1.3) * 4.3 * Math.sin((m.inWater ? 1 : 1.7) * 0.6 * age) : 4.3 * Math.sin(0.6 * age);
+      mulRotY(E, (-f * Math.PI) / 180);
+      if (salmon) mulTranslate(E, 0, 0, 0.4);
+      if (!m.inWater) {
+        mulTranslate(E, salmon ? -0.2 : -0.1, 0.1, salmon ? 0 : 0.1);
+        mulRotZ(E, -Math.PI / 2);
+      }
     }
     if (m.type === 'squid') {
       // SquidRenderer.setupRotations: pivot about the mantle, tilted by the swim angle
@@ -706,8 +719,7 @@ export class MobRenderer {
             const l = world.getLight(bx, by, bz);
             const raw = Math.max((l >> 4) - skyDarken, l & 15);
             if (raw <= 3) continue;
-            const boxes = collisionBoxes(below);
-            if (boxes.length !== 1 || !isFull(boxes[0]!)) continue;
+            if (!FULL_COLLISION[below]) continue;
             const f1 = raw / 15;
             const bright = f1 / (4 - 3 * f1);
             let a = (weight - (y - by) / 2) * 0.5 * bright;
@@ -764,9 +776,6 @@ function shadowVertex(v: Float32Array, o: number, x: number, y: number, z: numbe
   return o + 6;
 }
 
-function isFull(b: readonly number[]): boolean {
-  return b[0] === 0 && b[1] === 0 && b[2] === 0 && b[3] === 1 && b[4] === 1 && b[5] === 1;
-}
 
 function gaussian(): number {
   let u = 0, v = 0;

@@ -61,6 +61,7 @@ const SHOTS: Record<string, Shot> = {
   held: { cam: NEAR, mobs: row(['zombie', 'skeleton', 'zombie', 'husk']).map((m, i) => ({ ...m, yaw: 150, hold: [ITEMS_BY_NAME.get('torch')!.id, 0, ITEMS_BY_NAME.get('oak_planks')!.id, ITEMS_BY_NAME.get('glass')!.id][i] })) },
   heldclose: { cam: 'x=24.2&y=200&z=1.8&lookat=24.2,200.8,4.5&fov=65', mobs: [{ type: 'zombie', x: 24.2, z: 4.5, yaw: 180, hold: ITEMS_BY_NAME.get('oak_planks')!.id }] },
   heldtop: { cam: 'x=26.2&y=201.5&z=4.5&lookat=24.2,201,4.5&fov=65', mobs: [{ type: 'zombie', x: 24.2, z: 4.5, yaw: 180, hold: ITEMS_BY_NAME.get('oak_planks')!.id }] },
+  fish: { cam: 'x=24.2&y=200&z=2.5&lookat=24.2,200.2,4.5&fov=60', mobs: row(['cod', 'salmon', 'cod', 'salmon'], { yaw: 120 }) },
   night: { cam: NEAR + '&time=18000', mobs: row(['spider', 'enderman', 'zombie', 'cave_spider']) },
 };
 

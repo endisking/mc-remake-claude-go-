@@ -868,6 +868,41 @@ export function mooshroom(): Tex {
   });
 }
 
+/** Cod: speckled olive-brown back fading to a pale belly (32×32). */
+export function cod(): Tex {
+  const t = new Tex(32, 32);
+  const B = hex('#8a7a52'), BD = hex('#6a5c3c'), W = hex('#d8d0b4');
+  const side: Paint = (x, y, _w, h) => (y >= h - 1 ? W : ((x * 5 + y * 3) % 7 === 0 ? BD : B));
+  box(t, 0, 0, 2, 4, 7, side, { top: noisy(BD, 0.06, 251), bottom: () => W });
+  const head = box(t, 11, 0, 2, 4, 3, side, { top: noisy(BD, 0.06, 252), bottom: () => W });
+  for (const k of ['right', 'left'] as const) px(t, head[k][0] + 1, head[k][1] + 1, hex('#101010'));
+  box(t, 0, 11, 2, 3, 1, () => shade(B, 0.9));
+  const fin: Paint = (x) => (x % 2 ? hex('#a89870') : hex('#c0b088'));
+  box(t, 22, 1, 2, 0, 2, fin);
+  box(t, 22, 4, 2, 0, 2, fin);
+  box(t, 22, 3, 0, 4, 4, fin);
+  box(t, 20, 10, 0, 1, 6, fin);
+  return t;
+}
+
+/** Salmon: silver-red flanks with a dark back and spotted tail (32×32). */
+export function salmon(): Tex {
+  const t = new Tex(32, 32);
+  const R = hex('#b8483a'), RD = hex('#8a3028'), S = hex('#c8c0b8'), D = hex('#4a3a3a');
+  const side: Paint = (x, y, _w, h) => (y === 0 ? D : y >= h - 1 ? S : (x + y) % 5 === 0 ? RD : R);
+  box(t, 0, 0, 3, 5, 8, side, { top: noisy(D, 0.08, 261), bottom: () => S });
+  box(t, 0, 13, 3, 5, 8, side, { top: noisy(D, 0.08, 262), bottom: () => S });
+  const head = box(t, 22, 0, 2, 4, 3, side, { top: () => D });
+  for (const k of ['right', 'left'] as const) px(t, head[k][0] + 1, head[k][1] + 1, hex('#101010'));
+  const fin: Paint = (x, y) => ((x + y) % 3 === 0 ? D : RD);
+  box(t, 20, 10, 0, 5, 6, fin);
+  box(t, 2, 26, 0, 2, 3, fin);
+  box(t, 8, 26, 0, 2, 4, fin);
+  box(t, 22, 22, 2, 0, 2, fin);
+  box(t, 26, 22, 2, 0, 2, fin);
+  return t;
+}
+
 // ------------------------------------------------------------------ misc layers
 
 /** Charged creeper energy swirl (tileable, scrolled and drawn additively). */
@@ -952,5 +987,5 @@ export const ENTITY_TEXTURES: Record<string, () => Tex> = {
   chicken, enderman, enderman_eyes: endermanEyes, slime, bat, squid,
   glow_squid: glowSquid, creeper_armor: creeperArmor, villager, wandering_trader: wanderingTrader, witch, zombie_villager: zombieVillager,
   unknown: unknownMob,
-  pillager, vindicator, evoker, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
+  cod, salmon, pillager, vindicator, evoker, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
 };

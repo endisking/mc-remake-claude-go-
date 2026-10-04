@@ -122,13 +122,22 @@ export function bakeMobModel(parts: VPart[], tw: number, th: number): BakedMobMo
       for (const vb of def.boxes) {
         const [x, y, z] = vb.from, [w, h, d] = vb.size;
         const mb: ModelBox = { from: [x, -(y + h), -(z + d)], size: [w, h, d], uv: vb.uv, inflate: vb.inflate, mirror: vb.mirror };
-        const start = out.length;
-        emitBox(out, mb, tw, th);
-        for (let i = start; i < out.length; i += FLOATS_PER_VERTEX) {
-          out[i + 1] = -out[i + 1]!;
-          out[i + 2] = -out[i + 2]!;
-          out[i + 6] = -out[i + 6]!;
-          out[i + 7] = -out[i + 7]!;
+        const tmp: number[] = [];
+        emitBox(tmp, mb, tw, th);
+        for (let i = 0; i < tmp.length; i += FLOATS_PER_VERTEX) {
+          tmp[i + 1] = -tmp[i + 1]!;
+          tmp[i + 2] = -tmp[i + 2]!;
+          tmp[i + 6] = -tmp[i + 6]!;
+          tmp[i + 7] = -tmp[i + 7]!;
+        }
+        // flat boxes (fins: one size is 0) have degenerate faces; keep only faces with area
+        const tri = 3 * FLOATS_PER_VERTEX;
+        for (let i = 0; i < tmp.length; i += tri) {
+          const ax = tmp[i + 8]! - tmp[i]!, ay = tmp[i + 9]! - tmp[i + 1]!, az = tmp[i + 10]! - tmp[i + 2]!;
+          const bx = tmp[i + 16]! - tmp[i]!, by = tmp[i + 17]! - tmp[i + 1]!, bz = tmp[i + 18]! - tmp[i + 2]!;
+          const cx = ay * bz - az * by, cy = az * bx - ax * bz, cz = ax * by - ay * bx;
+          if (cx * cx + cy * cy + cz * cz < 1e-12) continue;
+          for (let k = 0; k < tri; k++) out.push(tmp[i + k]!);
         }
       }
       const idx = baked.length;
@@ -490,6 +499,39 @@ export function illagerMesh(): VPart[] {
   ];
 }
 
+/** CodModel.createBodyLayer (32×32; fin UVs moved inside the texture) */
+export function codMesh(): VPart[] {
+  return [
+    { name: 'body', pivot: [0, 22, 0], boxes: [b(0, 0, -1, -2, 0, 2, 4, 7)] },
+    { name: 'head', pivot: [0, 22, 0], boxes: [b(11, 0, -1, -2, -3, 2, 4, 3)] },
+    { name: 'nose', pivot: [0, 22, -3], boxes: [b(0, 11, -1, -2, -1, 2, 3, 1)] },
+    { name: 'right_fin', pivot: [-1, 23, 0], rot: [0, -PI / 4, 0], boxes: [b(22, 1, -2, 0, -1, 2, 0, 2)] },
+    { name: 'left_fin', pivot: [1, 23, 0], rot: [0, PI / 4, 0], boxes: [b(22, 4, 0, 0, -1, 2, 0, 2)] },
+    { name: 'tail_fin', pivot: [0, 22, 7], boxes: [b(22, 3, 0, -2, 0, 0, 4, 4)] },
+    { name: 'top_fin', pivot: [0, 20, 0], boxes: [b(20, 10, 0, -1, -1, 0, 1, 6)] },
+  ];
+}
+
+/** SalmonModel.createBodyLayer (32×32; fin UVs moved inside the texture) */
+export function salmonMesh(): VPart[] {
+  return [
+    {
+      name: 'body_front', pivot: [0, 20, 0], boxes: [b(0, 0, -1.5, -2.5, 0, 3, 5, 8)], children: [
+        { name: 'top_front_fin', pivot: [0, -4.5, 5], boxes: [b(2, 26, 0, 0, 0, 0, 2, 3)] },
+      ],
+    },
+    {
+      name: 'body_back', pivot: [0, 20, 8], boxes: [b(0, 13, -1.5, -2.5, 0, 3, 5, 8)], children: [
+        { name: 'back_fin', pivot: [0, 0, 8], boxes: [b(20, 10, 0, -2.5, 0, 0, 5, 6)] },
+        { name: 'top_back_fin', pivot: [0, -4.5, -1], boxes: [b(8, 26, 0, 0, 0, 0, 2, 4)] },
+      ],
+    },
+    { name: 'head', pivot: [0, 20, 0], boxes: [b(22, 0, -1, -2, -3, 2, 4, 3)] },
+    { name: 'right_fin', pivot: [-1.5, 21.5, 0], rot: [0, 0, -PI / 4], boxes: [b(22, 22, -2, 0, 0, 2, 0, 2)] },
+    { name: 'left_fin', pivot: [1.5, 21.5, 0], rot: [0, 0, PI / 4], boxes: [b(26, 22, 0, 0, 0, 2, 0, 2)] },
+  ];
+}
+
 // ------------------------------------------------------------------ animation helpers
 
 const RAD = PI / 180;
@@ -846,6 +888,18 @@ const illagerAnim = (p: Poses, a: MobAnim) => {
   }
 };
 
+/** CodModel.setupAnim: the tail beats faster out of water. */
+const codAnim = (p: Poses, a: MobAnim) => {
+  const f = a.mob.inWater ? 1 : 1.5;
+  p.tail_fin!.yRot = -f * 0.45 * Math.sin(0.6 * a.ageInTicks);
+};
+
+/** SalmonModel.setupAnim: the back half of the body swings. */
+const salmonAnim = (p: Poses, a: MobAnim) => {
+  const w = a.mob.inWater;
+  p.body_back!.yRot = -(w ? 1 : 1.3) * 0.25 * Math.sin((w ? 1 : 1.7) * 0.6 * a.ageInTicks);
+};
+
 const none = () => {};
 
 export const MOB_MODELS: Record<string, MobModelDef> = {
@@ -875,6 +929,8 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   wolf: { tex: [64, 32], parts: wolfMesh(), headParts: ['head'], baby: { scaleHead: false, yHead: 5, zHead: 2, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: wolfAnim },
   phantom: { tex: [64, 64], parts: phantomMesh(), anim: phantomAnim },
   illager: { tex: [64, 64], parts: illagerMesh(), anim: illagerAnim },
+  cod: { tex: [32, 32], parts: codMesh(), anim: codAnim },
+  salmon: { tex: [32, 32], parts: salmonMesh(), anim: salmonAnim },
   unknown: { tex: [64, 32], parts: [{ name: 'box', pivot: [0, 0, 0], boxes: [b(0, 0, -8, 8, -8, 16, 16, 16)] }], anim: none },
 };
 
@@ -942,6 +998,8 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   pillager: { layers: [{ model: 'illager', texture: 'pillager' }], scale: 0.9375 },
   vindicator: { layers: [{ model: 'illager', texture: 'vindicator' }], scale: 0.9375 },
   evoker: { layers: [{ model: 'illager', texture: 'evoker' }], scale: 0.9375 },
+  cod: { layers: [{ model: 'cod', texture: 'cod' }] },
+  salmon: { layers: [{ model: 'salmon', texture: 'salmon' }] },
   /** fallback for mobs without a model: a hit-box-sized box */
   unknown: { layers: [{ model: 'unknown', texture: 'unknown' }] },
 };
