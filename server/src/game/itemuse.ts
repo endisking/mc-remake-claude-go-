@@ -186,6 +186,9 @@ export class ItemUse {
     pe.levitation = fx.amplifier('levitation') + 1;
     pe.slowFalling = fx.has('slow_falling');
     pe.dolphinsGrace = fx.has('dolphins_grace');
+    // PowderSnowBlock.canEntityWalkOnPowderSnow: leather boots
+    const feet = p.inventory.get(36);
+    p.phys.walkOnPowderSnow = !!feet && nameOf(feet.id) === 'leather_boots';
     const st = this.using.get(p.id);
     if (st) {
       const slot = this.handSlot(p, st.hand);

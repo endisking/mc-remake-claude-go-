@@ -1113,6 +1113,9 @@ export class Game implements ScreenHost, ContainerHost {
         pe.slowFalling = u.hasEffect('slow_falling');
         pe.dolphinsGrace = u.hasEffect('dolphins_grace');
         pl.blind = u.hasEffect('blindness');
+        // leather boots walk on powder snow (PowderSnowBlock.canEntityWalkOnPowderSnow)
+        const feet = this.interaction.inventory.get(36);
+        pl.walkOnPowderSnow = !!feet && itemName(feet.id) === 'leather_boots';
       }
       pl.tick(move);
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
