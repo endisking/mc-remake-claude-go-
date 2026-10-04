@@ -820,8 +820,23 @@ export abstract class Mob extends ServerEntity {
 
   /** LivingEntity.pushEntities (mob–mob separation, Entity.push) */
   private pushEntities(): void {
-    if (this.dead || (this.tickCount + this.id) % 2 !== 0) return;
+    if (this.dead) return;
     const bb = this.bb();
+    // players push mobs too (the player's own push happens on its client)
+    for (const p of this.s.players) {
+      if (p.gameMode === 3 || p.living.dead || Math.abs(p.x - this.x) > 3 || Math.abs(p.z - this.z) > 3) continue;
+      const pb = AABB.ofSize(p.x, p.y, p.z, 0.6, p.pose === 'crouching' ? 1.5 : 1.8);
+      if (!bb.intersects(pb)) continue;
+      let dx = p.x - this.x, dz = p.z - this.z;
+      let d = Math.max(Math.abs(dx), Math.abs(dz));
+      if (d < 0.01) continue;
+      d = Math.sqrt(d);
+      const k = Math.min(1, 1 / d);
+      dx = (dx / d) * k * 0.05;
+      dz = (dz / d) * k * 0.05;
+      this.vx -= dx;
+      this.vz -= dz;
+    }
     for (const o of this.s.mobs.nearbyMobs(this.x, this.z, 2)) {
       if (o === this || o.dead || !(o instanceof Mob)) continue;
       if (!bb.intersects(o.bb())) continue;

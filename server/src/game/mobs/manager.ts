@@ -25,7 +25,7 @@ import type { ServerPlayer } from '../player';
 import type { GameServer } from '../server';
 import { DAMAGE, type DamageSource } from '../survival';
 import { Mob, isMob, targetEye, type Target, type MobCategory } from './mob';
-import { Zombie, Husk, Drowned, Skeleton, Stray, Creeper, Spider, Monster } from './monsters';
+import { Zombie, Husk, Drowned, Skeleton, Stray, Creeper, Spider, Monster, ZombieVillager, CaveSpider } from './monsters';
 import { Pig, Cow, Sheep, Chicken, Animal } from './animals';
 import { Arrow } from './arrow';
 import { Slime, isSlimeChunk, moonBrightness } from './slime';
@@ -36,7 +36,7 @@ import { itemForBlock } from '@shared/game/loot';
 
 type MobCtor = new (id: number, s: GameServer) => Mob;
 export const MOB_TYPES: Record<string, MobCtor> = {
-  zombie: Zombie, husk: Husk, drowned: Drowned, skeleton: Skeleton, stray: Stray, creeper: Creeper, spider: Spider,
+  zombie: Zombie, husk: Husk, drowned: Drowned, zombie_villager: ZombieVillager, cave_spider: CaveSpider, skeleton: Skeleton, stray: Stray, creeper: Creeper, spider: Spider,
   pig: Pig, cow: Cow, sheep: Sheep, chicken: Chicken, slime: Slime, enderman: Enderman, bat: Bat, squid: Squid,
 };
 

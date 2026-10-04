@@ -528,10 +528,10 @@ class SpiderAttackGoal extends MeleeAttackGoal {
 }
 
 export class Spider extends Monster {
-  readonly type = 'spider';
-  readonly maxHealth = 16;
-  readonly width = 1.4;
-  readonly height = 0.9;
+  readonly type: string = 'spider';
+  readonly maxHealth: number = 16;
+  readonly width: number = 1.4;
+  readonly height: number = 0.9;
   override movementSpeed = 0.3;
   climbing = false;
   override get eyeHeight(): number {
@@ -585,3 +585,30 @@ export class Spider extends Monster {
   }
 }
 
+/** Zombie villagers: zombie attributes and AI with their own voice (curing needs effects, Phase 7). */
+export class ZombieVillager extends Zombie {
+  override readonly type = 'zombie_villager';
+  override ambientSound(): string {
+    return 'entity.zombie_villager.ambient';
+  }
+  override hurtSound(): string {
+    return 'entity.zombie_villager.hurt';
+  }
+  override deathSound(): string {
+    return 'entity.zombie_villager.death';
+  }
+  override stepSound(): string {
+    return 'entity.zombie_villager.step';
+  }
+}
+
+/** Cave spiders (spawner only): smaller and weaker spiders (their poison needs status effects). */
+export class CaveSpider extends Spider {
+  override readonly type = 'cave_spider';
+  override readonly maxHealth = 12;
+  override readonly width = 0.7;
+  override readonly height = 0.5;
+  override get eyeHeight(): number {
+    return 0.45;
+  }
+}
