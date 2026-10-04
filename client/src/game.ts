@@ -3,7 +3,6 @@
  * frame loop and renderers.
  */
 import { animateFluids } from './world/fluidambience';
-import { animateCookingBlocks } from './world/blockambience';
 import { decodeS2C, encodeC2S, PROTOCOL_VERSION, type C2S, type S2C } from '@shared/protocol/packets';
 import { BIOMES } from '@shared/data';
 import { chunkKey } from '@shared/world/chunk';
@@ -73,6 +72,8 @@ import { InventoryMenu, createClientMenu, type Menu, type MenuType } from '@shar
 import { InventoryContainer } from '@shared/menu/container';
 import { decodeStacks } from '@shared/protocol/packets';
 import { saveSettings } from './settings';
+import { MusicManager, situationalMusic, MUSICS } from './audio/music';
+import { AmbientSounds } from './audio/ambient';
 import { ClientItemUse } from './itemuse';
 import { renderEffects } from './gui/effects';
 import { useDuration } from '@shared/game/items';
@@ -183,6 +184,14 @@ export class Game implements ScreenHost, ContainerHost {
   private lightning!: LightningRenderer;
   private orbRenderer!: OrbRenderer;
   readonly sound = new SoundEngine();
+  /** vanilla MusicManager (one streamed track at a time, 10-20 min apart in game) */
+  readonly music = new MusicManager((event) => this.sound.playStream(event, 'music', 1));
+  /** cave mood sounds and underwater ambience */
+  private readonly ambient = new AmbientSounds({
+    playAt: (event, x, y, z, volume, pitch) => this.playAt(event, 'ambient', x, y, z, volume, pitch),
+    playRelative: (event, volume, pitch) => this.sound.play(event, 'ambient', volume, pitch),
+    playLoop: (event) => this.sound.playStream(event, 'ambient', 0, true),
+  });
   private readonly steps = new StepTracker();
   private readonly sfxRand = new JavaRandom(BigInt(Date.now()) ^ 0x5deece66dn);
   private rainSoundTime = 0;
@@ -1196,7 +1205,7 @@ export class Game implements ScreenHost, ContainerHost {
     if (this.world.doDaylightCycle) this.world.dayTime++;
     this.world.gameTime++;
     animateFluids(this.world, this.player.x, this.player.y, this.player.z, this.sfxRand, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
-    animateCookingBlocks(this.world, this.player.x, this.player.y, this.player.z, this.sfxRand, (e, x, y, z, v, p) => this.playAt(e, 'block', x, y, z, v, p));
+    // cooking blocks, fire, candles, portals and bubble columns: blockambience via animateFluids' cells
     this.prevX = this.x;
     this.prevY = this.y;
     this.prevZ = this.z;
@@ -1242,6 +1251,7 @@ export class Game implements ScreenHost, ContainerHost {
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
     }
     this.tickRainSound();
+    this.tickAudio();
     // camera eye height eases toward the pose's eye height (vanilla Camera.tick)
     this.eyeHeightOld = this.eyeHeight;
     this.eyeHeight += (pl.eyeHeight - this.eyeHeight) * 0.5;
@@ -1657,6 +1667,28 @@ export class Game implements ScreenHost, ContainerHost {
       p.lastFallDistance = 0;
     }
     this.wasOnGround = p.onGround;
+  }
+
+  /** Music manager and ambient handlers (Minecraft.tick → musicManager.tick, LocalPlayer ambient handlers). */
+  private tickAudio(): void {
+    const pl = this.player;
+    const bx = Math.floor(pl.x), by = Math.floor(pl.y), bz = Math.floor(pl.z);
+    const loaded = this.loggedIn && this.world.isLoaded(bx, bz);
+    const biome = loaded ? BIOMES[this.world.getBiome(bx, by, bz)] : undefined;
+    const underWater = loaded && pl.isUnderWater;
+    this.music.tick(situationalMusic({
+      inMenu: !loaded,
+      dimension: biome?.dimension ?? 'overworld',
+      biome: biome?.name ?? 'plains',
+      biomeCategory: biome?.category ?? 'plains',
+      underWater,
+      creativeFlying: this.gameMode === 1 && pl.abilities.mayFly,
+    }, this.music.isPlaying(MUSICS.underWater)));
+    if (!loaded) return;
+    this.ambient.tick(this.world, {
+      x: pl.x, y: pl.y, z: pl.z, eyeY: pl.y + pl.eyeHeight, underWater: underWater && this.gameMode !== 3,
+      biome: biome?.name ?? null,
+    });
   }
 
   /** LevelRenderer.tickRain sound part: rain sounds from random exposed blocks near the camera. */
