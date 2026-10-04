@@ -1286,6 +1286,7 @@ export interface MobRenderDef {
 export const MOB_RENDER: Record<string, MobRenderDef> = {
   zombie: { layers: [{ model: 'zombie', texture: 'zombie' }] },
   husk: { layers: [{ model: 'zombie', texture: 'husk' }], scale: 1.0625 },
+  giant: { layers: [{ model: 'zombie', texture: 'zombie' }], scale: 6 },
   drowned: { layers: [{ model: 'drowned', texture: 'drowned' }] },
   skeleton: { layers: [{ model: 'skeleton', texture: 'skeleton' }] },
   stray: { layers: [{ model: 'skeleton', texture: 'stray' }, { model: 'stray_overlay', texture: 'stray_overlay' }] },

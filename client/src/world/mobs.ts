@@ -29,6 +29,7 @@ const N = (shadow: number, extra: Partial<MobInfo> = {}): MobInfo => ({ shadow, 
 export const MOB_INFO: Record<string, MobInfo> = {
   zombie: H(0.5),
   husk: H(0.5),
+  giant: H(3),
   drowned: H(0.5),
   zombie_villager: H(0.5),
   skeleton: H(0.5),
