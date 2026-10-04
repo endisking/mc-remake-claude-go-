@@ -25,7 +25,7 @@ export const enum ClickType {
 /** The clicked slot id for "outside the window" (drop the carried stack). */
 export const SLOT_OUTSIDE = -999;
 
-export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'furnace' | 'blast_furnace' | 'smoker';
+export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker';
 
 export interface MenuPlayer {
   readonly inventory: Inventory;
@@ -682,6 +682,53 @@ export class ChestMenu extends Menu {
   }
 }
 
+/** DispenserMenu (dispenser, dropper): 3×3 container slots, then the player inventory. */
+export class DispenserMenu extends Menu {
+  constructor(id: number, inv: Container, readonly container: Container) {
+    super('generic_3x3', id);
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) this.addSlot(new Slot(container, j + i * 3, 62 + j * 18, 17 + i * 18));
+    this.addPlayerInventory(inv, 84);
+  }
+  override stillValid(): boolean {
+    return this.container.stillValid?.() ?? true;
+  }
+  quickMoveStack(p: MenuPlayer, index: number): ItemStack | null {
+    const slot = this.slots[index];
+    const st = slot?.getItem();
+    if (!slot || !st) return null;
+    const orig = copyStack(st)!;
+    if (index < 9) {
+      if (!this.moveItemStackTo(st, 9, 45, true)) return null;
+    } else if (!this.moveItemStackTo(st, 0, 9, false)) return null;
+    return this.finishQuickMove(slot, st, orig, p);
+  }
+}
+
+/** HopperMenu: 5 container slots, then the player inventory. */
+export class HopperMenu extends Menu {
+  constructor(id: number, inv: Container, readonly container: Container) {
+    super('hopper', id);
+    this.imageHeight = 133;
+    for (let j = 0; j < 5; j++) this.addSlot(new Slot(container, j, 44 + j * 18, 20));
+    this.addPlayerInventory(inv, 51);
+  }
+  override stillValid(): boolean {
+    return this.container.stillValid?.() ?? true;
+  }
+  quickMoveStack(_p: MenuPlayer, index: number): ItemStack | null {
+    const slot = this.slots[index];
+    const st = slot?.getItem();
+    if (!slot || !st) return null;
+    const orig = copyStack(st)!;
+    if (index < 5) {
+      if (!this.moveItemStackTo(st, 5, this.slots.length, true)) return null;
+    } else if (!this.moveItemStackTo(st, 0, 5, false)) return null;
+    if (st.count <= 0) slot.set(null);
+    else slot.setChanged();
+    return orig;
+  }
+}
+
 /** AbstractFurnaceMenu: 0 ingredient, 1 fuel, 2 result, 3–29 main, 30–38 hotbar; data = lit/cook progress. */
 export class FurnaceMenu extends Menu {
   constructor(
@@ -750,6 +797,10 @@ export function createClientMenu(type: MenuType, id: number, inv: Container): Me
       return new ChestMenu(id, inv, new SimpleContainer(27), 3);
     case 'generic_9x6':
       return new ChestMenu(id, inv, new SimpleContainer(54), 6);
+    case 'generic_3x3':
+      return new DispenserMenu(id, inv, new SimpleContainer(9));
+    case 'hopper':
+      return new HopperMenu(id, inv, new SimpleContainer(5));
     case 'furnace':
     case 'blast_furnace':
     case 'smoker':

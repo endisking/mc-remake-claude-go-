@@ -25,7 +25,7 @@ export function isInteractive(state: number): boolean {
 }
 
 /** Container blocks whose menus are implemented (server Containers.useBlock). */
-const OPENABLE_CONTAINERS = new Set(['crafting_table', 'chest', 'trapped_chest', 'ender_chest', 'barrel', 'furnace', 'blast_furnace', 'smoker']);
+const OPENABLE_CONTAINERS = new Set(['crafting_table', 'chest', 'trapped_chest', 'ender_chest', 'barrel', 'furnace', 'blast_furnace', 'smoker', 'dispenser', 'dropper', 'hopper']);
 
 const MENU_PROVIDERS = new Set([
   'crafting_table', 'chest', 'trapped_chest', 'furnace', 'blast_furnace', 'smoker', 'dispenser', 'dropper', 'hopper',

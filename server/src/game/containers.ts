@@ -12,7 +12,7 @@ import { blockNameOf, getProp, withProp } from '@shared/world/blockstate';
 import { BLOCKS_BY_NAME } from '@shared/data';
 import { FULL_COLLISION } from '@shared/world/blockinfo';
 import { isEmpty, type ItemStack } from '@shared/item/stack';
-import { ChestMenu, CraftingMenu, FurnaceMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
+import { ChestMenu, CraftingMenu, DispenserMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
 import { CompoundContainer, InventoryContainer, SimpleContainer, type Container } from '@shared/menu/container';
 import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, type FurnaceData, type FurnaceKind } from '@shared/menu/furnace';
 import { chestPartner, isChest, isFirstHalf } from '@shared/game/chest';
@@ -220,6 +220,18 @@ export class Containers {
       this.startViewing([x, y, z], p, 'block.barrel');
       return true;
     }
+    if (name === 'dispenser' || name === 'dropper') {
+      const valid = this.validFor(p, x, y, z, (n) => n === name);
+      const c = this.itemsContainer(x, y, z, name, 9, valid);
+      this.open(p, (id) => new DispenserMenu(id, inv, c), name === 'dispenser' ? 'Dispenser' : 'Dropper', [x, y, z]);
+      return true;
+    }
+    if (name === 'hopper') {
+      const valid = this.validFor(p, x, y, z, (n) => n === 'hopper');
+      const c = this.itemsContainer(x, y, z, 'hopper', 5, valid);
+      this.open(p, (id) => new HopperMenu(id, inv, c), 'Item Hopper', [x, y, z]);
+      return true;
+    }
     if (name === 'ender_chest') {
       if (this.chestBlocked(x, y, z)) return true;
       const c = this.state(p).enderChest;
@@ -262,7 +274,16 @@ export class Containers {
     const n = (this.viewers.get(k) ?? 0) + 1;
     this.viewers.set(k, n);
     void p;
-    if (n === 1) this.containerSound(pos, sound + '.open');
+    if (n === 1) {
+      this.containerSound(pos, sound + '.open');
+      this.setOpenState(pos, true);
+    }
+  }
+
+  /** BarrelBlockEntity.updateBlockState: the barrel's OPEN property while anyone looks inside. */
+  private setOpenState(pos: [number, number, number], open: boolean): void {
+    const st = this.server.world.getState(pos[0], pos[1], pos[2]);
+    if (blockNameOf(st) === 'barrel' && getProp(st, 'open') !== open) this.server.setBlock(pos[0], pos[1], pos[2], withProp(st, 'open', open));
   }
 
   private stopViewing(pos: [number, number, number], _p: ServerPlayer): void {
@@ -274,6 +295,7 @@ export class Containers {
       this.viewers.delete(k);
       const sound = name === 'barrel' ? 'block.barrel' : name === 'ender_chest' ? 'block.ender_chest' : isChest(name) ? 'block.chest' : null;
       if (sound) this.containerSound(pos, sound + '.close');
+      this.setOpenState(pos, false);
     } else this.viewers.set(k, n - 1);
   }
 

@@ -489,10 +489,23 @@ export class FurnaceScreen extends AbstractContainerScreen<FurnaceMenu> {
   }
 }
 
+/** DispenserScreen / HopperScreen: a panel with the container's slot wells. */
+export class SimpleContainerScreen extends AbstractContainerScreen<Menu> {
+  protected renderBg(): void {
+    panel(this.gui, this.leftPos, this.topPos, this.imageWidth, this.imageHeight);
+    this.renderSlotWells();
+  }
+  override init(): void {
+    super.init();
+    if (this.menu.type === 'generic_3x3') this.titleLabelX = Math.floor((this.imageWidth - this.gui.font.width(this.title)) / 2);
+  }
+}
+
 /** Screen for a server-opened menu. */
 export function screenForMenu(host: ContainerHost, menu: Menu, title: string): AbstractContainerScreen {
   if (menu instanceof CraftingMenu) return new CraftingScreen(host, menu, title);
   if (menu instanceof FurnaceMenu) return new FurnaceScreen(host, menu, title);
   if (menu instanceof InventoryMenu) return new InventoryScreen(host, menu);
+  if (menu.type === 'generic_3x3' || menu.type === 'hopper') return new SimpleContainerScreen(host, menu, title);
   return new ChestScreen(host, menu as ChestMenu, title);
 }

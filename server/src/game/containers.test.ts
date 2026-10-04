@@ -116,4 +116,25 @@ describe('containers', () => {
     server.tick();
     expect(a.received.some((m) => m.t === 'closeWindow')).toBe(true);
   });
+
+  it('barrels show OPEN while viewed; hoppers and dispensers open their menus', () => {
+    const { server, a, gx, gy, gz } = setup();
+    server.setBlock(gx + 2, gy + 1, gz, stateOf('barrel'));
+    a.send({ t: 'useOn', x: gx + 2, y: gy + 1, z: gz, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    let open = a.received.filter((m) => m.t === 'openWindow').at(-1) as Extract<S2C, { t: 'openWindow' }>;
+    expect(open).toMatchObject({ type: 'generic_9x3', title: 'Barrel' });
+    expect(getProp(server.world.getState(gx + 2, gy + 1, gz), 'open')).toBe(true);
+    a.send({ t: 'closeWindow', windowId: open.windowId });
+    expect(getProp(server.world.getState(gx + 2, gy + 1, gz), 'open')).toBe(false);
+    server.setBlock(gx + 3, gy + 1, gz, stateOf('hopper'));
+    a.send({ t: 'useOn', x: gx + 3, y: gy + 1, z: gz, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    open = a.received.filter((m) => m.t === 'openWindow').at(-1) as Extract<S2C, { t: 'openWindow' }>;
+    expect(open).toMatchObject({ type: 'hopper', title: 'Item Hopper' });
+    server.setBlock(gx + 4, gy + 1, gz, stateOf('dropper'));
+    a.send({ t: 'useOn', x: gx + 4, y: gy + 1, z: gz, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    open = a.received.filter((m) => m.t === 'openWindow').at(-1) as Extract<S2C, { t: 'openWindow' }>;
+    expect(open).toMatchObject({ type: 'generic_3x3', title: 'Dropper' });
+    const items = a.received.filter((m) => m.t === 'windowItems').at(-1) as Extract<S2C, { t: 'windowItems' }>;
+    expect(decodeStacks(items.items).length).toBe(9 + 36 + 1);
+  });
 });

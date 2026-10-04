@@ -765,6 +765,8 @@ export class GameServer {
     if (mode === 3) p.flying = true;
     // leaving spectator stops looking through another entity
     if (mode !== 3) this.setCamera(p, null);
+    // spectators can't keep a container open
+    else this.containers.closeContainer(p, true);
     p.stateDirty = true;
     this.send(p, { t: 'gameMode', mode });
     this.sendAbilities(p);
