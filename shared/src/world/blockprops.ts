@@ -23,6 +23,8 @@ export function isInteractive(state: number): boolean {
   if (isOpenableByHand(state)) return true;
   const n = blockNameOf(state);
   if (n === 'dragon_egg' || n === 'cake' || n.endsWith('candle_cake')) return true;
+  // redstone components with a use action (lever, buttons, repeater delay, comparator mode, daylight detector)
+  if (n === 'lever' || n.endsWith('_button') || n === 'repeater' || n === 'comparator' || n === 'daylight_detector') return true;
   if (n.endsWith('candle') && getPropOf(state, 'lit') === true) return true;
   // harvestable berries
   if (n === 'sweet_berry_bush' && (getPropOf(state, 'age') as number) > 1) return true;

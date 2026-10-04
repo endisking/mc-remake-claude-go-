@@ -9,6 +9,7 @@ import { serializeChunk, deserializeChunk, packRecord, unpackRecord, capturePlay
 import { SAVE_FORMAT_VERSION, type WorldStorage, type LevelMeta, type PlayerData } from '../storage/types';
 import { DevGenerator } from '@shared/worldgen/devgen';
 import { OverworldGenerator } from '@shared/worldgen/overworld/generator';
+import { findSpawnBiome } from '@shared/worldgen/structures/placement';
 import { NetherGenerator } from '@shared/worldgen/nether/generator';
 import { EndGenerator } from '@shared/worldgen/end/generator';
 import { TheEnd, EyeOfEnder } from './theend';
@@ -55,6 +56,7 @@ import { ItemUse } from './itemuse';
 import { Arrow } from './arrow';
 import { Thrown } from './throwable';
 import { Containers } from './containers';
+import { ServerRedstone } from './redstone';
 import { takeGenBlockEntities } from '@shared/worldgen/features/underground';
 import { takeGenEntities } from '@shared/worldgen/structures/entities';
 import { Commands, commandHooks, type AccessStore } from './commands';
@@ -214,6 +216,8 @@ export class GameServer {
   readonly blocks = new BlockBehaviors(this);
   /** container menus, block entities and furnaces */
   readonly containers = new Containers(this);
+  /** redstone signals and components (redstone.ts) */
+  readonly redstone = new ServerRedstone(this);
   // ---- fluids (FlowingFluid ticks; see fluidticks.ts) ----
   private readonly makeFluids = (): FluidTicks => new FluidTicks({
     getState: (x, y, z) => this.world.getState(x, y, z),
@@ -286,7 +290,7 @@ export class GameServer {
   /** `owner`: the host's own connection (single-player / LAN host). */
   connect(conn: Connection, owner = false): (data: ArrayBuffer) => void {
     let player: ServerPlayer | null = null;
-    return (data: ArrayBuffer) => {
+    const onPacket = (data: ArrayBuffer) => {
       const p = decodeC2S(data);
       if (!player) {
         if (p.t !== 'hello') return;
@@ -308,6 +312,22 @@ export class GameServer {
       const pl = player;
       this.inLevel(this.levelOf(pl), () => this.handle(pl, p));
     };
+    // a bad packet or a bug in one handler must not take down the server (or every room on the host)
+    return (data: ArrayBuffer) => {
+      try {
+        onPacket(data);
+      } catch (e) {
+        this.reportError(`packet from ${player?.name ?? 'a new connection'}`, e);
+      }
+    };
+  }
+
+  private errorCount = 0;
+
+  /** Log an exception caught by the tick loop or packet handling (the first 20, then every 100th). */
+  reportError(where: string, e: unknown): void {
+    this.errorCount++;
+    if (this.errorCount <= 20 || this.errorCount % 100 === 0) console.error(`[server] error in ${where} (#${this.errorCount}):`, e);
   }
 
   disconnect(conn: Connection): void {
@@ -476,14 +496,53 @@ export class GameServer {
     }
   }
 
-  /** World spawn: on top of the terrain at the world origin (fixed once found). */
+  /**
+   * World spawn (fixed once found). With the 1.17 generator: MinecraftServer.setInitialSpawn — a spawn
+   * biome within 256 blocks of the origin, then a chunk spiral for a grass column with no fluid on top
+   * (PlayerRespawnLogic.getSpawnPosInChunk), so new players don't start in an ocean or a desert.
+   * Other terrain: on top of the terrain at the world origin.
+   */
   spawnPosition(): [number, number, number] {
     if (!this.worldSpawnSet) {
-      const spawn = this.inLevel(this.levels.get('overworld')!, () => this.prepareChunk(0, 0));
-      this.worldSpawn = [8, spawn.topY(8, 8) + 1, 8];
+      const ow = this.levels.get('overworld')!;
+      const found = ow.generator instanceof OverworldGenerator ? this.inLevel(ow, () => this.findInitialSpawn(ow.generator as OverworldGenerator)) : null;
+      this.worldSpawn = found ?? [8, this.inLevel(ow, () => this.prepareChunk(0, 0)).topY(8, 8) + 1, 8];
       this.worldSpawnSet = true;
     }
     return [this.worldSpawn[0] + 0.5, this.worldSpawn[1], this.worldSpawn[2] + 0.5];
+  }
+
+  private findInitialSpawn(gen: OverworldGenerator): [number, number, number] | null {
+    const pos = findSpawnBiome(gen);
+    const ccx = pos ? pos[0] >> 4 : 0, ccz = pos ? pos[1] >> 4 : 0;
+    // getOverworldRespawnPos: down from the top, stop at fluid; the biome's top material (grass) is a valid spawn
+    const columnSpawn = (c: Chunk, lx: number, lz: number, anySolid: boolean): number => {
+      for (let y = c.topY(lx, lz); y > 0; y--) {
+        const st = c.getState(lx, y, lz);
+        const n = blockNameOf(st);
+        if (n === 'water' || n === 'lava' || n === 'bubble_column' || n === 'kelp' || n === 'kelp_plant' || n === 'seagrass' || n === 'tall_seagrass' || getProp(st, 'waterlogged') === 'true') return -1;
+        if (n === 'grass_block' || n === 'podzol' || (anySolid && !n.endsWith('leaves') && collisionBoxes(st).length > 0)) return y + 1;
+      }
+      return -1;
+    };
+    // spiral over up to 11×11 chunks (vanilla: 32×32; the first chunk of a spawn biome almost always has grass)
+    let i = 0, j = 0, k = 0, l = -1;
+    for (let n = 0; n < 121; n++) {
+      const c = this.prepareChunk(ccx + i, ccz + j);
+      for (let lx = 0; lx < 16; lx++)
+        for (let lz = 0; lz < 16; lz++) {
+          const y = columnSpawn(c, lx, lz, pos === null);
+          if (y > 0) return [((ccx + i) << 4) + lx, y, ((ccz + j) << 4) + lz];
+        }
+      if (i === j || (i < 0 && i === -j) || (i > 0 && i === 1 - j)) {
+        const t = k;
+        k = -l;
+        l = t;
+      }
+      i += k;
+      j += l;
+    }
+    return null;
   }
 
   actionBar(p: ServerPlayer, text: string): void {
@@ -745,7 +804,8 @@ export class GameServer {
     const existing = this.world.getState(px, py, pz);
     const canReplaceExisting = isReplaceable(existing, block) || (block.endsWith('_slab') && blockNameOf(existing) === block);
     if (!canReplaceExisting) return this.resendBlock(p, px, py, pz);
-    const state = stateForPlacement(block, { world: this.world, x: px, y: py, z: pz, face, hx: m.cx, hy: m.cy, hz: m.cz, yaw: p.yaw, pitch: p.pitch, sneaking: p.sneaking }, existing);
+    let state = stateForPlacement(block, { world: this.world, x: px, y: py, z: pz, face, hx: m.cx, hy: m.cy, hz: m.cz, yaw: p.yaw, pitch: p.pitch, sneaking: p.sneaking }, existing);
+    if (state !== null) state = this.redstone.placementState(px, py, pz, state);
     if (state === null || !canSurvive(this.world, px, py, pz, state)) return this.resendBlock(p, px, py, pz);
     const extra = companionPlacement(block, state);
     for (const e of extra) {
@@ -764,6 +824,7 @@ export class GameServer {
     this.setBlock(px, py, pz, state);
     for (const e of extra) this.setBlock(px + e.dx, py + e.dy, pz + e.dz, e.state);
     this.updateNeighbors(px, py, pz);
+    this.redstone.placed(px, py, pz);
     // BlockItem.place: the placer plays it locally, everyone else hears it from here
     const st = soundTypeOf(state);
     this.playSound(p, st.place, 'block', px + 0.5, py + 0.5, pz + 0.5, (st.volume + 1) / 2, st.pitch * 0.8);
@@ -1111,6 +1172,7 @@ export class GameServer {
     if (blockNameOf(st).endsWith('_bed')) return this.sleep.useBed(p, x, y, z);
     if (useAnchor(this, p, x, y, z)) return true;
     if (this.blocks.use(p, x, y, z)) return true;
+    if (this.redstone.use(p, x, y, z)) return true;
     if (this.containers.useBlock(p, x, y, z)) return true;
     return false;
   }
@@ -1814,7 +1876,8 @@ export class GameServer {
     await this.opts.storage?.close();
   }
 
-  setBlock(x: number, y: number, z: number, state: number): void {
+  /** Level.setBlock; `flags` as vanilla (1 neighbour updates, 2 clients, 16 no shape updates) for redstone. */
+  setBlock(x: number, y: number, z: number, state: number, flags = 3): void {
     if (y < 0 || y > 255) return;
     const old = this.world.setStateRaw(x, y, z, state);
     if (old === state) return;
@@ -1822,6 +1885,9 @@ export class GameServer {
     this.light.onBlockChanged(x, y, z, old, state);
     const key = chunkKey(x >> 4, z >> 4);
     for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
+    // redstone: onRemove/onPlace, neighbour updates (flag 1) and shape updates (no flag 16)
+    this.redstone.onBlockChanged(x, y, z, old, state, flags);
+    if (this.world.getState(x, y, z) !== state) return;
     this.blocks.afterSetBlock(x, y, z, old, state);
     this.portals.onBlockChanged(x, y, z, old, state);
     // after the packet: fluid updates may replace this block again (lava hardening) and must arrive later
@@ -1866,6 +1932,7 @@ export class GameServer {
       // mobs exist in the overworld only so far (no nether mobs yet)
       if (lv === overworld) this.mobs.tick();
       this.blocks.tick();
+      this.redstone.tickLevel();
       this.tickEntities();
       this.items.tickClouds(); // Phase 7: lingering potion clouds of this dimension
       this.portals.tickEntities();
@@ -2113,7 +2180,12 @@ export class GameServer {
       // catch up at most 10 ticks if we fell behind (vanilla skips beyond that)
       let n = 0;
       while (now >= next && n < 10) {
-        this.tick();
+        // an exception in one tick must not stop the loop (the world would freeze and stop autosaving)
+        try {
+          this.tick();
+        } catch (e) {
+          this.reportError('tick', e);
+        }
         next += msPerTick;
         n++;
       }

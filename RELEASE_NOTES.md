@@ -1,15 +1,43 @@
-# Blockcraft pre-release
+# Blockcraft 0.4.0 (pre-release)
 
 A browser voxel sandbox that plays like Minecraft Java Edition 1.17.1, with 100% original art, sounds and code.
-This is an early development snapshot.
+This is an early development snapshot. Expect bugs and missing features.
 
 ## Downloads
-- **Blockcraft-…-win32-x64.zip** — Windows desktop app. Unzip anywhere and run `Blockcraft.exe`.
-- **Blockcraft-…-web.zip** — the web app. Serve the folder with any static web server (it needs http://, not
-  file://), e.g. `npx serve .`, then open it in Chrome, Edge or Firefox.
+- **Blockcraft-0.4.0-win32-x64.zip**: the Windows desktop app. Unzip it anywhere and run `Blockcraft.exe`.
+  Worlds are saved inside the app.
+- **Blockcraft-0.4.0-web.zip**: the web app. Serve the folder with any static web server (it must be http://,
+  not file://), for example `npx serve .`, then open it in Chrome, Edge or Firefox.
+
+## What's in this build
+- **World generation:**
+  - 1.17.1 world generation: every overworld biome, caves and ravines, ores at 1.17.1 heights, all tree types,
+    vegetation, geodes, dungeons, dripstone and corals.
+  - Structures: villages, temples, igloos, shipwrecks, ocean ruins, mineshafts, strongholds, outposts, ruined
+    portals, monuments and mansions.
+- **Survival:** health, hunger, XP, inventory, crafting (every 1.17.1 recipe), furnaces, chests,
+  tools/armour/durability, food and status effects, enchanting, anvils, brewing.
+- **Blocks:** water and lava flow, farming, saplings and bone meal, doors, fire and TNT, and redstone (dust,
+  torches, repeaters, comparators, lamps, observers, pistons).
+- **Mobs:** zombies, skeletons, creepers, spiders, farm animals, wolves, slimes, endermen, phantoms and more,
+  with vanilla spawning rules.
+- **Dimensions:** the Nether (portals of any size, all five biomes) and the End (eyes of ender, end portals,
+  pillars, chorus, credits).
+- **Multiplayer:** a dedicated server (`pnpm server` from the source; rooms, ops, whitelist, bans) and
+  browser-hosted "Open to LAN" games.
+- **Sound and settings:** sounds for every block and mob, music and ambience, and the full options screens.
 
 ## Playing
-The start page lets you pick a name and then:
-- **Singleplayer**: a seed (blank = random) and a game mode.
-- **Join Server**: a dedicated server address and room (`pnpm server` from the source).
-- **Join LAN Game**: a room code from a friend who opened their world to LAN (Esc → Open to LAN).
+The start page lets you pick a name, then:
+- **Singleplayer:** create a world (name, seed, game mode) or play, export, import or delete a saved one.
+- **Join Server:** a dedicated server address and room.
+- **Join LAN Game:** a room code from a friend who opened their world to LAN (Esc → Open to LAN).
+
+## Known issues
+- There is no ender dragon yet, so the End's exit portal is open from the start.
+- No villager trading, horses or minecarts yet. Some mobs without a model are drawn as plain boxes.
+- Pistons move instantly (no animation). Hoppers, rails and most dispenser actions are not done yet.
+- "Open to LAN" needs the page to be served by the dedicated server (it provides the `/signal` relay), or a
+  `?signal=wss://your-server/signal` parameter. It does not work from the desktop app or plain static hosting.
+- Some numbers (smelting recipes, structure loot weights) were written from memory and may differ slightly from
+  vanilla.

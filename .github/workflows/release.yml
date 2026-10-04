@@ -31,3 +31,33 @@ jobs:
           prerelease: true
           body_path: RELEASE_NOTES.md
           files: build/release/*.zip
+
+  # Playable web build on GitHub Pages (optional: needs Pages allowed for the repository).
+  pages:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: find client/dist -name '*.map' -delete
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: client/dist
+      - id: deploy
+        uses: actions/deploy-pages@v4

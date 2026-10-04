@@ -36,5 +36,25 @@ app.whenReady().then(async () => {
   });
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
   win.loadURL(`http://127.0.0.1:${port}/`);
+  // closing the window saves the open single-player world first (the renderer would otherwise be
+  // killed mid-save and lose everything since the last autosave)
+  let saved = false;
+  win.on('close', (e) => {
+    if (saved) return;
+    e.preventDefault();
+    const done = () => {
+      if (saved) return;
+      saved = true;
+      if (!win.isDestroyed()) win.close();
+    };
+    const timer = setTimeout(done, 15000);
+    win.webContents
+      .executeJavaScript('window.game && window.game.saveForExit ? window.game.saveForExit() : null', true)
+      .catch(() => {})
+      .finally(() => {
+        clearTimeout(timer);
+        done();
+      });
+  });
 });
 app.on('window-all-closed', () => app.quit());

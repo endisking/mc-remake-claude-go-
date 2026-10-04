@@ -16308,6 +16308,74 @@
    }
   ]
  },
+ "block.comparator.click": {
+  "sounds": [
+   {
+    "name": "lever/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "lever/1",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "block.dispenser.dispense": {
+  "sounds": [
+   {
+    "name": "button/0"
+   },
+   {
+    "name": "button/1"
+   }
+  ]
+ },
+ "block.dispenser.fail": {
+  "sounds": [
+   {
+    "name": "button/0",
+    "pitch": 1.2
+   },
+   {
+    "name": "button/1",
+    "pitch": 1.2
+   }
+  ]
+ },
+ "block.redstone_torch.burnout": {
+  "sounds": [
+   {
+    "name": "extinguish/0"
+   },
+   {
+    "name": "extinguish/1"
+   }
+  ]
+ },
+ "block.piston.extend": {
+  "sounds": [
+   {
+    "name": "pressure_plate/0",
+    "pitch": 0.6
+   },
+   {
+    "name": "pressure_plate/1",
+    "pitch": 0.6
+   }
+  ]
+ },
+ "block.piston.contract": {
+  "sounds": [
+   {
+    "name": "pressure_plate/0",
+    "pitch": 0.5
+   },
+   {
+    "name": "pressure_plate/1",
+    "pitch": 0.5
+   }
+  ]
+ },
  "entity.iron_golem.damage": {
   "sounds": [
    {

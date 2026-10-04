@@ -252,7 +252,10 @@ export class Containers {
     this.unpackLoot(be, x, z);
     const items = be.items as (ItemStack | null)[];
     const c = new SimpleContainer(items);
-    c.onChange = () => this.markDirty(x, z);
+    c.onChange = () => {
+      this.markDirty(x, z);
+      this.server.redstone.containerChanged(x, y, z); // redstone: comparators read the fill level
+    };
     (c as Container).stillValid = pred;
     return c;
   }
@@ -476,10 +479,16 @@ export class Containers {
     return FULL_COLLISION[above] === 1 && !!b && !b.transparent && !blockNameOf(above).includes('glass') && !blockNameOf(above).endsWith('_leaves');
   }
 
+  /** players looking into the container at pos (ContainerOpenersCounter.getOpenerCount) */
+  viewerCount(x: number, y: number, z: number): number {
+    return this.viewers.get(`${x},${y},${z}`) ?? 0;
+  }
+
   private startViewing(pos: [number, number, number], p: ServerPlayer, sound: string): void {
     const k = pos.join(',');
     const n = (this.viewers.get(k) ?? 0) + 1;
     this.viewers.set(k, n);
+    this.server.redstone.chestViewersChanged(pos[0], pos[1], pos[2]); // redstone: trapped chests
     void p;
     if (n === 1) {
       this.containerSound(pos, sound + '.open');
@@ -504,6 +513,7 @@ export class Containers {
       if (sound) this.containerSound(pos, sound + '.close');
       this.setOpenState(pos, false);
     } else this.viewers.set(k, n - 1);
+    this.server.redstone.chestViewersChanged(pos[0], pos[1], pos[2]); // redstone: trapped chests
   }
 
   private containerSound(pos: [number, number, number], event: string, pitchFixed?: number): void {
@@ -567,7 +577,10 @@ export class Containers {
         }
         const f = be as unknown as FurnaceData;
         const r = tickFurnace(f);
-        if (r.changed) this.markDirty(x, z);
+        if (r.changed) {
+          this.markDirty(x, z);
+          srv.redstone.containerChanged(x, y, z); // redstone: comparators read the fill level
+        }
         if (r.litChanged) srv.setBlock(x, y, z, withProp(st, 'lit', f.litTime > 0));
       }
     }

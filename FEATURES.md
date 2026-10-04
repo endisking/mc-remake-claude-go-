@@ -479,18 +479,18 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Redstone (exact)
 
-- [ ] Redstone dust: signal strength and decay <!--p4r:redstone_dust_signal_strength_and_decay-->
-- [ ] Redstone dust: connection shapes and dot/line toggle <!--p4r:redstone_dust_connection_shapes_and_dot_line_toggle-->
-- [ ] Redstone torches (incl. burnout) <!--p4r:redstone_torches_incl_burnout-->
-- [ ] Repeaters (delay 1–4, locking) <!--p4r:repeaters_delay_1_4_locking-->
-- [ ] Comparators (compare/subtract, container levels, other inputs) <!--p4r:comparators_compare_subtract_container_levels_other_inputs-->
+- [x] Redstone dust: signal strength and decay <!--p4r:redstone_dust_signal_strength_and_decay-->
+- [x] Redstone dust: connection shapes and dot/line toggle <!--p4r:redstone_dust_connection_shapes_and_dot_line_toggle-->
+- [x] Redstone torches (incl. burnout) <!--p4r:redstone_torches_incl_burnout-->
+- [x] Repeaters (delay 1–4, locking) <!--p4r:repeaters_delay_1_4_locking-->
+- [x] Comparators (compare/subtract, container levels, other inputs) <!--p4r:comparators_compare_subtract_container_levels_other_inputs-->
 - [ ] Pistons (12-block push limit) <!--p4r:pistons_12_block_push_limit-->
 - [ ] Sticky pistons <!--p4r:sticky_pistons-->
-- [ ] Quasi-connectivity <!--p4r:quasi_connectivity-->
+- [x] Quasi-connectivity <!--p4r:quasi_connectivity-->
 - [ ] Block dropping / spitting <!--p4r:block_dropping_spitting-->
 - [ ] Slime and honey block movement <!--p4r:slime_and_honey_block_movement-->
-- [ ] Immovable and breakable blocks for pistons <!--p4r:immovable_and_breakable_blocks_for_pistons-->
-- [ ] Observers <!--p4r:observers-->
+- [x] Immovable and breakable blocks for pistons <!--p4r:immovable_and_breakable_blocks_for_pistons-->
+- [x] Observers <!--p4r:observers-->
 - [ ] Hoppers <!--p4r:hoppers-->
 - [ ] Droppers <!--p4r:droppers-->
 - [ ] Dispensers (every behavior) <!--p4r:dispensers_every_behavior-->
@@ -498,17 +498,17 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [ ] Powered rails <!--p4r:powered_rails-->
 - [ ] Detector rails <!--p4r:detector_rails-->
 - [ ] Activator rails <!--p4r:activator_rails-->
-- [ ] Daylight sensors <!--p4r:daylight_sensors-->
-- [ ] Target blocks <!--p4r:target_blocks-->
+- [x] Daylight sensors <!--p4r:daylight_sensors-->
+- [x] Target blocks <!--p4r:target_blocks-->
 - [ ] Tripwire and hooks <!--p4r:tripwire_and_hooks-->
-- [ ] Pressure plates (all types, weighted) <!--p4r:pressure_plates_all_types_weighted-->
-- [ ] Buttons (stone/wood/polished blackstone) <!--p4r:buttons_stone_wood_polished_blackstone-->
-- [ ] Levers <!--p4r:levers-->
-- [ ] Redstone lamps <!--p4r:redstone_lamps-->
-- [ ] Trapped chests <!--p4r:trapped_chests-->
+- [x] Pressure plates (all types, weighted) <!--p4r:pressure_plates_all_types_weighted-->
+- [x] Buttons (stone/wood/polished blackstone) <!--p4r:buttons_stone_wood_polished_blackstone-->
+- [x] Levers <!--p4r:levers-->
+- [x] Redstone lamps <!--p4r:redstone_lamps-->
+- [x] Trapped chests <!--p4r:trapped_chests-->
 - [ ] Lecterns <!--p4r:lecterns-->
-- [ ] Note block triggering <!--p4r:note_block_triggering-->
-- [ ] Doors/trapdoors/fence gates powered <!--p4r:doors_trapdoors_fence_gates_powered-->
+- [x] Note block triggering <!--p4r:note_block_triggering-->
+- [x] Doors/trapdoors/fence gates powered <!--p4r:doors_trapdoors_fence_gates_powered-->
 - [ ] TNT ignition <!--p4r:tnt_ignition-->
 - [ ] Lightning rod output <!--p4r:lightning_rod_output-->
 - [ ] Sculk sensor output <!--p4r:sculk_sensor_output-->
