@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 130 / 4140**
+**Progress: 131 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -117,7 +117,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - [x] Crawling in 1-block gaps <!--p2:crawling_in_1_block_gaps-->
 - [x] Water physics (drag 0.8, buoyancy, current push) <!--p2:water_physics_drag_0_8_buoyancy_current_push-->
 - [x] Lava physics (drag 0.5) <!--p2:lava_physics_drag_0_5-->
-- [ ] Ladders, vines, twisting/weeping vines, scaffolding climbing <!--p2:ladders_vines_twisting_weeping_vines_scaffolding_climbing-->
+- [x] Ladders, vines, twisting/weeping vines, scaffolding climbing <!--p2:ladders_vines_twisting_weeping_vines_scaffolding_climbing-->
 - [ ] Soul sand slowdown, soul speed <!--p2:soul_sand_slowdown_soul_speed-->
 - [x] Honey block slowdown and slide <!--p2:honey_block_slowdown_and_slide-->
 - [x] Cobweb slowdown <!--p2:cobweb_slowdown-->

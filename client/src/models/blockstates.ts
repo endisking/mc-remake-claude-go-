@@ -234,6 +234,34 @@ export function doorDef(name: string, top: string, bottom: string): BlockStateDe
  * Bed halves: a 6-px mattress (y 3–9) on two 3×3×3 legs at the outer corners. Modelled with
  * the head toward north (−Z); FACING (foot → head) rotates it.
  */
+/**
+ * Scaffolding: framed side panels (seen from outside and inside), a slatted platform on top and
+ * a frame underneath; a hanging ("bottom") piece adds foot rails like its collision shape.
+ */
+export function scaffoldingDef(): BlockStateDef {
+  type V3 = [number, number, number];
+  const both = (from: V3, to: V3, a: 'north' | 'south' | 'west' | 'east' | 'up' | 'down', b: typeof a, texture: string) => ({
+    from, to, faces: { [a]: { texture }, [b]: { texture } },
+  });
+  const shell = [
+    both([0, 0, 0], [16, 16, 0], 'north', 'south', 'scaffolding_side'),
+    both([0, 0, 16], [16, 16, 16], 'south', 'north', 'scaffolding_side'),
+    both([0, 0, 0], [0, 16, 16], 'west', 'east', 'scaffolding_side'),
+    both([16, 0, 0], [16, 16, 16], 'east', 'west', 'scaffolding_side'),
+    both([0, 16, 0], [16, 16, 16], 'up', 'down', 'scaffolding_top'),
+    both([0, 0, 0], [16, 0, 16], 'down', 'up', 'scaffolding_bottom'),
+  ];
+  MODELS['block/scaffolding_stable'] = { elements: shell };
+  const rail = (from: V3, to: V3) => ({
+    from, to,
+    faces: Object.fromEntries((['north', 'south', 'west', 'east', 'up'] as const).map((f) => [f, { texture: 'scaffolding_side', uv: [0, 14, 16, 16] as [number, number, number, number] }])),
+  });
+  MODELS['block/scaffolding_unstable'] = {
+    elements: [...shell, rail([0.01, 0, 0.01], [2, 2, 15.99]), rail([14, 0, 0.01], [15.99, 2, 15.99]), rail([2, 0, 0.01], [14, 2, 2]), rail([2, 0, 14], [14, 2, 15.99])],
+  };
+  return { variants: { 'bottom=false': { model: 'block/scaffolding_stable' }, 'bottom=true': { model: 'block/scaffolding_unstable' } } };
+}
+
 export function bedDef(name: string): BlockStateDef {
   const color = name.replace(/_bed$/, '');
   const wood = 'bed_wood';
@@ -319,6 +347,7 @@ export function blockStateDef(name: string, hasTexture: (t: string) => boolean):
   if (ex) return ex();
   if (FLUID_BLOCKS.has(name)) return { variants: {} };
   if (name.endsWith('_bed')) return bedDef(name);
+  if (name === 'scaffolding') return scaffoldingDef();
   if (name.endsWith('_leaves')) return single({ model: model(name, 'leaves', { all: name }) });
   if ((name.endsWith('_log') || name.endsWith('_stem')) && hasTexture(name)) return column(name, name, `${name}_top`);
   if (name.endsWith('_wood') || name.endsWith('_hyphae')) {

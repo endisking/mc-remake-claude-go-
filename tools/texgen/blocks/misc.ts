@@ -181,7 +181,63 @@ function paneTop(): Tex {
   return t;
 }
 
+// bamboo scaffolding: pale poles with darker nodes and twine bindings at the joints
+const BAMBOO = pal('#7d6a31', '#a68f47', '#c7b05e', '#ddc97a', '#ecdd99');
+const TWINE = hex('#5e4c2a');
+
+/** A pole pixel: lighter on one side, a darker node ring every few pixels along its length. */
+function polePx(t: Tex, x: number, y: number, along: number, across: number, width: number): void {
+  const node = along % 6 === 0;
+  const c = across === 0 ? BAMBOO[3]! : across === width - 1 ? BAMBOO[1]! : BAMBOO[2]!;
+  t.set(x, y, node ? shade(c, 0.8) : c);
+}
+
+function scaffoldingFrame(t: Tex): void {
+  for (let i = 0; i < 16; i++)
+    for (let k = 0; k < 2; k++) {
+      polePx(t, i, k, i + 1, k, 2); // top bar
+      polePx(t, i, 15 - k, i + 4, 1 - k, 2); // bottom bar
+      polePx(t, k, i, i + 2, k, 2); // left post
+      polePx(t, 15 - k, i, i + 5, 1 - k, 2); // right post
+    }
+  // twine wrapped at the corners
+  for (const [x, y] of [[1, 1], [14, 1], [1, 14], [14, 14], [2, 2], [13, 2], [2, 13], [13, 13]] as const) t.set(x, y, TWINE);
+}
+
+function scaffoldingSide(): Tex {
+  const t = new Tex();
+  scaffoldingFrame(t);
+  // one diagonal brace, bottom-left to top-right, 2 px wide
+  for (let i = 2; i < 14; i++) {
+    polePx(t, i, 15 - i, i, 0, 2);
+    polePx(t, i, 16 - i, i, 1, 2);
+  }
+  return t;
+}
+
+function scaffoldingTop(): Tex {
+  const t = new Tex();
+  const r = rng(731);
+  // slats across the platform with thin gaps, then the frame on top
+  for (let y = 2; y < 14; y++) {
+    if (y % 3 === 1) continue;
+    const row = y % 3 === 2 ? 3 : 2;
+    for (let x = 2; x < 14; x++) t.set(x, y, (x + Math.floor(r() * 9)) % 7 === 0 ? BAMBOO[1]! : BAMBOO[row]!);
+  }
+  scaffoldingFrame(t);
+  return t;
+}
+
+function scaffoldingBottom(): Tex {
+  const t = new Tex();
+  scaffoldingFrame(t);
+  return t;
+}
+
 export const miscTextures: TexDef[] = [
+  { name: 'scaffolding_side', make: scaffoldingSide, cutout: true },
+  { name: 'scaffolding_top', make: scaffoldingTop, cutout: true },
+  { name: 'scaffolding_bottom', make: scaffoldingBottom, cutout: true },
   { name: 'oak_door_top', make: () => doorHalf(true), cutout: true },
   { name: 'oak_door_bottom', make: () => doorHalf(false), cutout: true },
   { name: 'oak_trapdoor', make: trapdoor, cutout: true },

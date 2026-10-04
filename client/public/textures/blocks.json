@@ -327,6 +327,21 @@
    "cutout": true
   },
   {
+   "name": "scaffolding_side",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "scaffolding_top",
+   "frames": 1,
+   "cutout": true
+  },
+  {
+   "name": "scaffolding_bottom",
+   "frames": 1,
+   "cutout": true
+  },
+  {
    "name": "oak_door_top",
    "frames": 1,
    "cutout": true

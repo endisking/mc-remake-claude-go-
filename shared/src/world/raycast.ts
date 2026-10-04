@@ -63,6 +63,7 @@ export function raycastBlocks(
   world: StateGetter, ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxDist: number,
   includeFluids = false,
   out?: BlockHit,
+  shapeOf: (state: number) => Box[] = outlineBoxes,
 ): BlockHit | null {
   const len = Math.hypot(dx, dy, dz);
   dx /= len;
@@ -78,7 +79,7 @@ export function raycastBlocks(
   for (let i = 0; i < 256; i++) {
     const st = world.getState(x, y, z);
     if (st !== 0) {
-      let boxes = outlineBoxes(st);
+      let boxes = shapeOf(st);
       if (includeFluids && FLUID[st] && !boxes.length) boxes = [[0, 0, 0, 1, 1, 1]];
       for (const b of boxes) {
         const t = rayBox(ox, oy, oz, dx, dy, dz, b, x, y, z);

@@ -411,6 +411,11 @@ export class Survival {
     const w = this.s.world;
     const below = w.getState(Math.floor(p.x), Math.floor(p.y - 0.2), Math.floor(p.z));
     const n = blockNameOf(below);
+    if (n === 'powder_snow') {
+      // PowderSnowBlock.fallOn: no damage, just a thud (small under 7 blocks)
+      if (fallDistance >= 4) this.s.playSound(null, fallDistance < 7 ? 'entity.player.small_fall' : 'entity.player.big_fall', 'player', p.x, p.y, p.z, 1, 1);
+      return;
+    }
     let mult = 1;
     if (n === 'hay_block' || n === 'honey_block') mult = 0.2;
     else if (n.endsWith('_bed')) mult = 0.5;

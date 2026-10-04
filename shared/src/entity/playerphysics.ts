@@ -5,8 +5,8 @@
  *
  * Units: blocks and ticks. Velocities are per tick.
  */
-import { AABB, collideBox, noCollision, blockBoxesIn } from './aabb';
-import { collisionBoxes } from '../world/shapes';
+import { AABB, collideBox, noCollision, blockBoxesIn, type CollisionContext } from './aabb';
+import { collisionBoxesFor } from '../world/shapes';
 import { FRICTION, SPEED_FACTOR, JUMP_FACTOR, CLIMBABLE, STUCK } from './blockphysics';
 import { STATE_TO_BLOCK, getProp } from '../world/blockstate';
 import { FLUID, FLUID_LEVEL, COLLISION_SHAPE_ID, FULL_COLLISION } from '../world/blockinfo';
@@ -305,6 +305,14 @@ export class PlayerPhysics {
     return false;
   }
 
+  /** EntityCollisionContext for this player at the current position. */
+  ctx(): CollisionContext {
+    return { bottom: this.y, descending: this.shiftDown, fallDistance: this.fallDistance, walkOnPowderSnow: this.walkOnPowderSnow };
+  }
+
+  /** wearing leather boots (set by the owner of the physics; armour arrives with items) */
+  walkOnPowderSnow = false;
+
   private blockBelowAffectingMovement(): number {
     return this.state(this.x, this.boundingBox().minY - 0.5000001, this.z);
   }
@@ -346,25 +354,25 @@ export class PlayerPhysics {
   }
 
   private isAboveGround(bb: AABB): boolean {
-    return this.onGround || (this.fallDistance < MAX_UP_STEP && !noCollision(this.world, bb.move(0, this.fallDistance - MAX_UP_STEP, 0)));
+    return this.onGround || (this.fallDistance < MAX_UP_STEP && !noCollision(this.world, bb.move(0, this.fallDistance - MAX_UP_STEP, 0), this.ctx()));
   }
 
   /** Vanilla Entity.collide with step-up. */
   private collide(dx: number, dy: number, dz: number): [number, number, number] {
     const bb = this.boundingBox();
-    const r = collideBox(this.world, bb, dx, dy, dz);
+    const r = collideBox(this.world, bb, dx, dy, dz, this.ctx());
     const cx = r[0] !== dx, cy = r[1] !== dy, cz = r[2] !== dz;
     const grounded = this.onGround || (cy && dy < 0);
     if (grounded && (cx || cz)) {
-      let s1 = collideBox(this.world, bb, dx, MAX_UP_STEP, dz);
-      const s2 = collideBox(this.world, bb.expandTowards(dx, 0, dz), 0, MAX_UP_STEP, 0);
+      let s1 = collideBox(this.world, bb, dx, MAX_UP_STEP, dz, this.ctx());
+      const s2 = collideBox(this.world, bb.expandTowards(dx, 0, dz), 0, MAX_UP_STEP, 0, this.ctx());
       if (s2[1] < MAX_UP_STEP) {
-        const h = collideBox(this.world, bb.move(0, s2[1], 0), dx, 0, dz);
+        const h = collideBox(this.world, bb.move(0, s2[1], 0), dx, 0, dz, this.ctx());
         const s3: [number, number, number] = [h[0], h[1] + s2[1], h[2]];
         if (s3[0] * s3[0] + s3[2] * s3[2] > s1[0] * s1[0] + s1[2] * s1[2]) s1 = s3;
       }
       if (s1[0] * s1[0] + s1[2] * s1[2] > r[0] * r[0] + r[2] * r[2]) {
-        const down = collideBox(this.world, bb.move(s1[0], s1[1], s1[2]), 0, -s1[1] + dy, 0);
+        const down = collideBox(this.world, bb.move(s1[0], s1[1], s1[2]), 0, -s1[1] + dy, 0, this.ctx());
         return [s1[0], s1[1] + down[1], s1[2]];
       }
     }
@@ -393,15 +401,15 @@ export class PlayerPhysics {
       const bb = this.boundingBox();
       if (this.isAboveGround(bb)) {
         const step = 0.05;
-        while (dx !== 0 && noCollision(this.world, bb.move(dx, -MAX_UP_STEP, 0))) {
+        while (dx !== 0 && noCollision(this.world, bb.move(dx, -MAX_UP_STEP, 0), this.ctx())) {
           if (Math.abs(dx) < step) dx = 0;
           else dx += dx > 0 ? -step : step;
         }
-        while (dz !== 0 && noCollision(this.world, bb.move(0, -MAX_UP_STEP, dz))) {
+        while (dz !== 0 && noCollision(this.world, bb.move(0, -MAX_UP_STEP, dz), this.ctx())) {
           if (Math.abs(dz) < step) dz = 0;
           else dz += dz > 0 ? -step : step;
         }
-        while (dx !== 0 && dz !== 0 && noCollision(this.world, bb.move(dx, -MAX_UP_STEP, dz))) {
+        while (dx !== 0 && dz !== 0 && noCollision(this.world, bb.move(dx, -MAX_UP_STEP, dz), this.ctx())) {
           if (Math.abs(dx) < step) dx = 0;
           else dx += dx > 0 ? -step : step;
           if (Math.abs(dz) < step) dz = 0;
@@ -519,7 +527,7 @@ export class PlayerPhysics {
 
   private isFree(dx: number, dy: number, dz: number): boolean {
     const bb = this.boundingBox().move(dx, dy, dz);
-    if (!noCollision(this.world, bb)) return false;
+    if (!noCollision(this.world, bb, this.ctx())) return false;
     // also not in liquid
     for (let x = Math.floor(bb.minX); x < Math.ceil(bb.maxX); x++)
       for (let y = Math.floor(bb.minY); y < Math.ceil(bb.maxY); y++)
@@ -623,7 +631,7 @@ export class PlayerPhysics {
   // ------------------------------------------------------------------ poses
   private canEnterPose(p: Pose): boolean {
     const [w, h] = POSE_SIZE[p];
-    return noCollision(this.world, AABB.ofSize(this.x, this.y, this.z, w, h).deflate(1e-7));
+    return noCollision(this.world, AABB.ofSize(this.x, this.y, this.z, w, h).deflate(1e-7), this.ctx());
   }
 
   /** Player.updatePlayerPose. */
@@ -643,7 +651,7 @@ export class PlayerPhysics {
 
   // ------------------------------------------------------------------ auto-jump
   private collisionAt(x: number, y: number, z: number): AABB[] {
-    return collisionBoxes(this.world.getState(x, y, z)).map((b) => new AABB(x + b[0]!, y + b[1]!, z + b[2]!, x + b[3]!, y + b[4]!, z + b[5]!));
+    return collisionBoxesFor(this.world.getState(x, y, z), y, this.ctx()).map((b) => new AABB(x + b[0]!, y + b[1]!, z + b[2]!, x + b[3]!, y + b[4]!, z + b[5]!));
   }
 
   /** LocalPlayer.updateAutoJump: jump when walking into a 1-block step with headroom. */
@@ -684,7 +692,7 @@ export class PlayerPhysics {
     const segA = new AABB(Math.min(this.x - sx, ex - sx), sy, Math.min(this.z - sz, ez - sz), Math.max(this.x - sx, ex - sx), sy, Math.max(this.z - sz, ez - sz));
     const segB = new AABB(Math.min(this.x + sx, ex + sx), sy, Math.min(this.z + sz, ez + sz), Math.max(this.x + sx, ex + sx), sy, Math.max(this.z + sz, ez + sz));
     let f11 = -Infinity;
-    for (const b of blockBoxesIn(this.world, area)) {
+    for (const b of blockBoxesIn(this.world, area, undefined, this.ctx())) {
       if (!(b.intersects(segA) || b.intersects(segB))) continue;
       f11 = b.maxY;
       const cx = Math.floor((b.minX + b.maxX) / 2), cy = Math.floor((b.minY + b.maxY) / 2), cz = Math.floor((b.minZ + b.maxZ) / 2);

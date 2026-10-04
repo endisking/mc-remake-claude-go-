@@ -28,6 +28,8 @@ export abstract class ServerEntity {
   /** clientTrackingRange in blocks */
   abstract readonly trackRange: number;
 
+  fallDistance = 0;
+
   constructor(readonly id: number) {}
 
   bb(): AABB {
@@ -36,11 +38,14 @@ export abstract class ServerEntity {
 
   /** Move with collisions (no step-up); returns whether we hit the ground. */
   protected moveWithCollision(world: BlockWorld, dx: number, dy: number, dz: number): void {
-    const [mx, my, mz] = collideBox(world, this.bb(), dx, dy, dz);
+    const [mx, my, mz] = collideBox(world, this.bb(), dx, dy, dz, { bottom: this.y, descending: false, fallDistance: this.fallDistance, walkOnPowderSnow: false });
     this.x += mx;
     this.y += my;
     this.z += mz;
     this.onGround = dy !== my && dy < 0;
+    // Entity.checkFallDamage bookkeeping (powder snow and scaffolding read it)
+    if (this.onGround) this.fallDistance = 0;
+    else if (my < 0) this.fallDistance -= my;
     if (mx !== dx) this.vx = 0;
     if (mz !== dz) this.vz = 0;
   }

@@ -21,8 +21,8 @@ import { LineRenderer } from './render/lines';
 import { CrackRenderer } from './render/overlay';
 import { bakeBlockModels } from './render/blockmodels';
 import { raycastBlocks, type BlockHit } from '@shared/world/raycast';
-import { outlineBoxes } from '@shared/world/shapes';
-import { blockNameOf, propsOf, getProp, stateToString } from '@shared/world/blockstate';
+import { outlineBoxes, type Box } from '@shared/world/shapes';
+import { blockNameOf, propsOf, getProp, stateToString, STATE_TO_BLOCK } from '@shared/world/blockstate';
 import { PlayerPhysics, POSE_EYE, type MoveInput, type Pose } from '@shared/entity/playerphysics';
 import { mat4, perspective, viewRotation, multiply, translate, frustumPlanes, type Mat4 } from './render/math';
 import type { TextureManifest } from './render/blockmodels';
@@ -49,7 +49,7 @@ import { StepTracker } from '@shared/entity/steps';
 import { Button } from './gui/screen';
 import { KeyBindings } from './keybinds';
 import { blockForItem } from '@shared/game/loot';
-import { BLOCKS_BY_NAME, ITEMS_BY_ID } from '@shared/data';
+import { BLOCKS_BY_NAME, ITEMS_BY_ID, ITEMS_BY_NAME } from '@shared/data';
 import { itemName } from '@shared/item/stack';
 import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
@@ -1349,6 +1349,12 @@ export class Game implements ScreenHost {
     }
   }
 
+  /** Block outline for picking (ScaffoldingBlock.getShape: a full cube while holding scaffolding). */
+  private readonly outlineOf = (state: number): Box[] => {
+    if (STATE_TO_BLOCK[state] === ID_SCAFFOLDING && this.interaction?.inventory.selectedStack?.id === ITEM_SCAFFOLDING) return FULL_BOX;
+    return outlineBoxes(state);
+  };
+
   /**
    * GameRenderer.shouldRenderBlockOutline: players who may not build (adventure, spectator) see
    * the outline only on blocks they could still act on — containers for spectators, blocks
@@ -1841,13 +1847,13 @@ export class Game implements ScreenHost {
       this.particles.render(this.viewProj, rx, 0, rz, ux, uy, uz, cx, cy, cz, partial, this.textures.tex, this.lightmap.tex, fog, fogStart, fogEnd);
     }
     // targeted block outline (vanilla: black, 40% alpha)
-    this.target = raycastBlocks(this.world, ex, ey, ez, eyeLookX, eyeLookY, eyeLookZ, this.reach, false, this.hitScratch);
+    this.target = raycastBlocks(this.world, ex, ey, ez, eyeLookX, eyeLookY, eyeLookZ, this.reach, false, this.hitScratch, this.outlineOf);
     this.pickEntity(ex, ey, ez, eyeLookX, eyeLookY, eyeLookZ, partial);
     if (this.target && !this.hideHud && this.shouldRenderBlockOutline()) {
       const t = this.target;
       this.lines.begin();
       const e = 0.002;
-      for (const b of outlineBoxes(t.state)) {
+      for (const b of this.outlineOf(t.state)) {
         this.lines.box(t.x + b[0] - e - cx, t.y + b[1] - e - cy, t.z + b[2] - e - cz, t.x + b[3] + e - cx, t.y + b[4] + e - cy, t.z + b[5] + e - cz, 0, 0, 0, 0.4);
       }
       this.lines.flush(this.viewProj, this.canvas.width, this.canvas.height);
@@ -1995,6 +2001,9 @@ export class Game implements ScreenHost {
 }
 
 const IDENTITY4 = mat4();
+const ID_SCAFFOLDING = BLOCKS_BY_NAME.get('scaffolding')!.id;
+const ITEM_SCAFFOLDING = ITEMS_BY_NAME.get('scaffolding')!.id;
+const FULL_BOX: Box[] = [[0, 0, 0, 1, 1, 1]];
 
 /** Keys with an F3 combo (KeyboardHandler.handleDebugKeys). */
 const DEBUG_KEYS = ['KeyA', 'KeyB', 'KeyC', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyI', 'KeyN', 'KeyP', 'KeyQ', 'KeyT'];

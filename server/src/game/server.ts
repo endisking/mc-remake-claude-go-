@@ -788,6 +788,7 @@ export class GameServer {
       ph.y = p.y;
       ph.z = p.z;
       ph.onGround = p.onGround;
+      ph.fallDistance = p.fallDistance;
       ph.shiftDown = p.sneaking;
       ph.pose = p.pose;
       ph.abilities.flying = p.flying;
@@ -799,7 +800,7 @@ export class GameServer {
         // the claimed position is only acceptable if it doesn't put the player inside blocks
         const w = 0.3, h = ph.height;
         const bb = new AABB(m.x - w, m.y, m.z - w, m.x + w, m.y + h, m.z + w).deflate(1e-5);
-        if (!noCollision(this.world, bb)) return this.rejectMove(p);
+        if (!noCollision(this.world, bb, ph.ctx())) return this.rejectMove(p);
       }
     }
     // exhaustion from movement and jumping, then fall damage (Entity.checkFallDamage driven by

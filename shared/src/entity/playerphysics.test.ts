@@ -215,4 +215,54 @@ describe('player physics (vanilla 1.17.1 values)', () => {
     for (let i = 0; i < 10; i++) q.tick(NO_INPUT);
     expect(q.y).toBeLessThan(y0 - 1);
   });
+
+  it('scaffolding: stand on top, sneak to sink through, jump to climb, walk inside', () => {
+    const col: Record<string, number> = {};
+    for (let y = 64; y < 68; y++) col[`0,${y},0`] = stateOf('scaffolding', { distance: 0, bottom: false, waterlogged: false });
+    // standing on top of the 4-high column
+    const p = spawn(world(col));
+    p.y = 68;
+    for (let i = 0; i < 20; i++) p.tick(NO_INPUT);
+    expect(p.y).toBe(68);
+    expect(p.onGround).toBe(true);
+    // sneaking descends through it at the climbing speed (0.15 blocks/tick) to the ground
+    let maxDrop = 0;
+    for (let i = 0; i < 60; i++) {
+      const y0 = p.y;
+      p.tick({ ...NO_INPUT, sneak: true });
+      maxDrop = Math.max(maxDrop, y0 - p.y);
+    }
+    expect(p.y).toBe(64);
+    expect(maxDrop).toBeLessThanOrEqual(0.15 + 1e-9);
+    expect(p.fallDistance).toBe(0);
+    // holding jump inside climbs 0.2 blocks/tick back to the top
+    for (let i = 0; i < 40; i++) p.tick({ ...NO_INPUT, jump: true });
+    expect(p.y).toBeGreaterThanOrEqual(68);
+    // walking in from the side at ground level passes between the legs
+    const q = spawn(world(col));
+    q.x = -1.5;
+    for (let i = 0; i < 20; i++) q.tick({ ...NO_INPUT, strafe: 1 });
+    expect(q.x).toBeGreaterThan(0.5);
+  });
+
+  it('powder snow: a fall of more than 2.5 blocks lands on top (0.9) before sinking in', () => {
+    const snow: Record<string, number> = { '0,64,0': stateOf('powder_snow'), '0,65,0': stateOf('powder_snow') };
+    const p = spawn(world(snow));
+    p.onGround = false;
+    p.y = 72;
+    let landedAt = -1;
+    for (let i = 0; i < 60; i++) {
+      p.tick(NO_INPUT);
+      if (p.onGround && landedAt < 0) landedAt = p.y;
+    }
+    expect(landedAt).toBeCloseTo(65.9, 6);
+    // then it sinks into the snow (no collision once the fall is over)
+    expect(p.y).toBeLessThan(65.9);
+    // a short drop goes straight in
+    const q = spawn(world(snow));
+    q.onGround = false;
+    q.y = 67;
+    for (let i = 0; i < 40; i++) q.tick(NO_INPUT);
+    expect(q.y).toBeLessThan(65.9);
+  });
 });

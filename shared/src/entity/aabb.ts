@@ -1,5 +1,6 @@
 /** Axis-aligned bounding boxes and swept collision against block shapes (vanilla Shapes.collide). */
-import { collisionBoxes } from '../world/shapes';
+import { collisionBoxesFor, type CollisionContext } from '../world/shapes';
+export type { CollisionContext } from '../world/shapes';
 import type { StateGetter } from '../world/raycast';
 
 export class AABB {
@@ -44,7 +45,7 @@ export class AABB {
 const EPS = 1e-7;
 
 /** Collect block collision boxes (world space) overlapping `box`. */
-export function blockBoxesIn(world: StateGetter, box: AABB, out: AABB[] = []): AABB[] {
+export function blockBoxesIn(world: StateGetter, box: AABB, out: AABB[] = [], ctx: CollisionContext | null = null): AABB[] {
   out.length = 0;
   const x0 = Math.floor(box.minX - EPS) - 1, x1 = Math.floor(box.maxX + EPS) + 1;
   const y0 = Math.floor(box.minY - EPS) - 1, y1 = Math.floor(box.maxY + EPS) + 1;
@@ -55,7 +56,7 @@ export function blockBoxesIn(world: StateGetter, box: AABB, out: AABB[] = []): A
         if (y < 0 || y > 255) continue;
         const st = world.getState(x, y, z);
         if (st === 0) continue;
-        for (const b of collisionBoxes(st)) {
+        for (const b of collisionBoxesFor(st, y, ctx)) {
           const bb = new AABB(x + b[0], y + b[1], z + b[2], x + b[3], y + b[4], z + b[5]);
           if (bb.maxX > box.minX - 1 && bb.minX < box.maxX + 1 && bb.maxY > box.minY - 1 && bb.minY < box.maxY + 1 && bb.maxZ > box.minZ - 1 && bb.minZ < box.maxZ + 1) out.push(bb);
         }
@@ -88,8 +89,8 @@ export function collideAxis(axis: 0 | 1 | 2, box: AABB, shapes: AABB[], d: numbe
  * Vanilla Entity.collideBoundingBox: Y first, then the larger of X/Z first.
  * Returns the allowed movement.
  */
-export function collideBox(world: StateGetter, box: AABB, dx: number, dy: number, dz: number): [number, number, number] {
-  const shapes = blockBoxesIn(world, box.expandTowards(dx, dy, dz), scratchShapes);
+export function collideBox(world: StateGetter, box: AABB, dx: number, dy: number, dz: number, ctx: CollisionContext | null = null): [number, number, number] {
+  const shapes = blockBoxesIn(world, box.expandTowards(dx, dy, dz), scratchShapes, ctx);
   let b = box;
   if (dy !== 0) {
     dy = collideAxis(1, b, shapes, dy);
@@ -111,8 +112,8 @@ export function collideBox(world: StateGetter, box: AABB, dx: number, dy: number
 const scratchShapes: AABB[] = [];
 
 /** True if no block collision box intersects `box`. */
-export function noCollision(world: StateGetter, box: AABB): boolean {
-  const shapes = blockBoxesIn(world, box, scratchShapes);
+export function noCollision(world: StateGetter, box: AABB, ctx: CollisionContext | null = null): boolean {
+  const shapes = blockBoxesIn(world, box, scratchShapes, ctx);
   for (const s of shapes) if (s.intersects(box)) return false;
   return true;
 }

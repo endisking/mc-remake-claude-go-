@@ -14,6 +14,7 @@ const FULL: Box[] = [[0, 0, 0, 1, 1, 1]];
 const EMPTY: Box[] = [];
 
 function byName(name: string, s: number): Box[] | null {
+  if (name === 'scaffolding') return getProp(s, 'bottom') === true ? SCAFFOLD_UNSTABLE : SCAFFOLD_STABLE;
   if (name === 'grass' || name === 'fern' || name === 'dead_bush') return [px(2, 0, 2, 14, 13, 14)];
   if (name.endsWith('_sapling') || name === 'azalea' || name === 'flowering_azalea') return name.endsWith('_sapling') ? [px(2, 0, 2, 14, 12, 14)] : null;
   if (['dandelion', 'poppy', 'blue_orchid', 'allium', 'azure_bluet', 'red_tulip', 'orange_tulip', 'white_tulip', 'pink_tulip', 'oxeye_daisy', 'cornflower', 'lily_of_the_valley', 'wither_rose'].includes(name)) return [px(5, 0, 5, 11, 10, 11)];
@@ -84,4 +85,51 @@ export function outlineBoxes(state: number): Box[] {
 
 export function collisionBoxes(state: number): Box[] {
   return (COLLISION_SHAPES[COLLISION_SHAPE_ID[state]!] ?? EMPTY) as Box[];
+}
+
+// ScaffoldingBlock shapes: top slab and four legs; "bottom" scaffolding adds rails at the foot
+const SCAFFOLD_STABLE: Box[] = [
+  px(0, 14, 0, 16, 16, 16), px(0, 0, 0, 2, 16, 2), px(14, 0, 0, 16, 16, 2), px(0, 0, 14, 2, 16, 16), px(14, 0, 14, 16, 16, 16),
+];
+const SCAFFOLD_BOTTOM: Box[] = [px(0, 0, 0, 2, 2, 16), px(14, 0, 0, 16, 2, 16), px(0, 0, 14, 16, 2, 16), px(0, 0, 0, 16, 2, 2)];
+const SCAFFOLD_UNSTABLE: Box[] = [...SCAFFOLD_STABLE, ...SCAFFOLD_BOTTOM];
+const POWDER_SNOW_FALLING: Box[] = [[0, 0, 0, 1, 0.9, 1]];
+const ID_SCAFFOLDING = BLOCKS.find((b) => b.name === 'scaffolding')!.id;
+const ID_POWDER_SNOW = BLOCKS.find((b) => b.name === 'powder_snow')!.id;
+
+/**
+ * The entity a collision query is for (vanilla EntityCollisionContext). Without one (particles,
+ * CollisionContext.empty()) context-dependent blocks collide as for no entity at all.
+ */
+export interface CollisionContext {
+  /** entity feet y when the query started */
+  bottom: number;
+  /** Entity.isDescending (sneak key held) */
+  descending: boolean;
+  fallDistance: number;
+  /** PowderSnowBlock.canEntityWalkOnPowderSnow (leather boots) */
+  walkOnPowderSnow: boolean;
+}
+
+/** EntityCollisionContext.isAbove: feet above `top` (block y + shape max y), less 1e-5 (as a float). */
+function isAbove(ctx: CollisionContext | null, y: number, top: number): boolean {
+  return !!ctx && ctx.bottom > y + top - 9.999999747378752e-6;
+}
+
+/** Collision boxes for a block at height `y` as seen by `ctx` (context-dependent blocks). */
+export function collisionBoxesFor(state: number, y: number, ctx: CollisionContext | null): Box[] {
+  const b = STATE_TO_BLOCK[state]!;
+  if (b === ID_SCAFFOLDING) {
+    // ScaffoldingBlock.getCollisionShape: solid from above unless descending; a hanging
+    // ("bottom") piece keeps its foot rails for entities above its base
+    if (isAbove(ctx, y, 1) && !ctx!.descending) return SCAFFOLD_STABLE;
+    return getProp(state, 'distance') !== 0 && getProp(state, 'bottom') === true && isAbove(ctx, y, 0) ? SCAFFOLD_BOTTOM : EMPTY;
+  }
+  if (b === ID_POWDER_SNOW) {
+    // PowderSnowBlock.getCollisionShape: a soft landing when falling > 2.5, walkable with boots
+    if (!ctx) return EMPTY;
+    if (ctx.fallDistance > 2.5) return POWDER_SNOW_FALLING;
+    return ctx.walkOnPowderSnow && isAbove(ctx, y, 1) && !ctx.descending ? FULL : EMPTY;
+  }
+  return collisionBoxes(state);
 }
