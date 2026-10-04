@@ -14,6 +14,11 @@ import { primeTnt } from './explosion';
 import { Mob } from './mobs/mob';
 import { Arrow } from './arrow';
 import { copyStack, sameItem, type ItemStack } from '@shared/item/stack';
+import { dispenseSpecial, dispenseSound } from './dispense';
+import { disarmTripwire, tripwireChanged, tripwireTick, wireEntityInside, type TripwireHost } from '@shared/game/tripwire';
+import { FULL_COLLISION } from '@shared/world/blockinfo';
+import { railPlacementState } from '@shared/game/rails';
+import { detectorRailCheck, isRailState, railNeighborChanged, railPlaced, type RailHost } from '@shared/game/rails';
 
 const DIRS = ['down', 'up', 'north', 'south', 'west', 'east'];
 const DX = [0, 0, 0, 0, -1, 1];
@@ -33,9 +38,64 @@ export class ServerRedstone {
   private readonly detectors = new Map<string, Set<string>>();
 
   private readonly host: RedstoneHost;
+  private readonly railHost: RailHost;
+  private readonly wireHost: TripwireHost;
+  /**
+   * Minecart presence test for detector rails (DetectorRailBlock.checkPressed box x+0.2..0.8,
+   * y..y+0.8): set by the minecart module; until then no rail is ever pressed.
+   */
+  minecartAt: ((minX: number, minY: number, minZ: number, maxX: number, maxY: number, maxZ: number) => boolean) | null = null;
 
   constructor(private readonly s: GameServer) {
     this.host = this.makeHost();
+    this.railHost = {
+      getState: (x, y, z) => (y < 0 || y > 255 ? 0 : s.world.getState(x, y, z)),
+      setBlock: (x, y, z, st, flags) => s.setBlock(x, y, z, st, flags),
+      hasNeighborSignal: (x, y, z) => this.rs.hasNeighborSignal(x, y, z),
+      updateNeighborsAt: (x, y, z, from) => this.rs.updateNeighborsAt(x, y, z, from),
+      sturdyTop: (x, y, z) => {
+        if (y < 0 || y > 255) return false;
+        const b = s.world.getState(x, y, z), bn = blockNameOf(b);
+        if (bn === 'hopper') return true; // the hopper's rim is a rigid top face
+        if (bn.endsWith('_slab')) return getProp(b, 'type') !== 'bottom';
+        if (bn.endsWith('_stairs')) return getProp(b, 'half') === 'top';
+        return FULL_COLLISION[b] === 1;
+      },
+      dropAndRemove: (x, y, z) => s.blocks.breakNaturally(x, y, z, false),
+    };
+    this.wireHost = {
+      getState: (x, y, z) => (y < 0 || y > 255 ? 0 : s.world.getState(x, y, z)),
+      setBlock: (x, y, z, st, flags) => s.setBlock(x, y, z, st, flags),
+      scheduleTick: (x, y, z, st, delay) => s.blocks.scheduleTick(x, y, z, st, delay, 0),
+      updateNeighborsAt: (x, y, z, from) => this.rs.updateNeighborsAt(x, y, z, from),
+      entitiesIn: (x0, y0, z0, x1, y1, z1) => this.countEntities(x0, y0, z0, x1, y1, z1, 'all') > 0,
+      playSound: (event, x, y, z, volume, pitch) => {
+        try {
+          s.playSound(null, event, 'block', x, y, z, volume, pitch);
+        } catch {
+          /* missing sound */
+        }
+      },
+    };
+  }
+
+  /** TripWireBlock.playerWillDestroy with shears */
+  disarmTripwire(x: number, y: number, z: number): void {
+    disarmTripwire(this.wireHost, x, y, z);
+  }
+
+  /** DetectorRailBlock.checkPressed: re-checks every 20 ticks while a minecart is on it. */
+  private checkDetectorRail(x: number, y: number, z: number): void {
+    const on = this.minecartAt?.(x + 0.2, y, z + 0.2, x + 0.8, y + 0.8, z + 0.8) ?? false;
+    const st = this.s.world.getState(x, y, z);
+    if (detectorRailCheck(this.railHost, x, y, z, on)) this.s.blocks.scheduleTick(x, y, z, st, 20, 0);
+    this.rs.updateNeighbourForOutputSignal(x, y, z, blockIdOf(st));
+  }
+
+  /** DetectorRailBlock.entityInside: a minecart entered the rail (call from the minecart tick). */
+  minecartOnRail(x: number, y: number, z: number): void {
+    const st = this.s.world.getState(x, y, z);
+    if (blockNameOf(st) === 'detector_rail' && getProp(st, 'powered') !== true) this.checkDetectorRail(x, y, z);
   }
 
   /** The engine of the dimension being ticked / handled. */
@@ -88,6 +148,7 @@ export class ServerRedstone {
       dispense: (x, y, z, st) => self.dispense(x, y, z, st),
       hasBlockEntity: (x, y, z) => !!s.containers.blockEntity(x, y, z),
       countEntities: (x0, y0, z0, x1, y1, z1, kind) => self.countEntities(x0, y0, z0, x1, y1, z1, kind),
+      neighborChangedOther: (x, y, z, st, from) => self.neighborChangedOther(x, y, z, st, from),
       daylight: (x, y, z) => {
         if (!s.level?.type.hasSkyLight) return null;
         return { sky: s.world.getLight(x, y, z) >> 4, darken: skyDarkenLevel(s.dayTime, s.rainLevel, s.thunderLevel * s.rainLevel), sunAngle: Math.fround(timeOfDay(s.dayTime) * Math.PI * 2) };
@@ -98,13 +159,34 @@ export class ServerRedstone {
   // ------------------------------------------------------------------ hooks from GameServer / BlockBehaviors
   /** GameServer.setBlock, after the raw write. */
   onBlockChanged(x: number, y: number, z: number, old: number, st: number, flags: number): void {
-    if (blockNameOf(st) === 'daylight_detector') this.detectorSet.add(`${x},${y},${z}`);
+    const n = blockNameOf(st);
+    if (n === 'daylight_detector') this.detectorSet.add(`${x},${y},${z}`);
     this.rs.onBlockChanged(x, y, z, old, st, flags);
+    // HopperBlock.onPlace: block entity + checkPoweredState
+    if (n === 'tripwire' || n === 'tripwire_hook' || blockNameOf(old) === 'tripwire' || blockNameOf(old) === 'tripwire_hook') tripwireChanged(this.wireHost, x, y, z, old, st);
+    // BaseRailBlock.onPlace: connect to neighbouring rails, then the power check
+    if (isRailState(st) && blockIdOf(old) !== blockIdOf(st)) railPlaced(this.railHost, x, y, z);
+    if (n === 'hopper' && blockNameOf(old) !== 'hopper') {
+      this.s.containers.ensureItems(x, y, z, 'hopper', 5);
+      this.s.hoppers.checkPowered(x, y, z);
+    }
+  }
+
+  /** neighborChanged of host-owned blocks (hoppers). */
+  private neighborChangedOther(x: number, y: number, z: number, st: number, fromBlock: number): void {
+    if (blockNameOf(st) === 'hopper') this.s.hoppers.checkPowered(x, y, z);
+    else if (isRailState(st)) railNeighborChanged(this.railHost, x, y, z, st, fromBlock);
   }
 
   /** Scheduled block tick; true when it was a redstone block. */
   tick(x: number, y: number, z: number, st: number): boolean {
+    const tn = blockNameOf(st);
+    if (tn === 'tripwire' || tn === 'tripwire_hook') return tripwireTick(this.wireHost, x, y, z, st);
     if (!isRedstoneComponent(st)) return false;
+    if (blockNameOf(st) === 'detector_rail') {
+      if (getProp(st, 'powered') === true) this.checkDetectorRail(x, y, z);
+      return true;
+    }
     return this.rs.tick(x, y, z, st);
   }
 
@@ -117,7 +199,8 @@ export class ServerRedstone {
   }
 
   /** getStateForPlacement adjustments, then setPlacedBy after the block is in the world. */
-  placementState(x: number, y: number, z: number, st: number): number {
+  placementState(x: number, y: number, z: number, st: number, yaw = 0): number {
+    if (isRailState(st)) return railPlacementState(st, yaw);
     return isRedstoneComponent(st) ? this.rs.placementState(x, y, z, st) : st;
   }
   placed(x: number, y: number, z: number): void {
@@ -151,6 +234,7 @@ export class ServerRedstone {
             if (y < 0 || y > 255) continue;
             const st = s.world.getState(x, y, z);
             if (st !== 0 && triggersOnEntity(blockNameOf(st))) this.rs.entityInside(x, y, z);
+            else if (st !== 0 && blockNameOf(st) === 'tripwire') wireEntityInside(this.wireHost, x, y, z);
           }
     };
     for (const p of s.players) {
@@ -267,6 +351,30 @@ export class ServerRedstone {
           this.containerChanged(x, y, z);
           return;
         }
+        return;
+      }
+    }
+    if (blockNameOf(st) === 'dispenser') {
+      // DispenserBlock.getDispenseMethod: item-specific behaviours (dispense.ts)
+      const r = dispenseSpecial(s, x, y, z, d, stack);
+      if (r) {
+        if (r.ok) {
+          if (r.replace === undefined) {
+            stack.count--;
+            if (stack.count <= 0) items[slot] = null;
+          } else if (stack.count <= 1) items[slot] = r.replace;
+          else {
+            stack.count--;
+            const rep = r.replace;
+            if (rep) {
+              const free = items.findIndex((it) => !it || it.count <= 0);
+              if (free >= 0) items[free] = rep;
+              else s.spawnItem(x + 0.5 + 0.7 * DX[d]!, y + 0.5 + 0.7 * DY[d]!, z + 0.5 + 0.7 * DZ[d]!, rep, DX[d]! * 0.2, DY[d]! * 0.2, DZ[d]! * 0.2);
+            }
+          }
+          this.containerChanged(x, y, z);
+        }
+        dispenseSound(s, x, y, z, r);
         return;
       }
     }

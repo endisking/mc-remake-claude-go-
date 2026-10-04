@@ -1122,6 +1122,7 @@ Object.assign(EVENTS, {
   'block.comparator.click': [{ set: 'lever', pitch: 1.1 }],
   'block.dispenser.dispense': [{ set: 'button' }],
   'block.dispenser.fail': [{ set: 'button', pitch: 1.2 }],
+  'block.dispenser.launch': [{ set: 'button', pitch: 0.8 }],
   'block.redstone_torch.burnout': [{ set: 'extinguish' }],
   'block.piston.extend': [{ set: 'pressure_plate', pitch: 0.6 }],
   'block.piston.contract': [{ set: 'pressure_plate', pitch: 0.5 }],

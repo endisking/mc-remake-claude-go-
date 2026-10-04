@@ -16342,6 +16342,18 @@
    }
   ]
  },
+ "block.dispenser.launch": {
+  "sounds": [
+   {
+    "name": "button/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "button/1",
+    "pitch": 0.8
+   }
+  ]
+ },
  "block.redstone_torch.burnout": {
   "sounds": [
    {
