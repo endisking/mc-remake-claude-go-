@@ -37,6 +37,7 @@ function ceilF(x: number): number {
 const idiv = (a: number, b: number) => Math.trunc(a / b);
 
 const AIR = stateOf('air');
+const STONE = stateOf('stone');
 const WATER = stateOf('water');
 const name = (lv: GenLevel, x: number, y: number, z: number) => blockNameOf(lv.getState(x, y, z));
 /** Feature.isDirt (1.17: the dirt tag) */
@@ -593,3 +594,15 @@ export function replaceSingleBlock(c: J): Placer {
     return true;
   };
 }
+
+// ------------------------------------------------------------------ void start platform
+const COBBLESTONE = stateOf('cobblestone');
+/** VoidStartPlatformFeature (the void preset): a 33×33 stone platform at y 3 around (8, 8), cobblestone in its centre. */
+export const voidStartPlatform: Placer = (lv, _r, ox, _oy, oz) => {
+  const cx = ox >> 4, cz = oz >> 4;
+  if (Math.max(Math.abs(cx), Math.abs(cz)) > 1) return true;
+  for (let z = cz * 16; z < cz * 16 + 16; z++)
+    for (let x = cx * 16; x < cx * 16 + 16; x++)
+      if (Math.max(Math.abs(8 - x), Math.abs(8 - z)) <= 16) lv.setState(x, 3, z, x === 8 && z === 8 ? COBBLESTONE : STONE);
+  return true;
+};

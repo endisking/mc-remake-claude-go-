@@ -176,7 +176,7 @@ export function genCanSurvive(lv: GenLevel, x: number, y: number, z: number, s: 
         const n = lv.getState(x + dx, y, z + dz);
         if (MATERIAL_SOLID[n] === 1 || FLUID[n] === 2) return false;
       }
-      return (belowName === 'cactus' || belowName === 'sand' || belowName === 'red_sand') && FLUID[lv.getState(x, y + 1, z)] !== 2;
+      return (belowName === 'cactus' || belowName === 'sand' || belowName === 'red_sand') && !isLiquidMaterial(lv.getState(x, y + 1, z)); // no liquid above
     case 'seagrass': case 'sea_pickle':
       return FULL_COLLISION[below] === 1 && belowName !== 'magma_block';
     case 'tall_seagrass':
@@ -289,6 +289,7 @@ function feature(j: J): Placer {
     case 'minecraft:desert_well': return surface.desertWell;
     case 'minecraft:forest_rock': return surface.forestRock(c);
     case 'minecraft:replace_single_block': return surface.replaceSingleBlock(c);
+    case 'minecraft:void_start_platform': return surface.voidStartPlatform;
     default:
       MISSING_FEATURES.add(j.type);
       return () => false;
