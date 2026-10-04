@@ -46,7 +46,8 @@ import { Arrow } from './arrow';
 import { Thrown } from './throwable';
 import { Containers } from './containers';
 import { takeGenBlockEntities } from '@shared/worldgen/features/underground';
-import { Commands, type AccessStore } from './commands';
+import { takeGenEntities } from '@shared/worldgen/structures/entities';
+import { Commands, commandHooks, type AccessStore } from './commands';
 import { DEFAULT_ALL_GAME_RULES, type AllGameRules } from './commands/gamerules';
 
 export interface Connection {
@@ -1253,11 +1254,21 @@ export class GameServer {
       if (this.generator instanceof OverworldGenerator) {
         // springs schedule their fluid tick (delay 0); it runs once the chunk is full and ticking
         for (const [x, y, z] of this.generator.decorate(this.world, cx, cz)) this.fluids.scheduleFluidAt(x, y, z, 0);
-        // chests placed by features (dungeons) get their loot table
         // chests placed by features (dungeons) get their loot table, spawners their mob
         const gen = takeGenBlockEntities(this.world);
         this.containers.attachGenerated(gen);
         this.mobs.spawners.attachGenerated(gen);
+        // mobs placed by structures (villagers, witch, elder guardians…), once their mob type exists
+        for (const g of takeGenEntities(this.world)) {
+          const hook = commandHooks.summon.get(g.type);
+          if (!hook) continue;
+          try {
+            const e = hook(this, g.x, g.y, g.z, '{PersistenceRequired:1b}');
+            if (e && !this.entities.has(e.id)) this.spawnEntity(e);
+          } catch (err) {
+            console.error(`[server] structure mob ${g.type} failed:`, err);
+          }
+        }
       }
       c.stage = 2;
     }

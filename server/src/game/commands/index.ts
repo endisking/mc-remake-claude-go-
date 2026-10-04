@@ -14,6 +14,7 @@ import { registerVanillaCommands } from './vanilla';
 import { encodeS2C } from '@shared/protocol/packets';
 
 export { commandHooks } from './hooks';
+import './locate-structures';
 export type { AccessStore } from './access';
 
 export class Commands {

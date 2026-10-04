@@ -281,7 +281,9 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     ticks(server, 21);
     expect(pig.removed).toBe(true);
     const items = [...server.entities.values()].filter((e) => e instanceof ItemEntity) as ItemEntity[];
-    expect(items.some((e) => itemName(e.stack.id) === 'porkchop')).toBe(true);
+    // the porkchops lie on the ground or were already picked up
+    const pork = (id: number) => /porkchop$/.test(itemName(id));
+    expect(items.some((e) => pork(e.stack.id)) || p.inventory.slots.some((st) => !!st && pork(st.id))).toBe(true);
     expect([...server.entities.values()].some((e) => e instanceof ExperienceOrb) || p.living.totalExperience > 0).toBe(true);
     expect(p.inventory.get(0)!.damage).toBe(2); // the sword lost 1 durability per hit
   });

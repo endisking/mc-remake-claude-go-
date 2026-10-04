@@ -104,7 +104,7 @@ export type GenBlockEntity =
   | { kind: 'chest'; x: number; y: number; z: number; lootTable: string; lootSeed: bigint }
   | { kind: 'spawner'; x: number; y: number; z: number; entity: string };
 const pendingBlockEntities = new WeakMap<object, GenBlockEntity[]>();
-function addBlockEntity(lv: GenLevel, be: GenBlockEntity): void {
+export function addBlockEntity(lv: GenLevel, be: GenBlockEntity): void {
   let list = pendingBlockEntities.get(lv.world);
   if (!list) pendingBlockEntities.set(lv.world, (list = []));
   list.push(be);
