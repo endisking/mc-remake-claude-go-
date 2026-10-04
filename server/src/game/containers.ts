@@ -14,7 +14,8 @@ import { FULL_COLLISION } from '@shared/world/blockinfo';
 import { isEmpty, type ItemStack } from '@shared/item/stack';
 import { ChestMenu, CraftingMenu, DispenserMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
 import { CompoundContainer, InventoryContainer, SimpleContainer, type Container } from '@shared/menu/container';
-import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, type FurnaceData, type FurnaceKind } from '@shared/menu/furnace';
+import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, newCampfire, placeCampfireFood, tickCampfire, type CampfireData, type FurnaceData, type FurnaceKind } from '@shared/menu/furnace';
+import { cookingRecipe } from '@shared/menu/smelting';
 import { chestPartner, isChest, isFirstHalf } from '@shared/game/chest';
 
 const FURNACES = new Set(['furnace', 'blast_furnace', 'smoker']);
@@ -235,6 +236,20 @@ export class Containers {
       this.startViewing([x, y, z], p, 'block.ender_chest');
       return true;
     }
+    if (name === 'campfire' || name === 'soul_campfire') {
+      // CampfireBlock.use: raw food from the hand goes onto a free spot of the fire
+      for (const slot of [p.inventory.selected, 40]) {
+        const held = p.inventory.get(slot);
+        if (!held || !cookingRecipe('campfire_cooking', held.id)) continue;
+        const be = this.getOrCreate(x, y, z, 'campfire', () => newCampfire() as unknown as BlockEntityData) as unknown as CampfireData;
+        if (!placeCampfireFood(be, held, p.gameMode !== 1)) continue;
+        if (held.count <= 0) p.inventory.set(slot, null);
+        this.server.syncSlot(p, slot);
+        this.markDirty(x, z);
+        return true;
+      }
+      return false;
+    }
     if (FURNACES.has(name)) {
       const kind = name as FurnaceKind;
       const be = this.getOrCreate(x, y, z, kind, () => newFurnace(kind) as unknown as BlockEntityData) as unknown as FurnaceData;
@@ -314,8 +329,21 @@ export class Containers {
     for (const c of srv.world.chunks.values()) {
       if (c.blockEntities.size === 0 || !srv.isTickingChunk(c.x, c.z)) continue;
       for (const [k, be] of c.blockEntities) {
-        if (!FURNACES.has(be.id)) continue;
         const x = c.x * 16 + (k & 15), y = k >> 8, z = c.z * 16 + ((k >> 4) & 15);
+        if (be.id === 'campfire') {
+          const st = srv.world.getState(x, y, z);
+          const n = blockNameOf(st);
+          if (n !== 'campfire' && n !== 'soul_campfire') {
+            c.blockEntities.delete(k);
+            continue;
+          }
+          const cf = be as unknown as CampfireData;
+          if (!cf.items.some((i) => i)) continue;
+          for (const out of tickCampfire(cf, getProp(st, 'lit') === true)) this.dropItemStack(x, y, z, out);
+          c.version++;
+          continue;
+        }
+        if (!FURNACES.has(be.id)) continue;
         const st = srv.world.getState(x, y, z);
         if (blockNameOf(st) !== be.id) {
           c.blockEntities.delete(k);

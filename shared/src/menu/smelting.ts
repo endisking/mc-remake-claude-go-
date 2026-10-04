@@ -5,7 +5,7 @@
  */
 import { ITEMS_BY_NAME } from '../data';
 
-export type CookingType = 'smelting' | 'blasting' | 'smoking';
+export type CookingType = 'smelting' | 'blasting' | 'smoking' | 'campfire_cooking';
 
 export interface CookingRecipe {
   id: string;
@@ -61,7 +61,7 @@ function id(name: string): number {
 }
 
 function build(): Record<CookingType, Map<number, CookingRecipe>> {
-  const t: Record<CookingType, Map<number, CookingRecipe>> = { smelting: new Map(), blasting: new Map(), smoking: new Map() };
+  const t: Record<CookingType, Map<number, CookingRecipe>> = { smelting: new Map(), blasting: new Map(), smoking: new Map(), campfire_cooking: new Map() };
   const add = (type: CookingType, list: [string, string, number][], time: number) => {
     for (const [a, b, xp] of list) t[type].set(id(a), { id: `${b}_from_${type}_${a}`, input: id(a), result: id(b), xp, time });
   };
@@ -70,6 +70,7 @@ function build(): Record<CookingType, Map<number, CookingRecipe>> {
   add('smelting', SMELT_ONLY, 200);
   add('blasting', ORES, 100);
   add('smoking', FOOD, 100);
+  add('campfire_cooking', FOOD, 600);
   return t;
 }
 

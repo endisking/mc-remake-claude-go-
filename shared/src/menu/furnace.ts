@@ -175,3 +175,52 @@ export class FurnaceContainer implements Container {
   }
 }
 
+
+// ------------------------------------------------------------------ campfires
+/** CampfireBlockEntity: four cooking slots with their own timers. */
+export interface CampfireData {
+  id: 'campfire';
+  items: (ItemStack | null)[];
+  cookingProgress: number[];
+  cookingTime: number[];
+}
+
+export function newCampfire(): CampfireData {
+  return { id: 'campfire', items: [null, null, null, null], cookingProgress: [0, 0, 0, 0], cookingTime: [0, 0, 0, 0] };
+}
+
+/** CampfireBlockEntity.placeFood: one item into the first free slot (false if full or not cookable). */
+export function placeCampfireFood(c: CampfireData, stack: ItemStack, consume: boolean): boolean {
+  const r = cookingRecipe('campfire_cooking', stack.id);
+  if (!r) return false;
+  for (let i = 0; i < 4; i++) {
+    if (isEmpty(c.items[i])) {
+      c.cookingTime[i] = r.time;
+      c.cookingProgress[i] = 0;
+      c.items[i] = { id: stack.id, count: 1, damage: stack.damage };
+      if (consume) stack.count--;
+      return true;
+    }
+  }
+  return false;
+}
+
+/** cookTick (lit) / cooldownTick (unlit); returns the finished results to drop. */
+export function tickCampfire(c: CampfireData, lit: boolean): ItemStack[] {
+  const out: ItemStack[] = [];
+  for (let i = 0; i < 4; i++) {
+    const st = c.items[i];
+    if (isEmpty(st)) continue;
+    if (lit) {
+      c.cookingProgress[i] = c.cookingProgress[i]! + 1;
+      if (c.cookingProgress[i]! >= c.cookingTime[i]!) {
+        const r = cookingRecipe('campfire_cooking', st.id);
+        if (r) out.push({ id: r.result, count: 1, damage: 0 });
+        c.items[i] = null;
+      }
+    } else if (c.cookingProgress[i]! > 0) {
+      c.cookingProgress[i] = Math.max(0, Math.min(c.cookingTime[i]!, c.cookingProgress[i]! - 2));
+    }
+  }
+  return out;
+}

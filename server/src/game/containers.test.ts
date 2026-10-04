@@ -152,4 +152,18 @@ describe('containers', () => {
     applyPlayer(p, data);
     expect(p.enderChest[4]).toMatchObject({ count: 2 });
   });
+
+  it('campfires take raw food from the hand and pop it out cooked after 600 ticks', () => {
+    const { server, a, p, gx, gy, gz } = setup();
+    server.setBlock(gx + 2, gy + 1, gz, stateOf('campfire', { lit: true }));
+    p.inventory.set(p.inventory.selected, stack('beef', 3));
+    a.send({ t: 'useOn', x: gx + 2, y: gy + 1, z: gz, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    a.send({ t: 'useOn', x: gx + 2, y: gy + 1, z: gz, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    expect(p.inventory.selectedStack?.count).toBe(1);
+    for (let i = 0; i < 599; i++) server.tick();
+    const cooked = () => [...server.entities.values()].filter((e) => e instanceof ItemEntity && e.stack.id === stack('cooked_beef').id).length;
+    expect(cooked()).toBe(0);
+    server.tick();
+    expect(cooked()).toBe(2);
+  });
 });
