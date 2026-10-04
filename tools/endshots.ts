@@ -40,8 +40,11 @@ const page = await browser.newPage({ viewport: { width: 960, height: 540 } });
 page.on('pageerror', (e) => console.log('pageerror', e.message));
 await page.goto(`${base}?nolock=1&time=6000&x=1&y=150&z=-3.5&cmd=${encodeURIComponent('/gamemode creative')}`);
 await until(page, 'overworld chunks', loaded(40));
-await chat(page, ['/fill -1 149 -1 1 149 1 end_portal', '/tp @s 0.5 149.5 0.5 0 0']);
-await until(page, 'the end', `window.game.dimension === 'the_end'`, 60000);
+for (let i = 0; i < 6; i++) {
+  await chat(page, ['/fill -1 149 -1 1 149 1 end_portal', '/tp @s 0.5 149.5 0.5 0 0']);
+  await until(page, 'the end', `window.game.dimension === 'the_end'`, 15000);
+  if (await page.evaluate(`window.game.dimension === 'the_end'`)) break;
+}
 await until(page, 'end chunks', loaded(40));
 await page.waitForTimeout(4000);
 await chat(page, ['/tp @s 100.5 50 0.5 90 5']);
