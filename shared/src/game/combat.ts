@@ -60,6 +60,8 @@ export interface AttackContext {
   /** walkDist − walkDistO and LivingEntity.getSpeed, for the sword sweep check */
   walked: number;
   speed: number;
+  /** ATTACK_DAMAGE modifiers from effects: Strength +3 per level, Weakness −4 per level */
+  damageBonus?: number;
 }
 
 export interface AttackResult {
@@ -74,7 +76,7 @@ export interface AttackResult {
 
 /** Player.attack damage/flags (enchantments arrive in Phase 7). */
 export function computeAttack(c: AttackContext): AttackResult {
-  let f = attackDamageOf(c.item);
+  let f = Math.max(0, attackDamageOf(c.item) + (c.damageBonus ?? 0));
   const f2 = attackStrengthScale(c.attackStrengthTicker, c.item, 0.5);
   f *= 0.2 + f2 * f2 * 0.8;
   const charged = f2 > 0.9;

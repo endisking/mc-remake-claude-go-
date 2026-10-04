@@ -57,6 +57,9 @@ export function destroySpeed(m: MinerState, state: number): number {
 
 /** Fraction of the block broken per tick (≥ 1 means instant). */
 export function destroyProgress(m: MinerState, state: number): number {
+  // BambooBlock / BambooSaplingBlock.getDestroyProgress: swords cut bamboo instantly
+  const bn = BLOCKS[STATE_TO_BLOCK[state]!]!.name;
+  if ((bn === 'bamboo' || bn === 'bamboo_sapling') && /_sword$/.test(ITEMS_BY_ID[m.item]?.name ?? '')) return 1;
   const h = hardness(state);
   if (h === -1) return 0;
   if (h === 0) return 1;

@@ -149,6 +149,19 @@ export class ItemUse {
 
   /** Per-tick: LivingEntity.updatingUsingItem, armour/use broadcasts. */
   tick(p: ServerPlayer): void {
+    // Player.turtleHelmetTick: 10 s of Water Breathing whenever the head is out of water
+    const head = p.inventory.get(39);
+    if (head && nameOf(head.id) === 'turtle_helmet' && !p.living.dead && !p.phys.isUnderWater) {
+      p.living.effects.add('water_breathing', 200, 0, this.effectTarget(p), false, false);
+    }
+    // movement effects for the server's move validation (the client applies the same)
+    const fx = p.living.effects, pe = p.phys.effects;
+    pe.speed = fx.amplifier('speed') + 1;
+    pe.slowness = fx.amplifier('slowness') + 1;
+    pe.jumpBoost = fx.amplifier('jump_boost') + 1;
+    pe.levitation = fx.amplifier('levitation') + 1;
+    pe.slowFalling = fx.has('slow_falling');
+    pe.dolphinsGrace = fx.has('dolphins_grace');
     const st = this.using.get(p.id);
     if (st) {
       const slot = this.handSlot(p, st.hand);

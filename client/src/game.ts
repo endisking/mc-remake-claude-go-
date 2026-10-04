@@ -93,6 +93,11 @@ export class Game implements ScreenHost {
   /** item use state (eating/drinking/bow), effects, absorption — read by the HUD and first-person renderer */
   itemUse!: ClientItemUse;
   readonly arrows = new ClientArrows();
+  /** LocalPlayer.portalTime (nausea / portal screen wobble, 0–1) */
+  portalTime = 0;
+  oPortalTime = 0;
+  private readonly nauseaMat = mat4();
+  private readonly nauseaTmp = mat4();
   private texLayers: Map<string, { layer: number }> | null = null;
   private readonly hud = new Hud();
   /** online players (vanilla PlayerInfo list) */
@@ -873,6 +878,17 @@ export class Game implements ScreenHost {
     } else if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
       // LocalPlayer.aiStep: eating/drawing slows movement input to 20%
       pl.usingItem = !!this.itemUse?.isUsing;
+      // movement effects (speed, slowness, jump boost, levitation, slow falling, dolphin's grace, blindness)
+      if (this.itemUse) {
+        const u = this.itemUse, pe = pl.effects;
+        pe.speed = u.amplifier('speed') + 1;
+        pe.slowness = u.amplifier('slowness') + 1;
+        pe.jumpBoost = u.amplifier('jump_boost') + 1;
+        pe.levitation = u.amplifier('levitation') + 1;
+        pe.slowFalling = u.hasEffect('slow_falling');
+        pe.dolphinsGrace = u.hasEffect('dolphins_grace');
+        pl.blind = u.hasEffect('blindness');
+      }
       pl.tick(move);
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
     }
@@ -962,6 +978,10 @@ export class Game implements ScreenHost {
     }
     // LivingEntity.updatingUsingItem (local + remote players); releasing the key shoots the bow
     if (this.loggedIn) this.itemUse.tick(active && !this.dead && this.binds.down('use'), this.interaction.inventory);
+    // LocalPlayer.handleNetherPortalClient (nausea part): wobble builds up over 7.5 s, fades in 1 s
+    this.oPortalTime = this.portalTime;
+    if (this.itemUse && [...this.itemUse.effects.values()].some((e) => e.name === 'nausea' && e.duration > 60)) this.portalTime = Math.min(1, this.portalTime + 0.006666667);
+    else this.portalTime = Math.max(0, this.portalTime - 0.05);
     this.arrows.tick();
     if (this.loggedIn) {
       const st = this.sentState;
@@ -1779,6 +1799,33 @@ export class Game implements ScreenHost {
     multiply(this.proj, this.proj, m);
   }
 
+  /** GameRenderer.renderLevel portal/nausea distortion: a rotating horizontal squash of the view. */
+  private applyNausea(partial: number): void {
+    const f = this.oPortalTime + (this.portalTime - this.oPortalTime) * partial;
+    if (f <= 0) return;
+    const speed = this.itemUse.hasEffect('nausea') ? 7 : 20;
+    let f1 = 5 / (f * f + 5) - f * 0.04;
+    f1 *= f1;
+    const ang = (((this.clientTicks + partial) * speed) % 360) * (Math.PI / 180);
+    const axis: [number, number, number] = [0, Math.SQRT1_2, Math.SQRT1_2];
+    const rot = (out: Mat4, a: number) => {
+      const c = Math.cos(a), sn = Math.sin(a), t = 1 - c, [x, y, z] = axis;
+      out.set([
+        t * x * x + c, t * x * y + sn * z, t * x * z - sn * y, 0,
+        t * x * y - sn * z, t * y * y + c, t * y * z + sn * x, 0,
+        t * x * z + sn * y, t * y * z - sn * x, t * z * z + c, 0,
+        0, 0, 0, 1,
+      ]);
+    };
+    const m = this.nauseaMat, tmp = this.nauseaTmp;
+    rot(m, ang);
+    multiply(this.proj, this.proj, m);
+    tmp.set([1 / f1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+    multiply(this.proj, this.proj, tmp);
+    rot(m, -ang);
+    multiply(this.proj, this.proj, m);
+  }
+
   private resize(): void {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.floor(this.canvas.clientWidth * dpr), h = Math.floor(this.canvas.clientHeight * dpr);
@@ -1897,6 +1944,7 @@ export class Game implements ScreenHost {
     perspective(this.proj, (fov * Math.PI) / 180, aspect, 0.05, Math.max(renderDist * 4, 512));
     this.applyHurtBob(this.proj, partial);
     if (s.viewBobbing && !this.player.abilities.flying) this.applyViewBob(partial);
+    this.applyNausea(partial);
     viewRotation(this.view, camYaw, camPitch);
     this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
 

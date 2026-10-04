@@ -131,4 +131,14 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(600);
 await shot('armor-third-person');
+await page.evaluate(() => {
+  const i = (window as any).game.input;
+  i.press('F5');
+  i.release('F5');
+});
+// nausea wobble (pufferfish / /effect)
+await cmd(page, '/effect give @s nausea 20');
+await page.waitForTimeout(4000);
+console.log('nausea', await page.evaluate(() => (window as any).game.portalTime));
+await shot('nausea');
 await browser.close();

@@ -253,7 +253,8 @@ export class Survival {
     const eyeState = w.getState(Math.floor(p.x), Math.floor(p.y + ph.eyeHeight), Math.floor(p.z));
     const invulnerable = p.gameMode === 1 || p.gameMode === 3;
     if (ph.isUnderWater && blockNameOf(eyeState) !== 'bubble_column') {
-      if (!invulnerable) {
+      // Water Breathing (turtle shell, conduits) stops the air supply from dropping
+      if (!invulnerable && !l.effects.has('water_breathing') && !l.effects.has('conduit_power')) {
         l.airSupply--;
         if (l.airSupply === -20) {
           l.airSupply = 0;
