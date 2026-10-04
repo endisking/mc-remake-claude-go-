@@ -196,7 +196,7 @@ export function showLauncher(): void {
         .map((w) => {
           const m = w.meta;
           const detail = `${formatDate(m.lastPlayed ?? m.createdAt ?? 0)} · ${MODES[m.defaultGameMode] ?? 'Survival'} Mode`;
-          return `<div class="world${w.id === selected ? ' sel' : ''}" data-id="${escapeHtml(w.id)}"><div class="wn">${escapeHtml(m.name || 'World')}</div><div class="wd">${escapeHtml(safeFolderName(m.name || 'World'))} · ${escapeHtml(detail)}</div></div>`;
+          return `<div class="world${w.id === selected ? ' sel' : ''}" data-id="${escapeHtml(w.id)}"><div class="wn">${escapeHtml(m.name || 'World')}</div><div class="wd">${escapeHtml(detail)}</div></div>`;
         })
         .join('');
       for (const el of list.querySelectorAll<HTMLElement>('.world')) {
