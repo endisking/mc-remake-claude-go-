@@ -147,6 +147,11 @@ export class ItemUse {
       this.swing(p, hand);
       return;
     }
+    if (n === 'experience_bottle') {
+      this.throwXpBottle(p, slot, stack);
+      this.swing(p, hand);
+      return;
+    }
     if (n === 'glass_bottle') {
       if (this.fillBottle(p, slot, stack)) this.swing(p, hand);
       return;
@@ -441,7 +446,8 @@ export class ItemUse {
   /** SplashPotionItem.use: thrown 20° above the look direction at 0.5 blocks/tick. */
   private throwPotion(p: ServerPlayer, slot: number, stack: ItemStack): void {
     const r = this.s.rand;
-    this.s.playSound(null, 'entity.splash_potion.throw', 'player', p.x, p.y, p.z, 0.5, 0.4 / (r.nextFloat() * 0.4 + 0.8));
+    const lingeringItem = nameOf(stack.id) === 'lingering_potion';
+    this.s.playSound(null, lingeringItem ? 'entity.lingering_potion.throw' : 'entity.splash_potion.throw', 'neutral', p.x, p.y, p.z, 0.5, 0.4 / (r.nextFloat() * 0.4 + 0.8));
     const t = new Thrown(this.s.newEntityId(), 'potion', stack.id, this.arrowHost);
     t.x = p.x;
     t.y = p.y + p.phys.eyeHeight - 0.1;
@@ -481,6 +487,30 @@ export class ItemUse {
           if (ticks > 20) p.living.effects.add(x.effect, ticks, x.amplifier, target);
         }
       }
+    }
+  }
+
+  /** ExperienceBottleItem.use: thrown like a splash potion (−20°, 0.7 blocks/tick). */
+  private throwXpBottle(p: ServerPlayer, slot: number, stack: ItemStack): void {
+    const r = this.s.rand;
+    this.s.playSound(null, 'entity.experience_bottle.throw', 'neutral', p.x, p.y, p.z, 0.5, 0.4 / (r.nextFloat() * 0.4 + 0.8));
+    const t = new Thrown(this.s.newEntityId(), 'potion', stack.id, this.arrowHost);
+    t.x = p.x;
+    t.y = p.y + p.phys.eyeHeight - 0.1;
+    t.z = p.z;
+    t.ownerId = p.id;
+    t.shootFromRotation(p.pitch - 20, p.yaw, 0.7, 1);
+    // ThrownExperienceBottle.onHit: level event 2002 (water-bottle colour) and 3–11 XP
+    t.onHit = (_e, hit) => {
+      for (const o of this.s.players) this.s.send(o, { t: 'levelEvent', event: 2002, x: Math.floor(hit.x), y: Math.floor(hit.y), z: Math.floor(hit.z), data: 3694022 });
+      this.s.playSound(null, 'entity.splash_potion.break', 'neutral', hit.x, hit.y, hit.z, 1, r.nextFloat() * 0.1 + 0.9);
+      this.s.spawnExperience(hit.x, hit.y, hit.z, 3 + r.nextInt(5) + r.nextInt(5));
+    };
+    this.s.spawnEntity(t);
+    if (p.gameMode !== 1) {
+      stack.count--;
+      if (stack.count <= 0) p.inventory.set(slot, null);
+      this.s.syncSlot(p, slot);
     }
   }
 

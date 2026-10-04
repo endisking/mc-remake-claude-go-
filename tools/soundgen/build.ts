@@ -1058,6 +1058,7 @@ Object.assign(EVENTS, {
   'entity.egg.throw': [{ set: 'bow_shoot', pitch: 1.4, volume: 0.5 }],
   'entity.snowball.throw': [{ set: 'bow_shoot', pitch: 1.4, volume: 0.5 }],
   'entity.splash_potion.throw': [{ set: 'bow_shoot', pitch: 1.2, volume: 0.5 }],
+  'entity.lingering_potion.throw': [{ set: 'bow_shoot', pitch: 1.1, volume: 0.5 }],
   'entity.splash_potion.break': [{ set: 'glass_break' }],
   'entity.experience_bottle.throw': [{ set: 'bow_shoot', pitch: 1.3, volume: 0.5 }],
   'entity.item.break': [{ set: 'item_break' }],

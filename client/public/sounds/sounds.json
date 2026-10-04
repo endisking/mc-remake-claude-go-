@@ -11535,6 +11535,25 @@
    }
   ]
  },
+ "entity.lingering_potion.throw": {
+  "sounds": [
+   {
+    "name": "bow_shoot/0",
+    "volume": 0.5,
+    "pitch": 1.1
+   },
+   {
+    "name": "bow_shoot/1",
+    "volume": 0.5,
+    "pitch": 1.1
+   },
+   {
+    "name": "bow_shoot/2",
+    "volume": 0.5,
+    "pitch": 1.1
+   }
+  ]
+ },
  "entity.llama.ambient": {
   "sounds": [
    {

@@ -117,7 +117,7 @@ export class ClientItemUse {
       this.host.send({ t: 'useItem', hand });
       return 'swing';
     }
-    if (n === 'bucket' || n === 'water_bucket' || n === 'lava_bucket' || n === 'snowball' || n === 'egg' || n === 'ender_pearl' || n === 'splash_potion' || n === 'lingering_potion' || n === 'glass_bottle') {
+    if (n === 'bucket' || n === 'water_bucket' || n === 'lava_bucket' || n === 'snowball' || n === 'egg' || n === 'ender_pearl' || n === 'splash_potion' || n === 'lingering_potion' || n === 'glass_bottle' || n === 'experience_bottle') {
       this.host.send({ t: 'useItem', hand });
       return 'swing';
     }
