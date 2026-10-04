@@ -15,6 +15,7 @@ const COLOR_CODES: Record<string, string> = {
 };
 
 interface Component {
+  clickEvent?: { action: string; value: string };
   text?: string;
   color?: string;
   extra?: (Component | string)[];
@@ -44,6 +45,26 @@ export function componentToLegacy(json: string): string {
   return walk(root, 'f').replace(/§f(?=§)/g, '').replace(/^§f/, '');
 }
 
+/** The first click event in a component tree (vanilla clicks the exact component; lines here). */
+export function componentClick(json: string): { action: string; value: string } | undefined {
+  let root: Component | string;
+  try {
+    root = JSON.parse(json) as Component | string;
+  } catch {
+    return undefined;
+  }
+  const find = (c: Component | string): { action: string; value: string } | undefined => {
+    if (typeof c === 'string') return undefined;
+    if (c.clickEvent && typeof c.clickEvent.action === 'string' && typeof c.clickEvent.value === 'string') return c.clickEvent;
+    for (const e of c.extra ?? []) {
+      const r = find(e);
+      if (r) return r;
+    }
+    return undefined;
+  };
+  return find(root);
+}
+
 // ------------------------------------------------------------------ chat screen
 export interface ChatHost {
   gui: Gui;
@@ -58,6 +79,9 @@ export interface ChatHost {
   renderChatFocused(g: Gui): void;
   /** scroll the open chat (lines) */
   scrollChat(lines: number): void;
+  /** click action of the chat line at a GUI position */
+  chatClickAt?(mx: number, my: number): { action: string; value: string } | undefined;
+  copyToClipboard?(text: string): void;
 }
 
 export interface SuggestionReply {
@@ -174,6 +198,16 @@ export class ChatScreen extends Screen {
         this.selected = i;
         this.apply(i);
       }
+      return;
+    }
+    // Screen.handleComponentClicked
+    const click = this.host.chatClickAt?.(mx, my);
+    if (!click) return;
+    if (click.action === 'suggest_command') this.setValue(click.value);
+    else if (click.action === 'copy_to_clipboard') this.host.copyToClipboard?.(click.value);
+    else if (click.action === 'run_command') {
+      this.host.sendChat(click.value);
+      this.host.setScreen(null);
     }
   }
 

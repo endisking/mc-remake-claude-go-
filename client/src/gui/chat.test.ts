@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { componentToLegacy, formatCommand } from './chat';
+import { componentToLegacy, componentClick, formatCommand } from './chat';
+
+describe('chat click events', () => {
+  it('finds the first click event in a component tree', () => {
+    expect(componentClick('{"text":"Seed: ","extra":[{"text":"[","extra":[{"text":"7","clickEvent":{"action":"copy_to_clipboard","value":"7"}}]}]}')).toEqual({ action: 'copy_to_clipboard', value: '7' });
+    expect(componentClick('{"text":"plain"}')).toBeUndefined();
+    expect(componentClick('nope')).toBeUndefined();
+  });
+});
 
 describe('chat text components', () => {
   it('turns JSON components into §-coloured lines with inherited colours', () => {

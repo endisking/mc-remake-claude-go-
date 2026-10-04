@@ -59,7 +59,7 @@ import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
-import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
+import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
 export class Game implements ScreenHost {
   readonly gl: WebGL2RenderingContext;
@@ -716,7 +716,7 @@ export class Game implements ScreenHost {
         else this.otherCracks.set(p.id, { x: p.x, y: p.y, z: p.z, stage: p.stage });
         break;
       case 'chat':
-        this.hud.addChat(componentToLegacy(p.json));
+        this.hud.addChat(componentToLegacy(p.json), componentClick(p.json));
         break;
       case 'commandSuggestions':
         if (this.screen instanceof ChatScreen) this.screen.receiveSuggestions(p.id, JSON.parse(p.json) as SuggestionReply);
@@ -1977,6 +1977,8 @@ export class Game implements ScreenHost {
       history: this.hud.sentHistory,
       renderChatFocused: (g) => this.hud.renderChat(g, true),
       scrollChat: (n) => this.hud.scrollChat(n),
+      chatClickAt: (mx, my) => this.hud.chatClickAt(mx, my),
+      copyToClipboard: (t) => this.setClipboard(t),
     };
   }
 

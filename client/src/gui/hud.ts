@@ -4,6 +4,12 @@
  * and the experience bar with level number.
  */
 import type { Gui } from './gui';
+
+/** A text component click event (copy_to_clipboard, suggest_command, run_command, open_url). */
+export interface ChatClick {
+  action: string;
+  value: string;
+}
 import { JavaRandom } from '@shared/util/random';
 import { ITEMS_BY_ID } from '@shared/data';
 import { itemName, type Inventory } from '@shared/item/stack';
@@ -63,7 +69,9 @@ export class Hud {
   }
 
   // chat (vanilla ChatComponent, closed): newest at the bottom, fading after 10 s
-  private chatLines: { text: string; tick: number }[] = [];
+  private chatLines: { text: string; tick: number; click?: ChatClick }[] = [];
+  /** rows drawn by the last focused render (for clicking on chat components) */
+  private chatRows: { y: number; click?: ChatClick }[] = [];
 
   /** F3+D (ChatComponent.clearMessages). */
   clearChat(): void {
@@ -73,8 +81,8 @@ export class Hud {
   /** sent messages (ChatComponent.recentChat) for the chat screen's up/down history */
   readonly sentHistory: string[] = [];
 
-  addChat(text: string): void {
-    for (const line of text.split('\n')) this.chatLines.unshift({ text: line, tick: this.tickCount });
+  addChat(text: string, click?: ChatClick): void {
+    for (const line of text.split('\n')) this.chatLines.unshift({ text: line, tick: this.tickCount, click });
     if (this.chatScroll > 0) this.chatScroll++;
     if (this.chatLines.length > 100) this.chatLines.length = 100;
   }
@@ -88,6 +96,7 @@ export class Hud {
   /** ChatComponent.render: closed = last 10 lines fading after 10 s; focused (chat open) = 20 lines, opaque. */
   renderChat(g: Gui, focused = false): void {
     if (!focused) this.chatScroll = 0;
+    else this.chatRows.length = 0;
     const bottom = g.height - 40;
     const max = focused ? 20 : 10;
     let n = 0, skip = focused ? this.chatScroll : 0;
@@ -108,6 +117,7 @@ export class Hud {
           continue;
         }
         const y = bottom - n * 9;
+        if (focused) this.chatRows.push({ y: y - 9, click: l.click });
         g.ctx.save();
         g.ctx.globalAlpha = bg;
         g.fill(0, y - 9, 4 + 320 + 4, 9, 0xff000000);
@@ -134,6 +144,12 @@ export class Hud {
       this.highlightTimer = 40;
     } else if (this.highlightTimer > 0) this.highlightTimer--;
     this.lastHighlight = key;
+  }
+
+  /** ChatComponent.getClickedComponentStyleAt (per line here): the click action under the mouse. */
+  chatClickAt(mx: number, my: number): ChatClick | undefined {
+    if (mx < 0 || mx > 4 + 320 + 4) return undefined;
+    return this.chatRows.find((r) => my >= r.y && my < r.y + 9)?.click;
   }
 
   /** the chat screen draws the chat itself (focused) */
