@@ -116,9 +116,25 @@ export class EntityRenderer {
     return t;
   }
 
-  /** Default skin for a player without a custom one: stable choice from the name. */
+  /** Names of the bundled skins (Skin Customization). */
+  skinNames(): string[] {
+    return [...this.defaultSkins];
+  }
+
+  /** The local player's chosen skin (Skin Customization), for the first-person arm. */
+  localSkin = '';
+  private readonly loadingSkins = new Set<string>();
+
+  /**
+   * The skin to draw: a bundled skin by name, an uploaded skin (PNG data URL, loaded on first
+   * use), or, without one, a stable default chosen from the name.
+   */
   skinFor(name: string, skin: string): string {
     if (skin && this.skins.has(skin)) return skin;
+    if (skin.startsWith('data:image/png;base64,') && !this.loadingSkins.has(skin)) {
+      this.loadingSkins.add(skin);
+      void this.loadTexture(skin, skin).then((t) => this.skins.set(skin, t), () => {});
+    }
     let h = 0;
     for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
     return this.defaultSkins[Math.abs(h) % Math.max(1, this.defaultSkins.length)] ?? '';
@@ -282,7 +298,7 @@ export class EntityRenderer {
    */
   renderFirstPersonArm(proj: Mat4, base: Mat4, skinName: string, light: number, lightmap: WebGLTexture, l0: [number, number, number], l1: [number, number, number], side: 1 | -1 = 1): void {
     const gl = this.gl;
-    const skin = this.skinFor(skinName, '');
+    const skin = this.skinFor(skinName, this.localSkin);
     // classic (4 px) or slim (3 px) arms; both pivot at (±5, 2, 0) once setupAnim has run
     const model = this.models.get(this.isSlim(skin) ? 'player_slim' : 'player')!;
     const part = model.baked.parts.find((p) => p.def.name === (side === 1 ? 'rightArm' : 'leftArm'))!;

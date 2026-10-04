@@ -211,7 +211,8 @@ export class GameServer {
   private join(conn: Connection, hello: Extract<C2S, { t: 'hello' }>, owner: boolean): ServerPlayer {
     const p = new ServerPlayer(this.nextEntityId++, conn, this.world);
     p.name = hello.name.slice(0, 16) || 'Player';
-    p.skin = hello.skin.slice(0, 64);
+    // a bundled skin name, or an uploaded 64×64 PNG as a data URL (client-checked, size-capped here)
+    p.skin = hello.skin.startsWith('data:image/png;base64,') ? (hello.skin.length <= 24000 ? hello.skin : '') : hello.skin.slice(0, 64);
     p.isOwner = owner;
     p.viewDistance = clampViewDistance(hello.viewDistance);
     p.gameMode = this.opts.defaultGameMode ?? 0;
@@ -1491,8 +1492,12 @@ export class GameServer {
   }
 
   // ---------------------------------------------------------------- ticking
+  /** performance.now() when the current tick started (chunk generation fits in what is left). */
+  private tickStart = 0;
+
   tick(): void {
     const t0 = performance.now();
+    this.tickStart = t0;
     this.gameTime++;
     if (this.doDaylightCycle) this.dayTime++;
     // MinecraftServer.tickServer: autosave every 6000 ticks
@@ -1599,7 +1604,9 @@ export class GameServer {
     let budget = this.chunkGenBudget;
     const g0 = performance.now();
     // a player still waiting for the terrain around them ("Loading terrain…") gets most of the tick
-    const limit = this.players.some((p) => p.sent.size < 25) ? Math.max(this.chunkGenTimeMs, 40) : this.chunkGenTimeMs;
+    let limit = this.players.some((p) => p.sent.size < 25) ? Math.max(this.chunkGenTimeMs, 40) : this.chunkGenTimeMs;
+    // never past ~45 ms into the tick, so the rest of the tick still fits in 50 ms (20 TPS)
+    if (limit !== Infinity) limit = Math.max(2, Math.min(limit, 45 - (g0 - this.tickStart)));
     const outOfTime = () => performance.now() - g0 >= limit;
     for (const p of this.players) {
       const pcx = Math.floor(p.x) >> 4, pcz = Math.floor(p.z) >> 4;

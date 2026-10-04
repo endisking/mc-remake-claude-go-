@@ -104,7 +104,7 @@ export class Game implements ScreenHost {
       const file = this.entityRenderer.skinFor(name, skin);
       if (!this.skinImages.has(file)) {
         this.skinImages.set(file, null);
-        void fetch(`./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
+        void fetch(file.startsWith('data:') ? file : `./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
       }
       return this.skinImages.get(file) ?? null;
     },
@@ -368,6 +368,7 @@ export class Game implements ScreenHost {
 
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
+    this.hud.chatOptions = this.settings;
     // single-player: start the integrated server and join right away, so it generates the spawn
     // chunks while textures and models load (packets are held until the client is ready)
     const integratedP = q.has('server') || q.has('join') ? null : startIntegratedServer(BigInt(q.get('seed') ?? '12345'), q.get('scene') ?? '',
@@ -402,6 +403,7 @@ export class Game implements ScreenHost {
     this.lines = new LineRenderer(this.gl);
     this.entityRenderer = new EntityRenderer(this.gl);
     await this.entityRenderer.loadSkins();
+    this.entityRenderer.localSkin = this.settings.skin;
     const mainBake = bakeBlockModels(this.manifest, this.settings.graphics === 'fancy');
     this.bake = mainBake.bake;
     this.particles = new ParticleEngine(this.gl, this.world);
@@ -505,6 +507,8 @@ export class Game implements ScreenHost {
       } else {
         // ?world=<id>: a saved world from the launcher (IndexedDB); otherwise a transient one
         const { server, transport } = await integratedP!;
+        // held packets (login → screens) are handled before the first frame: size the GUI now
+        this.gui.begin(this.settings.guiScale);
         this.integrated = server;
         if (server.worldId) {
           // best effort: save when the tab is hidden or closed (the worker may not finish on close)
@@ -536,7 +540,7 @@ export class Game implements ScreenHost {
       console.warn('disconnected', r);
       this.showDisconnected(r);
     };
-    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: '' });
+    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: this.settings.skin });
   }
 
   connect(t: ClientTransport): void {
@@ -553,7 +557,7 @@ export class Game implements ScreenHost {
       console.warn('disconnected', r);
       this.showDisconnected(r);
     };
-    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: '' });
+    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: this.settings.skin });
   }
 
   send(p: C2S): void {
@@ -565,7 +569,7 @@ export class Game implements ScreenHost {
       case 'login':
         this.entityId = p.entityId;
         this.world.biomeZoomSeed = p.seed;
-        this.selfModel = new RemotePlayer(p.entityId, new URLSearchParams(location.search).get('name') ?? 'Player', '');
+        this.selfModel = new RemotePlayer(p.entityId, new URLSearchParams(location.search).get('name') ?? 'Player', this.settings.skin);
         this.selfModel.setPos(p.x, p.y, p.z, p.yaw, p.pitch, p.yaw);
         this.setGameMode(p.gameMode);
         this.placePlayer(p.x, p.y, p.z);
@@ -588,6 +592,8 @@ export class Game implements ScreenHost {
           if (sc === 'video') import('./gui/screens').then((m) => this.setScreen(new m.VideoSettingsScreen(this, new m.PauseScreen(this))));
           else if (sc === 'pause') this.setScreen(new PauseScreen(this));
           else if (sc === 'options') import('./gui/screens').then((m) => this.setScreen(new m.OptionsScreen(this, null)));
+          else if (sc === 'chatsettings') import('./gui/screens').then((m) => this.setScreen(new m.ChatOptionsScreen(this, null)));
+          else if (sc === 'skin') import('./gui/screens').then((m) => this.setScreen(new m.SkinCustomizationScreen(this, null)));
           else if (sc === 'controls' || sc === 'mouse' || sc === 'sound' || sc === 'access') {
             void import('./gui/controls').then((m) => {
               const scr = sc === 'controls' ? new m.ControlsScreen(this, null) : sc === 'mouse' ? new m.MouseSettingsScreen(this, null)
@@ -884,6 +890,11 @@ export class Game implements ScreenHost {
   }
 
   /** URL test hooks: ?x=&y=&z=&yaw=&pitch=&time= (used by screenshot checks and the benchmark). */
+  /** Bundled skins for Skin Customization. */
+  defaultSkins(): string[] {
+    return this.entityRenderer?.skinNames() ?? [];
+  }
+
   private loadingHost(): LoadingHost {
     const game = this;
     return {
@@ -2175,7 +2186,7 @@ export class Game implements ScreenHost {
     const file = this.entityRenderer.skinFor(pi.name, pi.skin);
     if (!this.skinImages.has(file)) {
       this.skinImages.set(file, null);
-      void fetch(`./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
+      void fetch(file.startsWith('data:') ? file : `./textures/skins/${file}.png`).then((r) => r.blob()).then((b) => createImageBitmap(b)).then((img) => this.skinImages.set(file, img));
     }
     return this.skinImages.get(file) ?? null;
   }
@@ -2270,7 +2281,7 @@ export class Game implements ScreenHost {
     const biome = BIOMES[this.world.getBiome(bx, by, bz)];
     const chunk = this.world.getChunk(bx >> 4, bz >> 4);
     const s = this.settings;
-    const fpsCap = s.maxFps === -1 ? 'vsync' : s.maxFps === 0 ? 'inf' : String(s.maxFps);
+    const fpsCap = (s.maxFps <= 0 ? 'inf' : String(s.maxFps)) + (s.vsync ? ' vsync' : '');
     const left = [
       'Blockcraft 1.17.1 (1.17.1/blockcraft)',
       `${this.fps} fps T: ${fpsCap} ${s.graphics} ${s.clouds === 'off' ? '' : s.clouds + '-clouds'} B: ${s.biomeBlend}  1%: ${low1.toFixed(0)}`,

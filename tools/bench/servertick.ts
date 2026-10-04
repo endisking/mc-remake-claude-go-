@@ -15,6 +15,24 @@ const recv = server.connect(conn, true);
 recv(encodeC2S({ t: 'hello', protocol: PROTOCOL_VERSION, name: 'P', viewDistance: vd, skin: '' }));
 recv(encodeC2S({ t: 'settings', viewDistance: vd, simulationDistance: vd }));
 const p = server.players[0]!;
+// per-phase maxima (ms) to find what spikes a tick
+const phaseMax: Record<string, number> = {};
+const wrap = (obj: any, name: string, label = name) => {
+  const f = obj[name].bind(obj);
+  obj[name] = (...a: unknown[]) => {
+    const s = performance.now();
+    const r = f(...a);
+    const d = performance.now() - s;
+    if (d > (phaseMax[label] ?? 0)) phaseMax[label] = d;
+    return r;
+  };
+};
+const sv = server as any;
+for (const m of ['updateChunks', 'tickEntities', 'flushLight', 'updateTracking', 'trackEntities', 'prepareChunk', 'storeChunk']) wrap(sv, m);
+wrap(sv.fluids, 'tick', 'fluids');
+wrap(sv.generator, 'generate');
+wrap(sv.generator, 'decorate');
+wrap(sv.light, 'lightChunk');
 const t0 = performance.now();
 let ticks = 0;
 while (chunks < 25 && ticks < 2000) {
@@ -33,3 +51,4 @@ for (let i = 0; i < 300; i++) {
 times.sort((a, b) => a - b);
 const mean = times.reduce((a, b) => a + b, 0) / times.length;
 console.log(JSON.stringify({ vd, budget: budgetArg ?? 'default', spawnMs: Math.round(spawnMs), spawnTicks: ticks, flyMeanTickMs: +mean.toFixed(1), flyP95TickMs: +times[Math.floor(times.length * 0.95)]!.toFixed(1), flyMaxTickMs: +times[times.length - 1]!.toFixed(1), chunksSent: chunks, ticksOver50: times.filter((t) => t > 50).length }));
+console.log('phase max ms', JSON.stringify(Object.fromEntries(Object.entries(phaseMax).map(([k, v]) => [k, +v.toFixed(1)]))));
