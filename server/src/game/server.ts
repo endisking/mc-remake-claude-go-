@@ -33,10 +33,14 @@ import { soundId, sourceId, type SoundSource } from '@shared/sound/events';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { computeAttack } from '@shared/game/combat';
 import { StepTracker } from '@shared/entity/steps';
+import { Commands, type AccessStore } from './commands';
+import { DEFAULT_ALL_GAME_RULES, type AllGameRules } from './commands/gamerules';
 
 export interface Connection {
   send(data: ArrayBuffer): void;
   close(reason: string): void;
+  /** remote IP address (dedicated server; used by /ban-ip) */
+  address?: string;
 }
 
 export interface ServerOptions {
@@ -55,6 +59,12 @@ export interface ServerOptions {
   storage?: WorldStorage;
   /** World name written to the level data. */
   worldName?: string;
+  /** Dedicated server: enables /op, /ban, /whitelist, /stop… (vanilla registers them only there). */
+  dedicated?: boolean;
+  /** The world's "Allow Cheats" for the single-player/LAN host (default on). */
+  cheats?: boolean;
+  /** Persistence for ops/bans/whitelist (the dedicated server's JSON files). */
+  access?: AccessStore;
 }
 
 /** Vanilla MinecraftServer autosave interval: every 6000 ticks (5 minutes). */
@@ -81,7 +91,8 @@ export class GameServer {
   rainLevel = 0;
   thunderLevel = 0;
   readonly rand: JavaRandom;
-  readonly gameRules: GameRules = { ...DEFAULT_GAME_RULES };
+  readonly gameRules: AllGameRules = { ...DEFAULT_ALL_GAME_RULES };
+  readonly commands = new Commands(this);
   difficulty: Difficulty = Difficulty.Normal;
   readonly survival = new Survival(this);
   /** server.properties pvp */
@@ -92,10 +103,10 @@ export class GameServer {
   spawnRadius = 10;
   /** world spawn (set on the first join at the origin) */
   worldSpawn: [number, number, number] = [8, 64, 8];
-  private worldSpawnSet = false;
+  worldSpawnSet = false;
   /** Server simulation distance (chunks); the single-player host's setting overrides it. */
   simulationDistance = 10;
-  private nextEntityId = 1;
+  nextEntityId = 1;
   private readonly chunkGenBudget: number;
   /** Sections whose light changed this tick: key -> [cx, sy, cz] */
   private lightDirty = new Map<number, [number, number, number]>();
@@ -115,6 +126,7 @@ export class GameServer {
       this.saveDirty.add(chunkKey(cx, cz));
     };
     this.chunkGenBudget = opts.chunkGenBudget ?? 6;
+    this.commands.configure(opts);
   }
 
   // ---------------------------------------------------------------- connections
@@ -130,7 +142,14 @@ export class GameServer {
           conn.close('protocol');
           return;
         }
+        const refused = owner ? null : this.commands.loginCheck(p.name.slice(0, 16) || 'Player', conn.address);
+        if (refused) {
+          conn.send(encodeS2C({ t: 'disconnect', reason: refused }));
+          conn.close(refused);
+          return;
+        }
         player = this.join(conn, p, owner);
+        this.commands.joined(player);
         return;
       }
       this.handle(player, p);
@@ -147,6 +166,7 @@ export class GameServer {
       this.playerData.set(key, data);
       this.opts.storage.putPlayer(key, data).catch((e) => console.error('[server] saving player failed', e));
     }
+    this.commands.left(gone!);
     for (const o of this.players) {
       if (o.tracking.delete(gone!.id)) this.send(o, { t: 'removeEntities', ids: [gone!.id] });
       this.send(o, { t: 'playerInfo', action: 4, id: gone!.id, name: gone!.name, skin: '', gameMode: 0 });
@@ -470,7 +490,8 @@ export class GameServer {
       for (const it of items) this.popResource(x, y, z, it);
       // Block.spawnAfterBreak → popExperience (OreBlock / RedStoneOreBlock / SpawnerBlock)
       const xp = harvest ? oreExperience(name, this.rand) : 0;
-      if (xp > 0) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
+      // Block.popExperience: only with doTileDrops
+      if (xp > 0 && this.gameRules.doTileDrops) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
     }
     // beds: the other half goes too (BedBlock.updateShape → destroyBlock), dropping its loot
     // (the bed item comes from the head) unless the breaker is in creative
@@ -569,12 +590,14 @@ export class GameServer {
   }
 
   // ------------------------------------------------------------------ item entities
-  private spawnEntity(e: ServerEntity): void {
+  spawnEntity(e: ServerEntity): void {
     this.entities.set(e.id, e);
   }
 
   /** Vanilla Block.popResource: item at the block centre ± 0.25 with a small upward toss. */
   popResource(x: number, y: number, z: number, stack: ItemStack): void {
+    // gamerule doTileDrops (vanilla Block.popResource)
+    if (!this.gameRules.doTileDrops) return;
     const r = this.rand;
     const e = new ItemEntity(this.nextEntityId++, stack);
     e.x = x + 0.5 + (r.nextDouble() * 0.5 - 0.25);
@@ -955,7 +978,8 @@ export class GameServer {
     if (p.living.dead) {
       // a dead player can only chat or respawn
       if (m.t === 'respawn') this.survival.respawn(p);
-      else if (m.t === 'chat' && m.message.startsWith('/')) this.runCommand(p, m.message.slice(1));
+      else if (m.t === 'chat') this.commands.handleChat(p, m.message);
+      else if (m.t === 'commandSuggest' || m.t === 'keepAlive') this.commands.handlePacket(p, m);
       return;
     }
     switch (m.t) {
@@ -1030,96 +1054,12 @@ export class GameServer {
         this.setBlock(m.x, m.y, m.z, m.state);
         break;
       case 'chat':
-        if (m.message.startsWith('/')) this.runCommand(p, m.message.slice(1));
+        this.commands.handleChat(p, m.message);
         break;
-    }
-  }
-
-  /** Minimal command handling (the full command system is Phase 9). */
-  private runCommand(p: ServerPlayer, cmd: string): void {
-    const a = cmd.trim().split(/\s+/);
-    if (a[0] === 'time' && (a[1] === 'set' || a[1] === 'add')) {
-      const names: Record<string, number> = { day: 1000, noon: 6000, night: 13000, midnight: 18000 };
-      const v = names[a[2] ?? ''] ?? Number(a[2]);
-      if (!Number.isFinite(v)) return;
-      this.dayTime = a[1] === 'set' ? v : this.dayTime + v;
-      for (const pl of this.players) this.send(pl, { t: 'time', gameTime: this.gameTime, dayTime: this.dayTime, doDaylightCycle: this.doDaylightCycle });
-    } else if (a[0] === 'gamerule' && a[1] === 'doDaylightCycle') {
-      this.doDaylightCycle = a[2] === 'true';
-    } else if (a[0] === 'weather' && (a[1] === 'clear' || a[1] === 'rain' || a[1] === 'thunder')) {
-      const d = a[2] ? Number(a[2]) * 20 : 6000;
-      this.setWeather(a[1], Number.isFinite(d) ? d : 6000);
-    } else if (a[0] === 'gamemode' && a[1]) {
-      const modes: Record<string, number> = { survival: 0, creative: 1, adventure: 2, spectator: 3, '0': 0, '1': 1, '2': 2, '3': 3 };
-      const mode = modes[a[1]];
-      if (mode !== undefined) this.setGameMode(p, mode);
-    } else if (a[0] === 'give' && a.length >= 3) {
-      const target = a[1] === '@s' || a[1] === '@p' ? p : this.players.find((o) => o.name === a[1]);
-      const item = ITEMS_BY_NAME.get(a[2]!.replace(/^minecraft:/, ''));
-      const count = a[3] ? Math.floor(Number(a[3])) : 1;
-      if (!target || !item || !(count >= 1 && count <= 6400)) return;
-      // vanilla GiveCommand: fill the inventory, drop what doesn't fit at the player's feet
-      let left = count;
-      while (left > 0) {
-        const n = Math.min(left, maxStackSize(item.id));
-        left -= n;
-        const rest = target.inventory.add({ id: item.id, count: n, damage: 0 });
-        if (rest > 0) this.tossItem(target, { id: item.id, count: rest, damage: 0 });
-      }
-      for (let i = 0; i < 36; i++) this.syncSlot(target, i);
-      this.send(p, { t: 'chat', json: JSON.stringify({ text: `Gave ${count} [${item.displayName}] to ${target.name}` }) });
-    } else if (a[0] === 'setblock' && a.length >= 5) {
-      const rel = (v: string, base: number) => (v.startsWith('~') ? Math.floor(base) + (Number(v.slice(1)) || 0) : Math.floor(Number(v)));
-      const x = rel(a[1]!, p.x), y = rel(a[2]!, p.y), z = rel(a[3]!, p.z);
-      const b = BLOCKS_BY_NAME.get(a[4]!.replace(/^minecraft:/, ''));
-      if (!b || ![x, y, z].every(Number.isFinite)) return;
-      this.setBlock(x, y, z, b.defaultState);
-      this.updateNeighbors(x, y, z);
-    } else if (a[0] === 'summon' && a[1]?.replace(/^minecraft:/, '') === 'lightning_bolt') {
-      const rel = (v: string | undefined, base: number) => (v === undefined ? base : v.startsWith('~') ? base + (Number(v.slice(1)) || 0) : Number(v));
-      const x = rel(a[2], p.x), y = rel(a[3], p.y), z = rel(a[4], p.z);
-      if ([x, y, z].every(Number.isFinite)) this.strikeLightning(x, y, z);
-    } else if (a[0] === 'spawnpoint') {
-      const t = a[1] && !a[1].startsWith('~') && isNaN(Number(a[1])) ? this.players.find((o) => o.name === a[1] || a[1] === '@s' || a[1] === '@p') : p;
-      const c = a.slice(a[1] && isNaN(Number(a[1])) && !a[1].startsWith('~') ? 2 : 1);
-      const rel = (v: string | undefined, base: number) => (v === undefined ? Math.floor(base) : v.startsWith('~') ? Math.floor(base) + (Number(v.slice(1)) || 0) : Math.floor(Number(v)));
-      if (!t) return;
-      const x = rel(c[0], t.x), y = rel(c[1], t.y), z = rel(c[2], t.z);
-      t.respawn = { x, y, z, angle: t.yaw };
-      this.send(p, { t: 'chat', json: JSON.stringify({ text: `Set spawn point to ${x}, ${y}, ${z} in minecraft:overworld for ${t.name}` }) });
-    } else if (a[0] === 'setworldspawn') {
-      const rel = (v: string | undefined, base: number) => (v === undefined ? Math.floor(base) : v.startsWith('~') ? Math.floor(base) + (Number(v.slice(1)) || 0) : Math.floor(Number(v)));
-      this.worldSpawn = [rel(a[1], p.x), rel(a[2], p.y), rel(a[3], p.z)];
-      this.worldSpawnSet = true;
-      this.send(p, { t: 'chat', json: JSON.stringify({ text: `Set the world spawn point to ${this.worldSpawn.join(', ')} [0.0]` }) });
-    } else if (a[0] === 'gamerule' && (a[1] === 'playersSleepingPercentage' || a[1] === 'spawnRadius') && a[2] !== undefined && Number.isFinite(Number(a[2]))) {
-      if (a[1] === 'playersSleepingPercentage') this.playersSleepingPercentage = Math.max(0, Math.floor(Number(a[2])));
-      else this.spawnRadius = Math.max(0, Math.floor(Number(a[2])));
-    } else if (a[0] === 'kill') {
-      this.survival.hurt(p, DAMAGE.outOfWorld, 3.4028235e38);
-    } else if (a[0] === 'difficulty' && a[1]) {
-      const d = ({ peaceful: 0, easy: 1, normal: 2, hard: 3 } as Record<string, Difficulty>)[a[1]];
-      if (d !== undefined) {
-        this.difficulty = d;
-        for (const o of this.players) this.send(o, { t: 'difficulty', difficulty: d });
-      }
-    } else if (a[0] === 'gamerule' && a[1] && a[1] in this.gameRules && (a[2] === 'true' || a[2] === 'false')) {
-      (this.gameRules as unknown as Record<string, boolean>)[a[1]] = a[2] === 'true';
-    } else if ((a[0] === 'xp' || a[0] === 'experience') && a[1] === 'add' && a[3]) {
-      const n = Math.floor(Number(a[3]));
-      if (Number.isFinite(n)) this.survival.giveExperience(p, n, a[4] === 'levels');
-    } else if (a[0] === 'effect' && a[1] === 'clear') {
-      // effects arrive in Phase 5
-    } else if (a[0] === 'clear') {
-      for (let i = 0; i < 41; i++) p.inventory.set(i, null);
-      for (let i = 0; i < 41; i++) this.syncSlot(p, i);
-    } else if (a[0] === 'tp' && a.length >= 4) {
-      const n = a.slice(1, 4).map(Number);
-      if (n.some((v) => !Number.isFinite(v))) return;
-      p.x = n[0]!;
-      p.y = n[1]!;
-      p.z = n[2]!;
-      this.send(p, { t: 'teleport', x: p.x, y: p.y, z: p.z, yaw: p.yaw, pitch: p.pitch });
+      case 'commandSuggest':
+      case 'keepAlive':
+        this.commands.handlePacket(p, m);
+        break;
     }
   }
 
@@ -1504,6 +1444,7 @@ export class GameServer {
     this.advanceWeather();
     this.tickLightning();
     this.sleep.tick();
+    this.commands.tick();
     for (const p of this.players) {
       // ServerPlayer.tick: a spectator rides along with its camera entity until it sneaks
       const cam = p.camera;
@@ -1584,9 +1525,10 @@ export class GameServer {
       this.raining = false;
       this.thundering = false;
     } else {
+      // ServerLevel.setWeatherParameters(0, duration, true, thunder): both timers get the duration
       this.clearWeatherTime = 0;
       this.rainTime = duration;
-      this.thunderTime = kind === 'thunder' ? duration : 0;
+      this.thunderTime = duration;
       this.raining = true;
       this.thundering = kind === 'thunder';
     }
