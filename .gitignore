@@ -10,3 +10,4 @@ playwright-report/
 /tools/soundgen/cache/
 /tools/cache/
 /build/
+/.claude/worktrees/
