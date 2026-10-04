@@ -32,7 +32,7 @@ function sideWithTop(top: Tex, seed: number, minLen = 2, extra = 3): Tex {
   return t;
 }
 function myceliumTop(): Tex {
-  const t = paint(grain(1011, [0.5, 0.3, 0.2]), pal('#5e4e5a', '#6c5a68', '#7a6676', '#887284', '#968090'), { emboss: 1, dither: 1.2, seed: 1011 });
+  const t = paint(grain(1011, [0.5, 0.3, 0.2]), pal('#574b54', '#645761', '#71636d', '#7e6f79', '#8b7b85'), { emboss: 1, dither: 1.2, seed: 1011 });
   const r = rng(1012);
   for (let i = 0; i < 12; i++) t.set(Math.floor(r() * 16), Math.floor(r() * 16), r() < 0.5 ? hex('#b4a4b0') : hex('#9a7a9a'));
   return t;

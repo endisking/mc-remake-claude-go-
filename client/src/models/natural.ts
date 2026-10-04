@@ -334,7 +334,7 @@ function smallDripleafDef(): BlockStateDef {
     variants[`facing=${f},half=lower`] = { model: lower, y: Y_OF[f]! };
     variants[`facing=${f},half=upper`] = { model: upper, y: Y_OF[f]! };
   }
-  return { variants };
+  return { variants, offset: 'xyz' };
 }
 
 function sporeBlossomDef(): BlockStateDef {
@@ -486,7 +486,7 @@ export const NATURAL: Record<string, () => BlockStateDef> = {
   cave_vines: () => ({ variants: { 'berries=true': { model: model('cave_vines_lit', 'cross', { cross: 'cave_vines_lit' }) }, 'berries=false': { model: model('cave_vines', 'cross', { cross: 'cave_vines' }) } } }),
   cave_vines_plant: () => ({ variants: { 'berries=true': { model: model('cave_vines_plant_lit', 'cross', { cross: 'cave_vines_plant_lit' }) }, 'berries=false': { model: model('cave_vines_plant', 'cross', { cross: 'cave_vines_plant' }) } } }),
   spore_blossom: sporeBlossomDef,
-  hanging_roots: () => cross('hanging_roots'),
+  hanging_roots: () => cross('hanging_roots', 'hanging_roots', 'xz'),
   big_dripleaf: bigDripleafDef,
   big_dripleaf_stem: () => single({ model: reg('big_dripleaf_stem', { ao: false, elements: crossElements('big_dripleaf_stem') }) }),
   small_dripleaf: smallDripleafDef,
@@ -497,9 +497,9 @@ export const NATURAL: Record<string, () => BlockStateDef> = {
   warped_nylium: () => bottomTop('warped_nylium', 'warped_nylium_side', 'warped_nylium', 'netherrack'),
   crimson_fungus: () => cross('crimson_fungus'),
   warped_fungus: () => cross('warped_fungus'),
-  crimson_roots: () => cross('crimson_roots'),
-  warped_roots: () => cross('warped_roots'),
-  nether_sprouts: () => cross('nether_sprouts'),
+  crimson_roots: () => cross('crimson_roots', 'crimson_roots', 'xz'),
+  warped_roots: () => cross('warped_roots', 'warped_roots', 'xz'),
+  nether_sprouts: () => cross('nether_sprouts', 'nether_sprouts', 'xz'),
   weeping_vines: () => cross('weeping_vines'),
   weeping_vines_plant: () => cross('weeping_vines_plant'),
   twisting_vines: () => cross('twisting_vines'),
