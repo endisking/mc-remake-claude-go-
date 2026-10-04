@@ -7,7 +7,7 @@
 import { mkdirSync, existsSync, writeFileSync, readFileSync, rmSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { decode, encode, trim, normalize, fade, section, sliceOnsets, gain } from './audio';
+import { decode, encode, trim, normalize, fade, section, sliceOnsets, gain, detectPitch, repitch } from './audio';
 import { curlText } from './search';
 import { SOUND_TYPES } from '../../shared/src/world/soundtype';
 import { SOUND_EVENTS } from '../../shared/src/data';
@@ -22,6 +22,7 @@ const KENNEY: Record<string, { url: string; title: string }> = {
   'impact-sounds': { url: 'https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip', title: 'Impact Sounds' },
   'rpg-audio': { url: 'https://kenney.nl/media/pages/assets/rpg-audio/8e99002d76-1677590336/kenney_rpg-audio.zip', title: 'RPG Audio' },
   'ui-audio': { url: 'https://kenney.nl/media/pages/assets/ui-audio/490d233f68-1677590494/kenney_ui-audio.zip', title: 'UI Audio' },
+  'digital-audio': { url: 'https://kenney.nl/media/pages/assets/digital-audio/216eac4753-1677590265/kenney_digital-audio.zip', title: 'Digital Audio' },
   'interface-sounds': { url: 'https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip', title: 'Interface Sounds' },
 };
 
@@ -121,6 +122,23 @@ const FREESOUND: Record<number, string> = {
   442772: 'qubodup', 433840: 'Archos', // slime squish
   536737: 'egomassive', // chain
   262635: 'j_p_higgins', // ice crack
+  // note block instruments (single notes, retuned to the vanilla base pitch by the build)
+  68448: 'pinkyfinger', // piano G
+  632255: 'Cloud-10', // piano bell sound (C3)
+  660533: 'TheEndOfACycle', // bass guitar pluck
+  400707: 'Mattc90', // subby kick drum
+  581461: 'johnnydekk', // acoustic kick
+  689553: 'Shōtotsu', // snare drum
+  178668: 'Hanbaal', // snare
+  674296: 'TheEndOfACycle', // hi-hat closed
+  250530: 'waveplaySFX', // hi hat
+  352493: 'joseph.larralde', // glockenspiel A
+  258199: 'sastesty', // flute D4
+  592440: 'Baconation', // guitar pluck
+  374705: 'sgossner', // xylophone F#5
+  193212: 'eliasheuninck', // metallophone
+  75339: 'Neotone', // cowbell
+  204912: 'Noxdl', // didgeridoo
   // music (calm ambient piano / pads)
   679738: 'Seth_Makes_Sounds', // Calming Piano Loop 60bpm
   832628: 'Jadis0x', // Calm Ambient Piano Loop
@@ -307,6 +325,45 @@ const SETS: Record<string, () => Clip[]> = {
   toast_out: () => kenney('interface-sounds', 'minimize_006'),
 };
 
+/**
+ * Note block instruments: one recorded note each, retuned so that pitch 1.0 (note 12) sounds the
+ * vanilla base note: F#4 harp/pling/banjo/bit/iron xylophone, F#2 bass/didgeridoo, F#3 guitar,
+ * F#5 flute/cow bell, F#6 bell/chime/xylophone. Percussion is left untuned.
+ */
+const FS = (oct: number) => 440 * 2 ** ((oct - 4) + (-3 / 12)); // F#<oct>
+const noteLog: string[] = [];
+function tuned(clip: Clip, target: number | null, maxLen = 1.6, knownHz?: number): Clip {
+  let s = clip.samples;
+  if (target) {
+    const hz = knownHz ?? detectPitch(s);
+    if (!hz) throw new Error(`no pitch found for ${clip.source}`);
+    s = repitch(s, target / hz);
+    noteLog.push(`${clip.source}: ${hz.toFixed(1)} Hz -> ${target.toFixed(1)} Hz`);
+  }
+  return { ...clip, samples: fade(normalize(section(trim(s), 0, maxLen), -3), 2, 250) };
+}
+const fsNote = (id: number, target: number | null, maxLen?: number, knownHz?: number): Clip[] => [tuned({ samples: decode(freesound(id)), source: `freesound:${id}` }, target, maxLen, knownHz)];
+const NOTES: Record<string, () => Clip[]> = {
+  note_harp: () => fsNote(68448, FS(4)),
+  note_pling: () => fsNote(632255, FS(4)),
+  note_bass: () => fsNote(660533, FS(2)),
+  note_basedrum: () => [...fsNote(400707, null, 0.6), ...fsNote(581461, null, 0.6)],
+  note_snare: () => [...fsNote(689553, null, 0.4), ...fsNote(178668, null, 0.3)],
+  note_hat: () => [...fsNote(674296, null, 0.2), ...fsNote(250530, null, 0.2)],
+  // bells and metallophones are inharmonic: their pitch is the strongest partial (measured by DFT)
+  note_bell: () => fsNote(352493, FS(6), 1.6, 1863),
+  note_flute: () => fsNote(258199, FS(5), 1.2),
+  note_chime: () => fsNote(614832, FS(6), 1.6, 2468),
+  note_guitar: () => fsNote(592440, FS(3)),
+  note_xylophone: () => fsNote(374705, FS(6), 1, FS(5)),
+  note_iron_xylophone: () => fsNote(193212, FS(4), 1.6, 1805),
+  note_cow_bell: () => fsNote(75339, FS(5), 0.5),
+  note_didgeridoo: () => fsNote(204912, FS(2), 1.2),
+  note_banjo: () => fsNote(592440, FS(4), 0.8, 213),
+  note_bit: () => [tuned({ samples: decode(join(kenneyDir('digital-audio'), 'tone1.ogg')), source: 'kenney:digital-audio' }, FS(4), 1)],
+};
+Object.assign(SETS, NOTES);
+
 /** Music tracks: streamed, lower bitrate, long fades (vanilla music is relative and non-positional). */
 const MUSIC: Record<string, () => Clip[]> = {
   music_calm1: () => fsMusic(679738),
@@ -421,6 +478,9 @@ Object.assign(EVENTS, {
   'block.chest.close': [{ set: 'door_close', pitch: 1.1 }],
 } satisfies Record<string, Ref[]>);
 
+for (const inst of ['harp', 'pling', 'bass', 'basedrum', 'snare', 'hat', 'bell', 'flute', 'chime', 'guitar', 'xylophone', 'iron_xylophone', 'cow_bell', 'didgeridoo', 'banjo', 'bit']) {
+  EVENTS[`block.note_block.${inst}`] = [{ set: `note_${inst}` }];
+}
 // ---- Phase 10: groups with dedicated recordings (override the pitched stone/cloth fallbacks)
 const group5 = (g: string, dig: string, step: string, pitch?: number, digPitch?: number) => {
   EVENTS[`block.${g}.break`] = [{ set: dig, pitch: digPitch ?? pitch }];
@@ -715,10 +775,7 @@ function scanSourceEvents(): string[] {
  * `placeholder` entry in sounds.json (silent; the engine logs them once at debug level).
  */
 const PLACEHOLDERS = [
-  'block.note_block.harp', 'block.note_block.basedrum', 'block.note_block.snare', 'block.note_block.hat', 'block.note_block.bass',
-  'block.note_block.flute', 'block.note_block.bell', 'block.note_block.guitar', 'block.note_block.chime', 'block.note_block.xylophone',
-  'block.note_block.iron_xylophone', 'block.note_block.cow_bell', 'block.note_block.didgeridoo', 'block.note_block.bit',
-  'block.note_block.banjo', 'block.note_block.pling', 'entity.zombified_piglin.ambient', 'entity.zombified_piglin.hurt', 'entity.zombified_piglin.death', 'entity.enderman.ambient',
+  'entity.zombified_piglin.ambient', 'entity.zombified_piglin.hurt', 'entity.zombified_piglin.death', 'entity.enderman.ambient',
   'entity.enderman.hurt', 'entity.enderman.death', 'entity.enderman.teleport', 'entity.wolf.ambient', 'entity.wolf.hurt',
   'entity.wolf.death', 'entity.cat.ambient', 'entity.cat.hurt', 'entity.cat.death', 'entity.villager.ambient', 'entity.villager.hurt',
   'entity.villager.death', 'entity.villager.trade', 'entity.horse.ambient', 'entity.horse.hurt', 'entity.horse.death',
@@ -780,4 +837,5 @@ writeFileSync(assetPath, assets);
 
 const missing = Object.keys(manifest).filter((e) => !manifest[e]!.sounds.length).sort();
 writeFileSync(join(root, 'tools/soundgen/missing.txt'), missing.join('\n') + '\n');
+console.log(noteLog.join('\n'));
 console.log(`sounds.json: ${Object.keys(manifest).length} events, ${[...setFiles.values()].flat().length} files; ${missing.length} events are silent placeholders (tools/soundgen/missing.txt)`);

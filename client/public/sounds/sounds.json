@@ -5248,68 +5248,125 @@
   ]
  },
  "block.note_block.banjo": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_banjo/0"
+   }
+  ]
  },
  "block.note_block.basedrum": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_basedrum/0"
+   },
+   {
+    "name": "note_basedrum/1"
+   }
+  ]
  },
  "block.note_block.bass": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_bass/0"
+   }
+  ]
  },
  "block.note_block.bell": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_bell/0"
+   }
+  ]
  },
  "block.note_block.bit": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_bit/0"
+   }
+  ]
  },
  "block.note_block.chime": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_chime/0"
+   }
+  ]
  },
  "block.note_block.cow_bell": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_cow_bell/0"
+   }
+  ]
  },
  "block.note_block.didgeridoo": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_didgeridoo/0"
+   }
+  ]
  },
  "block.note_block.flute": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_flute/0"
+   }
+  ]
  },
  "block.note_block.guitar": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_guitar/0"
+   }
+  ]
  },
  "block.note_block.harp": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_harp/0"
+   }
+  ]
  },
  "block.note_block.hat": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_hat/0"
+   },
+   {
+    "name": "note_hat/1"
+   }
+  ]
  },
  "block.note_block.iron_xylophone": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_iron_xylophone/0"
+   }
+  ]
  },
  "block.note_block.pling": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_pling/0"
+   }
+  ]
  },
  "block.note_block.snare": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_snare/0"
+   },
+   {
+    "name": "note_snare/1"
+   }
+  ]
  },
  "block.note_block.xylophone": {
-  "sounds": [],
-  "placeholder": true
+  "sounds": [
+   {
+    "name": "note_xylophone/0"
+   }
+  ]
  },
  "block.nylium.break": {
   "sounds": [
