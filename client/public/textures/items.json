@@ -1494,6 +1494,22 @@
   },
   {
    "name": "barrier"
+  },
+  {
+   "name": "bamboo",
+   "handheld": true
+  },
+  {
+   "name": "pointed_dripstone"
+  },
+  {
+   "name": "turtle_egg"
+  },
+  {
+   "name": "structure_void"
+  },
+  {
+   "name": "light"
   }
  ]
 }

@@ -292,6 +292,91 @@ function barrier(): Tex {
   return t;
 }
 
+function bamboo(): Tex {
+  const t = new Tex();
+  for (let k = 0; k < 12; k++) {
+    const x = 3 + k, y = 13 - k;
+    const joint = k % 4 === 3;
+    t.set(x, y, hex(joint ? '#4a7a1a' : '#8ac83a'));
+    t.set(x + 1, y, hex(joint ? '#3a6012' : '#6aa02a'));
+    t.set(x, y + 1, hex(joint ? '#3a6012' : '#5a8a22'));
+  }
+  px(t, '8,5 9,4 10,4 6,9 5,9', '#7ab83a');
+  return t;
+}
+
+function pointedDripstone(): Tex {
+  const t = new Tex();
+  shadeMask(t, maskOf([
+    '................',
+    '....########....',
+    '....########....',
+    '.....######.....',
+    '.....######.....',
+    '.....######.....',
+    '......####......',
+    '......####......',
+    '......####......',
+    '.......##.......',
+    '.......##.......',
+    '.......##.......',
+    '.......#........',
+  ]), mat('#3a2a20', '#6a5040', '#86684e', '#a08262', '#bca080'), { seed: 1201, dither: 0.2 });
+  return t;
+}
+
+function turtleEgg(): Tex {
+  const t = new Tex();
+  shadeMask(t, maskOf([
+    '................',
+    '................',
+    '.........####...',
+    '........######..',
+    '.......########.',
+    '.......########.',
+    '..####.########.',
+    '.######.######..',
+    '########.####...',
+    '########........',
+    '########........',
+    '.######.........',
+    '..####..........',
+  ]), mat('#7a7a5a', '#cfcfb0', '#e6e6cc', '#f2f2e0', '#ffffff'), { seed: 1211, dither: 0 });
+  px(t, '10,4 13,6 9,7 12,9 3,8 6,10 2,11', '#5a9a5a');
+  return t;
+}
+
+function structureVoid(): Tex {
+  const t = new Tex();
+  for (let i = 4; i < 12; i++) {
+    t.set(i, 4, hex('#d0d0ff'));
+    t.set(i, 11, hex('#d0d0ff'));
+    t.set(4, i, hex('#d0d0ff'));
+    t.set(11, i, hex('#d0d0ff'));
+  }
+  return t;
+}
+
+function lightItem(): Tex {
+  const t = new Tex();
+  // a little light bulb
+  shadeMask(t, maskOf([
+    '................',
+    '................',
+    '......####......',
+    '.....######.....',
+    '....########....',
+    '....########....',
+    '....########....',
+    '.....######.....',
+    '......####......',
+    '......####......',
+  ]), mat('#8a7a20', '#e8d040', '#f8e870', '#fff4a8', '#ffffff'), { seed: 1221, dither: 0 });
+  px(t, '6,10 7,10 8,10 9,10 6,12 7,12 8,12 9,12', '#8e8e94');
+  px(t, '6,11 7,11 8,11 9,11', '#5d5d63');
+  return t;
+}
+
 const WOODS = ['oak', 'spruce', 'birch', 'jungle', 'acacia', 'dark_oak', 'crimson', 'warped'];
 
 export const blockItemSprites: ItemTexDef[] = [
@@ -314,4 +399,9 @@ export const blockItemSprites: ItemTexDef[] = [
   { name: 'soul_campfire', make: () => campfire(true) },
   { name: 'bell', make: bell },
   { name: 'barrier', make: barrier },
+  { name: 'bamboo', make: bamboo, handheld: true },
+  { name: 'pointed_dripstone', make: pointedDripstone },
+  { name: 'turtle_egg', make: turtleEgg },
+  { name: 'structure_void', make: structureVoid },
+  { name: 'light', make: lightItem },
 ];
