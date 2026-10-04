@@ -64,6 +64,8 @@ const SHOTS: Record<string, Shot> = {
   fish: { cam: 'x=24.2&y=200&z=2.5&lookat=24.2,200.2,4.5&fov=60', mobs: row(['cod', 'salmon', 'cod', 'salmon'], { yaw: 120 }) },
   h_front: { cam: FAR, mobs: row(['horse', 'donkey', 'mule', 'skeleton_horse', 'zombie_horse', 'cat', 'ocelot', 'cat'], { yaw: 120 }).map((m, i) => (i === 7 ? { ...m, data: { sitting: 1 } } : m)) },
   h_walk: { cam: FAR, mobs: row(['horse', 'donkey', 'mule', 'skeleton_horse', 'zombie_horse', 'cat', 'ocelot', 'horse'], { yaw: 120, walk: true }).map((m, i) => (i === 7 ? { ...m, data: { baby: 1 } } : m)), wait: 1100 },
+  i_front: { cam: NEAR, mobs: row(['polar_bear', 'snow_golem', 'silverfish', 'bee', 'endermite'], { yaw: 140 }) },
+  i_walk: { cam: NEAR, mobs: row(['polar_bear', 'snow_golem', 'silverfish', 'bee', 'endermite'], { yaw: 120, walk: true }), wait: 1100 },
   night: { cam: NEAR + '&time=18000', mobs: row(['spider', 'enderman', 'zombie', 'cave_spider']) },
 };
 

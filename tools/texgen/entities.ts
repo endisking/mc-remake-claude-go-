@@ -974,6 +974,88 @@ function felineTex(base: string, dark: string, spots: string, seed: number): Tex
 export const cat = () => felineTex('#8a8278', '#6e6860', '#4a4642', 281);
 export const ocelot = () => felineTex('#d8b060', '#c09848', '#5a3a1a', 283);
 
+/** Polar bear (128×64): cream-white shaggy fur, dark nose and claws. */
+export function polarBear(): Tex {
+  const t = new Tex(128, 64);
+  const W = hex('#ece8dc'), WD = hex('#d4cec0');
+  const fur = blotches(W, WD, 291, 1.8, 0.62, 0.05);
+  const head = box(t, 0, 0, 7, 7, 7, fur);
+  px(t, head.front[0] + 1, head.front[1] + 2, hex('#1a1612'));
+  px(t, head.front[0] + 5, head.front[1] + 2, hex('#1a1612'));
+  const mouth = box(t, 0, 44, 5, 3, 3, fur);
+  rect(t, mouth.front[0] + 1, mouth.front[1], 3, 1, () => hex('#2a2420'));
+  box(t, 26, 0, 2, 2, 1, () => WD);
+  box(t, 0, 19, 14, 14, 11, fur);
+  box(t, 39, 0, 12, 12, 10, fur);
+  for (const [u, v, d] of [[50, 22, 8], [50, 40, 6]] as const) {
+    const leg = box(t, u, v, 4, 10, d, fur);
+    for (const k of ['right', 'front', 'left', 'back'] as const) hline(t, leg[k][0], leg[k][1] + 9, leg[k][2], WD);
+    rect(t, leg.bottom[0], leg.bottom[1], 4, d, (x) => (x % 2 ? hex('#3a3430') : WD));
+  }
+  return t;
+}
+
+/** Snow golem (64×64): packed snow body, twig arms, a carved gourd head with an original face. */
+export function snowGolem(): Tex {
+  const t = new Tex(64, 64);
+  const S = hex('#f2f6f8'), SD = hex('#d4dee4'), P = hex('#d8842a'), PD = hex('#b86a1c'), T = hex('#6a4a2a');
+  const gourd: Paint = (x) => (x % 3 === 0 ? PD : P);
+  const head = box(t, 0, 0, 8, 8, 8, gourd, { top: (x, y) => (x >= 3 && x <= 4 && y >= 3 && y <= 4 ? hex('#4a6a2a') : PD) });
+  const [fx, fy] = head.front;
+  const glow = hex('#ffd860'), dark = hex('#3a1e0a');
+  rect(t, fx, fy, 8, 8, gourd);
+  for (const [x, y] of [[1, 2], [2, 3], [5, 3], [6, 2]] as const) px(t, fx + x, fy + y, dark);
+  px(t, fx + 2, fy + 2, glow);
+  px(t, fx + 5, fy + 2, glow);
+  for (let i = 1; i < 7; i++) px(t, fx + i, fy + 5 + (i % 2), dark);
+  box(t, 32, 0, 12, 2, 2, (x) => (x % 4 === 3 ? shade(T, 0.8) : T));
+  box(t, 0, 16, 10, 10, 10, blotches(S, SD, 301, 2, 0.6, 0.03));
+  box(t, 0, 36, 12, 12, 12, blotches(S, SD, 302, 2, 0.6, 0.03));
+  return t;
+}
+
+/** Silverfish (64×32): pale grey segmented shell with darker plate edges. */
+export function silverfish(): Tex {
+  const t = new Tex(64, 32);
+  const G = hex('#9a9a9e'), GD = hex('#76767c'), GL = hex('#b8b8bc');
+  const plate: Paint = (x, y) => (y === 0 ? GL : x % 3 === 0 ? GD : G);
+  for (const [u, v, w, h, d] of [[0, 0, 3, 2, 2], [0, 4, 4, 3, 2], [0, 9, 6, 4, 3], [0, 16, 3, 3, 3], [0, 22, 2, 2, 3], [11, 0, 2, 1, 2], [13, 4, 1, 1, 2]] as const) box(t, u, v, w, h, d, plate);
+  box(t, 20, 0, 10, 8, 3, plate);
+  box(t, 20, 11, 6, 4, 3, plate);
+  box(t, 20, 18, 6, 5, 2, plate);
+  return t;
+}
+
+/** Endermite (64×32): dark violet-black mite with purple specks. */
+export function endermite(): Tex {
+  const t = new Tex(64, 32);
+  const B = hex('#1e1824'), V = hex('#7a3a9a');
+  const r = rng(311);
+  const shell: Paint = () => (r() > 0.85 ? V : shade(B, 1 + (r() - 0.5) * 0.2));
+  for (const [u, v, w, h, d] of [[0, 0, 4, 3, 2], [0, 5, 6, 4, 5], [0, 14, 3, 3, 1], [0, 18, 1, 2, 1]] as const) box(t, u, v, w, h, d, shell);
+  return t;
+}
+
+/** Bee (64×64): amber and dark-brown banded body, pale wings, dark legs. */
+export function bee(): Tex {
+  const t = new Tex(64, 64);
+  const Y = hex('#e8b030'), K = hex('#3a2a1a');
+  const body = box(t, 0, 0, 7, 7, 10, (x) => (Math.floor(x / 2) % 2 ? K : Y), {
+    front: (x, y) => (y === 2 && (x === 1 || x === 5) ? hex('#141010') : y === 2 && (x === 2 || x === 4) ? hex('#f0f0f0') : Y),
+    back: (_x, y) => (y % 3 === 0 ? K : Y),
+  });
+  for (const k of ['top', 'bottom'] as const) {
+    const [x, y, w, h] = body[k];
+    rect(t, x, y, w, h, (_i, j) => (Math.floor(j / 2) % 2 ? K : Y));
+  }
+  box(t, 26, 7, 0, 1, 2, () => K);
+  box(t, 2, 0, 1, 2, 3, () => K);
+  box(t, 2, 3, 1, 2, 3, () => K);
+  box(t, 0, 18, 9, 0, 6, (x, y) => ((x + y) % 4 === 0 ? hex('#d8e8f0', 200) : hex('#f0f8ff', 170)));
+  for (const v of [1, 3, 5]) box(t, 26, v, 7, 2, 0, (x) => (x % 2 ? K : shade(K, 0.8)));
+  return t;
+}
+
 // ------------------------------------------------------------------ misc layers
 
 /** Charged creeper energy swirl (tileable, scrolled and drawn additively). */
@@ -1058,5 +1140,5 @@ export const ENTITY_TEXTURES: Record<string, () => Tex> = {
   chicken, enderman, enderman_eyes: endermanEyes, slime, bat, squid,
   glow_squid: glowSquid, creeper_armor: creeperArmor, villager, wandering_trader: wanderingTrader, witch, zombie_villager: zombieVillager,
   unknown: unknownMob,
-  horse, donkey, mule, skeleton_horse: skeletonHorse, zombie_horse: zombieHorse, cat, ocelot, cod, salmon, pillager, vindicator, evoker, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
+  polar_bear: polarBear, snow_golem: snowGolem, silverfish, endermite, bee, horse, donkey, mule, skeleton_horse: skeletonHorse, zombie_horse: zombieHorse, cat, ocelot, cod, salmon, pillager, vindicator, evoker, iron_golem: ironGolem, wolf, phantom, phantom_eyes: phantomEyes, mooshroom,
 };

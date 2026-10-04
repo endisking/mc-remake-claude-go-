@@ -576,6 +576,75 @@ export function felineMesh(): VPart[] {
   ];
 }
 
+/** PolarBearModel.createBodyLayer (128×64) */
+export function polarBearMesh(): VPart[] {
+  return [
+    { name: 'head', pivot: [0, 10, -16], boxes: [b(0, 0, -3.5, -3, -3, 7, 7, 7), b(0, 44, -2.5, 1, -6, 5, 3, 3), b(26, 0, -4.5, -4, -1, 2, 2, 1), b(26, 0, 2.5, -4, -1, 2, 2, 1, 0, true)] },
+    { name: 'body', pivot: [-2, 9, 12], rot: [PI / 2, 0, 0], boxes: [b(0, 19, -5, -13, -7, 14, 14, 11), b(39, 0, -4, -25, -7, 12, 12, 10)] },
+    { name: 'right_hind_leg', pivot: [-4.5, 14, 6], boxes: [b(50, 22, -2, 0, -2, 4, 10, 8)] },
+    { name: 'left_hind_leg', pivot: [4.5, 14, 6], boxes: [b(50, 22, -2, 0, -2, 4, 10, 8)] },
+    { name: 'right_front_leg', pivot: [-3.5, 14, -8], boxes: [b(50, 40, -2, 0, -2, 4, 10, 6)] },
+    { name: 'left_front_leg', pivot: [3.5, 14, -8], boxes: [b(50, 40, -2, 0, -2, 4, 10, 6)] },
+  ];
+}
+
+/** SnowGolemModel.createBodyLayer (64×64) */
+export function snowGolemMesh(): VPart[] {
+  return [
+    { name: 'head', pivot: [0, 4, 0], boxes: [b(0, 0, -4, -8, -4, 8, 8, 8, -0.5)] },
+    { name: 'left_arm', pivot: [5, 6, 1], rot: [0, 0, 1], boxes: [b(32, 0, -1, 0, -1, 12, 2, 2, -0.5)] },
+    { name: 'right_arm', pivot: [-5, 6, -1], rot: [0, PI, -1], boxes: [b(32, 0, -1, 0, -1, 12, 2, 2, -0.5)] },
+    { name: 'upper_body', pivot: [0, 13, 0], boxes: [b(0, 16, -5, -10, -5, 10, 10, 10, -0.5)] },
+    { name: 'lower_body', pivot: [0, 24, 0], boxes: [b(0, 36, -6, -12, -6, 12, 12, 12, -0.5)] },
+  ];
+}
+
+/** SilverfishModel / EndermiteModel: a chain of segments (plus the silverfish's three shell layers). */
+export function segmentedMesh(sizes: number[][], texs: number[][], layers: boolean): VPart[] {
+  const parts: VPart[] = [];
+  const place: number[] = [];
+  let f = -3.5;
+  for (let i = 0; i < sizes.length; i++) {
+    const [w, h, d] = sizes[i]!;
+    parts.push({ name: `segment${i}`, pivot: [0, 24 - h!, f], boxes: [b(texs[i]![0]!, texs[i]![1]!, w! * -0.5, 0, d! * -0.5, w!, h!, d!)] });
+    place[i] = f;
+    if (i < sizes.length - 1) f += (d! + sizes[i + 1]![2]!) * 0.5;
+  }
+  if (layers) {
+    parts.push({ name: 'layer0', pivot: [0, 16, place[2]!], boxes: [b(20, 0, -5, 0, sizes[2]![2]! * -0.5, 10, 8, sizes[2]![2]!)] });
+    parts.push({ name: 'layer1', pivot: [0, 20, place[4]!], boxes: [b(20, 11, -3, 0, sizes[4]![2]! * -0.5, 6, 4, sizes[4]![2]!)] });
+    parts.push({ name: 'layer2', pivot: [0, 19, place[1]!], boxes: [b(20, 18, -3, 0, sizes[4]![2]! * -0.5, 6, 5, sizes[1]![2]!)] });
+  }
+  return parts;
+}
+
+const SILVERFISH_SIZES = [[3, 2, 2], [4, 3, 2], [6, 4, 3], [3, 3, 3], [2, 2, 3], [2, 1, 2], [1, 1, 2]];
+const SILVERFISH_TEXS = [[0, 0], [0, 4], [0, 9], [0, 16], [0, 22], [11, 0], [13, 4]];
+const ENDERMITE_SIZES = [[4, 3, 2], [6, 4, 5], [3, 3, 1], [1, 2, 1]];
+const ENDERMITE_TEXS = [[0, 0], [0, 5], [0, 14], [0, 18]];
+
+/** BeeModel.createBodyLayer (64×64) */
+export function beeMesh(): VPart[] {
+  return [
+    {
+      name: 'bone', pivot: [0, 19, 0], boxes: [], children: [
+        {
+          name: 'body', pivot: [0, 0, 0], boxes: [b(0, 0, -3.5, -4, -5, 7, 7, 10)], children: [
+            { name: 'stinger', pivot: [0, 0, 0], boxes: [b(26, 7, 0, -1, 5, 0, 1, 2)] },
+            { name: 'left_antenna', pivot: [0, -2, -5], boxes: [b(2, 0, 1.5, -2, -3, 1, 2, 3)] },
+            { name: 'right_antenna', pivot: [0, -2, -5], boxes: [b(2, 3, -2.5, -2, -3, 1, 2, 3)] },
+          ],
+        },
+        { name: 'right_wing', pivot: [-1.5, -4, -3], rot: [0, -0.2618, 0], boxes: [b(0, 18, -9, 0, 0, 9, 0, 6)] },
+        { name: 'left_wing', pivot: [1.5, -4, -3], rot: [0, 0.2618, 0], boxes: [b(0, 18, 0, 0, 0, 9, 0, 6, 0, true)] },
+        { name: 'front_legs', pivot: [1.5, 3, -2], boxes: [b(26, 1, -5, 0, 0, 7, 2, 0)] },
+        { name: 'middle_legs', pivot: [1.5, 3, 0], boxes: [b(26, 3, -5, 0, 0, 7, 2, 0)] },
+        { name: 'back_legs', pivot: [1.5, 3, 2], boxes: [b(26, 5, -5, 0, 0, 7, 2, 0)] },
+      ],
+    },
+  ];
+}
+
 // ------------------------------------------------------------------ animation helpers
 
 const RAD = PI / 180;
@@ -999,6 +1068,60 @@ const felineAnim = (p: Poses, a: MobAnim) => {
   p.tail2!.xRot = 1.7278761 + (PI / 4) * Math.cos(ls) * amt;
 };
 
+/** SnowGolemModel.setupAnim: the upper body turns a quarter of the head yaw, arms follow it. */
+const snowGolemAnim = (p: Poses, a: MobAnim) => {
+  p.head!.yRot = a.netHeadYaw * RAD;
+  p.head!.xRot = a.headPitch * RAD;
+  const ub = p.upper_body!;
+  ub.yRot = a.netHeadYaw * RAD * 0.25;
+  const f = Math.sin(ub.yRot), f1 = Math.cos(ub.yRot);
+  p.left_arm!.yRot = ub.yRot;
+  p.right_arm!.yRot = ub.yRot + PI;
+  p.left_arm!.x = f1 * 5;
+  p.left_arm!.z = -f * 5;
+  p.right_arm!.x = -f1 * 5;
+  p.right_arm!.z = f * 5;
+};
+
+/** SilverfishModel / EndermiteModel.setupAnim: a travelling wiggle along the segments. */
+const segmentedAnim = (yAmp: number, xAmp: number) => (p: Poses, a: MobAnim) => {
+  for (let i = 0; p[`segment${i}`]; i++) {
+    const s = p[`segment${i}`]!;
+    s.yRot = Math.cos(a.ageInTicks * 0.9 + i * 0.15 * PI) * PI * yAmp * (1 + Math.abs(i - 2));
+    s.x = Math.sin(a.ageInTicks * 0.9 + i * 0.15 * PI) * PI * xAmp * Math.abs(i - 2);
+  }
+  if (p.layer0) {
+    p.layer0.yRot = p.segment2!.yRot;
+    p.layer1!.yRot = p.segment4!.yRot;
+    p.layer1!.x = p.segment4!.x;
+    p.layer2!.yRot = p.segment1!.yRot;
+    p.layer2!.x = p.segment1!.x;
+  }
+};
+
+/** BeeModel.setupAnim: wings buzz and the body bobs while flying; folded wings when landed. */
+const beeAnim = (p: Poses, a: MobAnim) => {
+  const rw = p.right_wing!, lw = p.left_wing!, bone = p.bone!;
+  const landed = a.mob.onGround && a.limbSwingAmount < 0.01;
+  if (!landed) {
+    rw.yRot = 0;
+    rw.zRot = Math.cos(a.ageInTicks * 120.32113 * RAD) * PI * 0.15;
+    lw.xRot = rw.xRot;
+    lw.yRot = rw.yRot;
+    lw.zRot = -rw.zRot;
+    p.front_legs!.xRot = PI / 4;
+    p.middle_legs!.xRot = PI / 4;
+    p.back_legs!.xRot = PI / 4;
+    const f1 = Math.cos(a.ageInTicks * 0.18);
+    bone.xRot = 0.1 + f1 * PI * 0.025;
+    p.left_antenna!.xRot = f1 * PI * 0.03;
+    p.right_antenna!.xRot = f1 * PI * 0.03;
+    p.front_legs!.xRot = -f1 * PI * 0.1 + PI / 8;
+    p.back_legs!.xRot = -f1 * PI * 0.05 + PI / 4;
+    bone.y = 19 - f1 * 0.9;
+  }
+};
+
 const none = () => {};
 
 export const MOB_MODELS: Record<string, MobModelDef> = {
@@ -1033,6 +1156,11 @@ export const MOB_MODELS: Record<string, MobModelDef> = {
   horse: { tex: [64, 64], parts: horseMesh(), anim: horseAnim },
   donkey: { tex: [64, 64], parts: horseMesh(true), anim: horseAnim },
   feline: { tex: [64, 32], parts: felineMesh(), headParts: ['head'], baby: { scaleHead: true, yHead: 10, zHead: 4, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: felineAnim },
+  polar_bear: { tex: [128, 64], parts: polarBearMesh(), headParts: ['head'], baby: { scaleHead: true, yHead: 16, zHead: 4, headScale: 2.25, bodyScale: 2, bodyY: 24 }, anim: quadrupedAnim },
+  snow_golem: { tex: [64, 64], parts: snowGolemMesh(), anim: snowGolemAnim },
+  silverfish: { tex: [64, 32], parts: segmentedMesh(SILVERFISH_SIZES, SILVERFISH_TEXS, true), anim: segmentedAnim(0.05, 0.2) },
+  endermite: { tex: [64, 32], parts: segmentedMesh(ENDERMITE_SIZES, ENDERMITE_TEXS, false), anim: segmentedAnim(0.01, 0.1) },
+  bee: { tex: [64, 64], parts: beeMesh(), headParts: [], baby: { scaleHead: false, yHead: 24, zHead: 0, headScale: 2, bodyScale: 2, bodyY: 24 }, anim: beeAnim },
   unknown: { tex: [64, 32], parts: [{ name: 'box', pivot: [0, 0, 0], boxes: [b(0, 0, -8, 8, -8, 16, 16, 16)] }], anim: none },
 };
 
@@ -1109,6 +1237,11 @@ export const MOB_RENDER: Record<string, MobRenderDef> = {
   mule: { layers: [{ model: 'donkey', texture: 'mule' }], scale: 0.92, babyScale: 0.5 },
   cat: { layers: [{ model: 'feline', texture: 'cat' }], scale: 0.8 },
   ocelot: { layers: [{ model: 'feline', texture: 'ocelot' }] },
+  polar_bear: { layers: [{ model: 'polar_bear', texture: 'polar_bear' }], scale: 1.2 },
+  snow_golem: { layers: [{ model: 'snow_golem', texture: 'snow_golem' }] },
+  silverfish: { layers: [{ model: 'silverfish', texture: 'silverfish' }] },
+  endermite: { layers: [{ model: 'endermite', texture: 'endermite' }] },
+  bee: { layers: [{ model: 'bee', texture: 'bee' }] },
   /** fallback for mobs without a model: a hit-box-sized box */
   unknown: { layers: [{ model: 'unknown', texture: 'unknown' }] },
 };
