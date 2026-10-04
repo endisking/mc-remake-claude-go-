@@ -17,7 +17,7 @@ import { computeAttack } from '@shared/game/combat';
 import { Difficulty, EXHAUSTION } from '@shared/game/food';
 import { itemName, maxStackSize, type ItemStack } from '@shared/item/stack';
 import { ITEMS_BY_ID } from '@shared/data';
-import { DYE_COLORS } from '@shared/entity/mobdata';
+import { DYE_COLORS, MOB_FLAG } from '@shared/entity/mobdata';
 import type { Chunk } from '@shared/world/chunk';
 import type { JavaRandom } from '@shared/util/random';
 import { ItemEntity, ExperienceOrb, type ServerEntity } from '../entity';
@@ -820,7 +820,8 @@ export class MobManager {
   onStartTracking(p: ServerPlayer, e: ServerEntity): void {
     if (!(e instanceof Mob)) return;
     const s = this.s;
-    s.send(p, { t: 'mobData', id: e.id, flags: e.mobFlags(), variant: e.variant() });
+    const data = mobDataOf(e);
+    for (const k in data) s.send(p, { t: 'mobData', id: e.id, key: k, value: data[k]! });
     s.send(p, { t: 'entityMove', id: e.id, x: e.x, y: e.y, z: e.z, yaw: e.yaw, pitch: e.pitch, headYaw: e.yHeadRot, onGround: e.onGround });
     if (e.isOnFire()) s.send(p, { t: 'entityState', id: e.id, flags: 1, pose: 'standing', frozen: 0 });
     if (e.mainHand) s.send(p, { t: 'equipment', id: e.id, mainHand: e.mainHand.id, offHand: 0 });
@@ -835,7 +836,13 @@ export class MobManager {
         m.flagsDirty = false;
         m.sentFlags = flags;
         m.sentVariant = variant;
-        m.broadcast({ t: 'mobData', id: m.id, flags, variant });
+        // only the keys whose value changed
+        const data = mobDataOf(m);
+        for (const k in data) {
+          if (m.sentData[k] === data[k]) continue;
+          m.sentData[k] = data[k]!;
+          m.broadcast({ t: 'mobData', id: m.id, key: k, value: data[k]! });
+        }
       }
       const fire = m.isOnFire();
       if (fire !== m.sentOnFire) {
@@ -914,4 +921,27 @@ for (const type of Object.keys(MOB_TYPES)) {
     m.flagsDirty = true;
     return m;
   });
+}
+
+/**
+ * The mobData keys of a mob (MOB_DATA_KEYS in packets.ts): baby, aggressive, color, sheared,
+ * swell_dir, charged, saddle, size, carried, hanging, bow.
+ */
+export function mobDataOf(m: Mob): Record<string, number> {
+  const f = m.mobFlags();
+  const d: Record<string, number> = { baby: f & MOB_FLAG.BABY ? 1 : 0, aggressive: f & MOB_FLAG.AGGRESSIVE ? 1 : 0 };
+  if (m instanceof Sheep) {
+    d.color = m.color;
+    d.sheared = m.sheared ? 1 : 0;
+  }
+  if (m instanceof Creeper) {
+    d.swell_dir = m.swellDir > 0 ? 1 : -1;
+    d.charged = m.powered ? 1 : 0;
+  }
+  if (m instanceof Pig) d.saddle = m.saddled ? 1 : 0;
+  if (m instanceof Slime) d.size = m.size;
+  if (m instanceof Enderman) d.carried = m.carried;
+  if (m instanceof Bat) d.hanging = m.resting ? 1 : 0;
+  if (m instanceof Skeleton) d.bow = m.holdingBow() ? 1 : 0;
+  return d;
 }

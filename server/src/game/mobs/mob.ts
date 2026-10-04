@@ -124,6 +124,8 @@ export abstract class Mob extends ServerEntity {
   stateDirty = true;
   sentFlags = -1;
   sentVariant = -1;
+  /** last mobData values sent, by key */
+  readonly sentData: Record<string, number> = {};
   sentOnFire = false;
   sentHeadYaw = NaN;
   sentYaw = NaN;

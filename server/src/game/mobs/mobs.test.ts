@@ -320,7 +320,7 @@ describe('mobs on the server', { timeout: 60000 }, () => {
     expect(wool.length).toBeGreaterThanOrEqual(1);
     expect(wool.length).toBeLessThanOrEqual(3);
     server.tick();
-    expect(a.received.some((m) => m.t === 'mobData' && m.id === sheep.id && (m.flags & MOB_FLAG.SHEARED) !== 0)).toBe(true);
+    expect(a.received.some((m) => m.t === 'mobData' && m.id === sheep.id && m.key === 'sheared' && m.value === 1)).toBe(true);
     sheep.ate();
     expect(sheep.sheared).toBe(false);
     // milking

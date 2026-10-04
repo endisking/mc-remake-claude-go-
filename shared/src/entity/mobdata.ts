@@ -1,6 +1,15 @@
 /**
  * Mob network contract (server simulation → client rendering).
  *
+ * Per-mob state: `mobData { id, key, value }` with the keys of MOB_DATA_KEYS (packets.ts):
+ *   baby, aggressive (zombie arms up / skeleton aiming / enderman creepy), color + sheared
+ *   (sheep), swell_dir −1/1 + charged (creeper; the client advances swell 0..30 itself), saddle
+ *   (pig), size 1/2/4 (slime), carried (enderman block state), hanging (bat), bow (skeleton).
+ *   All keys of a mob are sent right after addEntity; afterwards only changed keys.
+ *   Explosions: `explode { x, y, z, power, destroy }` (particles; the sound comes as `sound`).
+ *   Right-click on a mob: client sends C2S `interact { target, hand }` (breeding food, shears,
+ *   bucket, saddle, flint and steel).
+ *
  * Spawning: `addEntity { id, type, x, y, z, vx, vy, vz, data }` where `type` is the minecraft-data
  *   1.17.1 entity name ("zombie", "skeleton", "creeper", "spider", "pig", "cow", "sheep",
  *   "chicken", "husk", "stray", "drowned", "enderman", "slime", "squid", "bat", "arrow").
@@ -18,10 +27,9 @@
  *   18 love-mode heart particles, 7/6 tame success/fail (unused yet),
  *   21 guardian/…; 60 death smoke poof (sent when a dead mob is removed).
  * Attack swing: `animate { id, action: 0 }` (zombies swing arms when they hit).
- * Flags/variants: `mobData { id, flags, variant }`, re-sent whenever they change:
  */
 
-/** Bits of `mobData.flags`. */
+/** Server-internal mob state bits (translated to mobData keys by MobManager.mobDataOf). */
 export const MOB_FLAG = {
   /** baby (zombie / animals): render at the vanilla baby scale */
   BABY: 1,
@@ -52,7 +60,7 @@ export const MOB_FLAG = {
 } as const;
 
 /**
- * `mobData.variant` meaning per type:
+ * Server-internal variant per type:
  *   sheep → wool colour (vanilla DyeColor id 0 white … 15 black)
  *   slime → size (1, 2 or 4)
  *   enderman → carried block state id (0 = nothing)
