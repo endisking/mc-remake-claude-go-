@@ -1,5 +1,6 @@
 /** Derived block behaviour flags (vanilla BlockBehaviour.Properties predicates). */
-import { FULL_COLLISION } from './blockinfo';
+import { FULL_COLLISION, COLLISION_SHAPE_ID } from './blockinfo';
+import { BLOCK_STATE_COUNT } from '../data';
 import { blockNameOf } from './blockstate';
 
 /**
@@ -35,4 +36,24 @@ const MENU_PROVIDERS = new Set([
 export function hasMenuProvider(state: number): boolean {
   const n = blockNameOf(state);
   return MENU_PROVIDERS.has(n) || n.endsWith('_shulker_box');
+}
+
+// Blocks with a collision shape whose vanilla Material is noCollider (plant, decoration, cloth
+// decoration, top snow): they don't block motion for heightmaps
+function noColliderMaterial(n: string): boolean {
+  return n.endsWith('_carpet') || n === 'lily_pad' || n === 'scaffolding' || n === 'snow' || n === 'end_rod' || n === 'flower_pot' ||
+    n.startsWith('potted_') || n === 'candle' || n.endsWith('_candle') || n === 'ladder' || n === 'repeater' || n === 'comparator' ||
+    n === 'sea_pickle' || n.endsWith('_skull') || n.endsWith('_head') || n === 'big_dripleaf' || n === 'azalea' || n === 'flowering_azalea' ||
+    n === 'cocoa' || n === 'chorus_plant' || n === 'chorus_flower';
+}
+
+/** Material.blocksMotion per state (heightmaps MOTION_BLOCKING / OCEAN_FLOOR). */
+export const MATERIAL_BLOCKS_MOTION = new Uint8Array(BLOCK_STATE_COUNT);
+/** Material.isSolid per state (cave column scans, some feature checks). */
+export const MATERIAL_SOLID = new Uint8Array(BLOCK_STATE_COUNT);
+for (let s = 0; s < BLOCK_STATE_COUNT; s++) {
+  const n = blockNameOf(s);
+  const motion = (COLLISION_SHAPE_ID[s] !== 0 && !noColliderMaterial(n)) || n === 'powder_snow';
+  MATERIAL_BLOCKS_MOTION[s] = motion ? 1 : 0;
+  MATERIAL_SOLID[s] = motion && n !== 'powder_snow' ? 1 : 0;
 }

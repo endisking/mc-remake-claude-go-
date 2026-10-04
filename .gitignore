@@ -8,3 +8,4 @@ playwright-report/
 /tools/bench/out/
 .DS_Store
 /tools/soundgen/cache/
+/tools/cache/

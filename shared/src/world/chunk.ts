@@ -3,11 +3,12 @@
  * 16 sections of 16×16×16. Sections that are entirely air and uniformly lit keep no
  * arrays at all, which keeps memory low on school laptops.
  */
-import { IS_AIR, COLLISION_SHAPE_ID, FLUID } from './blockinfo';
+import { IS_AIR, FLUID } from './blockinfo';
+import { MATERIAL_BLOCKS_MOTION } from './blockprops';
 
-/** Vanilla MOTION_BLOCKING heightmap predicate: blocks movement or holds fluid. */
+/** Vanilla MOTION_BLOCKING heightmap predicate: the material blocks motion, or the block holds fluid. */
 export function blocksMotion(state: number): boolean {
-  return COLLISION_SHAPE_ID[state] !== 0 || FLUID[state] !== 0;
+  return MATERIAL_BLOCKS_MOTION[state] === 1 || FLUID[state] !== 0;
 }
 
 export const SECTION_SIZE = 16;

@@ -2,7 +2,7 @@
  * 1.16/1.17 overworld terrain shape (vanilla NoiseBasedChunkGenerator with the "overworld" noise
  * settings): a 3D density from blended min/max/main Perlin octaves, offset by each column's
  * biome-weighted depth and scale and a random density term, sampled on a 4×8×4 cell grid and
- * trilinearly interpolated. Positive density is stone, otherwise water below sea level.
+ * trilinearly interpolated. Settings from the 1.17.1 overworld noise_settings. Positive density is stone, otherwise water below sea level.
  * Cross-checked with SeedFinding mc_terrain_java (MIT, licenses/SeedFinding.txt).
  */
 import { JavaRandom } from '../../util/random';
@@ -18,6 +18,8 @@ const XZ_SCALE = 684.412 * 0.9999999814507745, Y_SCALE = 684.412 * 0.99999998145
 const XZ_STEP = XZ_SCALE / 80, Y_STEP = Y_SCALE / 160;
 const DENSITY_FACTOR = 1, DENSITY_OFFSET = -0.46875;
 const TOP_SLIDE = { target: -10, size: 3, offset: 0 };
+/** 1.17.1 overworld (1.16 had size 0): the bottom three cells blend toward solid */
+const BOTTOM_SLIDE = { target: 15, size: 3, offset: 0 };
 
 /** NoiseBasedChunkGenerator.BIOME_WEIGHTS (float) */
 const BIOME_WEIGHTS = new Float32Array(25);
@@ -106,6 +108,7 @@ export class TerrainNoise {
       const fall = ((1 - (y * 2) / CELLS_Y + rnd) * DENSITY_FACTOR + DENSITY_OFFSET + depth) * scale;
       d = fall > 0 ? d + fall * 4 : d + fall;
       d = clampedLerp(TOP_SLIDE.target, d, (CELLS_Y - y - TOP_SLIDE.offset) / TOP_SLIDE.size);
+      d = clampedLerp(BOTTOM_SLIDE.target, d, (y - BOTTOM_SLIDE.offset) / BOTTOM_SLIDE.size);
       col[y] = d;
     }
     if (this.columns.size > 4096) this.columns.clear();
