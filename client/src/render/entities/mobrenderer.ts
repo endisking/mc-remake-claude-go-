@@ -305,6 +305,7 @@ export class MobRenderer {
     if (this.names) for (const m of shadowed) this.renderNameTag(m, world, camX, camY, camZ, camYaw, camPitch, partial);
     gl.depthFunc(gl.LESS);
     if (this.shadows) this.renderShadows(shadowed, world, viewProj, camX, camY, camZ, partial, fogStart, fogEnd, skyDarken);
+    else this.casterCount = 0;
     gl.bindVertexArray(null);
   }
 
@@ -697,18 +698,38 @@ export class MobRenderer {
     gl.enable(gl.CULL_FACE);
   }
 
+  private casters = new Float64Array(4 * 512);
+  private casterCount = 0;
+
+  /** Queue a blob shadow (world position, radius) for this frame's shadow pass (players use this). */
+  addShadow(x: number, y: number, z: number, r: number): void {
+    if (this.casterCount >= 512) return;
+    const i = this.casterCount++ * 4;
+    this.casters[i] = x;
+    this.casters[i + 1] = y;
+    this.casters[i + 2] = z;
+    this.casters[i + 3] = r;
+  }
+
   /** EntityRenderDispatcher.renderShadow / renderBlockShadow for every mob in view. */
   private renderShadows(mobs: ClientMob[], world: ClientWorld, viewProj: Mat4, camX: number, camY: number, camZ: number, partial: number, fogStart: number, fogEnd: number, skyDarken: number): void {
-    if (!this.shadowTex || !mobs.length) return;
-    const v = this.shadowVerts;
-    let o = 0;
+    // casters: the mobs in view plus the shadows queued by addShadow (players)
     for (const m of mobs) {
-      const x = m.xo + (m.x - m.xo) * partial, y = m.yo + (m.y - m.yo) * partial, z = m.zo + (m.z - m.zo) * partial;
+      let r = m.type === 'slime' ? 0.25 * m.slimeSize : m.info.shadow;
+      if (m.baby) r *= 0.5;
+      this.addShadow(m.xo + (m.x - m.xo) * partial, m.yo + (m.y - m.yo) * partial, m.zo + (m.z - m.zo) * partial, r);
+    }
+    const n = this.casterCount;
+    this.casterCount = 0;
+    if (!this.shadowTex || !n) return;
+    const v = this.shadowVerts;
+    const cs = this.casters;
+    let o = 0;
+    for (let c = 0; c < n; c++) {
+      const x = cs[c * 4]!, y = cs[c * 4 + 1]!, z = cs[c * 4 + 2]!, r = cs[c * 4 + 3]!;
       const d2 = (x - camX) ** 2 + (y - camY) ** 2 + (z - camZ) ** 2;
       const weight = 1 - d2 / 256;
       if (weight <= 0) continue;
-      let r = m.type === 'slime' ? 0.25 * m.slimeSize : m.info.shadow;
-      if (m.baby) r *= 0.5;
       const x0 = Math.floor(x - r), x1 = Math.floor(x + r), y0 = Math.floor(y - r), y1 = Math.floor(y), z0 = Math.floor(z - r), z1 = Math.floor(z + r);
       for (let by = y0; by <= y1; by++)
         for (let bz = z0; bz <= z1; bz++)

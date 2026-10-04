@@ -1893,7 +1893,17 @@ export class Game implements ScreenHost {
       const visible = [...this.players.values()].filter((p) => (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2 < ed * ed && (p !== camEnt || this.cameraType !== 0));
       this.entityRenderer.renderPlayers(visible, this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, fog, fogStart, fogEnd);
     }
-    if (this.mobs.mobs.size) {
+    {
+      // player shadows (radius 0.5; spectators are invisible and cast none)
+      const ed = 64 * this.settings.entityDistance;
+      for (const p of this.players.values()) {
+        if ((p.flags & 32) !== 0 || p === camEnt || (p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2 >= ed * ed) continue;
+        this.mobRenderer.addShadow(p.xo + (p.x - p.xo) * partial, p.yo + (p.y - p.yo) * partial, p.zo + (p.z - p.zo) * partial, 0.5);
+      }
+      const sm = this.selfModel;
+      if (this.cameraType !== 0 && sm && !camEnt && this.gameMode !== 3) this.mobRenderer.addShadow(sm.xo + (sm.x - sm.xo) * partial, sm.yo + (sm.y - sm.yo) * partial, sm.zo + (sm.z - sm.zo) * partial, 0.5);
+    }
+    {
       // LivingEntity.shouldRenderAtSqrDistance: bounding-box size × 64 blocks × entity distance
       const visible = this.visibleMobs;
       visible.length = 0;
