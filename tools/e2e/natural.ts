@@ -57,7 +57,7 @@ const views: View[] = [
   { name: 'tech-d', q: `${scene}&x=44&y=102.5&z=50.5&lookat=44,101.3,47` },
   { name: 'ocean-under-a', q: `${scene}&x=6&y=98.2&z=29.5&lookat=5,98.5,25` },
   { name: 'ocean-under-b', q: `${scene}&x=18&y=98.2&z=29.5&lookat=18,98.5,25` },
-  { name: 'ocean-under-c', q: `${scene}&x=26&y=98.2&z=24.5&lookat=26,98.5,28` },
+  { name: 'ocean-under-c', q: `${scene}&x=14.5&y=98.4&z=24.3&lookat=14.5,98.2,27.5` },
   { name: 'low-flowers', q: `${scene}&x=16&y=100.6&z=25&lookat=16,101.6,22` },
   { name: 'low-fire', q: `${scene}&x=46&y=100.6&z=25&lookat=46,101.6,22` },
 ];
