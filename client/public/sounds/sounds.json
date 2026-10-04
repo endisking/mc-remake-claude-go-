@@ -11679,6 +11679,18 @@
    }
   ]
  },
+ "entity.magma_cube.death_small": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "slime/1",
+    "pitch": 0.9
+   }
+  ]
+ },
  "entity.magma_cube.hurt": {
   "sounds": [
    {
@@ -11688,6 +11700,18 @@
    {
     "name": "slime/1",
     "pitch": 0.8
+   }
+  ]
+ },
+ "entity.magma_cube.hurt_small": {
+  "sounds": [
+   {
+    "name": "slime/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "slime/1",
+    "pitch": 1.1
    }
   ]
  },

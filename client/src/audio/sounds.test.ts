@@ -8,6 +8,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { SOUND_EVENTS, BLOCK_STATE_COUNT } from '@shared/data';
 import { soundTypeOf, SOUND_TYPES } from '@shared/world/soundtype';
+import { MOB_INFO } from '../world/mobs';
 
 const root = new URL('../../../', import.meta.url).pathname;
 const soundsDir = join(root, 'client/public/sounds');
@@ -86,5 +87,18 @@ describe('sounds.json', () => {
       if (ev.startsWith('music.') || ev === 'ambient.underwater.loop') expect(def.sounds.every((s) => s.stream), ev).toBe(true);
     }
     for (const t of Object.values(SOUND_TYPES)) expect(manifest[t.step]!.sounds.length, t.step).toBeGreaterThanOrEqual(2);
+  });
+
+  it('every client mob has audio for each of its vanilla ambient / hurt / death / step events', () => {
+    const silent: string[] = [];
+    for (const [type, info] of Object.entries(MOB_INFO)) {
+      for (const k of ['ambient', 'hurt', 'death', 'step', 'hurt_small', 'death_small']) {
+        const e = `entity.${type}.${k}`;
+        if (k === 'step' && info.step === null) continue;
+        if (valid.has(e) && !withAudio(e)) silent.push(e);
+      }
+      if (typeof info.step === 'string' && !withAudio(info.step)) silent.push(info.step);
+    }
+    expect(silent).toEqual([]);
   });
 });

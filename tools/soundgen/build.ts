@@ -1195,6 +1195,7 @@ Object.assign(EVENTS, {
   'entity.slime.death_small': [{ set: 'slime', pitch: 1.3 }], 'entity.slime.jump_small': [{ set: 'slime', pitch: 1.4 }],
   'entity.magma_cube.squish': [{ set: 'slime', pitch: 0.7 }], 'entity.magma_cube.hurt': [{ set: 'slime', pitch: 0.8 }],
   'entity.magma_cube.death': [{ set: 'slime', pitch: 0.6 }], 'entity.magma_cube.jump': [{ set: 'slime', pitch: 0.75 }],
+  'entity.magma_cube.hurt_small': [{ set: 'slime', pitch: 1.1 }], 'entity.magma_cube.death_small': [{ set: 'slime', pitch: 0.9 }],
 } satisfies Record<string, Ref[]>);
 
 // ------------------------------------------------------------------ build
