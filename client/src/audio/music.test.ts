@@ -100,11 +100,11 @@ describe('MusicManager', () => {
 describe('ambient sounds', () => {
   const dark = { getSkyLight: () => 0, getBlockLight: () => 0 };
   const lit = { getSkyLight: () => 15, getBlockLight: () => 0 };
-  const player = { x: 0.5, y: 10, z: 0.5, eyeY: 11.62, underWater: false, moodSound: 'ambient.cave' };
+  const player = { x: 0.5, y: 10, z: 0.5, eyeY: 11.62, underWater: false, biome: 'plains' };
 
   it('plays a cave sound after 6000 ticks of total darkness, 2 blocks beyond a dark block', () => {
     const played: { e: string; d: number }[] = [];
-    const a = new AmbientSounds({ playAt: (e, x, y, z) => played.push({ e, d: Math.hypot(x - 0.5, y - 11.62, z - 0.5) }), playLoop: () => new FakeTrack('loop') }, () => 0.9);
+    const a = new AmbientSounds({ playAt: (e, x, y, z) => played.push({ e, d: Math.hypot(x - 0.5, y - 11.62, z - 0.5) }), playRelative: () => {}, playLoop: () => new FakeTrack('loop') }, () => 0.9);
     for (let i = 0; i < 5999; i++) a.tick(dark, player);
     expect(played.length).toBe(0);
     a.tick(dark, player);
@@ -117,7 +117,7 @@ describe('ambient sounds', () => {
 
   it('daylight drains moodiness and nothing plays', () => {
     const played: string[] = [];
-    const a = new AmbientSounds({ playAt: (e) => played.push(e), playLoop: () => new FakeTrack('loop') });
+    const a = new AmbientSounds({ playAt: (e) => played.push(e), playRelative: () => {}, playLoop: () => new FakeTrack('loop') });
     a.moodiness = 0.5;
     for (let i = 0; i < 20000; i++) a.tick(lit, player);
     expect(played).toEqual([]);
@@ -127,7 +127,7 @@ describe('ambient sounds', () => {
   it('underwater: enter sound + fading loop, exit sound, loop fades out twice as fast', () => {
     const played: string[] = [];
     let loop: FakeTrack | null = null;
-    const a = new AmbientSounds({ playAt: (e) => played.push(e), playLoop: (e) => (loop = new FakeTrack(e)) }, () => 0.5);
+    const a = new AmbientSounds({ playAt: (e) => played.push(e), playRelative: () => {}, playLoop: (e) => (loop = new FakeTrack(e)) }, () => 0.5);
     a.tick(lit, { ...player, underWater: true });
     expect(played).toEqual(['ambient.underwater.enter']);
     expect(loop!.event).toBe('ambient.underwater.loop');
@@ -139,5 +139,20 @@ describe('ambient sounds', () => {
     expect(loop!.active).toBe(true);
     a.tick(lit, player);
     expect(loop!.active).toBe(false);
+  });
+
+  it('nether biomes fade their ambient loop in, and out when leaving; additions play', () => {
+    const loops: FakeTrack[] = [];
+    const rel: string[] = [];
+    const a = new AmbientSounds({ playAt: () => {}, playRelative: (e) => rel.push(e), playLoop: (e) => { const t = new FakeTrack(e); loops.push(t); return t; } });
+    for (let i = 0; i < 2000; i++) a.tick(lit, { ...player, biome: 'crimson_forest' });
+    expect(loops[0]!.event).toBe('ambient.crimson_forest.loop');
+    expect(loops[0]!.volume).toBe(1);
+    expect(rel.length).toBeGreaterThan(5);
+    expect(rel.every((e) => e === 'ambient.crimson_forest.additions')).toBe(true);
+    for (let i = 0; i < 39; i++) a.tick(lit, player);
+    expect(loops[0]!.active).toBe(true);
+    for (let i = 0; i < 3; i++) a.tick(lit, player);
+    expect(loops[0]!.active).toBe(false);
   });
 });

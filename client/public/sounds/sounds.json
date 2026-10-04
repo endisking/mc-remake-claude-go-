@@ -1,4 +1,60 @@
 {
+ "ambient.basalt_deltas.additions": {
+  "sounds": [
+   {
+    "name": "nether_additions/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "nether_additions/1",
+    "pitch": 0.7
+   },
+   {
+    "name": "nether_additions/2",
+    "pitch": 0.7
+   },
+   {
+    "name": "lava_pop/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "lava_pop/1",
+    "pitch": 0.7
+   },
+   {
+    "name": "lava_pop/2",
+    "pitch": 0.7
+   }
+  ]
+ },
+ "ambient.basalt_deltas.loop": {
+  "sounds": [
+   {
+    "name": "nether_loop_basalt/0",
+    "stream": true
+   }
+  ]
+ },
+ "ambient.basalt_deltas.mood": {
+  "sounds": [
+   {
+    "name": "nether_mood/0",
+    "pitch": 0.7
+   },
+   {
+    "name": "nether_mood/1",
+    "pitch": 0.7
+   },
+   {
+    "name": "nether_mood/2",
+    "pitch": 0.7
+   },
+   {
+    "name": "nether_mood/3",
+    "pitch": 0.7
+   }
+  ]
+ },
  "ambient.cave": {
   "sounds": [
    {
@@ -15,6 +71,174 @@
    },
    {
     "name": "cave/4"
+   }
+  ]
+ },
+ "ambient.crimson_forest.additions": {
+  "sounds": [
+   {
+    "name": "nether_additions/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "nether_additions/1",
+    "pitch": 1.1
+   },
+   {
+    "name": "nether_additions/2",
+    "pitch": 1.1
+   },
+   {
+    "name": "lava_pop/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "lava_pop/1",
+    "pitch": 1.1
+   },
+   {
+    "name": "lava_pop/2",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "ambient.crimson_forest.loop": {
+  "sounds": [
+   {
+    "name": "nether_loop_crimson/0",
+    "stream": true
+   }
+  ]
+ },
+ "ambient.crimson_forest.mood": {
+  "sounds": [
+   {
+    "name": "nether_mood/0",
+    "pitch": 1.1
+   },
+   {
+    "name": "nether_mood/1",
+    "pitch": 1.1
+   },
+   {
+    "name": "nether_mood/2",
+    "pitch": 1.1
+   },
+   {
+    "name": "nether_mood/3",
+    "pitch": 1.1
+   }
+  ]
+ },
+ "ambient.nether_wastes.additions": {
+  "sounds": [
+   {
+    "name": "nether_additions/0",
+    "pitch": 1
+   },
+   {
+    "name": "nether_additions/1",
+    "pitch": 1
+   },
+   {
+    "name": "nether_additions/2",
+    "pitch": 1
+   },
+   {
+    "name": "lava_pop/0",
+    "pitch": 1
+   },
+   {
+    "name": "lava_pop/1",
+    "pitch": 1
+   },
+   {
+    "name": "lava_pop/2",
+    "pitch": 1
+   }
+  ]
+ },
+ "ambient.nether_wastes.loop": {
+  "sounds": [
+   {
+    "name": "nether_loop_wastes/0",
+    "stream": true
+   }
+  ]
+ },
+ "ambient.nether_wastes.mood": {
+  "sounds": [
+   {
+    "name": "nether_mood/0",
+    "pitch": 1
+   },
+   {
+    "name": "nether_mood/1",
+    "pitch": 1
+   },
+   {
+    "name": "nether_mood/2",
+    "pitch": 1
+   },
+   {
+    "name": "nether_mood/3",
+    "pitch": 1
+   }
+  ]
+ },
+ "ambient.soul_sand_valley.additions": {
+  "sounds": [
+   {
+    "name": "nether_additions/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "nether_additions/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "nether_additions/2",
+    "pitch": 0.8
+   },
+   {
+    "name": "lava_pop/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "lava_pop/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "lava_pop/2",
+    "pitch": 0.8
+   }
+  ]
+ },
+ "ambient.soul_sand_valley.loop": {
+  "sounds": [
+   {
+    "name": "nether_loop_soul/0",
+    "stream": true
+   }
+  ]
+ },
+ "ambient.soul_sand_valley.mood": {
+  "sounds": [
+   {
+    "name": "nether_mood/0",
+    "pitch": 0.8
+   },
+   {
+    "name": "nether_mood/1",
+    "pitch": 0.8
+   },
+   {
+    "name": "nether_mood/2",
+    "pitch": 0.8
+   },
+   {
+    "name": "nether_mood/3",
+    "pitch": 0.8
    }
   ]
  },
@@ -87,6 +311,62 @@
    {
     "name": "cave/4",
     "pitch": 0.7
+   }
+  ]
+ },
+ "ambient.warped_forest.additions": {
+  "sounds": [
+   {
+    "name": "nether_additions/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "nether_additions/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "nether_additions/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "lava_pop/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "lava_pop/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "lava_pop/2",
+    "pitch": 0.9
+   }
+  ]
+ },
+ "ambient.warped_forest.loop": {
+  "sounds": [
+   {
+    "name": "nether_loop_warped/0",
+    "stream": true
+   }
+  ]
+ },
+ "ambient.warped_forest.mood": {
+  "sounds": [
+   {
+    "name": "nether_mood/0",
+    "pitch": 0.9
+   },
+   {
+    "name": "nether_mood/1",
+    "pitch": 0.9
+   },
+   {
+    "name": "nether_mood/2",
+    "pitch": 0.9
+   },
+   {
+    "name": "nether_mood/3",
+    "pitch": 0.9
    }
   ]
  },

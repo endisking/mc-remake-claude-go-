@@ -144,6 +144,7 @@ export class Game implements ScreenHost {
   /** cave mood sounds and underwater ambience */
   private readonly ambient = new AmbientSounds({
     playAt: (event, x, y, z, volume, pitch) => this.playAt(event, 'ambient', x, y, z, volume, pitch),
+    playRelative: (event, volume, pitch) => this.sound.play(event, 'ambient', volume, pitch),
     playLoop: (event) => this.sound.playStream(event, 'ambient', 0, true),
   });
   private readonly steps = new StepTracker();
@@ -1242,7 +1243,7 @@ export class Game implements ScreenHost {
     if (!loaded) return;
     this.ambient.tick(this.world, {
       x: pl.x, y: pl.y, z: pl.z, eyeY: pl.y + pl.eyeHeight, underWater: underWater && this.gameMode !== 3,
-      moodSound: biome && biome.dimension === 'overworld' ? 'ambient.cave' : null,
+      biome: biome?.name ?? null,
     });
   }
 
