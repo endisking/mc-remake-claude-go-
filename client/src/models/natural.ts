@@ -70,22 +70,29 @@ MODELS.lily_pad = {
   ao: false,
   elements: [{ from: [0, 0.25, 0], to: [16, 0.25, 16], faces: { up: { texture: '#texture', uv: [0, 0, 16, 16], tint: 0 }, down: { texture: '#texture', uv: [0, 16, 16, 0], tint: 0 } } }],
 };
+/**
+ * Faces for a horizontal frond plane: the fan texture's base (bottom rows) sits at the
+ * attached edge and its tips at the free edge; the rotations orient the texture per face.
+ */
+function frond(up: Rot, down: Rot): ModelElement['faces'] {
+  return { up: { texture: '#fan', uv: [0, 0, 16, 16], rotation: up }, down: { texture: '#fan', uv: [0, 0, 16, 16], rotation: down } };
+}
 /** Coral fan: four fronds rising 22.5° outward from the centre. */
 MODELS.coral_fan = {
   ao: false,
   elements: [
-    { from: [8, 0, 0], to: [16, 0, 16], shade: false, rotation: { origin: [8, 0, 8], axis: 'z', angle: 22.5 }, faces: { up: { texture: '#fan', uv: [0, 0, 16, 8] }, down: { texture: '#fan', uv: [0, 0, 16, 8] } } },
-    { from: [0, 0, 0], to: [8, 0, 16], shade: false, rotation: { origin: [8, 0, 8], axis: 'z', angle: -22.5 }, faces: { up: { texture: '#fan', uv: [0, 0, 16, 8] }, down: { texture: '#fan', uv: [0, 0, 16, 8] } } },
-    { from: [0, 0, 8], to: [16, 0, 16], shade: false, rotation: { origin: [8, 0, 8], axis: 'x', angle: -22.5 }, faces: { up: { texture: '#fan', uv: [0, 8, 16, 16] }, down: { texture: '#fan', uv: [0, 8, 16, 16] } } },
-    { from: [0, 0, 0], to: [16, 0, 8], shade: false, rotation: { origin: [8, 0, 8], axis: 'x', angle: 22.5 }, faces: { up: { texture: '#fan', uv: [0, 8, 16, 16] }, down: { texture: '#fan', uv: [0, 8, 16, 16] } } },
+    { from: [8, 0, 0], to: [16, 0, 16], shade: false, rotation: { origin: [8, 0, 8], axis: 'z', angle: 22.5 }, faces: frond(90, 90) },
+    { from: [0, 0, 0], to: [8, 0, 16], shade: false, rotation: { origin: [8, 0, 8], axis: 'z', angle: -22.5 }, faces: frond(270, 270) },
+    { from: [0, 0, 8], to: [16, 0, 16], shade: false, rotation: { origin: [8, 0, 8], axis: 'x', angle: -22.5 }, faces: frond(180, 0) },
+    { from: [0, 0, 0], to: [16, 0, 8], shade: false, rotation: { origin: [8, 0, 8], axis: 'x', angle: 22.5 }, faces: frond(0, 180) },
   ],
 };
 /** Wall fan: attached to the south wall, fronds spreading north and tilting up. */
 MODELS.coral_wall_fan = {
   ao: false,
   elements: [
-    { from: [0, 8, 5], to: [16, 8, 16], shade: false, rotation: { origin: [8, 8, 16], axis: 'x', angle: 22.5 }, faces: { up: { texture: '#fan', uv: [0, 0, 16, 11] }, down: { texture: '#fan', uv: [0, 0, 16, 11] } } },
-    { from: [0, 6, 7], to: [16, 6, 16], shade: false, rotation: { origin: [8, 6, 16], axis: 'x', angle: -22.5 }, faces: { up: { texture: '#fan', uv: [0, 5, 16, 14] }, down: { texture: '#fan', uv: [0, 5, 16, 14] } } },
+    { from: [0, 8, 5], to: [16, 8, 16], shade: false, rotation: { origin: [8, 8, 16], axis: 'x', angle: 22.5 }, faces: frond(0, 180) },
+    { from: [0, 6, 7], to: [16, 6, 16], shade: false, rotation: { origin: [8, 6, 16], axis: 'x', angle: -22.5 }, faces: frond(0, 180) },
   ],
 };
 /** Floor fire: four crossing flame sheets near the centre flaring outward 22.5° (22.4 px tall). */

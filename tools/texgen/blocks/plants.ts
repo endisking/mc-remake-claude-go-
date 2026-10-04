@@ -495,17 +495,21 @@ function coralPlant(kind: string, p: Palette, seed: number): Tex {
 function coralFan(p: Palette, seed: number): Tex {
   const t = new Tex();
   const r = rng(seed);
-  // a fan radiating from the bottom-centre: ribs with webbing
-  for (let y = 0; y < 16; y++)
-    for (let x = 0; x < 16; x++) {
-      const dx = x - 7.5, dy = 16 - y;
-      const d = Math.hypot(dx, dy);
-      if (d > 15.5 || d < 1) continue;
-      const a = Math.atan2(dx, dy);
-      const rib = Math.abs(((a * 7) % 1 + 1) % 1 - 0.5) < 0.14;
-      if (!rib && r() < 0.3) continue;
-      t.set(x, y, rib ? p[3]! : p[d > 12 ? 2 : 1]!);
+  // ribs radiating from the bottom-centre with sparse webbing between them and bright tips
+  const ribs = 7;
+  for (let i = 0; i < ribs; i++) {
+    const a = (-0.42 + (0.84 * i) / (ribs - 1)) * Math.PI + (r() - 0.5) * 0.12;
+    const len = 12 + Math.floor(r() * 4);
+    for (let k = 1; k <= len; k++) {
+      const x = Math.round(7.5 + Math.sin(a) * k), y = Math.round(15.5 - Math.cos(a) * k);
+      t.set(x, y, p[k >= len - 1 ? 3 : 2]!);
+      // webbing toward the neighbouring rib
+      if (k > 3 && k < len - 1 && r() < 0.55) {
+        const b = a + (0.84 * Math.PI) / (ribs - 1) / 2;
+        t.set(Math.round(7.5 + Math.sin(b) * k), Math.round(15.5 - Math.cos(b) * k), p[r() < 0.5 ? 1 : 0]!);
+      }
     }
+  }
   return t;
 }
 
