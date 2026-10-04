@@ -6,7 +6,7 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 - `⊘` = exists in 1.17.1 but is **not obtainable in survival** (blocks/items) or **does not spawn naturally** (mobs).
 - Every checkbox follows the Definition of Done in CLAUDE.md §6.
 
-**Progress: 132 / 4140**
+**Progress: 138 / 4140**
 
 ## Phase 0 — Research & data
 
@@ -200,16 +200,16 @@ Re-running the generator keeps existing `[x]` marks. Work top to bottom: phases 
 
 ### Core
 
-- [ ] Seeded deterministic noise (Perlin octaves matching 1.17.1 structure) <!--p3:seeded_deterministic_noise_perlin_octaves_matching_1_17_1_structure-->
-- [ ] 1.17.1 biome layer system (biome placement) <!--p3:1_17_1_biome_layer_system_biome_placement-->
+- [x] Seeded deterministic noise (Perlin octaves matching 1.17.1 structure) <!--p3:seeded_deterministic_noise_perlin_octaves_matching_1_17_1_structure-->
+- [x] 1.17.1 biome layer system (biome placement) <!--p3:1_17_1_biome_layer_system_biome_placement-->
 - [ ] Large biomes world type <!--p3:large_biomes_world_type-->
 - [ ] Amplified world type <!--p3:amplified_world_type-->
 - [ ] Superflat world type with presets <!--p3:superflat_world_type_with_presets-->
 - [ ] Single biome (buffet) world type <!--p3:single_biome_buffet_world_type-->
-- [ ] Terrain density generation (depth/scale per biome) <!--p3:terrain_density_generation_depth_scale_per_biome-->
-- [ ] Surface builders (grass/dirt, sand, gravel, badlands bands, mountains, swamp, etc.) <!--p3:surface_builders_grass_dirt_sand_gravel_badlands_bands_mountains_swamp_etc-->
-- [ ] Bedrock floor pattern (0–4) <!--p3:bedrock_floor_pattern_0_4-->
-- [ ] Sea level 63, oceans and rivers <!--p3:sea_level_63_oceans_and_rivers-->
+- [x] Terrain density generation (depth/scale per biome) <!--p3:terrain_density_generation_depth_scale_per_biome-->
+- [x] Surface builders (grass/dirt, sand, gravel, badlands bands, mountains, swamp, etc.) <!--p3:surface_builders_grass_dirt_sand_gravel_badlands_bands_mountains_swamp_etc-->
+- [x] Bedrock floor pattern (0–4) <!--p3:bedrock_floor_pattern_0_4-->
+- [x] Sea level 63, oceans and rivers <!--p3:sea_level_63_oceans_and_rivers-->
 - [ ] Cave carver <!--p3:cave_carver-->
 - [ ] Ravine (canyon) carver <!--p3:ravine_canyon_carver-->
 - [ ] Underwater caves and underwater ravines <!--p3:underwater_caves_and_underwater_ravines-->
