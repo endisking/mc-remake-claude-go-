@@ -17,6 +17,7 @@ import { blockIdOf, blockNameOf, getProp, withProp, defaultState, stateOf } from
 import { FLUID, FLUID_LEVEL, FULL_COLLISION, IS_AIR, LIGHT_FILTER } from '@shared/world/blockinfo';
 import { sectionIndex } from '@shared/world/chunk';
 import { skyDarkenLevel } from '@shared/world/daylight';
+import { getTemperature } from '@shared/world/climate';
 import { canSurvive } from '@shared/game/support';
 import { isReplaceable, horizontalFacing, DIRS, DX, DY, DZ } from '@shared/game/placement';
 import { blockDrops, itemForBlock } from '@shared/game/loot';
@@ -138,6 +139,7 @@ export class BlockBehaviors {
           const c = this.w.getChunk(cx, cz);
           if (!c) continue;
           seen.add(key);
+          this.precipitationTick(cx, cz);
           for (let sy = 0; sy < 16; sy++) {
             const sec = c.sections[sy]!;
             if (!sec.blocks || sec.nonAir === 0) continue;
@@ -150,6 +152,41 @@ export class BlockBehaviors {
             }
           }
         }
+    }
+  }
+
+  /**
+   * ServerLevel.tickChunk precipitation: 1 in 16 chunks per tick, at the top block of a random
+   * column, still water freezes in cold biomes and snow layers settle while it rains.
+   */
+  private precipitationTick(cx: number, cz: number): void {
+    const s = this.s;
+    if (s.rand.nextInt(16) !== 0) return;
+    this.randValue = (Math.imul(this.randValue, 3) + 1013904223) | 0;
+    const l = this.randValue >> 2;
+    const x = cx * 16 + (l & 15), z = cz * 16 + ((l >> 8) & 15);
+    const c = this.w.getChunk(cx, cz)!;
+    const y = c.motionBlocking[(z & 15) * 16 + (x & 15)]!;
+    const w = this.w;
+    const biome = w.getBiome(x, y, z);
+    // Biome.shouldFreeze (with the neighbour check): a cold still water source at the edge of open water
+    if (y - 1 >= 0 && y - 1 < 256 && getTemperature(biome, x, y - 1, z) < 0.15 && (w.getLight(x, y - 1, z) & 15) < 10) {
+      const below = w.getState(x, y - 1, z);
+      if (blockNameOf(below) === 'water' && getProp(below, 'level') === 0) {
+        const isWater = (dx: number, dz: number) => FLUID[w.getState(x + dx, y - 1, z + dz)] === 1;
+        if (!(isWater(-1, 0) && isWater(1, 0) && isWater(0, -1) && isWater(0, 1))) {
+          s.setBlock(x, y - 1, z, defaultState('ice'));
+          s.updateNeighbors(x, y - 1, z);
+        }
+      }
+    }
+    if (s.isRaining() && y < 256 && getTemperature(biome, x, y, z) < 0.15 && (w.getLight(x, y, z) & 15) < 10) {
+      // Biome.shouldSnow
+      const snow = defaultState('snow');
+      if (IS_AIR[w.getState(x, y, z)] && canSurvive(w, x, y, z, snow)) {
+        s.setBlock(x, y, z, snow);
+        s.updateNeighbors(x, y, z);
+      }
     }
   }
 

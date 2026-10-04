@@ -413,4 +413,23 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     expect(get(6, 151, 3)).toBe('kelp_plant');
     expect(get(6, 155, 3)).toBe('kelp');
   });
+
+  it('snow settles and water freezes in a cold biome while it snows', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 200, devTerrain: true, scene: 'snow', randomSeed: 99n });
+    const conn: Connection = { send: () => {}, close: () => {} };
+    server.connect(conn)(encodeC2S({ t: 'hello', protocol: PROTOCOL_VERSION, name: 'A', viewDistance: 2, skin: '' }));
+    server.tick();
+    server.setWeather('rain', 100000);
+    server.rainLevel = 1;
+    // a pond with open edges on a platform
+    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) server.setBlock(x, 140, z, stateOf(x > 4 && x < 11 && z > 4 && z < 11 ? 'water' : 'stone'));
+    let snow = 0, ice = 0;
+    for (let i = 0; i < 1500; i++) server.tick();
+    for (let x = 0; x < 16; x++) for (let z = 0; z < 16; z++) {
+      if (blockNameOf(server.world.getState(x, 141, z)) === 'snow') snow++;
+      if (blockNameOf(server.world.getState(x, 140, z)) === 'ice') ice++;
+    }
+    expect(snow).toBeGreaterThan(0);
+    expect(ice).toBeGreaterThan(0);
+  });
 });
