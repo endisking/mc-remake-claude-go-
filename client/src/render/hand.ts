@@ -53,6 +53,8 @@ export interface HandFrame {
   autoSpin: boolean;
   /** looking through a spyglass: no hands */
   scoping: boolean;
+  /** invisible player: no bare arm (held items still render) */
+  invisible: boolean;
   /** view rotation (deg) and the lagging xBob/yBob */
   pitch: number;
   yaw: number;
@@ -281,8 +283,8 @@ export class HandRenderer {
     const ps = this.ps.reset();
     handSway(ps, f.pitch, f.yaw, f.xBob, f.yBob);
     if (!h.stack) {
-      // only the main hand shows the bare arm
-      if (!mainHand) return;
+      // only the main hand shows the bare arm, and not while invisible
+      if (!mainHand || f.invisible) return;
       playerArmPose(ps, side, h.swing, h.equip);
       this.entities.renderFirstPersonArm(this.proj, ps.last, f.skinName, f.light, lightmap, this.l0, this.l1, side);
       return;

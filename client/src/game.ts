@@ -1285,6 +1285,9 @@ export class Game implements ScreenHost {
     return rp ? [rp.xo + (rp.x - rp.xo) * partial, rp.yo + (rp.y - rp.yo) * partial, rp.zo + (rp.z - rp.zo) * partial] : null;
   }
 
+  /** Item id of the main hand at the last tick (Player.lastItemInMainHand). */
+  private lastMainHandId = 0;
+
   /** LocalPlayer.aiStep xBob/yBob, Player attack strength, ItemInHandRenderer.tick equip height. */
   private tickHand(): void {
     this.xBobO = this.xBob;
@@ -1294,6 +1297,12 @@ export class Game implements ScreenHost {
     this.attackStrengthTicker++;
     this.oMainHandHeight = this.mainHandHeight;
     const cur = this.interaction.inventory.selectedStack;
+    // Player.tick: a different item in the main hand (ignoring durability) restarts the attack cooldown
+    const curId = cur?.id ?? 0;
+    if (curId !== this.lastMainHandId) {
+      this.attackStrengthTicker = 0;
+      this.lastMainHandId = curId;
+    }
     const h = this.handItem;
     const matches = (!h && !cur) || (!!h && !!cur && h.id === cur.id && h.count === cur.count && h.damage === cur.damage);
     if (matches) this.handItem = cur;
@@ -1608,6 +1617,7 @@ export class Game implements ScreenHost {
       partial,
       autoSpin: this.autoSpinAttack,
       scoping: this.scoping,
+      invisible: this.localEffects.has('invisibility'),
       pitch: this.pitch,
       yaw: this.yaw,
       xBob: this.xBobO + (this.xBob - this.xBobO) * partial,
@@ -1650,7 +1660,7 @@ export class Game implements ScreenHost {
   /**
    * Default held-item models: block items use their block model (or the item/generated sprite
    * for flat ones); other items draw their item texture extruded like ItemModelGenerator when
-   * the texture array has one (named "item/<name>" or "<name>"), otherwise nothing.
+   * the texture array has one (named "item/<name>" or "<name>"), otherwise the missing texture.
    */
   private heldItemModel(id: number): HeldItemModel | null {
     let m = this.heldModels.get(id);
@@ -1663,7 +1673,8 @@ export class Game implements ScreenHost {
       m = { display: bi.isFlat(st) ? 'generated' : 'block', draw: (p, mm, l, lm, lights) => bi.draw(st, p, mm, l, lm, undefined, false, lights) };
     } else {
       const name = itemName(id);
-      const tex = this.bakeTextures.get(`item/${name}`) ?? this.bakeTextures.get(name);
+      // no item texture yet: the missing texture, like the GUI icon
+      const tex = this.bakeTextures.get(`item/${name}`) ?? this.bakeTextures.get(name) ?? this.bakeTextures.get('missing');
       if (tex) {
         const layer = tex.layer;
         m = { display: HANDHELD_ROD_ITEMS.has(name) ? 'handheld_rod' : 'generated', draw: (p, mm, l, lm, lights) => bi.drawSprite(layer, p, mm, l, lm, undefined, lights) };
