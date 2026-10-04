@@ -12,7 +12,7 @@ import { blockNameOf, getProp, withProp } from '@shared/world/blockstate';
 import { BLOCKS_BY_NAME } from '@shared/data';
 import { FULL_COLLISION } from '@shared/world/blockinfo';
 import { isEmpty, type ItemStack } from '@shared/item/stack';
-import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, StonecutterMenu, SmithingMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
+import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, StonecutterMenu, SmithingMenu, GrindstoneMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
 import { CompoundContainer, InventoryContainer, SimpleContainer, type Container } from '@shared/menu/container';
 import { FurnaceContainer, newFurnace, takeFurnaceExperience, tickFurnace, newCampfire, placeCampfireFood, tickCampfire, type CampfireData, type FurnaceData, type FurnaceKind } from '@shared/menu/furnace';
 import { cookingRecipe } from '@shared/menu/smelting';
@@ -235,6 +235,15 @@ export class Containers {
         };
         return m;
       }, 'Stonecutter', [x, y, z]);
+      return true;
+    }
+    if (name === 'grindstone') {
+      const valid = this.validFor(p, x, y, z, (n) => n === 'grindstone');
+      this.open(p, (id) => {
+        const m = new GrindstoneMenu(id, inv, valid);
+        m.onUse = () => this.containerSound([x, y, z], 'block.grindstone.use', 1);
+        return m;
+      }, 'Repair & Disenchant', [x, y, z]);
       return true;
     }
     if (name === 'smithing_table') {

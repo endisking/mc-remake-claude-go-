@@ -27,7 +27,7 @@ export const enum ClickType {
 /** The clicked slot id for "outside the window" (drop the carried stack). */
 export const SLOT_OUTSIDE = -999;
 
-export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter' | 'smithing';
+export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter' | 'smithing' | 'grindstone';
 
 export interface MenuPlayer {
   readonly inventory: Inventory;
@@ -997,6 +997,83 @@ export class SmithingMenu extends Menu {
   }
 }
 
+/**
+ * GrindstoneMenu.createResult for items without enchantments (stacks carry no enchantment data
+ * yet): two of the same damageable item combine with a 5% bonus; one item alone gives nothing.
+ */
+export function grindstoneResult(a: ItemStack | null, b: ItemStack | null): ItemStack | null {
+  if (isEmpty(a) || isEmpty(b) || a.count > 1 || b.count > 1 || a.id !== b.id) return null;
+  const max = ITEMS_BY_ID[a.id]?.maxDurability ?? 0;
+  if (max <= 0) return null;
+  const k = max - a.damage, l = max - b.damage;
+  return { id: a.id, count: 1, damage: Math.max(max - (k + l + Math.floor((max * 5) / 100)), 0) };
+}
+
+class GrindstoneInputSlot extends Slot {
+  override mayPlace(s: ItemStack): boolean {
+    // isDamageableItem || enchanted book || enchanted
+    return (ITEMS_BY_ID[s.id]?.maxDurability ?? 0) > 0 || ITEMS_BY_ID[s.id]?.name === 'enchanted_book';
+  }
+}
+
+/** GrindstoneMenu: 0 input, 1 additional, 2 result, 3–29 main, 30–38 hotbar. */
+export class GrindstoneMenu extends Menu {
+  readonly inputs = new SimpleContainer(2);
+  readonly result = new ResultContainer();
+  onUse: (() => void) | null = null;
+  constructor(id: number, inv: Container, private readonly valid: () => boolean = () => true) {
+    super('grindstone', id);
+    this.inputs.onChange = () => (this.result.items[0] = grindstoneResult(this.inputs.getItem(0), this.inputs.getItem(1)));
+    this.addSlot(new GrindstoneInputSlot(this.inputs, 0, 49, 19));
+    this.addSlot(new GrindstoneInputSlot(this.inputs, 1, 49, 40));
+    const menu = this;
+    this.addSlot(
+      new (class extends Slot {
+        override mayPlace(): boolean {
+          return false;
+        }
+        override onTake(p: MenuPlayer, st: ItemStack): void {
+          menu.inputs.setItem(0, null);
+          menu.inputs.setItem(1, null);
+          menu.onUse?.();
+          super.onTake(p, st);
+        }
+      })(this.result, 0, 129, 34),
+    );
+    this.addPlayerInventory(inv, 84);
+  }
+  override stillValid(): boolean {
+    return this.valid();
+  }
+  quickMoveStack(p: MenuPlayer, index: number): ItemStack | null {
+    const slot = this.slots[index];
+    const st = slot?.getItem();
+    if (!slot || !st) return null;
+    const orig = copyStack(st)!;
+    const a = this.inputs.getItem(0), b = this.inputs.getItem(1);
+    if (index === 2) {
+      if (!this.moveItemStackTo(st, 3, 39, true)) return null;
+      slot.onQuickCraft(st, orig);
+    } else if (index !== 0 && index !== 1) {
+      if (a && b) {
+        if (index >= 3 && index < 30) {
+          if (!this.moveItemStackTo(st, 30, 39, false)) return null;
+        } else if (index >= 30 && index < 39 && !this.moveItemStackTo(st, 3, 30, false)) return null;
+      } else if (!this.moveItemStackTo(st, 0, 2, false)) return null;
+    } else if (!this.moveItemStackTo(st, 3, 39, false)) return null;
+    return this.finishQuickMove(slot, st, orig, p);
+  }
+  override removed(p: MenuPlayer): void {
+    super.removed(p);
+    this.result.items[0] = null;
+    for (let i = 0; i < 2; i++) {
+      const it = this.inputs.items[i];
+      this.inputs.items[i] = null;
+      if (!isEmpty(it)) placeBack(p, it);
+    }
+  }
+}
+
 /** Menu with mirror containers (client prediction for server-opened windows). */
 export function createClientMenu(type: MenuType, id: number, inv: Container): Menu {
   switch (type) {
@@ -1020,6 +1097,8 @@ export function createClientMenu(type: MenuType, id: number, inv: Container): Me
       return new StonecutterMenu(id, inv);
     case 'smithing':
       return new SmithingMenu(id, inv);
+    case 'grindstone':
+      return new GrindstoneMenu(id, inv);
   }
 }
 

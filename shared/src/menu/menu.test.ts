@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Inventory, stack, type ItemStack } from '../item/stack';
-import { ChestMenu, ClickType, CraftingMenu, FurnaceMenu, InventoryMenu, SLOT_OUTSIDE, SmithingMenu, type MenuPlayer } from './menu';
+import { ChestMenu, ClickType, CraftingMenu, FurnaceMenu, InventoryMenu, SLOT_OUTSIDE, SmithingMenu, GrindstoneMenu, type MenuPlayer } from './menu';
 import { InventoryContainer, SimpleContainer } from './container';
 import { craftingResult } from './recipes';
 import { FurnaceContainer, newFurnace, tickFurnace, takeFurnaceExperience } from './furnace';
@@ -328,5 +328,24 @@ describe('smithing', () => {
     expect(m.hasRecipeError()).toBe(true);
     m.removed(p);
     expect(p.inventory.find(stack('netherite_ingot').id)).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('grindstone', () => {
+  it('combines two damaged tools with a 5% bonus and consumes both', () => {
+    const p = player();
+    p.inventory.set(9, { ...stack('iron_sword'), damage: 200 });
+    p.inventory.set(10, { ...stack('iron_sword'), damage: 150 });
+    p.inventory.set(11, stack('dirt'));
+    const m = new GrindstoneMenu(1, new InventoryContainer(p.inventory));
+    m.clicked(3, 0, ClickType.QUICK_MOVE, p);
+    expect(m.result.items[0]).toBeNull(); // one item alone: nothing to disenchant
+    m.clicked(4, 0, ClickType.QUICK_MOVE, p);
+    m.clicked(5, 0, ClickType.QUICK_MOVE, p); // dirt can't go in
+    expect(m.slots[2]!.getItem()).toEqual({ ...stack('iron_sword'), damage: 88 });
+    m.clicked(2, 0, ClickType.QUICK_MOVE, p);
+    expect(m.inputs.getItem(0)).toBeNull();
+    expect(m.inputs.getItem(1)).toBeNull();
+    expect(p.inventory.slots.some((s) => s?.id === stack('iron_sword').id && s.damage === 88)).toBe(true);
   });
 });
