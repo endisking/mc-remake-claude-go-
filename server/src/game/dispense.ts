@@ -18,6 +18,7 @@ import { isReplaceable } from '@shared/game/placement';
 import { ITEMS_BY_ID, ITEMS_BY_NAME } from '@shared/data';
 import { potionOf } from '@shared/game/potions';
 import type { ItemStack } from '@shared/item/stack';
+import { ARMOR_INV_SLOT, equipSlotFor } from '@shared/game/items';
 
 const DX = [0, 0, 0, 0, -1, 1];
 const DY = [-1, 1, 0, 0, 0, 0];
@@ -152,8 +153,22 @@ export function dispenseSpecial(s: GameServer, x: number, y: number, z: number, 
       sound(s, 'entity.tnt.primed', fx, fy, fz);
       return { ok: true };
     }
-    default:
+    default: {
+      // ArmorItem.DISPENSE_ITEM_BEHAVIOR: onto a player in front whose slot is empty, else drop
+      const slot = equipSlotFor(stack.id);
+      if (!slot) return null;
+      for (const p of s.players) {
+        if (p.gameMode === 3 || p.living.dead) continue;
+        const h = p.pose === 'crouching' ? 1.5 : p.pose === 'swimming' ? 0.6 : 1.8;
+        if (p.x + 0.3 <= fx || p.x - 0.3 >= fx + 1 || p.y + h <= fy || p.y >= fy + 1 || p.z + 0.3 <= fz || p.z - 0.3 >= fz + 1) continue;
+        const inv = ARMOR_INV_SLOT[slot];
+        if (p.inventory.get(inv)) continue;
+        p.inventory.set(inv, { ...stack, count: 1 });
+        s.syncSlot(p, inv);
+        return { ok: true };
+      }
       return null;
+    }
   }
 }
 

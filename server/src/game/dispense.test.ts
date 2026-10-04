@@ -70,6 +70,19 @@ describe('dispenser behaviours', () => {
     expect(items[0]!.count).toBe(1);
   });
 
+  it('puts armour onto a player standing in front', () => {
+    const { server, item, fire, y } = setup();
+    const p = server.players[0]!;
+    p.gameMode = 0;
+    p.x = 9.5;
+    p.y = y;
+    p.z = 8.5;
+    p.inventory.set(39, null);
+    const items = fire(item('iron_helmet'));
+    expect(p.inventory.get(39)?.id).toBe(ITEMS_BY_NAME.get('iron_helmet')!.id);
+    expect(items[0]).toBeNull();
+  });
+
   it('fails (keeps the item) when bone meal has nothing to grow', () => {
     const { server, item, fire, y } = setup();
     server.setBlock(9, y, 8, stateOf('stone'));
