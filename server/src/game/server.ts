@@ -1646,6 +1646,7 @@ export class GameServer {
     }
     this.blocks.tick();
     this.tickEntities();
+    this.items.tickClouds(); // Phase 7: lingering potion clouds
     this.containers.tick();
     this.updateChunks();
     this.updateTracking();

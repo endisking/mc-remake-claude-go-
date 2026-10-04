@@ -117,6 +117,8 @@ const S2C_SCHEMA = {
   effectParticles: [['id', 'i32'], ['color', 'i32'], ['ambient', 'bool']],
   /** Item NBT for an inventory slot (sent after setSlot; '' = none): JSON of ItemTag. */
   slotTag: [['slot', 'i16'], ['tag', 'str']],
+  /** A lingering potion cloud's disc (AreaEffectCloud), every 5 ticks while it lasts. */
+  effectCloud: [['id', 'i32'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['radius', 'f32'], ['color', 'i32']],
   /** Item NBT of an item entity (enchantment glint, potion colour); JSON of ItemTag. */
   itemEntityTag: [['id', 'i32'], ['tag', 'str']],
 } as const satisfies Schema;

@@ -19,6 +19,7 @@ import { ITEMS_BY_NAME } from '@shared/data';
 import { isEmpty, maxStackSize, type ItemStack } from '@shared/item/stack';
 import { enchLevel } from '@shared/game/enchantments';
 import { POTIONS, potionOf, potionColor } from '@shared/game/potions';
+import { EffectCloud } from './effectcloud';
 import {
   nameOf, hurtItem, mineBlockCost, hurtEnemyCost, BREAK_EVENT, armorInfo, armorTotals, equipSlotFor, ARMOR_INV_SLOT,
   armorDurabilityLoss, foodProps, useAnim, useDuration, canStartUsing, shouldTriggerUseEffects, useRemainder, bowPower, isArrow,
@@ -147,7 +148,7 @@ export class ItemUse {
       if (this.fillBottle(p, slot, stack)) this.swing(p, hand);
       return;
     }
-    if (n === 'splash_potion') {
+    if (n === 'splash_potion' || n === 'lingering_potion') {
       this.throwPotion(p, slot, stack);
       this.swing(p, hand);
       return;
@@ -445,7 +446,8 @@ export class ItemUse {
     t.ownerId = p.id;
     t.shootFromRotation(p.pitch - 20, p.yaw, 0.5, 1);
     const potion = potionOf(stack);
-    t.onHit = (e, hit) => this.splash(e, hit, potion);
+    const lingering = nameOf(stack.id) === 'lingering_potion';
+    t.onHit = (e, hit) => (lingering ? this.linger(e, hit, potion) : this.splash(e, hit, potion));
     this.s.spawnEntity(t);
     if (p.gameMode !== 1) {
       stack.count--;
@@ -477,6 +479,33 @@ export class ItemUse {
         }
       }
     }
+  }
+
+  /** Lingering potion clouds in the world (AreaEffectCloud). */
+  readonly clouds: EffectCloud[] = [];
+
+  /** ThrownPotion.makeAreaOfEffectCloud + level event 2007/2002 for the shatter. */
+  private linger(e: Thrown, hit: ThrowHit, potion: string): void {
+    const effects = POTIONS[potion] ?? [];
+    const color = potionColor({ id: e.item, count: 1, damage: 0, tag: { Potion: potion } });
+    const instant = effects.some((x) => x.effect === 'instant_health' || x.effect === 'instant_damage');
+    for (const o of this.s.players) this.s.send(o, { t: 'levelEvent', event: instant ? 2007 : 2002, x: Math.floor(hit.x), y: Math.floor(hit.y), z: Math.floor(hit.z), data: color });
+    this.s.playSound(null, 'entity.splash_potion.break', 'neutral', hit.x, hit.y, hit.z, 1, this.s.rand.nextFloat() * 0.1 + 0.9);
+    this.clouds.push(new EffectCloud(this.s.newEntityId(), hit.x, hit.y, hit.z, effects, color));
+  }
+
+  /** AreaEffectCloud.tick for every cloud (server tick). */
+  tickClouds(): void {
+    for (const c of this.clouds) {
+      c.tick(this.s, (p, x, quarter) => {
+        const target = this.effectTarget(p);
+        // instant effects at half strength (applyInstantenousEffect with 0.5)
+        if (x.effect === 'instant_health') target.heal(Math.trunc(0.5 * (4 << x.amplifier) + 0.5));
+        else if (x.effect === 'instant_damage') target.hurtMagic(Math.trunc(0.5 * (6 << x.amplifier) + 0.5));
+        else p.living.effects.add(x.effect, quarter, x.amplifier, target);
+      });
+    }
+    for (let i = this.clouds.length - 1; i >= 0; i--) if (this.clouds[i]!.removed) this.clouds.splice(i, 1);
   }
 
   /** Snowball/ThrownEgg/ThrownEnderpearl.onHit. */

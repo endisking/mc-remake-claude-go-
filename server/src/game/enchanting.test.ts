@@ -6,7 +6,8 @@ import { stack, itemName } from '@shared/item/stack';
 import { capturePlayer, applyPlayer } from '../storage/codec';
 import { DAMAGE } from './survival';
 import { ServerPlayer } from './player';
-import { potionStack } from '@shared/game/potions';
+import { potionStack, POTIONS } from '@shared/game/potions';
+import { EffectCloud } from './effectcloud';
 
 function client(server: GameServer, name: string) {
   const received: S2C[] = [];
@@ -163,5 +164,20 @@ describe('/give with item NBT', () => {
     const sw = [...p.inventory.slots].find((s) => s && itemName(s.id) === 'diamond_sword');
     expect(sw?.tag?.Enchantments).toEqual([{ id: 'knockback', lvl: 2 }]);
     expect(a.received.some((m) => m.t === 'slotTag')).toBe(true);
+  });
+});
+
+describe('lingering potion clouds', () => {
+  it('apply a quarter of the duration after the 10-tick wait and shrink by 0.5 per entity', () => {
+    const { server, a, p } = setup();
+    const c = new EffectCloud(9999, p.x, p.y, p.z, POTIONS.strength!, 0);
+    server.items.clouds.push(c);
+    for (let i = 0; i < 9; i++) server.tick();
+    expect(p.living.effects.has('strength')).toBe(false);
+    for (let i = 0; i < 6; i++) server.tick();
+    expect(p.living.effects.get('strength')!.duration).toBeGreaterThan(890);
+    expect(p.living.effects.get('strength')!.duration).toBeLessThanOrEqual(900);
+    expect(c.radius).toBeLessThan(2.6);
+    expect(a.received.some((m) => m.t === 'effectCloud')).toBe(true);
   });
 });

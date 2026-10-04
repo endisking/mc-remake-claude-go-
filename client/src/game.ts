@@ -938,6 +938,17 @@ export class Game implements ScreenHost, ContainerHost {
       case 'effectParticles':
         this.effectsClient.handle(p);
         break;
+      case 'effectCloud': {
+        // AreaEffectCloud client tick: swirls scattered over the disc (≈ π r² per 5 ticks here)
+        this.ensureFlatParticles();
+        const r = ((p.color >> 16) & 255) / 255, g = ((p.color >> 8) & 255) / 255, b = (p.color & 255) / 255;
+        const n = Math.ceil(Math.PI * p.radius * p.radius);
+        for (let i = 0; i < n; i++) {
+          const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * p.radius;
+          this.particles.spell(p.x + Math.cos(a) * d, p.y, p.z + Math.sin(a) * d, r, g, b, false);
+        }
+        break;
+      }
       case 'heldSlot':
         this.interaction.inventory.selected = p.slot;
         break;
