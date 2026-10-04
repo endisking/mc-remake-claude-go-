@@ -110,6 +110,11 @@ export abstract class Mob extends ServerEntity {
   eyeInWater = false;
   isInPowderSnow = false;
   private stuck: [number, number, number] | null = null;
+  /** chunk version and position of the last resting collision pass (−1 = not resting) */
+  private restVersion = -1;
+  private restX = 0;
+  private restY = 0;
+  private restZ = 0;
   ambientSoundTime = 0;
   private moveDist = 0;
   private nextStep = 1;
@@ -655,6 +660,18 @@ export abstract class Mob extends ServerEntity {
       this.stuck = null;
       this.vx = this.vy = this.vz = 0;
     }
+    // resting fast path: standing still on unchanged ground needs no collision pass
+    if (this.onGround && dx === 0 && dz === 0 && dy <= 0 && dy > -0.2 && this.restVersion >= 0 && this.x === this.restX && this.y === this.restY && this.z === this.restZ) {
+      const c = this.world.getChunk(Math.floor(this.x) >> 4, Math.floor(this.z) >> 4);
+      if (c && c.version === this.restVersion) {
+        this.vy = 0;
+        this.fallDistance = 0;
+        this.horizontalCollision = false;
+        this.checkInsideBlocks();
+        return;
+      }
+    }
+    this.restVersion = -1;
     const [mx, my, mz] = this.collide(dx, dy, dz);
     this.x += mx;
     this.y += my;
@@ -690,6 +707,15 @@ export abstract class Mob extends ServerEntity {
           const st = soundTypeOf(below);
           this.playSound(st.step, st.volume * 0.15, st.pitch);
         }
+      }
+    }
+    if (this.onGround && mx === 0 && mz === 0 && dx === 0 && dz === 0) {
+      const c = this.world.getChunk(Math.floor(this.x) >> 4, Math.floor(this.z) >> 4);
+      if (c) {
+        this.restVersion = c.version;
+        this.restX = this.x;
+        this.restY = this.y;
+        this.restZ = this.z;
       }
     }
     this.checkInsideBlocks();
