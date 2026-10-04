@@ -41,7 +41,15 @@ export function canSurvive(world: StateGetter, x: number, y: number, z: number, 
     if (getProp(state, 'half') === 'upper') return blockNameOf(below) === name;
     return sturdy(below);
   }
-  if (name === 'wheat' || name === 'carrots' || name === 'potatoes' || name === 'beetroots') return belowName === 'farmland';
+  if (name === 'wheat' || name === 'carrots' || name === 'potatoes' || name === 'beetroots') {
+    // CropBlock.canSurvive: raw brightness ≥ 8 (or open sky) where light is known
+    const lit = world as Partial<{ getLight(x: number, y: number, z: number): number }>;
+    if (lit.getLight) {
+      const l = lit.getLight(x, y, z);
+      if (Math.max(l >> 4, l & 15) < 8) return false;
+    }
+    return belowName === 'farmland';
+  }
   if (name === 'snow') return sturdy(below) && belowName !== 'ice' && belowName !== 'packed_ice' && belowName !== 'barrier';
   if (name.endsWith('_carpet') || name === 'moss_carpet') return belowName !== 'air' && belowName !== 'cave_air' && belowName !== 'void_air';
   if (name.endsWith('_pressure_plate') || name.endsWith('rail') || name === 'redstone_wire' || name === 'repeater' || name === 'comparator') return sturdy(below) || isFenceLike(belowName);

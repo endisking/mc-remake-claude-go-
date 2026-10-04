@@ -211,6 +211,7 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
 
   it('leaves decay once their log is gone; persistent leaves stay', () => {
     const { server, set, get } = setup();
+    server.blocks.randomTickSpeed = 0; // no stray random ticks while the distances settle
     set(6, 150, 6, 'oak_log');
     set(6, 151, 6, 'oak_leaves', { distance: 1, persistent: false });
     set(7, 151, 6, 'oak_leaves', { distance: 2, persistent: false });
