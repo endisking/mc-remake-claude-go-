@@ -61,7 +61,7 @@ const RANDOM_TICKING = new Uint8Array(BLOCK_STATE_COUNT);
 for (let s = 0; s < BLOCK_STATE_COUNT; s++) {
   const n = blockNameOf(s);
   let t = false;
-  if (n === 'grass_block' || n === 'mycelium' || n === 'farmland' || n === 'sugar_cane' || n === 'cactus' || n in STEM_FRUIT) t = true;
+  if (n === 'grass_block' || n === 'mycelium' || n === 'farmland' || n === 'sugar_cane' || n === 'cactus' || n === 'vine' || n in STEM_FRUIT) t = true;
   else if (n.endsWith('_sapling')) t = true;
   else if (n in CROP_MAX_AGE) t = (getProp(s, 'age') as number) < CROP_MAX_AGE[n]!;
   else if (n.endsWith('_leaves')) t = leavesDecaying(s);
@@ -237,6 +237,7 @@ export class BlockBehaviors {
       return;
     }
     if (n in GROWING_HEADS) return this.growHead(x, y, z, st, n);
+    if (n === 'vine') return this.growVine(x, y, z, st);
     if (n === 'snow') {
       // SnowLayerBlock: melts under block light > 11
       if ((this.w.getLight(x, y, z) & 15) > 11) this.breakNaturally(x, y, z, false);
@@ -470,6 +471,83 @@ export class BlockBehaviors {
     if (age >= CROP_MAX_AGE[n]!) return;
     const f = growthSpeed(this.w, x, y, z, n);
     if (this.s.rand.nextInt(growthChanceDenominator(f)) === 0) this.s.setBlock(x, y, z, withProp(st, 'age', age + 1));
+  }
+
+  /** VineBlock.randomTick: spread sideways, up and down (1 in 4 ticks, at most 5 vines nearby). */
+  private growVine(x: number, y: number, z: number, st: number): void {
+    const w = this.w, r = this.s.rand;
+    if (r.nextInt(4) !== 0) return;
+    const d = r.nextInt(6);
+    const dir = DIRS[d]!;
+    const CW: Record<string, string> = { north: 'east', east: 'south', south: 'west', west: 'north' };
+    const CCW: Record<string, string> = { north: 'west', west: 'south', south: 'east', east: 'north' };
+    const OPP: Record<string, string> = { north: 'south', south: 'north', east: 'west', west: 'east', up: 'down', down: 'up' };
+    const off = (name: string) => DIRS.indexOf(name as (typeof DIRS)[number]);
+    const at = (px: number, py: number, pz: number) => w.getState(px, py, pz);
+    // isAcceptableNeighbour: the block's face toward the vine is full
+    const acceptable = (px: number, py: number, pz: number) => FULL_COLLISION[at(px, py, pz)] === 1;
+    const vine = defaultState('vine');
+    const setFace = (s0: number, face: string, v: boolean) => withProp(s0, face, v);
+    const canSpread = () => {
+      let i = 5;
+      for (let dx = -4; dx <= 4; dx++)
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dz = -4; dz <= 4; dz++)
+            if (blockNameOf(at(x + dx, y + dy, z + dz)) === 'vine' && --i <= 0) return false;
+      return true;
+    };
+    const horizontal = (s0: number) => ['north', 'east', 'south', 'west'].some((f) => getProp(s0, f) === true);
+    const step = (name: string): [number, number, number] => {
+      const i = off(name);
+      return [DX[i]!, DY[i]!, DZ[i]!];
+    };
+    if (d >= 2 && getProp(st, dir) !== true) {
+      if (!canSpread()) return;
+      const [ox, , oz] = step(dir);
+      const sx = x + ox, sz = z + oz;
+      const side = at(sx, y, sz);
+      if (IS_AIR[side]) {
+        const cw = CW[dir]!, ccw = CCW[dir]!;
+        const cwOn = getProp(st, cw) === true, ccwOn = getProp(st, ccw) === true;
+        const [cx2, , cz2] = step(cw), [qx, , qz] = step(ccw);
+        if (cwOn && acceptable(sx + cx2, y, sz + cz2)) this.s.setBlock(sx, y, sz, setFace(vine, cw, true));
+        else if (ccwOn && acceptable(sx + qx, y, sz + qz)) this.s.setBlock(sx, y, sz, setFace(vine, ccw, true));
+        else {
+          const opp = OPP[dir]!;
+          if (cwOn && IS_AIR[at(sx + cx2, y, sz + cz2)] && acceptable(x + cx2, y, z + cz2)) this.s.setBlock(sx + cx2, y, sz + cz2, setFace(vine, opp, true));
+          else if (ccwOn && IS_AIR[at(sx + qx, y, sz + qz)] && acceptable(x + qx, y, z + qz)) this.s.setBlock(sx + qx, y, sz + qz, setFace(vine, opp, true));
+          else if (r.nextFloat() < 0.05 && acceptable(sx, y + 1, sz)) this.s.setBlock(sx, y, sz, setFace(vine, 'up', true));
+        }
+      } else if (acceptable(sx, y, sz)) this.s.setBlock(x, y, z, setFace(st, dir, true));
+      return;
+    }
+    if (dir === 'up' && y < 255) {
+      // canSupportAtFace(up)
+      if (acceptable(x, y + 1, z)) {
+        this.s.setBlock(x, y, z, setFace(st, 'up', true));
+        return;
+      }
+      if (IS_AIR[at(x, y + 1, z)]) {
+        if (!canSpread()) return;
+        let ns = st;
+        for (const f of ['north', 'east', 'south', 'west']) {
+          const [ox, , oz] = step(f);
+          if (r.nextBoolean() || !acceptable(x + ox, y + 1, z + oz)) ns = setFace(ns, f, false);
+        }
+        if (horizontal(ns)) this.s.setBlock(x, y + 1, z, ns);
+        return;
+      }
+    }
+    if (y > 0) {
+      const below = at(x, y - 1, z);
+      if (IS_AIR[below] || blockNameOf(below) === 'vine') {
+        const start = IS_AIR[below] ? vine : below;
+        let next = start;
+        // copyRandomFaces
+        for (const f of ['north', 'east', 'south', 'west']) if (r.nextBoolean() && getProp(st, f) === true) next = setFace(next, f, true);
+        if (next !== start && horizontal(next)) this.s.setBlock(x, y - 1, z, next);
+      }
+    }
   }
 
   /** GrowingPlantHeadBlock.randomTick: kelp, weeping/twisting vines and cave vines extend by one. */

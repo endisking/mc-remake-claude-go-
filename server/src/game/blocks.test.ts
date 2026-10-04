@@ -432,4 +432,16 @@ describe('block behaviours on the server', { timeout: 60000 }, () => {
     expect(snow).toBeGreaterThan(0);
     expect(ice).toBeGreaterThan(0);
   });
+
+  it('vines grow down and along a wall', () => {
+    const { server, set, get } = setup();
+    for (let x = 18; x <= 24; x++) for (let y = 145; y <= 158; y++) set(x, y, 20, 'stone');
+    set(21, 155, 21, 'vine', { north: true });
+    for (let i = 0; i < 400; i++)
+      for (let x = 18; x <= 24; x++) for (let y = 145; y <= 158; y++) if (get(x, y, 21) === 'vine') server.blocks.randomTick(x, y, 21, server.world.getState(x, y, 21));
+    let n = 0;
+    for (let x = 18; x <= 24; x++) for (let y = 140; y <= 160; y++) if (get(x, y, 21) === 'vine') n++;
+    expect(n).toBeGreaterThan(2);
+    expect(get(21, 154, 21)).toBe('vine');
+  });
 });
