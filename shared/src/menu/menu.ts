@@ -28,7 +28,7 @@ export const enum ClickType {
 /** The clicked slot id for "outside the window" (drop the carried stack). */
 export const SLOT_OUTSIDE = -999;
 
-export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter' | 'smithing' | 'grindstone' | 'enchantment' | 'brewing_stand';
+export type MenuType = 'inventory' | 'crafting' | 'generic_9x3' | 'generic_9x6' | 'generic_3x3' | 'hopper' | 'furnace' | 'blast_furnace' | 'smoker' | 'stonecutter' | 'smithing' | 'grindstone' | 'enchantment' | 'brewing_stand' | 'anvil';
 
 export interface MenuPlayer {
   readonly inventory: Inventory;
@@ -1107,6 +1107,7 @@ export function createClientMenu(type: MenuType, id: number, inv: Container): Me
       return new GrindstoneMenu(id, inv);
     case 'enchantment':
     case 'brewing_stand':
+    case 'anvil':
       throw new Error(`menu module for ${type} not loaded`);
   }
 }

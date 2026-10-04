@@ -58,6 +58,7 @@ import { itemName, decodeTag, type ItemStack, type ItemTag } from '@shared/item/
 import { EffectsClient } from './effects';
 import './gui/enchantmentscreen';
 import './gui/brewingscreen';
+import './gui/anvilscreen';
 import { entityEnchLevel, hasFoil } from '@shared/game/enchantments';
 import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';

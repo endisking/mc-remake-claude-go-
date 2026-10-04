@@ -187,6 +187,8 @@ const C2S_SCHEMA = {
   keepAlive: [['id', 'f64']],
   /** Creative inventory: NBT for a slot just set with creativeSlot (slot −1: the next thrown stack); Phase 7. */
   creativeSlotTag: [['slot', 'i16'], ['tag', 'str']],
+  /** Anvil rename box text (vanilla ServerboundRenameItemPacket). */
+  renameItem: [['name', 'str']],
   // ---- mobs
   /** Right-click an entity (vanilla Interact INTERACT): breeding food, shears, buckets, saddles, flint and steel, bones. */
   interactEntity: [['id', 'i32'], ['hand', 'u8']],

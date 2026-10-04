@@ -8,12 +8,13 @@ import type { ServerPlayer } from './player';
 import type { C2S } from '@shared/protocol/packets';
 import { encodeStacks } from '@shared/protocol/packets';
 import { blockEntityKey, type BlockEntityData } from '@shared/world/chunk';
-import { blockNameOf, getProp, withProp } from '@shared/world/blockstate';
+import { blockNameOf, getProp, withProp, stateOf } from '@shared/world/blockstate';
 import { BLOCKS_BY_NAME } from '@shared/data';
 import { FULL_COLLISION } from '@shared/world/blockinfo';
 import { isEmpty, encodeTag, type ItemStack } from '@shared/item/stack';
 import { EnchantmentMenu } from '@shared/menu/enchanting';
 import { BrewingStandMenu, BrewingContainer } from '@shared/menu/brewing';
+import { AnvilMenu } from '@shared/menu/anvil';
 import { newBrewingStand, tickBrewingStand, bottleBits, type BrewingData } from '@shared/game/potions';
 import { countBookshelves, grindstoneExperience } from '@shared/game/enchantments';
 import { ChestMenu, CraftingMenu, DispenserMenu, ShulkerBoxMenu, StonecutterMenu, SmithingMenu, GrindstoneMenu, FurnaceMenu, HopperMenu, InventoryMenu, type Menu, type MenuPlayer, type ClickType } from '@shared/menu/menu';
@@ -111,6 +112,15 @@ export class Containers {
     this.sendAll(p, menu);
     this.syncInventoryDiff(p, snap);
     if (menu === s.containerMenu && menu !== s.inventoryMenu) s.lastSlots = menu.slots.map((sl) => stackKey(sl.getItem()));
+  }
+
+  /** ServerGamePacketListenerImpl.handleRenameItem (anvil). */
+  renameItem(p: ServerPlayer, name: string): void {
+    const m = this.state(p).containerMenu;
+    if (!(m instanceof AnvilMenu) || !m.stillValid()) return;
+    // SharedConstants.filterText: no control characters, at most 50 characters
+    m.setItemName(name.replace(/[\u0000-\u001f\u007f\u00a7]/g, '').slice(0, 50));
+    this.broadcastChanges(p);
   }
 
   /** ServerGamePacketListenerImpl.handleContainerButtonClick */
@@ -244,6 +254,33 @@ export class Containers {
         };
         return m;
       }, 'Stonecutter', [x, y, z]);
+      return true;
+    }
+    // ---- Phase 7: anvil ----
+    if (name === 'anvil' || name === 'chipped_anvil' || name === 'damaged_anvil') {
+      const valid = this.validFor(p, x, y, z, (n) => n.endsWith('anvil'));
+      this.open(p, (id) => new AnvilMenu(id, inv, {
+        level: () => p.living.experienceLevel,
+        onTake: (cost) => {
+          if (cost > 0) {
+            this.server.survival.giveExperience(p, -cost, true);
+          }
+          // AnvilMenu.onTake: 12% chance to damage the anvil (not in creative)
+          const st = this.server.world.getState(x, y, z);
+          const n = blockNameOf(st);
+          if (p.gameMode !== 1 && this.server.rand.nextFloat() < 0.12) {
+            const next = n === 'anvil' ? 'chipped_anvil' : n === 'chipped_anvil' ? 'damaged_anvil' : null;
+            if (next) {
+              this.server.setBlock(x, y, z, withProp(stateOf(next), 'facing', getProp(st, 'facing') as string));
+              this.server.playSound(null, 'block.anvil.use', 'block', x + 0.5, y + 0.5, z + 0.5, 1, this.server.rand.nextFloat() * 0.1 + 0.9);
+            } else {
+              this.server.setBlock(x, y, z, 0);
+              this.server.playSound(null, 'block.anvil.destroy', 'block', x + 0.5, y + 0.5, z + 0.5, 1, this.server.rand.nextFloat() * 0.1 + 0.9);
+            }
+          } else this.server.playSound(null, 'block.anvil.use', 'block', x + 0.5, y + 0.5, z + 0.5, 1, this.server.rand.nextFloat() * 0.1 + 0.9);
+        },
+        valid,
+      }, p.gameMode === 1), 'Repair & Name', [x, y, z]);
       return true;
     }
     // ---- Phase 7: brewing stand ----

@@ -205,3 +205,31 @@ describe('melee enchantments against mobs', () => {
     expect(hp - pig.health).toBeCloseTo(Math.min(hp, 7), 4);
   });
 });
+
+describe('anvil (server)', () => {
+  it('combines a sword with a Sharpness book, renames, and charges the levels', () => {
+    const { server, a, p } = setup();
+    const x = Math.floor(p.x) + 2, y = Math.floor(p.y), z = Math.floor(p.z);
+    server.setBlock(x, y, z, stateOf('anvil'));
+    p.living.experienceLevel = 10;
+    p.inventory.set(0, stack('diamond_sword'));
+    const book = stack('enchanted_book');
+    book.tag = { StoredEnchantments: [{ id: 'sharpness', lvl: 3 }] };
+    p.inventory.set(1, book);
+    a.send({ t: 'useOn', x, y, z, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 });
+    const open = a.received.filter((m) => m.t === 'openWindow').at(-1) as Extract<S2C, { t: 'openWindow' }>;
+    expect(open).toMatchObject({ type: 'anvil', title: 'Repair & Name' });
+    a.send({ t: 'clickWindow', windowId: open.windowId, slot: 30, button: 0, clickType: 1 });
+    a.send({ t: 'clickWindow', windowId: open.windowId, slot: 31, button: 0, clickType: 1 });
+    a.send({ t: 'renameItem', name: 'Edge' });
+    const cost = (a.received.filter((m) => m.t === 'windowData' && m.property === 0).at(-1) as { value: number }).value;
+    expect(cost).toBe(3 + 1);
+    // take the result
+    a.send({ t: 'clickWindow', windowId: open.windowId, slot: 2, button: 0, clickType: 1 });
+    expect(p.living.experienceLevel).toBe(6);
+    const sw = [...p.inventory.slots].find((st) => st && itemName(st.id) === 'diamond_sword')!;
+    expect(sw.tag?.Enchantments).toEqual([{ id: 'sharpness', lvl: 3 }]);
+    expect(sw.tag?.display?.Name).toBe('Edge');
+    expect([...p.inventory.slots].some((st) => st && itemName(st.id) === 'enchanted_book')).toBe(false);
+  });
+});

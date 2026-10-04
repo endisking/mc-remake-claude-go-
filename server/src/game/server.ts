@@ -1190,6 +1190,9 @@ export class GameServer {
       case 'menuButton':
         this.containers.handleButton(p, m.windowId, m.button);
         break;
+      case 'renameItem':
+        this.containers.renameItem(p, m.name);
+        break;
       case 'creativeSlot':
         // slot −1: the creative inventory throws the stack out of the window
         if (p.gameMode === 1 && m.slot === -1 && m.item > 0 && m.count > 0) {
