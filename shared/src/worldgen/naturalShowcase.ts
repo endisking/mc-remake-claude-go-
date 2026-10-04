@@ -151,6 +151,20 @@ function placements(): Placement[] {
     for (const a of ages) p.push([x, Y - 1, 45, 'farmland', { moisture: 7 }], [x++, Y, 45, crop, { age: a }]);
   p.push([x, Y - 1, 45, 'soul_sand'], [x++, Y, 45, 'nether_wart', { age: 3 }]);
   p.push([x++, Y, 45, 'pumpkin_stem', { age: 7 }], [x, Y, 45, 'attached_melon_stem', { facing: 'east' }], [x + 1, Y, 45, 'melon']);
+  // row 6 (z 47): redstone components, workstations and special blocks
+  const tech: [string, Props?][] = [
+    ['redstone_wire', { east: 'side', power: 15 }], ['redstone_wire', { west: 'side', east: 'side', power: 9 }], ['redstone_wire', { west: 'side', power: 3 }], ['redstone_wire', {}],
+    ['powered_rail', { powered: true }], ['detector_rail'], ['activator_rail'], ['repeater', { facing: 'south', delay: 3 }], ['comparator', { facing: 'south', powered: true }],
+    ['piston', { facing: 'up' }], ['sticky_piston', { facing: 'south' }], ['hopper'], ['cauldron'], ['water_cauldron', { level: 3 }], ['lava_cauldron'],
+    ['enchanting_table'], ['anvil', { facing: 'south' }], ['brewing_stand'], ['cake', { bites: 2 }], ['candle_cake', { lit: false }], ['campfire', { facing: 'south' }],
+    ['soul_campfire', { facing: 'south' }], ['barrel', { facing: 'south' }], ['smoker', { facing: 'south' }], ['blast_furnace', { facing: 'south', lit: true }],
+    ['cartography_table'], ['fletching_table'], ['smithing_table'], ['loom', { facing: 'south' }], ['composter', { level: 5 }], ['lectern', { facing: 'south' }],
+    ['stonecutter', { facing: 'south' }], ['grindstone', { face: 'floor', facing: 'south' }], ['bell', { attachment: 'floor', facing: 'south' }], ['ender_chest', { facing: 'south' }],
+    ['oak_sign', { rotation: 0 }], ['red_banner', { rotation: 0 }], ['creeper_head', { rotation: 0 }], ['skeleton_skull', { rotation: 0 }], ['lime_candle', { candles: 4 }],
+    ['end_portal_frame', { facing: 'south', eye: true }], ['respawn_anchor', { charges: 2 }], ['beacon'], ['conduit'], ['chorus_flower'], ['dragon_egg'],
+    ['turtle_egg', { eggs: 3 }], ['sculk_sensor'], ['lightning_rod'], ['tripwire_hook', { facing: 'south' }], ['daylight_detector'], ['command_block', { facing: 'south' }],
+  ];
+  tech.forEach(([n, props], i) => p.push([i, Y, 47, n, props]));
   return p;
 }
 
