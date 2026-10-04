@@ -32,7 +32,7 @@ import { Interaction } from './interaction';
 import { ParticleEngine } from './render/particles';
 import { BlockItemRenderer } from './render/blockitem';
 import { HandRenderer, attackSpeedOf, type HeldItemModel, type HandSide } from './render/hand';
-import { HANDHELD_ROD_ITEMS, handsToRender, swingDuration, tickHandHeight, type UseAnim } from './render/handpose';
+import { handsToRender, swingDuration, tickHandHeight, type UseAnim } from './render/handpose';
 import { Hud, type HudPlayer } from './gui/hud';
 import { SpectatorGui, type PlayerInfoEntry } from './gui/spectator';
 import { keyName } from './keybinds';
@@ -51,8 +51,8 @@ import { Button } from './gui/screen';
 import { KeyBindings } from './keybinds';
 import { blockForItem } from '@shared/game/loot';
 import { BLOCKS_BY_NAME, ITEMS_BY_ID, ITEMS_BY_NAME } from '@shared/data';
-import { itemName } from '@shared/item/stack';
-import type { BakeResult, TextureInfo } from './models/bake';
+import { itemName, type ItemStack } from '@shared/item/stack';
+import type { BakeResult } from './models/bake';
 import { flatItemTexture } from './models/itemmodels';
 import { isViewBlocking, hasMenuProvider } from '@shared/world/blockprops';
 import { JavaRandom } from '@shared/util/random';
@@ -60,6 +60,8 @@ import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
+import { ItemTextures } from './render/itemtextures';
+import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './gui/itemicons';
 
 export class Game implements ScreenHost {
   readonly gl: WebGL2RenderingContext;
@@ -146,6 +148,9 @@ export class Game implements ScreenHost {
   attackStrengthTicker = 0;
   particles!: ParticleEngine;
   blockItems!: BlockItemRenderer;
+  itemTextures!: ItemTextures;
+  /** where the compass points (vanilla: world spawn; approximated by where we first joined) */
+  compassTarget: [number, number] | null = null;
   private bake!: BakeResult;
   /** Dropped item entities: id → state for rendering. */
   readonly items = new Map<number, { x: number; y: number; z: number; xo: number; yo: number; zo: number; lx: number; ly: number; lz: number; steps: number; item: number; count: number; age: number; bobOffs: number; pickup?: { collector: number; life: number }; orb?: number }>();
@@ -331,9 +336,25 @@ export class Game implements ScreenHost {
     return c;
   }
 
-  /** "Save and Quit to Title": back to the launcher. */
+  private quitting = false;
+
+  /** "Save and Quit to Title": save the world (showing "Saving world"), then back to the launcher. */
   quitToTitle(): void {
-    location.href = location.pathname;
+    if (this.quitting) return;
+    this.quitting = true;
+    const leave = () => {
+      location.href = location.pathname;
+    };
+    if (!this.integrated?.worldId) {
+      leave();
+      return;
+    }
+    void import('./gui/savingscreen').then(({ MessageScreen }) => this.setScreen(new MessageScreen(this.gui, 'Saving world')));
+    this.integrated.saveAndStop().then(leave, (e: unknown) => {
+      console.error('saving failed', e);
+      alert(`Saving the world failed: ${(e as Error).message}`);
+      leave();
+    });
   }
 
   async start(): Promise<void> {
@@ -371,6 +392,28 @@ export class Game implements ScreenHost {
       const t = flatItemTexture(blockNameOf(st));
       return t === null ? null : (mainBake.textures.get(t)?.layer ?? mainBake.textures.get('missing')!.layer);
     }, (layer) => this.textures.alpha[layer]);
+    // item sprites: extruded 3D models (BlockItemRenderer) and GUI icons (gui/itemicons)
+    this.itemTextures = await ItemTextures.load();
+    const sprites = this.itemTextures;
+    this.blockItems.sprites = {
+      texture: () => sprites.texture(this.gl),
+      alpha: (l) => sprites.alpha[l],
+      layerFor: (id) => spriteLayerFor(sprites, id),
+      layerByName: (name) => sprites.layer(name),
+      handheld: (l) => sprites.handheld(l),
+    };
+    this.blockItems.blockOf = (id) => {
+      const b = blockForItem(id);
+      return b ? BLOCKS_BY_NAME.get(b)!.defaultState : null;
+    };
+    setItemIconBackend({
+      sprites,
+      blockIcon: (id) => {
+        const st = this.blockItems.blockOf(id);
+        const ic = st === null ? null : this.blockItems.icon(st);
+        return ic ? [this.blockItems.iconCanvas, ic[0], ic[1], ic[2]] : null;
+      },
+    });
     this.lightning = new LightningRenderer(this.gl);
     this.orbRenderer = new OrbRenderer(this.gl);
     this.entityRenderer.bedFacing = (rp) => {
@@ -379,13 +422,13 @@ export class Game implements ScreenHost {
       return ({ south: 0, west: 90, north: 180, east: 270 } as Record<string, number>)[getProp(st, 'facing') as string] ?? null;
     };
     this.entityRenderer.itemModel = (item) => {
-      const block = blockForItem(item);
-      if (!block) return null;
-      return { flat: this.blockItems.isFlat(BLOCKS_BY_NAME.get(block)!.defaultState) };
+      const key = this.blockItems.modelKey(item);
+      if (key === null) return null;
+      const d = this.blockItems.display(key);
+      return { flat: d !== 'block', handheld: d === 'handheld' || d === 'handheld_rod' };
     };
-    this.bakeTextures = mainBake.textures;
     this.heldModels.clear();
-    this.hand = new HandRenderer(this.gl, this.entityRenderer, (st) => this.heldItemModel(st.id), () => this.textures.tex, mainBake.textures.get('fire_1')!.layer);
+    this.hand = new HandRenderer(this.gl, this.entityRenderer, (st) => this.heldItemModel(st), () => this.textures.tex, mainBake.textures.get('fire_1')!.layer);
     this.interaction = new Interaction({
       world: this.world,
       player: this.player,
@@ -445,8 +488,19 @@ export class Game implements ScreenHost {
       } else {
         const seed = BigInt(q.get('seed') ?? '12345');
         const gm = { survival: 0, creative: 1, adventure: 2, spectator: 3 }[q.get('gamemode') ?? 'survival'] ?? 0;
-        const { server, transport } = await startIntegratedServer(seed, q.get('scene') ?? '', gm);
+        // ?world=<id>: a saved world from the launcher (IndexedDB); otherwise a transient one
+        const { server, transport } = await startIntegratedServer(seed, q.get('scene') ?? '', gm, q.get('world'));
         this.integrated = server;
+        if (server.worldId) {
+          // best effort: save when the tab is hidden or closed (the worker may not finish on close)
+          const flush = () => {
+            if (!this.quitting) server.save().catch(() => {});
+          };
+          window.addEventListener('pagehide', flush);
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') flush();
+          });
+        }
         this.connect(transport);
         if (q.has('host')) this.openToLan(q.get('host') || undefined);
       }
@@ -1655,33 +1709,42 @@ export class Game implements ScreenHost {
     return k;
   }
 
-  private bakeTextures: Map<string, TextureInfo> = new Map();
   private readonly heldModels = new Map<number, HeldItemModel | null>();
   /**
-   * Default held-item models: block items use their block model (or the item/generated sprite
-   * for flat ones); other items draw their item texture extruded like ItemModelGenerator when
-   * the texture array has one (named "item/<name>" or "<name>"), otherwise the missing texture.
+   * Held-item models for the first-person hand: the item's own sprite (item atlas, with the
+   * vanilla model overrides bow_pulling_0..2 / crossbow_pulling_0..2 / crossbow_arrow /
+   * crossbow_firework), else the block it places (3D model or flat block sprite), else the
+   * missing sprite. Display types follow the model parents (block, generated, handheld, rod).
    */
-  private heldItemModel(id: number): HeldItemModel | null {
-    let m = this.heldModels.get(id);
-    if (m !== undefined) return m;
-    m = null;
-    const block = blockForItem(id);
+  private heldItemModel(stack: ItemStack): HeldItemModel | null {
     const bi = this.blockItems;
-    if (block) {
-      const st = BLOCKS_BY_NAME.get(block)!.defaultState;
-      m = { display: bi.isFlat(st) ? 'generated' : 'block', draw: (p, mm, l, lm, lights) => bi.draw(st, p, mm, l, lm, undefined, false, lights) };
-    } else {
-      const name = itemName(id);
-      // no item texture yet: the missing texture, like the GUI icon
-      const tex = this.bakeTextures.get(`item/${name}`) ?? this.bakeTextures.get(name) ?? this.bakeTextures.get('missing');
-      if (tex) {
-        const layer = tex.layer;
-        m = { display: HANDHELD_ROD_ITEMS.has(name) ? 'handheld_rod' : 'generated', draw: (p, mm, l, lm, lights) => bi.drawSprite(layer, p, mm, l, lm, undefined, lights) };
-      }
+    const ov = this.heldOverride(stack);
+    const key = (ov !== null ? bi.spriteKey(ov) : null) ?? bi.modelKey(stack.id) ?? bi.spriteKey('missing');
+    if (key === null) return null;
+    let m = this.heldModels.get(key);
+    if (m === undefined) {
+      m = { display: bi.display(key), draw: (p, mm, l, lm, lights) => bi.draw(key, p, mm, l, lm, undefined, false, lights) };
+      this.heldModels.set(key, m);
     }
-    this.heldModels.set(id, m);
     return m;
+  }
+
+  /** Item model override predicates (ItemProperties "pull"/"pulling"/"charged"/"firework") → sprite name. */
+  private heldOverride(stack: ItemStack): string | null {
+    const name = itemName(stack.id);
+    if (name !== 'bow' && name !== 'crossbow') return null;
+    const u = this.itemUse;
+    const using = !!u && u.remaining > 0 && u.item === name && (u.hand === 0 ? this.handItem : this.offHandItem) === stack;
+    if (name === 'bow') {
+      if (!using) return null;
+      const pull = (u!.duration - u!.remaining) / 20;
+      return pull >= 0.9 ? 'bow_pulling_2' : pull >= 0.65 ? 'bow_pulling_1' : 'bow_pulling_0';
+    }
+    const tag = (stack as { tag?: { Charged?: unknown; ChargedProjectiles?: { id?: string }[] } }).tag;
+    if (tag?.Charged) return tag.ChargedProjectiles?.some((p) => p.id?.endsWith('firework_rocket')) ? 'crossbow_firework' : 'crossbow_arrow';
+    if (!using) return null;
+    const pull = (u!.duration - u!.remaining) / (u!.chargeDuration ?? 25);
+    return pull >= 1 ? 'crossbow_pulling_2' : pull >= 0.58 ? 'crossbow_pulling_1' : 'crossbow_pulling_0';
   }
 
   private readonly itemModel = mat4();
@@ -1713,9 +1776,8 @@ export class Game implements ScreenHost {
       // Entity.shouldRenderAtSqrDistance: bounding-box size (0.25) × 64 × entity distance
       const ed = 0.25 * 64 * this.settings.entityDistance;
       if ((it.x - cx) ** 2 + (it.y - cy) ** 2 + (it.z - cz) ** 2 >= ed * ed) continue;
-      const block = blockForItem(it.item);
-      if (!block) continue;
-      const state = BLOCKS_BY_NAME.get(block)!.defaultState;
+      const state = this.blockItems.modelKey(it.item);
+      if (state === null) continue;
       let x = it.xo + (it.x - it.xo) * partial, y = it.yo + (it.y - it.yo) * partial, z = it.zo + (it.z - it.zo) * partial;
       if (it.pickup) {
         const tgt = this.collectorPos(it.pickup.collector, partial);
@@ -1924,8 +1986,8 @@ export class Game implements ScreenHost {
     }
     // items in players' hands (ItemInHandLayer), queued by the entity renderer
     for (const h of this.entityRenderer.held) {
-      const block = blockForItem(h.item);
-      if (block) this.blockItems.draw(BLOCKS_BY_NAME.get(block)!.defaultState, this.viewProj, h.matrix, h.light, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
+      const key = this.blockItems.modelKey(h.item);
+      if (key !== null) this.blockItems.draw(key, this.viewProj, h.matrix, h.light, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
     }
     recycleHeld(this.entityRenderer);
     this.renderItems(cx, cy, cz, partial, fog, fogStart, fogEnd);
@@ -1967,6 +2029,8 @@ export class Game implements ScreenHost {
     if (this.showHitboxes) this.renderHitboxes(cx, cy, cz, partial);
     if (this.showChunkBorders) this.renderChunkBorders(cx, cy, cz, camEnt ? camEnt.x : this.player.x, camEnt ? camEnt.z : this.player.z);
     this.renderHand(partial, medium);
+    this.updateItemAnim(partial);
+    this.guiPartial = partial;
     this.renderGui(cx, cy, cz);
   }
 
@@ -1995,7 +2059,7 @@ export class Game implements ScreenHost {
         g.ctx.drawImage(this.frostOverlay, 0, 0, g.width, g.height);
         g.ctx.restore();
       }
-      this.hud.render(g, this.hudState(), (id, c, x, y) => this.renderGuiItem(id, c, x, y));
+      this.hud.render(g, this.hudState(), (id, c, x, y, dmg, pop) => this.renderGuiItem(id, c, x, y, dmg, pop), this.guiPartial);
       if (this.gameMode === 3) {
         this.spectatorGui.renderHotbar(g);
         this.spectatorGui.renderTooltip(g);
@@ -2011,22 +2075,23 @@ export class Game implements ScreenHost {
   }
 
   /** A 16×16 item in the GUI with its stack count (vanilla ItemRenderer.renderGuiItem + decorations). */
-  renderGuiItem(id: number, count: number, x: number, y: number): void {
-    const g = this.gui;
-    const block = blockForItem(id);
-    const icon = block ? this.blockItems.icon(BLOCKS_BY_NAME.get(block)!.defaultState) : null;
-    if (icon) g.blit(this.blockItems.iconCanvas, icon[0], icon[1], icon[2], icon[2], x, y, 16, 16);
-    else {
-      // no item texture yet: magenta/black "missing" square like vanilla's missing texture
-      g.fill(x, y, 8, 8, 0xfff800f8);
-      g.fill(x + 8, y + 8, 8, 8, 0xfff800f8);
-      g.fill(x + 8, y, 8, 8, 0xff000000);
-      g.fill(x, y + 8, 8, 8, 0xff000000);
-    }
-    if (count !== 1) {
-      const s = String(count);
-      g.text(s, x + 19 - 2 - g.font.width(s), y + 6 + 3, 0xffffff, true);
-    }
+  renderGuiItem(id: number, count: number, x: number, y: number, damage = 0, pop = 0): void {
+    drawItemStack(this.gui, { id, count, damage }, x, y, undefined, pop);
+  }
+
+  /** partial tick of the frame being drawn (GUI animations) */
+  private guiPartial = 0;
+
+  /** Compass needle and clock dial frames for item icons/models (vanilla item property functions). */
+  private updateItemAnim(partial: number): void {
+    const dayTime = this.world.dayTime + (this.world.doDaylightCycle ? partial : 0);
+    itemAnim.clock = Math.floor(timeOfDay(dayTime) * 64) & 63;
+    if (!this.compassTarget) this.compassTarget = [Math.floor(this.x) + 0.5, Math.floor(this.z) + 0.5];
+    const dx = this.compassTarget[0] - this.x, dz = this.compassTarget[1] - this.z;
+    // bearing in Minecraft yaw degrees (0 = +Z/south, 90 = −X/west), relative to where we look
+    const bearing = (Math.atan2(-dx, dz) * 180) / Math.PI;
+    const rel = dx * dx + dz * dz < 1e-4 ? (Date.now() / 20) % 360 : bearing - this.yaw;
+    itemAnim.compass = Math.round((((rel % 360) + 360) % 360) / 360 * 32) & 31;
   }
 
   private debugLines(x: number, y: number, z: number): { left: string[]; right: string[] } {

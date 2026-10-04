@@ -38,16 +38,17 @@ export class JavaRandom {
 
   next(bits: number): number {
     // seed = (seed * 0x5DEECE66D + 0xB) mod 2^48, computed in 24-bit limbs
+    // (Math.imul gives the low 32 bits of a product exactly, enough for the low 24-bit limb)
     const lo = this.lo, hi = this.hi;
-    const p0 = lo * MULT_LO + ADD; // < 2^48
-    const p0lo = p0 % TWO24;
-    const carry = Math.floor(p0 / TWO24);
-    const p1 = (hi * MULT_LO + lo * MULT_HI + carry) % TWO24;
+    const carry = Math.floor((lo * MULT_LO + ADD) / TWO24); // product < 2^48: exact
+    const p0lo = (Math.imul(lo, MULT_LO) + ADD) & MASK24;
+    const p1 = (Math.imul(hi, MULT_LO) + Math.imul(lo, MULT_HI) + carry) & MASK24;
     this.lo = p0lo;
     this.hi = p1;
     // result = seed >>> (48 - bits), as a signed 32-bit int
-    const r = Math.floor((p1 * TWO24 + p0lo) / Math.pow(2, 48 - bits));
-    return bits === 32 ? r | 0 : r;
+    if (bits <= 24) return p1 >>> (24 - bits);
+    if (bits === 32) return ((p1 << 8) | (p0lo >>> 16)) | 0;
+    return p1 * (1 << (bits - 24)) + (p0lo >>> (48 - bits));
   }
 
   nextInt(bound?: number): number {

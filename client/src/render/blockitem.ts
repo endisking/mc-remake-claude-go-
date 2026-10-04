@@ -1,6 +1,10 @@
 /**
  * Renders single block models outside the chunk meshes: dropped items, held blocks and GUI
  * item icons (rendered once into an icon atlas canvas for the 2D GUI).
+ *
+ * Model keys: a block state id (≥ 0) draws that block's item model; a negative key
+ * −(layer + 1) draws item sprite `layer` from the item texture array, extruded like vanilla's
+ * ItemModelGenerator. Use `modelKey(itemId)` to get the key for any item.
  */
 import { createProgram, Uniforms } from './gl';
 import { mat4, multiply, type Mat4 } from './math';
@@ -65,6 +69,20 @@ interface Mesh {
   count: number;
 }
 
+/** Item sprites for non-block (and flat-sprite block) items. */
+export interface ItemSpriteSource {
+  /** TEXTURE_2D_ARRAY of item sprites */
+  texture(): WebGLTexture;
+  /** 16×16 alpha of a sprite layer */
+  alpha(layer: number): Uint8Array | undefined;
+  /** sprite layer for an item id, or −1 */
+  layerFor(itemId: number): number;
+  /** sprite layer for a texture name (e.g. "bow_pulling_1", "crossbow_arrow"), or −1 */
+  layerByName(name: string): number;
+  /** held like a tool (vanilla item/handheld) */
+  handheld(layer: number): boolean | 'rod';
+}
+
 const ICON = 64;
 
 export class BlockItemRenderer {
@@ -79,6 +97,10 @@ export class BlockItemRenderer {
   private fboTex: WebGLTexture;
   private fboDepth: WebGLRenderbuffer;
   private pixels = new Uint8Array(ICON * ICON * 4);
+  /** item sprites (set by the game once loaded) */
+  sprites: ItemSpriteSource | null = null;
+  /** block placed by an item, if any (set by the game) */
+  blockOf: (itemId: number) => number | null = () => null;
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -110,13 +132,42 @@ export class BlockItemRenderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
-  /** Whether the item is drawn as a flat sprite. */
+  /** Whether the model key is drawn as a flat (extruded) sprite. */
   isFlat(state: number): boolean {
-    return this.flatLayer(state) !== null;
+    return state < 0 || this.flatLayer(state) !== null;
+  }
+
+  /**
+   * Model key for an item: its own sprite when it has one (tools, food, doors, seeds, …),
+   * else the block state it places (3D block or flat block-texture sprite), else null.
+   */
+  modelKey(itemId: number): number | null {
+    const l = this.sprites?.layerFor(itemId) ?? -1;
+    if (l >= 0) return -(l + 1);
+    return this.blockOf(itemId);
+  }
+
+  /**
+   * Model key of a named item sprite — for vanilla model overrides such as bow_pulling_0..2,
+   * crossbow_pulling_0..2 / crossbow_arrow / crossbow_firework or fishing_rod_cast.
+   */
+  spriteKey(name: string): number | null {
+    const l = this.sprites?.layerByName(name) ?? -1;
+    return l >= 0 ? -(l + 1) : null;
+  }
+
+  /** Display type of a model key: 'block' (3D), 'generated' (flat) or 'handheld' (tools, sticks, rods). */
+  display(key: number): 'block' | 'generated' | 'handheld' | 'handheld_rod' {
+    if (key < 0) {
+      const h = this.sprites?.handheld(-key - 1) ?? false;
+      return h === 'rod' ? 'handheld_rod' : h ? 'handheld' : 'generated';
+    }
+    return this.isFlat(key) ? 'generated' : 'block';
   }
 
   private mesh(state: number): Mesh | null {
     if (this.meshes.has(state)) return this.meshes.get(state)!;
+    if (state < 0) return this.spriteMesh(state);
     const baked = this.bake.states[state];
     const quads = baked?.choices[0]?.quads ?? [];
     const flat = this.flatLayer(state);
@@ -129,25 +180,7 @@ export class BlockItemRenderer {
       const t = quads.some((q) => q.tint >= 0) ? 1 : 0;
       extrudeSprite(v, flat, this.layerAlpha(flat), t);
     }
-    const m = this.upload(v, flat !== null ? [] : quads);
-    this.meshes.set(state, m);
-    return m;
-  }
-
-  /** Extruded sprite mesh of a texture layer (cached under a negative key). */
-  private spriteMesh(layer: number): Mesh {
-    const key = -1 - layer;
-    let m = this.meshes.get(key);
-    if (!m) {
-      const v: number[] = [];
-      extrudeSprite(v, layer, this.layerAlpha(layer), 0);
-      m = this.upload(v, []);
-      this.meshes.set(key, m);
-    }
-    return m;
-  }
-
-  private upload(v: number[], src: { dir: number; pos: ArrayLike<number>; uv: ArrayLike<number>; layer: number; tint: number }[]): Mesh {
+    const src = flat !== null ? [] : quads;
     const N = [[0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0]];
     for (const q of src) {
       const n = N[q.dir]!;
@@ -171,19 +204,39 @@ export class BlockItemRenderer {
     gl.enableVertexAttribArray(3);
     gl.vertexAttribPointer(3, 1, gl.FLOAT, false, st, 36);
     gl.bindVertexArray(null);
-    return { vao, count: v.length / 10 };
+    const m = { vao, count: v.length / 10 };
+    this.meshes.set(state, m);
+    return m;
   }
 
-  /**
-   * Draw a texture layer as a vanilla item/generated model (the sprite extruded 1/16 thick),
-   * centred at the model matrix origin like draw().
-   */
-  drawSprite(
-    layer: number, viewProj: Mat4, model: Mat4, light: number, lightmap: WebGLTexture | null,
-    fog?: { color: [number, number, number]; start: number; end: number },
-    lights?: [[number, number, number], [number, number, number]],
-  ): void {
-    this.drawMesh(this.spriteMesh(layer), true, WHITE, viewProj, model, light, lightmap, fog, false, lights);
+  private spriteMesh(key: number): Mesh | null {
+    const layer = -key - 1;
+    if (!this.sprites) return null;
+    const v: number[] = [];
+    extrudeSprite(v, layer, this.sprites.alpha(layer), 0);
+    const m = this.upload(v);
+    this.meshes.set(key, m);
+    return m;
+  }
+
+  private upload(v: number[]): Mesh {
+    const gl = this.gl;
+    const vao = gl.createVertexArray()!;
+    gl.bindVertexArray(vao);
+    const vbo = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(v), gl.STATIC_DRAW);
+    const st = 10 * 4;
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, st, 0);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 3, gl.FLOAT, false, st, 12);
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribPointer(2, 3, gl.FLOAT, false, st, 24);
+    gl.enableVertexAttribArray(3);
+    gl.vertexAttribPointer(3, 1, gl.FLOAT, false, st, 36);
+    gl.bindVertexArray(null);
+    return { vao, count: v.length / 10 };
   }
 
   /** Draw a block model centred at the model matrix origin (unit cube −0.5..0.5). */
@@ -195,34 +248,27 @@ export class BlockItemRenderer {
   ): void {
     const m = this.mesh(state);
     if (!m) return;
-    this.drawMesh(m, this.isFlat(state), this.itemTint(state), viewProj, model, light, lightmap, fog, gui, lights);
-  }
-
-  private drawMesh(
-    m: Mesh, flat: boolean, t: [number, number, number], viewProj: Mat4, model: Mat4, light: number, lightmap: WebGLTexture | null,
-    fog: { color: [number, number, number]; start: number; end: number } | undefined, gui: boolean,
-    lights: [[number, number, number], [number, number, number]] | undefined,
-  ): void {
     const gl = this.gl;
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(this.u.get('uViewProj'), false, viewProj);
     gl.uniformMatrix4fv(this.u.get('uModel'), false, model);
-    gl.uniform1i(this.u.get('uGuiShade'), gui && !flat ? 1 : 0);
+    gl.uniform1i(this.u.get('uGuiShade'), gui && !this.isFlat(state) ? 1 : 0);
     if (gui) {
       // GUI lighting: top brightest, left face medium, right face darker
       gl.uniform3f(this.u.get('uLight0'), -0.43, 0.82, 0.37);
       gl.uniform3f(this.u.get('uLight1'), 0, 0, 0);
-      gl.uniform1f(this.u.get('uAmbient'), flat ? 1 : 0.45);
+      gl.uniform1f(this.u.get('uAmbient'), this.isFlat(state) ? 1 : 0.45);
     } else {
       const [l0, l1] = lights ?? [normalize([0.2, 1, -0.7]), normalize([-0.2, 1, 0.7])];
       gl.uniform3f(this.u.get('uLight0'), l0[0], l0[1], l0[2]);
       gl.uniform3f(this.u.get('uLight1'), l1[0], l1[1], l1[2]);
       gl.uniform1f(this.u.get('uAmbient'), 0.4);
     }
+    const t = state < 0 ? WHITE : this.itemTint(state);
     gl.uniform3f(this.u.get('uTint'), t[0], t[1], t[2]);
     gl.uniform1i(this.u.get('uTex'), 0);
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.texArray());
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, state < 0 && this.sprites ? this.sprites.texture() : this.texArray());
     gl.uniform1i(this.u.get('uUseLightmap'), lightmap ? 1 : 0);
     // samplers of different types must never share a unit, even when one is unused
     gl.uniform1i(this.u.get('uLightmap'), 1);
