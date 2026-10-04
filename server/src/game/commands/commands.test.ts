@@ -339,6 +339,10 @@ describe('gamerules', () => {
     expect(a.run('/gamerule keepInventory')).toEqual(['Gamerule keepInventory is currently set to: false']);
     expect(a.run('/gamerule keepInventory true')).toEqual(['Gamerule keepInventory is now set to: true']);
     expect(server.gameRules.keepInventory).toBe(true);
+    a.run('/gamerule doTileDrops false');
+    server.popResource(0, 100, 0, { id: ITEMS_BY_NAME.get('stone')!.id, count: 1, damage: 0 });
+    expect(server.entities.size).toBe(0);
+    a.run('/gamerule doTileDrops true');
     expect(a.run('/gamerule randomTickSpeed 10')).toEqual(['Gamerule randomTickSpeed is now set to: 10']);
     expect(server.gameRules.randomTickSpeed).toBe(10);
     expect(a.run('/gamerule doDaylightCycle false')).toEqual(['Gamerule doDaylightCycle is now set to: false']);

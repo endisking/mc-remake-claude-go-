@@ -457,7 +457,8 @@ export class GameServer {
       for (const it of items) this.popResource(x, y, z, it);
       // Block.spawnAfterBreak → popExperience (OreBlock / RedStoneOreBlock / SpawnerBlock)
       const xp = harvest ? oreExperience(name, this.rand) : 0;
-      if (xp > 0) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
+      // Block.popExperience: only with doTileDrops
+      if (xp > 0 && this.gameRules.doTileDrops) this.spawnExperience(x + 0.5, y + 0.5, z + 0.5, xp);
     }
     // beds: the other half goes too (BedBlock.updateShape → destroyBlock), dropping its loot
     // (the bed item comes from the head) unless the breaker is in creative
@@ -562,6 +563,8 @@ export class GameServer {
 
   /** Vanilla Block.popResource: item at the block centre ± 0.25 with a small upward toss. */
   popResource(x: number, y: number, z: number, stack: ItemStack): void {
+    // gamerule doTileDrops (vanilla Block.popResource)
+    if (!this.gameRules.doTileDrops) return;
     const r = this.rand;
     const e = new ItemEntity(this.nextEntityId++, stack);
     e.x = x + 0.5 + (r.nextDouble() * 0.5 - 0.25);
