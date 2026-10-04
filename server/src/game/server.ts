@@ -49,6 +49,7 @@ import { ItemUse } from './itemuse';
 import { Arrow } from './arrow';
 import { Thrown } from './throwable';
 import { Containers } from './containers';
+import { ServerRedstone } from './redstone';
 import { takeGenBlockEntities } from '@shared/worldgen/features/underground';
 import { takeGenEntities } from '@shared/worldgen/structures/entities';
 import { Commands, commandHooks, type AccessStore } from './commands';
@@ -207,6 +208,8 @@ export class GameServer {
   readonly blocks = new BlockBehaviors(this);
   /** container menus, block entities and furnaces */
   readonly containers = new Containers(this);
+  /** redstone signals and components (redstone.ts) */
+  readonly redstone = new ServerRedstone(this);
   // ---- fluids (FlowingFluid ticks; see fluidticks.ts) ----
   private readonly makeFluids = (): FluidTicks => new FluidTicks({
     getState: (x, y, z) => this.world.getState(x, y, z),
@@ -733,7 +736,8 @@ export class GameServer {
     const existing = this.world.getState(px, py, pz);
     const canReplaceExisting = isReplaceable(existing, block) || (block.endsWith('_slab') && blockNameOf(existing) === block);
     if (!canReplaceExisting) return this.resendBlock(p, px, py, pz);
-    const state = stateForPlacement(block, { world: this.world, x: px, y: py, z: pz, face, hx: m.cx, hy: m.cy, hz: m.cz, yaw: p.yaw, pitch: p.pitch, sneaking: p.sneaking }, existing);
+    let state = stateForPlacement(block, { world: this.world, x: px, y: py, z: pz, face, hx: m.cx, hy: m.cy, hz: m.cz, yaw: p.yaw, pitch: p.pitch, sneaking: p.sneaking }, existing);
+    if (state !== null) state = this.redstone.placementState(px, py, pz, state);
     if (state === null || !canSurvive(this.world, px, py, pz, state)) return this.resendBlock(p, px, py, pz);
     const extra = companionPlacement(block, state);
     for (const e of extra) {
@@ -752,6 +756,7 @@ export class GameServer {
     this.setBlock(px, py, pz, state);
     for (const e of extra) this.setBlock(px + e.dx, py + e.dy, pz + e.dz, e.state);
     this.updateNeighbors(px, py, pz);
+    this.redstone.placed(px, py, pz);
     // BlockItem.place: the placer plays it locally, everyone else hears it from here
     const st = soundTypeOf(state);
     this.playSound(p, st.place, 'block', px + 0.5, py + 0.5, pz + 0.5, (st.volume + 1) / 2, st.pitch * 0.8);
@@ -1092,6 +1097,7 @@ export class GameServer {
     if (blockNameOf(st).endsWith('_bed')) return this.sleep.useBed(p, x, y, z);
     if (useAnchor(this, p, x, y, z)) return true;
     if (this.blocks.use(p, x, y, z)) return true;
+    if (this.redstone.use(p, x, y, z)) return true;
     if (this.containers.useBlock(p, x, y, z)) return true;
     return false;
   }
@@ -1757,7 +1763,8 @@ export class GameServer {
     await this.opts.storage?.close();
   }
 
-  setBlock(x: number, y: number, z: number, state: number): void {
+  /** Level.setBlock; `flags` as vanilla (1 neighbour updates, 2 clients, 16 no shape updates) for redstone. */
+  setBlock(x: number, y: number, z: number, state: number, flags = 3): void {
     if (y < 0 || y > 255) return;
     const old = this.world.setStateRaw(x, y, z, state);
     if (old === state) return;
@@ -1765,6 +1772,9 @@ export class GameServer {
     this.light.onBlockChanged(x, y, z, old, state);
     const key = chunkKey(x >> 4, z >> 4);
     for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
+    // redstone: onRemove/onPlace, neighbour updates (flag 1) and shape updates (no flag 16)
+    this.redstone.onBlockChanged(x, y, z, old, state, flags);
+    if (this.world.getState(x, y, z) !== state) return;
     this.blocks.afterSetBlock(x, y, z, old, state);
     this.portals.onBlockChanged(x, y, z, old, state);
     // after the packet: fluid updates may replace this block again (lava hardening) and must arrive later
@@ -1807,6 +1817,7 @@ export class GameServer {
       // mobs exist in the overworld only so far (no nether mobs yet)
       if (lv === overworld) this.mobs.tick();
       this.blocks.tick();
+      this.redstone.tickLevel();
       this.tickEntities();
       this.portals.tickEntities();
       this.containers.tick();

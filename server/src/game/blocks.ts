@@ -321,6 +321,7 @@ export class BlockBehaviors {
 
   /** Block.tick for scheduled ticks. */
   private tickBlock(x: number, y: number, z: number, st: number): void {
+    if (this.s.redstone.tick(x, y, z, st)) return; // redstone components (redstone.ts)
     const n = blockNameOf(st);
     if (isGravityBlock(n)) {
       // FallingBlock.tick

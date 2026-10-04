@@ -460,10 +460,6 @@ export class Redstone {
       case K.TNT:
         if (!sameBlock && this.hasNeighborSignal(x, y, z)) this.explodeTnt(x, y, z);
         return;
-      case K.LAMP:
-        // RedstoneLampBlock.getStateForPlacement (placed lamps light up when powered)
-        if (!sameBlock && !bool(s, 'lit') && this.hasNeighborSignal(x, y, z)) this.h.setBlock(x, y, z, withProp(s, 'lit', true), UPDATE_CLIENTS);
-        return;
       case K.REDSTONE_BLOCK:
         // PoweredBlock has no onPlace; Level.setBlock's own neighbour update powers the surroundings
         return;
@@ -1056,6 +1052,18 @@ export class Redstone {
     }
   }
 
+  /**
+   * getStateForPlacement adjustments for a block a player places at (x, y, z): dust connections,
+   * repeater LOCKED, lamp LIT.
+   */
+  placementState(x: number, y: number, z: number, s: number): number {
+    const k = kindOf(s);
+    if (k === K.WIRE) return this.wirePlacementState(x, y, z);
+    if (k === K.REPEATER) return withProp(s, 'locked', this.isLocked(x, y, z, s));
+    if (k === K.LAMP) return withProp(s, 'lit', this.hasNeighborSignal(x, y, z));
+    return s;
+  }
+
   /** DiodeBlock.setPlacedBy (repeaters/comparators placed by a player) */
   diodePlaced(x: number, y: number, z: number): void {
     const s = this.st(x, y, z);
@@ -1173,7 +1181,6 @@ export class Redstone {
     const note = num(s, 'note');
     const pitch = Math.pow(2, (note - 12) / 12);
     this.h.playSound?.(`block.note_block.${getProp(s, 'instrument') as string}`, x + 0.5, y + 0.5, z + 0.5, 3, pitch);
-    this.h.levelEvent?.(-1, x, y, z, note);
   }
 }
 
