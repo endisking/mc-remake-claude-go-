@@ -17,6 +17,8 @@ export class EffectCloud {
   readonly reapplicationDelay = 20;
   tickCount = 0;
   removed = false;
+  /** the dimension (ServerLevel) the cloud is in; undefined = whichever is ticking */
+  level: unknown = undefined;
   private readonly victims = new Map<ServerPlayer, number>();
 
   constructor(readonly id: number, public x: number, public y: number, public z: number, readonly effects: PotionEffect[], readonly color: number) {

@@ -22,17 +22,22 @@ export async function exportWorld(storage: WorldStorage): Promise<Uint8Array> {
     const p = await storage.getPlayer(id);
     if (p) entries.push({ name: `${folder}/players/${encodeURIComponent(id)}.json`, data: enc.encode(JSON.stringify(p)) });
   }
-  const regions = new Map<string, Region>();
-  for (const [cx, cz] of await storage.listChunks()) {
-    const data = await storage.getChunk(cx, cz);
-    if (!data) continue;
-    const [rx, rz] = regionOf(cx, cz);
-    const k = `${rx},${rz}`;
-    let r = regions.get(k);
-    if (!r) regions.set(k, (r = new Region(rx, rz)));
-    r.set(cx, cz, data);
+  // overworld region/, other dimensions DIM-1/region/ and DIM1/region/ like a vanilla world folder
+  for (const dim of ['', 'DIM-1', 'DIM1']) {
+    const st = dim ? storage.dimension?.(dim) : storage;
+    if (!st) continue;
+    const regions = new Map<string, Region>();
+    for (const [cx, cz] of await st.listChunks()) {
+      const data = await st.getChunk(cx, cz);
+      if (!data) continue;
+      const [rx, rz] = regionOf(cx, cz);
+      const k = `${rx},${rz}`;
+      let r = regions.get(k);
+      if (!r) regions.set(k, (r = new Region(rx, rz)));
+      r.set(cx, cz, data);
+    }
+    for (const r of regions.values()) entries.push({ name: `${folder}/${dim ? `${dim}/` : ''}region/${regionFileName(r.rx, r.rz)}`, data: r.encode() });
   }
-  for (const r of regions.values()) entries.push({ name: `${folder}/region/${regionFileName(r.rx, r.rz)}`, data: r.encode() });
   return writeZip(entries);
 }
 
@@ -52,12 +57,13 @@ export async function importWorld(bytes: Uint8Array, storage: WorldStorage): Pro
       await storage.putPlayer(decodeURIComponent(pm[1]!), JSON.parse(dec.decode(e.data)) as PlayerData);
       continue;
     }
-    const rm = /^region\/(.+)$/.exec(rel);
-    const rc = rm ? parseRegionFileName(rm[1]!) : null;
-    if (rc) {
+    const rm = /^(?:(DIM-?1)\/)?region\/(.+)$/.exec(rel);
+    const rc = rm ? parseRegionFileName(rm[2]!) : null;
+    const target = rm?.[1] ? storage.dimension?.(rm[1]) : storage;
+    if (rc && target) {
       const region = Region.decode(rc[0], rc[1], e.data);
       const batch: ChunkRecord[] = region.coords().map(([cx, cz]) => ({ cx, cz, data: region.get(cx, cz)! }));
-      await storage.putChunks(batch);
+      await target.putChunks(batch);
     }
   }
   await storage.putMeta(meta);

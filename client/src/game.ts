@@ -87,6 +87,8 @@ import { ClientArrows } from './world/arrows';
 import { itemName as itemNameOfId } from '@shared/item/stack';
 import { ItemTextures } from './render/itemtextures';
 import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './gui/itemicons';
+import { netherFogColor, netherFogRange, PortalEffect, applyPortalWobble, insidePortal, ambientLight, hasSky, animatePortals } from './world/dimension';
+import { isPortal } from '@shared/game/portalshape';
 import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
 
 export class Game implements ScreenHost, ContainerHost {
@@ -181,6 +183,12 @@ export class Game implements ScreenHost, ContainerHost {
   /** Entity.ticksFrozen from the server (140 = fully frozen) */
   ticksFrozen = 0;
   private frostOverlay: ImageBitmap | null = null;
+  // ---- dimensions / nether portals ----
+  /** Current dimension (login / dimension packets): overworld, the_nether, the_end. */
+  dimension = 'overworld';
+  readonly portalFx = new PortalEffect();
+  private readonly portalRand = new JavaRandom(BigInt(Date.now()) ^ 0x5deece66dn);
+  private portalOverlay: ImageBitmap | null = null;
   private skyFlashTime = 0;
   readonly bolts = new Map<number, ClientBolt>();
   /** falling sand/gravel/anvils (Phase 4 block behaviours) */
@@ -441,6 +449,7 @@ export class Game implements ScreenHost, ContainerHost {
     });
     integratedP?.catch(() => {}); // reported where it is awaited
     await Promise.all([this.gui.load(), this.hud.load(), this.sound.load(), this.spectatorGui.load(), this.effectsClient.load()]);
+    void fetch('./textures/block/nether_portal.png').then((r) => r.blob()).then((b) => createImageBitmap(b)).then((bmp) => (this.portalOverlay = bmp)).catch(() => {});
     void fetch('./textures/environment/powder_snow_outline.png').then((r) => r.blob()).then((b) => createImageBitmap(b)).then((bmp) => (this.frostOverlay = bmp));
     for (const [c, v] of Object.entries(this.settings.volumes)) this.sound.volumes[c as SoundCategory] = v;
     // audio may only start after a user gesture
@@ -757,6 +766,7 @@ export class Game implements ScreenHost, ContainerHost {
     if (this.itemUse?.handle(p) || this.arrows.handle(p)) return;
     switch (p.t) {
       case 'login':
+        this.dimension = p.dimension;
         this.entityId = p.entityId;
         this.mobs.mobs.clear();
         this.world.biomeZoomSeed = p.seed;
@@ -1098,7 +1108,11 @@ export class Game implements ScreenHost, ContainerHost {
         }
         break;
       }
+      case 'dimension':
+        this.changeDimension(p);
+        break;
       case 'levelEvent':
+        if (p.event === 1032) this.playUi('block.portal.travel', this.sfxRand.nextFloat() * 0.4 + 0.8);
         if (p.event === 2001) this.blockBroken(p.x, p.y, p.z, p.data);
         else if (p.event === 1505) this.growthParticles(p.x, p.y, p.z, p.data);
         else if (p.event === 2002 || p.event === 2007) {
@@ -1233,11 +1247,21 @@ export class Game implements ScreenHost, ContainerHost {
       this.yaw = (Math.atan2(-dx, dz) * 180) / Math.PI;
       this.pitch = (-Math.atan2(dy, Math.hypot(dx, dz)) * 180) / Math.PI;
     }
-    if (q.has('fly')) this.player.abilities.flying = true;
+    if (q.has('fly')) {
+      this.player.abilities.flying = true;
+      // again after the game mode / abilities packets that follow a /gamemode in cmd
+      for (const ms of [2000, 6000]) setTimeout(() => (this.player.abilities.flying = this.player.abilities.mayFly), ms);
+    }
     if (n('camera') !== undefined) this.cameraType = n('camera')!;
     if (q.has('hitboxes')) this.showHitboxes = true;
     for (const g of q.getAll('give')) this.send({ t: 'chat', message: `/give @s ${g.replace(':', ' ')}` });
     if (q.has('weather')) this.send({ t: 'chat', message: `/weather ${q.get('weather')}` });
+    // test hooks: chat commands right away (cmd), 3 s later (later) and 7 s later (later2), e.g. after a portal trip
+    for (const c of q.getAll('cmd')) this.send({ t: 'chat', message: c });
+    for (const [key, ms] of [['later', n('laterms') ?? 3000], ['later2', n('later2ms') ?? 7000]] as const) {
+      const cmds = q.getAll(key);
+      if (cmds.length) setTimeout(() => cmds.forEach((c) => this.send({ t: 'chat', message: c })), ms);
+    }
     if (n('time') !== undefined) {
       this.send({ t: 'chat', message: '/gamerule doDaylightCycle false' });
       this.send({ t: 'chat', message: `/time set ${n('time')}` });
@@ -1298,6 +1322,10 @@ export class Game implements ScreenHost, ContainerHost {
       }
       pl.tick(move);
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
+    }
+    // LocalPlayer.handleNetherPortalClient: overlay fades in while standing in a portal
+    if (this.portalFx.tick(this.loggedIn && this.gameMode !== 3 && insidePortal(this.world, pl.x, pl.y, pl.z, pl.pose === 'crouching' ? 1.5 : 1.8, isPortal))) {
+      this.playUi('block.portal.trigger', this.sfxRand.nextFloat() * 0.4 + 0.8);
     }
     this.tickRainSound();
     this.tickAudio();
@@ -1902,6 +1930,24 @@ export class Game implements ScreenHost, ContainerHost {
     multiply(target, target, m);
   }
 
+  /** Moved to another dimension: forget the old one's chunks and entities (vanilla handleRespawn). */
+  private changeDimension(p: { dimension: string; gameMode: number; x: number; y: number; z: number; yaw: number; pitch: number }): void {
+    this.dimension = p.dimension;
+    for (const c of [...this.world.chunks.values()]) this.world.unloadChunk(c.x, c.z);
+    this.players.clear();
+    this.items.clear();
+    this.bolts.clear();
+    this.world.rain = 0;
+    this.world.thunder = 0;
+    this.setGameMode(p.gameMode);
+    this.placePlayer(p.x, p.y, p.z);
+    this.player.vx = this.player.vy = this.player.vz = 0;
+    this.yaw = p.yaw;
+    this.pitch = p.pitch;
+    this.interaction.stopDestroy();
+    this.portalFx.time = this.portalFx.old = 0;
+  }
+
   /** Yaw of the bed we sleep in (Direction.toYRot of its facing), or null. */
   private bedFacing(): number | null {
     const p = this.player;
@@ -2089,7 +2135,7 @@ export class Game implements ScreenHost, ContainerHost {
       case 'KeyC': {
         const p = this.player;
         this.debugFeedback('Copied location to clipboard');
-        this.setClipboard(`/execute in minecraft:overworld run tp @s ${p.x.toFixed(2)} ${p.y.toFixed(2)} ${p.z.toFixed(2)} ${this.yaw.toFixed(2)} ${this.pitch.toFixed(2)}`);
+        this.setClipboard(`/execute in minecraft:${this.dimension} run tp @s ${p.x.toFixed(2)} ${p.y.toFixed(2)} ${p.z.toFixed(2)} ${this.yaw.toFixed(2)} ${this.pitch.toFixed(2)}`);
         return true;
       }
       case 'KeyD':
@@ -2594,7 +2640,11 @@ export class Game implements ScreenHost, ContainerHost {
     const fog = fogColor(skyState, sky, this.fogRgb);
     const renderDist = s.renderDistance * 16;
     let fogStart = renderDist * 0.75, fogEnd = renderDist;
-    if (medium === 'water') {
+    const nether = this.dimension === 'the_nether';
+    if (nether && medium === 'air') {
+      netherFogColor(this.world, cx, cy, cz, s.renderDistance, fog);
+      [fogStart, fogEnd] = netherFogRange(renderDist);
+    } else if (medium === 'water') {
       // FogRenderer: 192 × max(0.25, water vision) × (0.85 in swamps), halved
       const wv = this.waterVision();
       let f = 192 * Math.max(0.25, wv);
@@ -2633,8 +2683,8 @@ export class Game implements ScreenHost, ContainerHost {
     }
 
     this.lightmap.update({
-      skyDarken: skyDarken(tod, this.world.rain, this.world.thunder),
-      ambient: 0,
+      skyDarken: hasSky(this.dimension) ? skyDarken(tod, this.world.rain, this.world.thunder) : 0,
+      ambient: ambientLight(this.dimension),
       gamma: s.gamma,
       nightVision: this.nightVisionScale(partial),
       flash: this.skyFlashTime > 0,
@@ -2649,10 +2699,11 @@ export class Game implements ScreenHost, ContainerHost {
     fov *= this.fovEffects(partial, medium);
     perspective(this.proj, (fov * Math.PI) / 180, aspect, 0.05, Math.max(renderDist * 4, 512));
     this.applyHurtBob(this.proj, partial);
+    applyPortalWobble(this.proj, this.portalFx.value(partial), this.clientTicks + partial, 1);
     if (s.viewBobbing) this.applyViewBob(partial);
     this.applyNausea(partial);
     viewRotation(this.view, camYaw, camPitch);
-    this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
+    if (hasSky(this.dimension)) this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
 
     multiply(this.viewProj, this.proj, this.view);
     this.camPos[0] = cx;
@@ -2758,8 +2809,8 @@ export class Game implements ScreenHost, ContainerHost {
       const ia = this.interaction;
       if (stage >= 0 && (this.breakStage >= 0 || (ia.destroyX === t.x && ia.destroyY === t.y && ia.destroyZ === t.z))) this.crack.render(this.viewProj, this.textures.tex, t.x, t.y, t.z, t.state, stage, cx, cy, cz);
     }
-    this.weather.render(this.viewProj, this.world, cx, cy, cz, this.clientTicks, partial, this.world.rain, s.graphics === 'fancy', this.lightmap.tex);
-    if (medium === 'air') {
+    if (hasSky(this.dimension)) this.weather.render(this.viewProj, this.world, cx, cy, cz, this.clientTicks, partial, this.world.rain, s.graphics === 'fancy', this.lightmap.tex);
+    if (medium === 'air' && hasSky(this.dimension)) {
       this.clouds.render(this.viewProj, cx, cy, cz, this.clientTicks + partial, s.clouds, s.renderDistance, cloudColor(tod, this.world.rain, this.world.thunder), fog);
     }
     if (this.showHitboxes) this.renderHitboxes(cx, cy, cz, partial);
@@ -2788,6 +2839,17 @@ export class Game implements ScreenHost, ContainerHost {
         ctx.fillRect(cx, cy - 7, 1, 7);
         ctx.fillRect(cx, cy + 1, 1, 7);
         ctx.restore();
+      }
+      // Gui.renderPortalOverlay: the portal texture over the whole screen while teleporting
+      const pa = this.portalFx.overlayAlpha(this.guiPartial);
+      if (pa > 0 && this.portalOverlay) {
+        const bmp = this.portalOverlay, frames = Math.max(1, Math.floor(bmp.height / bmp.width));
+        const fr = Math.floor(this.clientTicks / 2) % frames;
+        g.ctx.save();
+        g.ctx.globalAlpha = pa;
+        g.ctx.imageSmoothingEnabled = false;
+        g.ctx.drawImage(bmp, 0, fr * bmp.width, bmp.width, bmp.width, 0, 0, g.width, g.height);
+        g.ctx.restore();
       }
       // Gui.renderTextureOverlay: frost creeps in while freezing
       if (this.ticksFrozen > 0 && this.frostOverlay && this.gameMode !== 3) {
@@ -2955,7 +3017,7 @@ export class Game implements ScreenHost, ContainerHost {
       `C: ${st.visible}/${st.sections} (s) D: ${s.renderDistance}, pC: ${String(st.building).padStart(3, '0')}, pU: ${String(st.pending).padStart(2, '0')}, ${st.avgBuildMs.toFixed(1)} ms/build`,
       `Q: ${st.quads}`,
       `Client Chunk Cache: ${this.world.chunks.size}`,
-      'minecraft:overworld',
+      `minecraft:${this.dimension}`,
       '',
       `XYZ: ${x.toFixed(3)} / ${feetY.toFixed(5)} / ${z.toFixed(3)}`,
       `Block: ${bx} ${by} ${bz}`,

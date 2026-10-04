@@ -15,10 +15,11 @@ import { BIOME_INFO_NOISE, getTemperature } from '../../world/climate';
 import { canSurvive } from '../../game/support';
 import { WORLDGEN } from './data';
 import type { GenLevel, HeightmapType } from './level';
-import { blockState, intProvider, floatProvider, heightProvider, ruleTest, stateProvider, inTag, type RuleTest } from './providers';
+import { anchorTop, blockState, intProvider, floatProvider, heightProvider, ruleTest, stateProvider, inTag, type RuleTest } from './providers';
 import { treeFeature } from './trees';
 import { geode, monsterRoom, glowLichen, dripstoneCluster, smallDripstone, largeDripstone, replaceSingleBlock, fossil, carvingMaskDecorator } from './underground';
 import * as surface from './surface';
+import * as nether from './nether';
 
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const f = Math.fround;
@@ -135,6 +136,7 @@ function decorator(j: J): Decorator {
       };
     }
     case 'minecraft:carving_mask': return carvingMaskDecorator(c);
+    case 'minecraft:count_multilayer': return nether.countMultilayer(c);
     default:
       // count_multilayer and end_gateway (other dimensions)
       MISSING_FEATURES.add(`decorator ${j.type}`);
@@ -220,11 +222,13 @@ const cache = new Map<string, Placer>();
 export function configuredFeature(j: J): Placer {
   if (typeof j === 'string') {
     const id = j.replace('minecraft:', '');
-    let p = cache.get(id);
+    // anchors resolve against the dimension's generation depth at compile time
+    const key = anchorTop.y === 255 ? id : `${anchorTop.y}:${id}`;
+    let p = cache.get(key);
     if (!p) {
       const def = WORLDGEN.configured_features[id];
       if (!def) throw new Error(`configured feature ${id}`);
-      cache.set(id, (p = feature(def)));
+      cache.set(key, (p = feature(def)));
     }
     return p;
   }
@@ -299,6 +303,10 @@ function feature(j: J): Placer {
     case 'minecraft:desert_well': return surface.desertWell;
     case 'minecraft:forest_rock': return surface.forestRock(c);
     case 'minecraft:void_start_platform': return surface.voidStartPlatform;
+    case 'minecraft:huge_fungus': case 'minecraft:nether_forest_vegetation': case 'minecraft:weeping_vines': case 'minecraft:twisting_vines':
+    case 'minecraft:basalt_columns': case 'minecraft:basalt_pillar': case 'minecraft:delta_feature': case 'minecraft:netherrack_replace_blobs':
+    case 'minecraft:glowstone_blob':
+      return nether.netherFeature(j.type, c)!;
     default:
       MISSING_FEATURES.add(j.type);
       return () => false;

@@ -134,6 +134,9 @@ const S2C_SCHEMA = {
   mobName: [['id', 'i32'], ['name', 'str']],
   /** Explosion at a point (vanilla ClientboundExplodePacket without the block list): particles; power ≥ 2 and destroy = big emitter. */
   explode: [['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['power', 'f32'], ['destroy', 'bool']],
+  // ---- dimensions (Phase 8) ----
+  /** Moved to another dimension (vanilla ClientboundRespawnPacket with a new dimension): drop chunks/entities, switch sky. */
+  dimension: [['dimension', 'str'], ['gameMode', 'u8'], ['x', 'f64'], ['y', 'f64'], ['z', 'f64'], ['yaw', 'f32'], ['pitch', 'f32']],
 } as const satisfies Schema;
 
 /** Keys of the mobData packet (client: client/src/world/mobs.ts). */

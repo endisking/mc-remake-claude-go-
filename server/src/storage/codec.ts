@@ -106,6 +106,7 @@ export function capturePlayer(p: ServerPlayer): PlayerData {
   return {
     version: SAVE_FORMAT_VERSION,
     name: p.name,
+    dimension: p.dimension,
     x: p.x, y: p.y, z: p.z, yaw: p.yaw, pitch: p.pitch,
     gameMode: p.gameMode,
     flying: p.flying,
@@ -135,6 +136,7 @@ export function capturePlayer(p: ServerPlayer): PlayerData {
 export function applyPlayer(p: ServerPlayer, d: PlayerData): void {
   const l = p.living;
   const num = (v: unknown, def: number) => (typeof v === 'number' && Number.isFinite(v) ? v : def);
+  if (typeof d.dimension === 'string') p.dimension = d.dimension;
   p.x = num(d.x, p.x);
   p.y = num(d.y, p.y);
   p.z = num(d.z, p.z);

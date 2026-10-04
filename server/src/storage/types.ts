@@ -37,6 +37,8 @@ export interface LevelMeta {
   /** ms since epoch */
   lastPlayed: number;
   createdAt: number;
+  /** nether portal POIs per dimension ("x,y,z"), for the exit-portal search */
+  portalPois?: Record<string, string[]>;
 }
 
 /** Per-player save (playerdata/<name>.dat equivalent). */
@@ -44,6 +46,8 @@ export interface PlayerData {
   xpSeed?: number;
   version: number;
   name: string;
+  /** dimension id (overworld, the_nether, the_end); absent in older saves = overworld */
+  dimension?: string;
   x: number;
   y: number;
   z: number;
@@ -69,7 +73,7 @@ export interface PlayerData {
   /** ender chest contents (27), absent in older saves */
   enderItems?: (ItemStack | null)[];
   selected: number;
-  respawn: { x: number; y: number; z: number; angle: number } | null;
+  respawn: { x: number; y: number; z: number; angle: number; dimension?: string } | null;
   /** active status effects (vanilla ActiveEffects) */
   effects?: { id: number; amplifier: number; duration: number; ambient: boolean; visible: boolean; showIcon: boolean }[];
 }
@@ -91,4 +95,6 @@ export interface WorldStorage {
   putPlayer(id: string, data: PlayerData): Promise<void>;
   listPlayers(): Promise<string[]>;
   close(): Promise<void>;
+  /** Chunk storage of another dimension (vanilla DIM-1 / DIM1 folders); meta/players stay with the main storage. */
+  dimension?(folder: string): WorldStorage;
 }

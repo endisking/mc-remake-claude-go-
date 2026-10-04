@@ -524,12 +524,16 @@ export class ItemUse {
     const instant = effects.some((x) => x.effect === 'instant_health' || x.effect === 'instant_damage');
     for (const o of this.s.players) this.s.send(o, { t: 'levelEvent', event: instant ? 2007 : 2002, x: Math.floor(hit.x), y: Math.floor(hit.y), z: Math.floor(hit.z), data: color });
     this.s.playSound(null, 'entity.splash_potion.break', 'neutral', hit.x, hit.y, hit.z, 1, this.s.rand.nextFloat() * 0.1 + 0.9);
-    this.clouds.push(new EffectCloud(this.s.newEntityId(), hit.x, hit.y, hit.z, effects, color));
+    const cloud = new EffectCloud(this.s.newEntityId(), hit.x, hit.y, hit.z, effects, color);
+    cloud.level = (this.s as unknown as { level?: unknown }).level;
+    this.clouds.push(cloud);
   }
 
   /** AreaEffectCloud.tick for every cloud (server tick). */
   tickClouds(): void {
+    const level = (this.s as unknown as { level?: unknown }).level;
     for (const c of this.clouds) {
+      if (c.level !== undefined && c.level !== level) continue;
       c.tick(this.s, (p, x, quarter) => {
         const target = this.effectTarget(p);
         // instant effects at half strength (applyInstantenousEffect with 0.5)
@@ -668,6 +672,12 @@ export class ItemUse {
     const name = blockNameOf(st);
     const fluid = lava ? 'lava' : 'water';
     const sound = lava ? 'item.bucket.empty_lava' : 'item.bucket.empty';
+    // BucketItem.emptyContents: water evaporates in ultra-warm dimensions (the Nether)
+    if (!lava && this.s.level?.type.ultraWarm && (st === 0 || name === 'cave_air' || FLUID[st] !== 0 || isReplaceable(st) || getProp(st, 'waterlogged') === false)) {
+      const r = this.s.rand;
+      this.s.playSound(null, 'block.fire.extinguish', 'block', x + 0.5, y + 0.5, z + 0.5, 0.5, 2.6 + (r.nextFloat() - r.nextFloat()) * 0.8);
+      return true;
+    }
     if (!lava && getProp(st, 'waterlogged') === false) {
       this.s.setBlock(x, y, z, withProp(st, 'waterlogged', true));
       this.s.updateNeighbors(x, y, z);

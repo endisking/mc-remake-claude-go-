@@ -10,7 +10,8 @@ import type { BlockWorld } from '../../world/world';
 import { decorationSeed, featureSeed } from '../rand';
 import { WORLDGEN } from '../features/data';
 import { configuredFeature, type Placer } from '../features/engine';
-import { GenLevel } from '../features/level';
+import { anchorTop } from '../features/providers';
+import { GenLevel, type GenSource } from '../features/level';
 import { B } from '../biome/biomeids';
 import type { OverworldGenerator } from './generator';
 import { placeStructures } from '../structures/placement';
@@ -36,14 +37,20 @@ export function biomeFeatures(biome: number): Placer[][] {
   let lists = biomeLists.get(biome);
   if (!lists) {
     const data = WORLDGEN.biomes[BIOME_NAMES[biome] ?? 'plains']!;
-    lists = data.features.map((step) => step.map((fj) => configuredFeature(fj)));
+    // Nether biomes generate in a 128-deep NoiseBasedChunkGenerator
+    anchorTop.y = data.category === 'nether' ? 127 : 255;
+    try {
+      lists = data.features.map((step) => step.map((fj) => configuredFeature(fj)));
+    } finally {
+      anchorTop.y = 255;
+    }
     biomeLists.set(biome, lists);
   }
   return lists;
 }
 
 /** ChunkGenerator.applyBiomeDecoration for chunk (cx, cz). Returns the fluid ticks features scheduled (springs). */
-export function decorateChunk(gen: OverworldGenerator, world: BlockWorld, cx: number, cz: number): [number, number, number][] {
+export function decorateChunk(gen: GenSource, world: BlockWorld, cx: number, cz: number): [number, number, number][] {
   const x = cx << 4, z = cz << 4;
   // BiomeSource.getPrimaryBiome: the quart cell at the chunk centre
   const biome = gen.quartBiome((cx << 2) + 2, (cz << 2) + 2);
@@ -52,7 +59,8 @@ export function decorateChunk(gen: OverworldGenerator, world: BlockWorld, cx: nu
   const lists = biomeFeatures(biome);
   for (let step = 0; step < STRUCTURES_PER_STEP.length; step++) {
     // structure pieces first (each registered structure of the step takes an index)
-    if (STRUCTURES_PER_STEP[step]) placeStructures(gen, level, step, (i) => new JavaRandom(featureSeed(dec, i, step)));
+    // overworld structures (the Nether's fortress/bastion/fossil/ruined portal starts aren't built yet; their indices stay reserved)
+    if (STRUCTURES_PER_STEP[step] && (gen.genDepth ?? 256) === 256) placeStructures(gen as OverworldGenerator, level, step, (i) => new JavaRandom(featureSeed(dec, i, step)));
     let index = STRUCTURES_PER_STEP[step] ?? 0;
     for (const place of lists[step] ?? []) {
       const rand = new JavaRandom(featureSeed(dec, index++, step));

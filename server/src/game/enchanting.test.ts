@@ -171,6 +171,7 @@ describe('lingering potion clouds', () => {
   it('apply a quarter of the duration after the 10-tick wait and shrink by 0.5 per entity', () => {
     const { server, a, p } = setup();
     const c = new EffectCloud(9999, p.x, p.y, p.z, POTIONS.strength!, 0);
+    c.level = (server as unknown as { level?: unknown }).level;
     server.items.clouds.push(c);
     for (let i = 0; i < 9; i++) server.tick();
     expect(p.living.effects.has('strength')).toBe(false);
