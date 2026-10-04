@@ -41,6 +41,9 @@ page.on('pageerror', (e) => {
   errors.push(e.message);
   console.log('PAGEERROR', e.message, e.stack?.split('\n').slice(0, 4).join(' | '));
 });
+page.on('response', (r) => {
+  if (r.status() >= 400) console.log('HTTP', r.status(), r.url());
+});
 page.on('console', (m) => {
   if (m.type() === 'error' || m.type() === 'warning') console.log(`console.${m.type()}`, m.text().slice(0, 300));
 });
