@@ -37,6 +37,7 @@ are still silent — currently none). Stand-ins that should get dedicated record
 | 2026-10-03 | 1 | 9.3 | 4.6 | 0.50 | RD 6, 1280×720, SwiftShader (software GL in the CI container). JS CPU per frame 2.2 ms, 304 visible sections. |
 | 2026-10-04 | 2 | 8.9 | 5.0 | 0.43 | Same setup. JS CPU per frame 2.07 ms (down from 2.2); the frame rate is bound by SwiftShader fill rate. |
 | 2026-10-04 | 3 (mid) | 10.0 | 5.0 | 0.47 | Same setup, now real 1.17.1 terrain with trees and plants. JS CPU per frame 2.19 ms, 202 visible sections. |
+| 2026-10-04 | 0.4.0 release | 7.5 | 3.0 | 0.87 | Same setup, everything merged (structures, mobs, dense foliage). JS CPU per frame 3.76 ms (up from 2.19) — regression to investigate next (likely mob updates and per-frame entity work). |
 
 ---
 
