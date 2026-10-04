@@ -62,6 +62,7 @@ const pos = await page.evaluate(() => {
 });
 const [x, y, z] = pos as [number, number, number];
 await cmd(page, '/time set day');
+await cmd(page, `/fill ${x - 3} ${y} ${z + 1} ${x + 3} ${y + 2} ${z + 6} air`);
 await cmd(page, `/setblock ${x} ${y} ${z + 3} enchanting_table`);
 await cmd(page, `/fill ${x - 2} ${y} ${z + 5} ${x + 2} ${y + 1} ${z + 5} bookshelf`);
 await cmd(page, `/fill ${x - 2} ${y} ${z + 1} ${x - 2} ${y + 1} ${z + 4} bookshelf`);
@@ -69,6 +70,16 @@ await cmd(page, '/xp add @s 30 levels');
 await cmd(page, '/give @s diamond_pickaxe 1');
 await cmd(page, '/give @s lapis_lazuli 10');
 await page.waitForTimeout(800);
+console.log('around table', await page.evaluate(([bx, by, bz]) => {
+  const w = (window as any).game.world;
+  const rows: string[] = [];
+  for (let dz = -2; dz <= 2; dz++) {
+    const r: number[] = [];
+    for (let dx = -2; dx <= 2; dx++) r.push(w.getState(bx + dx, by, bz + dz));
+    rows.push(r.join(','));
+  }
+  return rows;
+}, [x, y, z + 3]));
 await page.evaluate(([bx, by, bz]) => (window as any).game.send({ t: 'useOn', x: bx, y: by, z: bz, face: 1, cx: 0.5, cy: 1, cz: 0.5, hand: 0 }), [x, y, z + 3]);
 await page.waitForFunction(() => (window as any).game.screen?.menu?.type === 'enchantment', undefined, { timeout: 20000 });
 const shift = async (slotIndex: number) => page.evaluate((i) => {
