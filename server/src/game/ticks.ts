@@ -67,11 +67,15 @@ export class TickScheduler<T extends string | number> {
     return this.pending.has(TickScheduler.key(x, y, z, type));
   }
 
-  /** ServerTickList.willTickThisTick: pending and due by `gameTime`. */
-  willTickThisTick(gameTime: number, x: number, y: number, z: number, type: T): boolean {
-    const t = this.pending.get(TickScheduler.key(x, y, z, type));
-    return !!t && t.time <= gameTime;
+  /**
+   * ServerTickList.willTickThisTick: taken off the list for the game tick being processed but not
+   * run yet (vanilla's currentlyTicking queue).
+   */
+  willTickThisTick(_gameTime: number, x: number, y: number, z: number, type: T): boolean {
+    return this.current.has(TickScheduler.key(x, y, z, type));
   }
+  /** keys of ticks taken for this game tick and not yet run (ServerTickList.currentlyTicking) */
+  private readonly current = new Set<string>();
 
   /**
    * Run every due tick (time ≤ gameTime) in order. `ticking(x, z)` says whether the position's
@@ -87,12 +91,15 @@ export class TickScheduler<T extends string | number> {
         skipped.push(t);
         continue;
       }
-      this.pending.delete(TickScheduler.key(t.x, t.y, t.z, t.type));
+      const k = TickScheduler.key(t.x, t.y, t.z, t.type);
+      this.pending.delete(k);
+      this.current.add(k);
       due.push(t);
       budget--;
     }
     for (const t of skipped) this.push(t);
     for (const t of due) {
+      this.current.delete(TickScheduler.key(t.x, t.y, t.z, t.type));
       if (ticking(t.x, t.z)) run(t);
       else this.schedule(gameTime, t.x, t.y, t.z, t.type, 0, t.priority);
     }

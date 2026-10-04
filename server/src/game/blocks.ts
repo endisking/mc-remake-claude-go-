@@ -323,6 +323,7 @@ export class BlockBehaviors {
 
   /** Block.tick for scheduled ticks. */
   private tickBlock(x: number, y: number, z: number, st: number): void {
+    if (this.s.redstone.tick(x, y, z, st)) return; // redstone components (redstone.ts)
     const n = blockNameOf(st);
     if (n === 'frosted_ice') return tickFrostedIce(this.s, x, y, z, st, this.skyDarken);
     if (isGravityBlock(n)) {
