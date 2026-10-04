@@ -22,8 +22,10 @@ import { decorTextures } from './blocks/decor';
 import { techTextures } from './blocks/tech';
 import { grassColormap, foliageColormap } from './colormap';
 import { widgets, optionsBackground, icons, spectatorWidgets } from './gui';
-import { mobEffects, effectFrames, glint, enchantingTable } from './effects';
+import { glint, enchantingTable } from './enchanting';
 import { allSkins } from './skins';
+import { allArmorTextures } from './armor';
+import { mobEffects } from './effects';
 import { writeItemTextures } from './items';
 import { sun, moonPhases, clouds, rain, snowflakes, destroyStages, underwater, experienceOrbs, powderSnowOutline } from './environment';
 
@@ -98,7 +100,6 @@ function main(): void {
   writePng(join(outDir, 'gui', 'icons.png'), icons());
   writePng(join(outDir, 'gui', 'spectator_widgets.png'), spectatorWidgets());
   writePng(join(outDir, 'gui', 'mob_effects.png'), mobEffects());
-  writePng(join(outDir, 'gui', 'effect_frames.png'), effectFrames());
   writePng(join(outDir, 'gui', 'enchanting_table.png'), enchantingTable());
   mkdirSync(join(outDir, 'misc'), { recursive: true });
   writePng(join(outDir, 'misc', 'enchanted_item_glint.png'), glint());
@@ -111,6 +112,8 @@ function main(): void {
   writePng(join(outDir, 'environment', 'powder_snow_outline.png'), powderSnowOutline());
   mkdirSync(join(outDir, 'entity'), { recursive: true });
   writePng(join(outDir, 'entity', 'experience_orb.png'), experienceOrbs());
+  mkdirSync(join(outDir, 'entity', 'armor'), { recursive: true });
+  for (const a of allArmorTextures()) writePng(join(outDir, 'entity', 'armor', `${a.name}.png`), a.tex);
   const itemCount = writeItemTextures(outDir);
   const overrides = existsSync(join(outDir, 'overrides')) ? readdirSync(join(outDir, 'overrides')).filter((f) => f.endsWith('.png')) : [];
   console.log(`texgen: ${entries.length} textures (${totalFrames} frames), ${itemCount} item sprites, ${overrides.length} overrides present`);

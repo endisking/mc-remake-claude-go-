@@ -1,4 +1,3 @@
-import { saveEffects, loadEffects } from '../game/effects';
 /**
  * Save-format encoding: chunk records (generation stage + lit flag + the shared chunk codec,
  * deflate-compressed when the platform has CompressionStream) and player data.
@@ -91,6 +90,8 @@ export async function decodeChunkRecord(rec: Uint8Array): Promise<Chunk> {
 }
 
 // ------------------------------------------------------------------ players
+import { EFFECT_NAME } from '@shared/game/effects';
+
 export function capturePlayer(p: ServerPlayer): PlayerData {
   const l = p.living;
   return {
@@ -116,8 +117,7 @@ export function capturePlayer(p: ServerPlayer): PlayerData {
     enderItems: p.enderChest.map((s) => (s && s.count > 0 ? { ...s } : null)),
     selected: p.inventory.selected,
     respawn: p.respawn ? { ...p.respawn } : null,
-    // Phase 7: active effects and the enchanting seed (vanilla ActiveEffects / XpSeed)
-    effects: saveEffects(p),
+    effects: [...l.effects.active.values()].map((e) => ({ ...e })),
     xpSeed: p.enchantmentSeed,
   };
 }
@@ -163,6 +163,15 @@ export function applyPlayer(p: ServerPlayer, d: PlayerData): void {
   }
   p.inventory.selected = Math.max(0, Math.min(8, num(d.selected, 0) | 0));
   p.respawn = d.respawn ? { ...d.respawn } : null;
-  loadEffects(p, d.effects);
+  // effects come back as they were (absorption hearts are saved separately above)
+  l.effects.active.clear();
+  if (Array.isArray(d.effects)) {
+    for (const e of d.effects) {
+      if (!e || typeof e.id !== 'number' || !(e.duration > 0)) continue;
+      l.effects.active.set(e.id, { ...e });
+      // Health Boost's MAX_HEALTH modifier comes back with it
+      if (EFFECT_NAME[e.id] === 'health_boost') l.maxHealth = 20 + 4 * (e.amplifier + 1);
+    }
+  }
   if (typeof d.xpSeed === 'number') p.enchantmentSeed = d.xpSeed | 0;
 }

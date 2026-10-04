@@ -41,8 +41,6 @@ export interface LevelMeta {
 
 /** Per-player save (playerdata/<name>.dat equivalent). */
 export interface PlayerData {
-  /** Phase 7 (optional for older saves) */
-  effects?: unknown;
   xpSeed?: number;
   version: number;
   name: string;
@@ -72,6 +70,8 @@ export interface PlayerData {
   enderItems?: (ItemStack | null)[];
   selected: number;
   respawn: { x: number; y: number; z: number; angle: number } | null;
+  /** active status effects (vanilla ActiveEffects) */
+  effects?: { id: number; amplifier: number; duration: number; ambient: boolean; visible: boolean; showIcon: boolean }[];
 }
 
 export interface ChunkRecord {

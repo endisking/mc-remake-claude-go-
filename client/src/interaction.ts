@@ -8,20 +8,19 @@ import { enchLevel, entityEnchLevel } from '@shared/game/enchantments';
 import { stateForPlacement, isReplaceable, companionPlacement, DX, DY, DZ } from '@shared/game/placement';
 import { canSurvive } from '@shared/game/support';
 import { blockForItem, itemForBlock } from '@shared/game/loot';
-import { Inventory } from '@shared/item/stack';
+import { Inventory, type ItemStack } from '@shared/item/stack';
 import { getProp, blockNameOf, stateOf } from '@shared/world/blockstate';
 
 const WATER = stateOf('water');
 import { FLUID } from '@shared/world/blockinfo';
-import { isInteractive } from '@shared/world/blockprops';
+import { isInteractive, usesOnBlock } from '@shared/world/blockprops';
+import { useOpenable } from '@shared/game/openable';
 import type { BlockHit } from '@shared/world/raycast';
 import type { C2S } from '@shared/protocol/packets';
 import type { ClientWorld } from './world/clientworld';
 import type { PlayerPhysics } from '@shared/entity/playerphysics';
 
 export interface InteractionHost {
-  /** local status effects (name → amplifier), Phase 7 */
-  readonly localEffects?: Map<string, number>;
   world: ClientWorld;
   player: PlayerPhysics;
   gameMode: number;
@@ -43,6 +42,10 @@ export interface InteractionHost {
   missSwing(): void;
   /** attacked an entity (client-side Player.attack effects + cooldown reset) */
   onAttack(): void;
+  /** Item.use with a non-block item (food, bow, armour, buckets): see ClientItemUse.tryUse */
+  useItem?(hand: 0 | 1, stack: ItemStack): 'consume' | 'swing' | 'pass';
+  /** Haste / Mining Fatigue levels (amplifier + 1, 0 = none) for digging prediction */
+  miningEffects?(): { haste: number; miningFatigue: number };
 }
 
 export class Interaction {
@@ -73,10 +76,9 @@ export class Interaction {
     const p = this.host.player;
     const held = this.inventory.selectedStack;
     const eye = this.host.world.getState(Math.floor(p.x), Math.floor(p.y + p.eyeHeight), Math.floor(p.z));
-    const fx = this.host.localEffects;
-    const dig = Math.max(fx?.get('haste') ?? -1, fx?.get('conduit_power') ?? -1);
+    const fx = this.host.miningEffects?.() ?? { haste: 0, miningFatigue: 0 };
     return {
-      item: held?.id ?? 0, efficiency: enchLevel('efficiency', held), haste: dig + 1, miningFatigue: (fx?.get('mining_fatigue') ?? -1) + 1,
+      item: held?.id ?? 0, efficiency: enchLevel('efficiency', held), haste: fx.haste, miningFatigue: fx.miningFatigue,
       underwater: FLUID[eye] === 1, aquaAffinity: entityEnchLevel('aqua_affinity', this.inventory) > 0, onGround: p.onGround,
     };
   }
@@ -200,11 +202,28 @@ export class Interaction {
     if (this.rightClickDelay > 0) this.rightClickDelay--;
     if (!(pressed || (held && this.rightClickDelay === 0))) return;
     this.rightClickDelay = 4;
-    if (!target || this.host.gameMode === 3) return;
+    if (this.host.gameMode === 3) return;
+    if (!target) {
+      // Minecraft.startUseItem with no block: Item.use for each hand until one acts
+      for (const hand of [0, 1] as const) {
+        const stack = this.inventory.get(hand === 0 ? this.inventory.selected : 40);
+        if (!stack) continue;
+        const r = this.host.useItem?.(hand, stack) ?? 'pass';
+        if (r === 'swing') this.host.swing(hand);
+        if (r !== 'pass') return;
+      }
+      return;
+    }
     // using an interactive block (beds…) consumes the click unless sneaking with an item
     const holding = !!this.inventory.selectedStack || !!this.inventory.get(40);
     if (isInteractive(target.state) && !(this.host.player.shiftDown && holding)) {
       const { x, y, z, face } = target;
+      // doors, trapdoors and fence gates open immediately (vanilla client-side use()); the server confirms
+      const o = this.host.gameMode !== 3 ? useOpenable(this.host.world, x, y, z, this.host.yaw) : null;
+      if (o) for (const c of o.changes) {
+        this.host.world.setStateRaw(c.x, c.y, c.z, c.state);
+        this.host.world.markBlockDirty(c.x, c.y, c.z);
+      }
       this.host.send({ t: 'useOn', x, y, z, face, cx: target.px - x, cy: target.py - y, cz: target.pz - z, hand: 0 });
       this.host.swing(0);
       return;
@@ -216,13 +235,35 @@ export class Interaction {
       const { x, y, z, face } = target;
       const hx = target.px - x, hy = target.py - y, hz = target.pz - z;
       if (!block) {
-        // an empty or non-placing main hand passes to the off hand (vanilla InteractionResult.PASS)
-        if (hand === 0) continue;
+        // an empty hand passes to the off hand (vanilla InteractionResult.PASS)
+        if (!stack) {
+          if (hand === 0) continue;
+          this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
+          return;
+        }
+        // tools and bone meal act on the clicked block (the server decides whether it did anything)
+        if (usesOnBlock(itemNameOf(stack.id))) {
+          this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
+          this.host.swing(hand);
+          return;
+        }
+        // Item.useOn (flint and steel…), then Item.use (food, bows, buckets, armour)
         this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
-        return;
+        if (itemNameOf(stack.id) === 'flint_and_steel') {
+          this.host.swing(hand);
+          return;
+        }
+        const r = this.host.useItem?.(hand, stack) ?? 'pass';
+        if (r === 'swing') this.host.swing(hand);
+        if (r !== 'pass') return;
+        continue;
       }
       this.host.send({ t: 'useOn', x, y, z, face, cx: hx, cy: hy, cz: hz, hand });
-      if (this.host.gameMode === 2) return;
+      if (this.host.gameMode === 2) {
+        // adventure: no placing, but food still gets eaten
+        if (stack) this.host.useItem?.(hand, stack);
+        return;
+      }
       if (this.placeLocally(block, target, hx, hy, hz)) {
         this.host.swing(hand);
         if (this.host.gameMode === 0 && stack) {
@@ -231,6 +272,10 @@ export class Interaction {
         }
         // Minecraft.startUseItem: the count changed (survival) or infinite items (creative)
         if (stack) this.host.itemUsed?.(hand);
+      } else if (stack) {
+        // ItemNameBlockItem (carrots, potatoes, berries): when it can't be planted it is eaten
+        const r = this.host.useItem?.(hand, stack) ?? 'pass';
+        if (r === 'swing') this.host.swing(hand);
       }
       return;
     }

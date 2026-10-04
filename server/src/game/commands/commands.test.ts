@@ -318,8 +318,10 @@ describe('world commands', () => {
     } finally {
       commandHooks.locate.delete('village');
     }
+    // effects are wired by ItemUse (itemuse.ts): the first give applies, an identical one changes nothing
     expect(a.run('/effect give @s speed')).toEqual(['Applied effect Speed to A']);
-    expect(a.run('/effect give @s speed 10 0')).toEqual(['Unable to apply this effect (target is either immune to effects, or has something stronger)']);
+    expect(a.run('/effect give @s speed')).toEqual(['Unable to apply this effect (target is either immune to effects, or has something stronger)']);
+    expect(a.run('/effect clear @s speed')).toEqual(['Removed effect Speed from A']);
     expect(a.run('/effect give @s nope')).toEqual(['Unknown effect: minecraft:nope']);
     expect(a.run('/enchant @s sharpness 6')).toEqual(['6 is higher than the maximum level of 5 supported by that enchantment']);
   });

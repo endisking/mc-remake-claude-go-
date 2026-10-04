@@ -43,6 +43,12 @@ export class RemotePlayer {
   /** held item ids (main hand, off hand) */
   mainHand = 0;
   offHand = 0;
+  /** worn armour item ids: feet, legs, chest, head (0 = none) */
+  armor: [number, number, number, number] = [0, 0, 0, 0];
+  /** item being used (eating, drawing a bow), 0 = none */
+  usingItem = 0;
+  /** ticks spent using it (bow pull) */
+  useTicks = 0;
   tickCount = 0;
 
   constructor(

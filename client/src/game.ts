@@ -33,6 +33,8 @@ import { RemotePlayer, wrapDegrees } from './world/entities';
 import { Interaction } from './interaction';
 import { ParticleEngine } from './render/particles';
 import { BlockItemRenderer } from './render/blockitem';
+import { FallingBlocks } from './world/fallingblocks';
+import { FULL_COLLISION } from '@shared/world/blockinfo';
 import { HandRenderer, attackSpeedOf, type HeldItemModel, type HandSide } from './render/hand';
 import { handsToRender, swingDuration, tickHandHeight, type UseAnim } from './render/handpose';
 import { Hud, type HudPlayer } from './gui/hud';
@@ -54,7 +56,7 @@ import { KeyBindings } from './keybinds';
 import { blockForItem } from '@shared/game/loot';
 import { BLOCKS_BY_NAME, ITEMS_BY_ID, ITEMS_BY_NAME } from '@shared/data';
 import { itemName, decodeTag, type ItemStack, type ItemTag } from '@shared/item/stack';
-import { EffectsClient, nauseaMatrix } from './effects';
+import { EffectsClient } from './effects';
 import './gui/enchantmentscreen';
 import { entityEnchLevel } from '@shared/game/enchantments';
 import type { BakeResult } from './models/bake';
@@ -71,6 +73,12 @@ import { InventoryMenu, createClientMenu, type Menu, type MenuType } from '@shar
 import { InventoryContainer } from '@shared/menu/container';
 import { decodeStacks } from '@shared/protocol/packets';
 import { saveSettings } from './settings';
+import { ClientItemUse } from './itemuse';
+import { renderEffects } from './gui/effects';
+import { useDuration } from '@shared/game/items';
+
+import { ClientArrows } from './world/arrows';
+import { itemName as itemNameOfId } from '@shared/item/stack';
 import { ItemTextures } from './render/itemtextures';
 import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './gui/itemicons';
 import { ChatScreen, InBedChatScreen, DisconnectedScreen, componentToLegacy, componentClick, renderPlayerList, type ChatHost, type SuggestionReply } from './gui/chat';
@@ -93,6 +101,17 @@ export class Game implements ScreenHost, ContainerHost {
   readonly players = new Map<number, RemotePlayer>();
   private sentState = { sneaking: false, sprinting: false, flying: false };
   interaction!: Interaction;
+  /** item use state (eating/drinking/bow), effects, absorption — read by the HUD and first-person renderer */
+  itemUse!: ClientItemUse;
+  readonly arrows = new ClientArrows();
+  /** eating crumbs / broken tool bits drawn from the item sprite texture */
+  private itemParticles!: ParticleEngine;
+  /** LocalPlayer.portalTime (nausea / portal screen wobble, 0–1) */
+  portalTime = 0;
+  oPortalTime = 0;
+  private readonly nauseaMat = mat4();
+  private readonly nauseaTmp = mat4();
+  private texLayers: Map<string, { layer: number }> | null = null;
   private readonly hud = new Hud();
   /** online players (vanilla PlayerInfo list) */
   readonly playerInfo = new Map<number, PlayerInfoEntry>();
@@ -143,6 +162,8 @@ export class Game implements ScreenHost, ContainerHost {
   private frostOverlay: ImageBitmap | null = null;
   private skyFlashTime = 0;
   readonly bolts = new Map<number, ClientBolt>();
+  /** falling sand/gravel/anvils (Phase 4 block behaviours) */
+  readonly fallingBlocks = new FallingBlocks();
   private readonly boltRand = new JavaRandom(BigInt(Date.now()));
   private lightning!: LightningRenderer;
   private orbRenderer!: OrbRenderer;
@@ -407,9 +428,12 @@ export class Game implements ScreenHost, ContainerHost {
     this.lines = new LineRenderer(this.gl);
     this.entityRenderer = new EntityRenderer(this.gl);
     await this.entityRenderer.loadSkins();
+    await this.entityRenderer.loadArmor();
     const mainBake = bakeBlockModels(this.manifest, this.settings.graphics === 'fancy');
     this.bake = mainBake.bake;
+    this.texLayers = mainBake.textures;
     this.particles = new ParticleEngine(this.gl, this.world);
+    this.itemParticles = new ParticleEngine(this.gl, this.world);
     this.blockItems = new BlockItemRenderer(this.gl, mainBake.bake, () => this.textures.tex, (st) => itemTint(st), (st) => {
       const t = flatItemTexture(blockNameOf(st));
       return t === null ? null : (mainBake.textures.get(t)?.layer ?? mainBake.textures.get('missing')!.layer);
@@ -451,8 +475,8 @@ export class Game implements ScreenHost, ContainerHost {
     };
     this.heldModels.clear();
     this.hand = new HandRenderer(this.gl, this.entityRenderer, (st) => this.heldItemModel(st), () => this.textures.tex, mainBake.textures.get('fire_1')!.layer);
+    this.growthParticleLayer = mainBake.textures.get('snow')?.layer ?? 0;
     this.interaction = new Interaction({
-      localEffects: this.localEffects,
       world: this.world,
       player: this.player,
       get gameMode() { return game.gameMode; },
@@ -477,7 +501,7 @@ export class Game implements ScreenHost, ContainerHost {
       },
       onAttack: () => {
         // client-side Player.attack: a charged sprint hit slows us and stops sprinting
-        const charged = attackStrengthScale(this.attackStrengthTicker, this.interaction.inventory.selectedStack?.id ?? 0, 0.5) > 0.9;
+        const charged = attackStrengthScale(this.attackStrengthTicker, this.interaction.inventory.selectedStack?.id ?? 0, 0.5, this.attackSpeedMul()) > 0.9;
         if (charged && this.player.sprinting) {
           this.player.vx *= 0.6;
           this.player.vz *= 0.6;
@@ -489,6 +513,30 @@ export class Game implements ScreenHost, ContainerHost {
         this.swingArm();
         this.resetAttackStrength();
       },
+      useItem: (hand, stack) => this.itemUse.tryUse(hand, stack, this.interaction.inventory),
+      miningEffects: () => ({
+        haste: Math.max(this.itemUse.amplifier('haste'), this.itemUse.amplifier('conduit_power')) + 1,
+        miningFatigue: this.itemUse.amplifier('mining_fatigue') + 1,
+      }),
+    });
+    this.itemUse = new ClientItemUse({
+      send: (p) => this.send(p),
+      gameMode: () => this.gameMode,
+      foodLevel: () => this.food,
+      playLocal: (ev, v, pi) => this.playPlayer(ev, v, pi),
+      entityView: (id) => {
+        if (id === this.entityId) return { x: this.x, y: this.y, z: this.z, yaw: this.yaw, pitch: this.pitch };
+        const rp = this.players.get(id);
+        return rp ? { x: rp.x, y: rp.y + (rp.pose === 'crouching' ? 1.27 : 1.62), z: rp.z, yaw: rp.headYaw, pitch: rp.pitch } : null;
+      },
+      itemParticle: (item, x, y, z, vx, vy, vz) => {
+        // block items use the terrain atlas; item sprites live in their own texture array
+        const block = blockForItem(item);
+        const sprite = block ? -1 : this.itemTextures ? spriteLayerFor(this.itemTextures, item) : -1;
+        if (sprite >= 0) this.itemParticles.item(x, y, z, vx, vy, vz, sprite);
+        else if (block) this.particles.item(x, y, z, vx, vy, vz, this.itemParticleLayer(item));
+      },
+      get selfId() { return game.entityId; },
     });
     const game = this;
     this.crack = new CrackRenderer(this.gl, mainBake.bake, Array.from({ length: 10 }, (_, i) => mainBake.textures.get(`destroy_stage_${i}`)!.layer));
@@ -634,6 +682,7 @@ export class Game implements ScreenHost, ContainerHost {
   }
 
   private handle(p: S2C): void {
+    if (this.itemUse?.handle(p) || this.arrows.handle(p)) return;
     switch (p.t) {
       case 'login':
         this.entityId = p.entityId;
@@ -705,10 +754,12 @@ export class Game implements ScreenHost, ContainerHost {
           this.players.delete(id);
           this.items.delete(id);
           this.bolts.delete(id);
+          this.fallingBlocks.remove(id);
         }
         break;
       case 'entityMove': {
         this.players.get(p.id)?.lerpTo(p.x, p.y, p.z, p.yaw, p.pitch, p.headYaw);
+        this.fallingBlocks.move(p.id, p.x, p.y, p.z);
         const it = this.items.get(p.id);
         if (it) {
           it.lx = p.x;
@@ -821,6 +872,11 @@ export class Game implements ScreenHost, ContainerHost {
         }
         break;
       }
+      case 'armorEquipment': {
+        const rp = this.players.get(p.id);
+        if (rp) rp.armor = [p.feet, p.legs, p.chest, p.head];
+        break;
+      }
       case 'actionBar':
         this.hud.setOverlay(p.text);
         break;
@@ -878,10 +934,7 @@ export class Game implements ScreenHost, ContainerHost {
         if (it) it.tag = decodeTag(p.tag);
         break;
       }
-      case 'updateEffect':
-      case 'removeEffect':
       case 'effectParticles':
-      case 'playerAttributes':
         this.effectsClient.handle(p);
         break;
       case 'heldSlot':
@@ -895,6 +948,8 @@ export class Game implements ScreenHost, ContainerHost {
           this.playAt('entity.lightning_bolt.thunder', 'weather', p.x, p.y, p.z, 10000, 0.8 + r.nextFloat() * 0.2);
           this.playAt('entity.lightning_bolt.impact', 'weather', p.x, p.y, p.z, 2, 0.5 + r.nextFloat() * 0.2);
         }
+        else if (p.type === 'falling_block') this.fallingBlocks.add(p.id, p.data, p.x, p.y, p.z);
+        else if (p.type === 'tnt') this.fallingBlocks.add(p.id, BLOCKS_BY_NAME.get('tnt')!.defaultState, p.x, p.y, p.z);
         else if (p.type === 'item' || p.type === 'experience_orb') {
           this.items.set(p.id, { x: p.x, y: p.y, z: p.z, xo: p.x, yo: p.y, zo: p.z, lx: p.x, ly: p.y, lz: p.z, steps: 0, item: 0, count: 1, age: 0, bobOffs: Math.random() * Math.PI * 2, ...(p.type === 'experience_orb' ? { orb: p.data } : {}) });
         }
@@ -908,6 +963,12 @@ export class Game implements ScreenHost, ContainerHost {
         break;
       }
       case 'takeItem': {
+        if (this.arrows.arrows.has(p.itemId)) {
+          const a = this.arrows.arrows.get(p.itemId)!, r = this.sfxRand;
+          this.playAt('entity.item.pickup', 'player', a.x, a.y, a.z, 0.2, ((r.nextFloat() - r.nextFloat()) * 0.7 + 1) * 2);
+          this.arrows.arrows.delete(p.itemId);
+          break;
+        }
         // vanilla ItemPickupParticle: the item flies into the collector over 3 ticks
         const it = this.items.get(p.itemId);
         if (it) {
@@ -933,6 +994,7 @@ export class Game implements ScreenHost, ContainerHost {
       }
       case 'levelEvent':
         if (p.event === 2001) this.blockBroken(p.x, p.y, p.z, p.data);
+        else if (p.event === 1505) this.growthParticles(p.x, p.y, p.z, p.data);
         else if (p.event === 1501) {
           // LevelRenderer.levelEvent LAVA_FIZZ: extinguish hiss (large smoke particles: no smoke particle type yet)
           const r = this.sfxRand;
@@ -1077,7 +1139,24 @@ export class Game implements ScreenHost, ContainerHost {
       // looking through another entity: no movement, but sneaking still reaches the server
       pl.shiftDown = move.sneak;
     } else if (this.loggedIn && this.world.isLoaded(Math.floor(pl.x), Math.floor(pl.z))) {
-      this.effectsClient.applyPhysics(pl.effects, entityEnchLevel('depth_strider', this.interaction.inventory));
+      // LocalPlayer.aiStep: eating/drawing slows movement input to 20%
+      pl.usingItem = !!this.itemUse?.isUsing;
+      // movement effects (speed, slowness, jump boost, levitation, slow falling, dolphin's grace, blindness)
+      if (this.itemUse) {
+        const u = this.itemUse, pe = pl.effects;
+        pe.speed = u.amplifier('speed') + 1;
+        pe.slowness = u.amplifier('slowness') + 1;
+        pe.jumpBoost = u.amplifier('jump_boost') + 1;
+        pe.levitation = u.amplifier('levitation') + 1;
+        pe.slowFalling = u.hasEffect('slow_falling');
+        pe.dolphinsGrace = u.hasEffect('dolphins_grace');
+        // Depth Strider on the boots (Phase 7)
+        pe.depthStrider = entityEnchLevel('depth_strider', this.interaction.inventory);
+        pl.blind = u.hasEffect('blindness');
+        // leather boots walk on powder snow (PowderSnowBlock.canEntityWalkOnPowderSnow)
+        const feet = this.interaction.inventory.get(36);
+        pl.walkOnPowderSnow = !!feet && itemName(feet.id) === 'leather_boots';
+      }
       pl.tick(move);
       this.tickMovementSounds(pl.x - bx, pl.y - by, pl.z - bz);
     }
@@ -1092,12 +1171,22 @@ export class Game implements ScreenHost, ContainerHost {
     let fovTarget = 1;
     if (pl.abilities.flying) fovTarget *= 1.1;
     fovTarget *= (pl.movementSpeed() / 0.1 + 1) / 2;
+    // drawing a bow zooms in up to 15%
+    if (this.itemUse?.isUsing && this.itemUse.useAnimOf === 'bow') {
+      const t = this.itemUse.ticksUsing / 20;
+      fovTarget *= 1 - (t > 1 ? 1 : t * t) * 0.15;
+    }
     // FOV Effects accessibility slider scales the change
     fovTarget = 1 + (fovTarget - 1) * this.settings.fovEffectScale;
     this.fovModifier += (fovTarget - this.fovModifier) * 0.5;
     if (this.fovModifier > 1.5) this.fovModifier = 1.5;
     if (this.fovModifier < 0.1) this.fovModifier = 0.1;
-    for (const rp of this.players.values()) rp.tick();
+    for (const rp of this.players.values()) {
+      rp.tick();
+      const ru = this.itemUse?.remoteUse(rp.id);
+      rp.usingItem = ru?.item ?? 0;
+      rp.useTicks = ru?.ticks ?? 0;
+    }
     for (const [id, it] of this.items) {
       if (it.pickup && ++it.pickup.life > 3) {
         this.items.delete(id);
@@ -1115,6 +1204,8 @@ export class Game implements ScreenHost, ContainerHost {
       }
     }
     this.particles.tick();
+    this.fallingBlocks.tick();
+    this.itemParticles?.tick();
     this.effectsClient.tick();
     this.tickEffectParticles();
     this.swingTick();
@@ -1128,6 +1219,10 @@ export class Game implements ScreenHost, ContainerHost {
       sm.hurtTime = this.hurtTime;
       sm.mainHand = this.interaction.inventory.selectedStack?.id ?? 0;
       sm.offHand = this.interaction.inventory.get(40)?.id ?? 0;
+      const inv = this.interaction.inventory;
+      sm.armor = [inv.get(36)?.id ?? 0, inv.get(37)?.id ?? 0, inv.get(38)?.id ?? 0, inv.get(39)?.id ?? 0];
+      sm.usingItem = this.itemUse.isUsing ? this.itemUse.useItem : 0;
+      sm.useTicks = this.itemUse.ticksUsing;
       sm.tick();
     }
     this.tickLiving();
@@ -1138,9 +1233,14 @@ export class Game implements ScreenHost, ContainerHost {
       ia.tick();
       const b = this.binds;
       const attackPressed = b.consume('attack');
-      if (attackPressed) ia.startAttack(this.target, this.targetEntity);
-      ia.continueAttack(b.down('attack') && !attackPressed, this.target);
-      ia.use(b.consume('use'), b.down('use'), this.target);
+      const usingItem = this.itemUse.isUsing;
+      if (attackPressed && !usingItem) ia.startAttack(this.target, this.targetEntity);
+      ia.continueAttack(b.down('attack') && !attackPressed && !usingItem, this.target);
+      if (this.itemUse.isUsing) {
+        // Minecraft.handleKeybinds while using an item: clicks are swallowed
+        b.consume('use');
+        b.consume('attack');
+      } else ia.use(b.consume('use'), b.down('use'), this.target);
       if (this.gameMode === 3) {
         // MouseHandler: the middle button opens/uses the spectator menu; hotbar keys pick its slots
         const middle = i.consumePress('Mouse1');
@@ -1165,6 +1265,22 @@ export class Game implements ScreenHost, ContainerHost {
       else if (b.consume('command')) this.openChat('/');
       if (b.consume('drop')) ia.drop(i.isDown('ControlLeft') || i.isDown('ControlRight') || i.isDown('MetaLeft'));
     }
+    // LivingEntity.updatingUsingItem (local + remote players); releasing the key shoots the bow
+    if (this.loggedIn) this.itemUse.tick(active && !this.dead && this.binds.down('use'), this.interaction.inventory);
+    // feed the first-person renderer's use state (eat/drink bob, bow draw) and effect map
+    {
+      const u = this.itemUse;
+      this.firstPersonUse = u.isUsing
+        ? { hand: u.usedHand, item: itemName(u.useItem), remaining: u.useRemaining, duration: useDuration(u.useItem), anim: u.useAnimOf as UseAnim }
+        : null;
+      this.localEffects.clear();
+      for (const e of u.effects.values()) this.localEffects.set(e.name, e.amplifier);
+    }
+    // LocalPlayer.handleNetherPortalClient (nausea part): wobble builds up over 7.5 s, fades in 1 s
+    this.oPortalTime = this.portalTime;
+    if (this.itemUse && [...this.itemUse.effects.values()].some((e) => e.name === 'nausea' && e.duration > 60)) this.portalTime = Math.min(1, this.portalTime + 0.006666667);
+    else this.portalTime = Math.max(0, this.portalTime - 0.05);
+    this.arrows.tick();
     if (this.loggedIn) {
       const st = this.sentState;
       if (st.sneaking !== pl.shiftDown || st.sprinting !== pl.sprinting || st.flying !== pl.abilities.flying) {
@@ -1285,7 +1401,7 @@ export class Game implements ScreenHost, ContainerHost {
    * (getUseItemRemainingTicks, counted down each tick by the owner of the use), total use
    * duration and its UseAnim. Drives the eat/drink bob, bow draw, trident and crossbow poses.
    */
-  itemUse: { hand: 0 | 1; item: string; remaining: number; duration: number; anim: UseAnim; chargeDuration?: number } | null = null;
+  firstPersonUse: { hand: 0 | 1; item: string; remaining: number; duration: number; anim: UseAnim; chargeDuration?: number } | null = null;
   /** Riptide spin attack (isAutoSpinAttack) and spyglass scoping (isScoping), when implemented. */
   autoSpinAttack = false;
   scoping = false;
@@ -1337,6 +1453,34 @@ export class Game implements ScreenHost, ContainerHost {
     this.playAt(event, 'player', p.x, p.y, p.z, volume, pitch);
   }
 
+  /** texture layer tinted green for growth sparkles (no dedicated particle sprite sheet yet) */
+  private growthParticleLayer = 0;
+  /** levelEvent 1505 (BoneMealItem.addGrowthParticles): green sparkles over the grown block. */
+  private growthParticles(x: number, y: number, z: number, data: number): void {
+    const st = this.world.getState(x, y, z);
+    if (st === 0) return;
+    let count = data === 0 ? 15 : data;
+    let d = 0.5, e: number;
+    const name = blockNameOf(st);
+    if (name === 'water') {
+      count *= 3;
+      e = 1;
+      d = 3;
+    } else if (FULL_COLLISION[st] === 1) {
+      y++;
+      count *= 3;
+      d = 3;
+      e = 1;
+    } else e = 1;
+    const layer = this.growthParticleLayer;
+    const g = () => (Math.random() + Math.random() + Math.random() - 1.5) * 0.02;
+    this.particles.happy(x + 0.5, y + 0.5, z + 0.5, 0, 0, 0, layer);
+    for (let i = 0; i < count; i++) {
+      const k = x + 0.5 - d + Math.random() * d * 2, l = y + Math.random() * e, m = z + 0.5 - d + Math.random() * d * 2;
+      if (this.world.getState(Math.floor(k), Math.floor(l) - 1, Math.floor(m)) !== 0) this.particles.happy(k, l, m, g(), g(), g(), layer);
+    }
+  }
+
   /** levelEvent 2001: break particles and the block's break sound. */
   private blockBroken(x: number, y: number, z: number, st: number): void {
     this.particles.destroy(x, y, z, st, this.particleLayer(st), this.particleTint(st, x, z));
@@ -1347,18 +1491,49 @@ export class Game implements ScreenHost, ContainerHost {
   }
 
   /** LivingEntity.handleEntityEvent: hurt animation and the hurt/death sound for the local player. */
+  /** Bow model override (models/item/bow.json predicates): pulling_0 / _1 at 0.65 / _2 at 0.9. */
+  private bowPullKey(pull: number): number | null {
+    return this.blockItems.spriteKey(`bow_pulling_${pull >= 0.9 ? 2 : pull >= 0.65 ? 1 : 0}`);
+  }
+
+  /** Texture layer for an item's particles (block items use their block's particle texture). */
+  private itemParticleLayer(item: number): number {
+    const block = blockForItem(item);
+    if (block) return this.particleLayer(BLOCKS_BY_NAME.get(block)!.defaultState);
+    const n = itemNameOfId(item);
+    return this.texLayers?.get(`item/${n}`)?.layer ?? this.texLayers?.get(n)?.layer ?? -1;
+  }
+
+  /** LivingEntity.breakItem (entity events 47–52): the break sound and 5 item particles. */
+  private itemBroke(id: number, event: number): void {
+    const self = id === this.entityId;
+    const inv = this.interaction.inventory;
+    const rp = self ? null : this.players.get(id);
+    let item = 0;
+    if (event === 47) item = self ? inv.selectedStack?.id ?? 0 : rp?.mainHand ?? 0;
+    else if (event === 48) item = self ? inv.get(40)?.id ?? 0 : rp?.offHand ?? 0;
+    else item = self ? inv.get(36 + (52 - event))?.id ?? 0 : rp?.armor[52 - event] ?? 0;
+    const v = self ? { x: this.x, y: this.y - this.player.eyeHeight, z: this.z } : rp;
+    if (!v || !item) return;
+    const r = this.sfxRand;
+    this.playAt('entity.item.break', 'player', v.x, v.y, v.z, 0.8, 0.8 + r.nextFloat() * 0.4);
+    this.itemUse.spawnItemParticles(id, item, 5);
+  }
+
   private entityEvent(id: number, event: number): void {
     // 24–28: our operator permission level (vanilla ClientboundEntityEventPacket)
     if (id === this.entityId && event >= 24 && event <= 28) {
       this.permissionLevel = event - 24;
       return;
     }
+    if (event >= 47 && event <= 52) return this.itemBroke(id, event);
     if (event === 35) {
-      // totem of undying: particles and sound for everyone, the item pop-up for the holder
-      const pos = id === this.entityId ? this.player : this.players.get(id);
-      if (pos) {
-        this.playAt('item.totem.use', 'player', pos.x, pos.y, pos.z, 1, 1);
-        this.particles.totem(pos.x, pos.y + 1, pos.z);
+      // Totem of Undying: the sound and a burst of totem particles around the saved player
+      const v = id === this.entityId ? { x: this.x, y: this.y - this.player.eyeHeight, z: this.z } : this.players.get(id);
+      if (v) {
+        this.playAt('item.totem.use', 'player', v.x, v.y, v.z, 1, 1);
+        const totem = ITEMS_BY_NAME.get('totem_of_undying')!.id;
+        this.itemUse.spawnItemParticles(id, totem, 30);
       }
       if (id === this.entityId) this.effectsClient.totemActivated(Math.random);
       return;
@@ -1520,9 +1695,9 @@ export class Game implements ScreenHost, ContainerHost {
     return {
       gameMode: this.gameMode,
       health: this.health,
-      maxHealth: this.effectsClient.maxHealth,
-      absorption: this.effectsClient.absorption,
-      armor: 0,
+      maxHealth: 20 + 4 * (this.itemUse.amplifier('health_boost') + 1),
+      absorption: this.itemUse.absorption,
+      armor: this.itemUse.armorPoints(this.interaction.inventory),
       food: this.food,
       saturation: this.saturation,
       air: this.air,
@@ -1532,10 +1707,10 @@ export class Game implements ScreenHost, ContainerHost {
       xpProgress: this.xpProgress,
       xpLevel: this.xpLevel,
       inventory: this.interaction.inventory,
-      heartType: this.localEffects.has('poison') ? 'poisoned' : this.localEffects.has('wither') ? 'withered' : this.ticksFrozen >= 140 ? 'frozen' : 'normal',
+      heartType: this.itemUse.hasEffect('poison') ? 'poisoned' : this.itemUse.hasEffect('wither') ? 'withered' : this.ticksFrozen >= 140 ? 'frozen' : 'normal',
       hardcore: false,
-      regeneration: this.localEffects.has('regeneration'),
-      hungerEffect: this.localEffects.has('hunger'),
+      regeneration: this.itemUse.hasEffect('regeneration'),
+      hungerEffect: this.itemUse.hasEffect('hunger'),
     };
   }
 
@@ -1603,7 +1778,7 @@ export class Game implements ScreenHost, ContainerHost {
     const h = this.handItem;
     const matches = (!h && !cur) || (!!h && !!cur && h.id === cur.id && h.count === cur.count && h.damage === cur.damage);
     if (matches) this.handItem = cur;
-    const delay = 20 / attackSpeedOf(cur?.id ?? 0);
+    const delay = 20 / (attackSpeedOf(cur?.id ?? 0) * this.attackSpeedMul());
     const f = Math.min(1, Math.max(0, (this.attackStrengthTicker + 1) / delay));
     const same = this.handItem === cur;
     this.mainHandHeight = tickHandHeight(this.mainHandHeight, same ? f * f * f : 0);
@@ -1616,6 +1791,13 @@ export class Game implements ScreenHost, ContainerHost {
     if (offMatches) this.offHandItem = off;
     this.offHandHeight = tickHandHeight(this.offHandHeight, this.offHandItem === off ? 1 : 0);
     if (this.offHandHeight < 0.1) this.offHandItem = off;
+  }
+
+  /** ATTACK_SPEED effect modifiers: Haste +10% per level, Mining Fatigue −10% per level. */
+  private attackSpeedMul(): number {
+    const u = this.itemUse;
+    if (!u) return 1;
+    return (1 + 0.1 * (u.amplifier('haste') + 1)) * (1 - 0.1 * (u.amplifier('mining_fatigue') + 1));
   }
 
   /** Called by a swing at nothing (vanilla startAttack on a miss). */
@@ -1890,7 +2072,7 @@ export class Game implements ScreenHost, ContainerHost {
     if (this.settings.viewBobbing) multiply(hb, hb, this.bobMat);
     const sw = this.attackAnim - this.attackAnimO;
     const swingNow = this.debugSwingFreeze !== undefined ? this.debugSwingFreeze / 6 : this.attackAnimO + (sw < 0 ? sw + 1 : sw) * partial;
-    const use = this.itemUse && this.itemUse.remaining > 0 ? this.itemUse : null;
+    const use = this.firstPersonUse && this.firstPersonUse.remaining > 0 ? this.firstPersonUse : null;
     const main = this.handItem, off = this.offHandItem;
     const mainName = main ? itemName(main.id) : null, offName = off ? itemName(off.id) : null;
     const charged = (n: string | null, st: typeof main) => n === 'crossbow' && !!(st as { tag?: { Charged?: unknown } } | null)?.tag?.Charged;
@@ -1977,7 +2159,7 @@ export class Game implements ScreenHost, ContainerHost {
   private heldOverride(stack: ItemStack): string | null {
     const name = itemName(stack.id);
     if (name !== 'bow' && name !== 'crossbow') return null;
-    const u = this.itemUse;
+    const u = this.firstPersonUse;
     const using = !!u && u.remaining > 0 && u.item === name && (u.hand === 0 ? this.handItem : this.offHandItem) === stack;
     if (name === 'bow') {
       if (!using) return null;
@@ -2088,6 +2270,40 @@ export class Game implements ScreenHost, ContainerHost {
     multiply(this.proj, this.proj, m);
   }
 
+  /** GameRenderer.getNightVisionScale: full strength, flickering out over the last 10 seconds. */
+  private nightVisionScale(partial: number): number {
+    const e = this.itemUse?.effects.get(16);
+    if (!e) return 0;
+    return e.duration > 200 ? 1 : 0.7 + Math.sin((e.duration - partial) * Math.PI * 0.2) * 0.3;
+  }
+
+  /** GameRenderer.renderLevel portal/nausea distortion: a rotating horizontal squash of the view. */
+  private applyNausea(partial: number): void {
+    const f = this.oPortalTime + (this.portalTime - this.oPortalTime) * partial;
+    if (f <= 0) return;
+    const speed = this.itemUse.hasEffect('nausea') ? 7 : 20;
+    let f1 = 5 / (f * f + 5) - f * 0.04;
+    f1 *= f1;
+    const ang = (((this.clientTicks + partial) * speed) % 360) * (Math.PI / 180);
+    const axis: [number, number, number] = [0, Math.SQRT1_2, Math.SQRT1_2];
+    const rot = (out: Mat4, a: number) => {
+      const c = Math.cos(a), sn = Math.sin(a), t = 1 - c, [x, y, z] = axis;
+      out.set([
+        t * x * x + c, t * x * y + sn * z, t * x * z - sn * y, 0,
+        t * x * y - sn * z, t * y * y + c, t * y * z + sn * x, 0,
+        t * x * z + sn * y, t * y * z - sn * x, t * z * z + c, 0,
+        0, 0, 0, 1,
+      ]);
+    };
+    const m = this.nauseaMat, tmp = this.nauseaTmp;
+    rot(m, ang);
+    multiply(this.proj, this.proj, m);
+    tmp.set([1 / f1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+    multiply(this.proj, this.proj, tmp);
+    rot(m, -ang);
+    multiply(this.proj, this.proj, m);
+  }
+
   private resize(): void {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.floor(this.canvas.clientWidth * dpr), h = Math.floor(this.canvas.clientHeight * dpr);
@@ -2193,19 +2409,27 @@ export class Game implements ScreenHost, ContainerHost {
         fogEnd = 1;
       }
     }
-    // FogRenderer: blindness closes the fog to 5 blocks (fading in over the last second)
-    const blind = this.effectsClient.blindFog(renderDist);
-    if (blind !== null) {
-      fogStart = blind * 0.25;
-      fogEnd = blind;
-      if (blind <= 5) fog[0] = fog[1] = fog[2] = 0;
+    // FogRenderer: Night Vision lifts the fog colour to full brightness; Blindness pulls the fog
+    // in to 5 blocks over a second and blacks out its colour
+    const nv = this.nightVisionScale(partial);
+    if (nv > 0 && fog[0] > 0 && fog[1] > 0 && fog[2] > 0) {
+      const k = Math.min(1 / fog[0], 1 / fog[1], 1 / fog[2]);
+      for (let i = 0; i < 3; i++) fog[i] = fog[i]! * (1 - nv) + fog[i]! * k * nv;
+    }
+    const blind = this.itemUse?.effects.get(15);
+    if (blind && medium !== 'lava') {
+      const f1 = fogEnd + (5 - fogEnd) * Math.min(1, blind.duration / 20);
+      fogStart = f1 * 0.25;
+      fogEnd = f1;
+      const d = blind.duration < 20 ? (1 - blind.duration / 20) ** 2 : 0;
+      for (let i = 0; i < 3; i++) fog[i] = fog[i]! * d;
     }
 
     this.lightmap.update({
       skyDarken: skyDarken(tod, this.world.rain, this.world.thunder),
       ambient: 0,
       gamma: s.gamma,
-      nightVision: this.effectsClient.nightVision(partial, this.player.isUnderWater),
+      nightVision: this.nightVisionScale(partial),
       flash: this.skyFlashTime > 0,
       end: false,
     });
@@ -2219,11 +2443,7 @@ export class Game implements ScreenHost, ContainerHost {
     perspective(this.proj, (fov * Math.PI) / 180, aspect, 0.05, Math.max(renderDist * 4, 512));
     this.applyHurtBob(this.proj, partial);
     if (s.viewBobbing) this.applyViewBob(partial);
-    {
-      // nausea wobble (GameRenderer.renderLevel portal/confusion distortion)
-      const nm = nauseaMatrix(this.effectsClient.wobble(partial, (this.settings as { screenEffectScale?: number }).screenEffectScale ?? 1), this.clientTicks + partial);
-      if (nm) multiply(this.proj, this.proj, nm as unknown as Mat4);
-    }
+    this.applyNausea(partial);
     viewRotation(this.view, camYaw, camPitch);
     this.sky.render(this.proj, this.view, skyState, sky, fog, renderDist);
 
@@ -2251,11 +2471,26 @@ export class Game implements ScreenHost, ContainerHost {
     }
     // items in players' hands (ItemInHandLayer), queued by the entity renderer
     for (const h of this.entityRenderer.held) {
-      const key = this.blockItems.modelKey(h.item);
+      const key = (h.pull !== undefined ? this.bowPullKey(h.pull) : null) ?? this.blockItems.modelKey(h.item);
       if (key !== null) this.blockItems.draw(key, this.viewProj, h.matrix, h.light, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
     }
     recycleHeld(this.entityRenderer);
     this.renderItems(cx, cy, cz, partial, fog, fogStart, fogEnd);
+    this.fallingBlocks.render(this.blockItems, this.world, this.viewProj, cx, cy, cz, partial, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
+    // arrows: the arrow sprite laid along the flight path (line fallback without sprites)
+    const arrowKey = this.arrows.arrows.size ? this.blockItems.modelKey(ITEMS_BY_NAME.get('arrow')!.id) : null;
+    if (arrowKey !== null) {
+      this.arrows.matrices(cx, cy, cz, partial, 0.7, (m, bx, by, bz) => {
+        this.blockItems.draw(arrowKey, this.viewProj, m, this.world.getLight(bx, by, bz), this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
+      });
+    } else if (this.arrows.render(this.lines, cx, cy, cz, partial)) this.lines.flush(this.viewProj, this.canvas.width, this.canvas.height);
+    {
+      const v = this.view;
+      this.arrows.thrownMatrices(cx, cy, cz, partial, [v[0]!, v[4]!, v[8]!], [v[1]!, v[5]!, v[9]!], (m, item, bx, by, bz) => {
+        const key = this.blockItems.modelKey(item);
+        if (key !== null) this.blockItems.draw(key, this.viewProj, m, this.world.getLight(bx, by, bz), this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
+      });
+    }
     if (this.bolts.size) {
       const ed = 64 * this.settings.entityDistance;
       this.lightning.render([...this.bolts.values()].filter((b) => (b.x - cx) ** 2 + (b.y - cy) ** 2 + (b.z - cz) ** 2 < ed * ed), this.viewProj, cx, cy, cz);
@@ -2271,6 +2506,7 @@ export class Game implements ScreenHost, ContainerHost {
       const rx = -Math.cos(yr2), rz = -Math.sin(yr2);
       const ux = -Math.sin(yr2) * Math.sin(pr2) * -1, uy = Math.cos(pr2), uz = Math.cos(yr2) * Math.sin(pr2) * -1;
       this.particles.render(this.viewProj, rx, 0, rz, ux, uy, uz, cx, cy, cz, partial, this.textures.tex, this.lightmap.tex, fog, fogStart, fogEnd);
+      if (this.itemParticles && this.itemTextures) this.itemParticles.render(this.viewProj, rx, 0, rz, ux, uy, uz, cx, cy, cz, partial, this.itemTextures.texture(this.gl), this.lightmap.tex, fog, fogStart, fogEnd);
     }
     // targeted block outline (vanilla: black, 40% alpha)
     this.target = raycastBlocks(this.world, ex, ey, ez, eyeLookX, eyeLookY, eyeLookZ, this.reach, false, this.hitScratch, this.outlineOf);
@@ -2327,7 +2563,7 @@ export class Game implements ScreenHost, ContainerHost {
         g.ctx.restore();
       }
       this.hud.render(g, this.hudState(), (id, c, x, y, dmg, pop, tag) => this.renderGuiItem(id, c, x, y, dmg, pop, tag), this.guiPartial);
-      if (!this.hideHud) this.effectsClient.renderHud(g);
+      renderEffects(g, this.itemUse.effects.values());
       this.renderItemActivation(g);
       // PlayerTabOverlay: while the key is held, in multiplayer or with company
       if (!this.screen && this.binds.down('playerlist') && (this.playerInfo.size > 1 || this.players.size > 0)) {
@@ -2348,7 +2584,7 @@ export class Game implements ScreenHost, ContainerHost {
       this.screen.render(this.mouseGX, this.mouseGY);
       // EffectRenderingInventoryScreen: active effects listed left of the survival/creative inventory
       const sc = this.screen as unknown as { leftPos?: number; topPos?: number };
-      if ((this.screen instanceof InventoryScreen || this.screen instanceof CreativeScreen) && sc.leftPos !== undefined) this.effectsClient.renderInventoryList(this.gui, sc.leftPos, sc.topPos ?? 0);
+      if ((this.screen instanceof InventoryScreen || this.screen instanceof CreativeScreen) && sc.leftPos !== undefined) this.effectsClient.renderInventoryList(this.gui, sc.leftPos, sc.topPos ?? 0, this.itemUse.effects.values());
     }
   }
 

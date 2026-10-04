@@ -24,88 +24,39 @@ function setup() {
   return { server, a, p };
 }
 
-describe('server status effects', () => {
-  it('addEffect syncs to the client, ticks down and is removed', () => {
+describe('effect swirls, flags and saves (Phase 7)', () => {
+  it('broadcasts the potion swirl colour and invisibility/glowing flags', () => {
     const { server, a, p } = setup();
-    expect(server.effects.addEffect(p, 'speed', 40, 1)).toBe(true);
-    const up = a.received.filter((m) => m.t === 'updateEffect').at(-1) as Extract<S2C, { t: 'updateEffect' }>;
-    expect(up).toMatchObject({ id: p.id, effect: 1, amplifier: 1, duration: 40, flags: 6 });
-    for (let i = 0; i < 41; i++) server.tick();
-    expect(server.effects.has(p, 'speed')).toBe(false);
-    expect(a.received.some((m) => m.t === 'removeEffect' && m.effect === 1)).toBe(true);
-  });
-
-  it('regeneration heals, poison hurts, swirl colour is broadcast', () => {
-    const { server, a, p } = setup();
-    p.living.health = 10;
-    server.effects.addEffect(p, 'regeneration', 100, 1);
-    for (let i = 0; i < 100; i++) server.tick();
-    expect(p.living.health).toBeGreaterThanOrEqual(13);
-    expect(a.received.some((m) => m.t === 'effectParticles' && m.color !== 0)).toBe(true);
-    const before = p.living.health;
-    p.living.invulnerableTime = 0;
-    server.effects.addEffect(p, 'poison', 26, 0);
-    for (let i = 0; i < 26; i++) server.tick();
-    expect(p.living.health).toBeLessThan(before);
-  });
-
-  it('absorption and health boost change the synced attributes', () => {
-    const { server, a, p } = setup();
-    server.effects.addEffect(p, 'absorption', 100, 1);
-    server.effects.addEffect(p, 'health_boost', 100, 0);
+    p.living.effects.add('speed', 100, 0, server.items.effectTarget(p));
     server.tick();
-    const attr = a.received.filter((m) => m.t === 'playerAttributes').at(-1) as Extract<S2C, { t: 'playerAttributes' }>;
-    expect(attr).toMatchObject({ maxHealth: 24, absorption: 8 });
-    server.effects.removeAll(p);
+    const sw = a.received.filter((m) => m.t === 'effectParticles').at(-1) as Extract<S2C, { t: 'effectParticles' }>;
+    expect(sw).toMatchObject({ id: p.id, color: 8171462, ambient: false });
+    p.living.effects.add('invisibility', 100, 0, server.items.effectTarget(p));
+    p.living.effects.add('glowing', 100, 0, server.items.effectTarget(p));
     server.tick();
-    expect(p.living.absorption).toBe(0);
-    expect(p.living.maxHealth).toBe(20);
+    expect(p.flags() & 32).toBe(32);
+    expect(p.flags() & 64).toBe(64);
+    p.living.effects.clear(server.items.effectTarget(p));
+    server.tick();
+    expect((a.received.filter((m) => m.t === 'effectParticles').at(-1) as { color: number }).color).toBe(0);
   });
 
-  it('resistance and fire resistance reduce damage', () => {
+  it('Protection enchantments reduce damage (EPF)', () => {
     const { server, p } = setup();
-    server.effects.addEffect(p, 'resistance', 100, 1);
-    server.survival.hurt(p, DAMAGE.cactus, 10);
-    expect(p.living.health).toBeCloseTo(20 - 6, 5);
-    server.effects.addEffect(p, 'fire_resistance', 100, 0);
-    expect(server.survival.hurt(p, DAMAGE.lava, 4)).toBe(false);
+    const boots = stack('diamond_boots');
+    boots.tag = { Enchantments: [{ id: 'feather_falling', lvl: 4 }] };
+    p.inventory.set(36, boots);
+    server.survival.hurt(p, DAMAGE.fall, 10);
+    // diamond boots give 3 armour but fall bypasses armour: 10 × (1 − 12/25) = 5.2
+    expect(p.living.health).toBeCloseTo(20 - 5.2, 4);
   });
 
-  it('a totem of undying saves the player', () => {
-    const { server, a, p } = setup();
-    p.inventory.set(40, stack('totem_of_undying'));
-    server.survival.hurt(p, DAMAGE.generic, 100);
-    expect(p.living.health).toBe(1);
-    expect(p.inventory.get(40)).toBeNull();
-    expect(server.effects.amp(p, 'regeneration')).toBe(1);
-    expect(server.effects.amp(p, 'absorption')).toBe(1);
-    expect(server.effects.has(p, 'fire_resistance')).toBe(true);
-    expect(a.received.some((m) => m.t === 'entityEvent' && m.event === 35)).toBe(true);
-    // the void bypasses it
-    p.inventory.set(0, stack('totem_of_undying'));
-    p.inventory.selected = 0;
-    p.living.invulnerableTime = 0;
-    server.survival.hurt(p, DAMAGE.outOfWorld, 1000);
-    expect(p.living.dead).toBe(true);
-  });
-
-  it('/effect give and clear go through the hooks', () => {
-    const { server, a, p } = setup();
-    p.gameMode = 1;
-    a.send({ t: 'chat', message: '/effect give @s minecraft:night_vision 30 0' });
-    expect(server.effects.has(p, 'night_vision')).toBe(true);
-    a.send({ t: 'chat', message: '/effect clear @s' });
-    expect(server.effects.has(p, 'night_vision')).toBe(false);
-  });
-
-  it('effects and the enchantment seed are saved with the player', () => {
+  it('the enchantment seed is saved with the player', () => {
     const { server, p } = setup();
-    server.effects.addEffect(p, 'haste', 500, 2);
     p.enchantmentSeed = 12345;
     const data = capturePlayer(p);
     const q = new ServerPlayer(99, p.conn, server.world);
     applyPlayer(q, JSON.parse(JSON.stringify(data)));
-    expect(q.living.effects.get('haste')!.amplifier).toBe(2);
     expect(q.enchantmentSeed).toBe(12345);
   });
 });

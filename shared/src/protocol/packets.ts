@@ -83,6 +83,16 @@ const S2C_SCHEMA = {
   playerInfo: [['action', 'u8'], ['id', 'i32'], ['name', 'str'], ['skin', 'str'], ['gameMode', 'u8']],
   /** Spectate through another entity's eyes, or back to your own (vanilla SetCamera). */
   setCamera: [['id', 'i32']],
+  /** Status effect added/updated on an entity (vanilla UpdateMobEffect); flags 1 ambient, 2 visible, 4 icon. */
+  mobEffect: [['id', 'i32'], ['effect', 'u8'], ['amplifier', 'u8'], ['duration', 'i32'], ['flags', 'u8']],
+  /** Status effect removed (vanilla RemoveMobEffect). */
+  removeMobEffect: [['id', 'i32'], ['effect', 'u8']],
+  /** Absorption hearts of the receiving player (vanilla DATA_PLAYER_ABSORPTION_ID). */
+  absorption: [['amount', 'f32']],
+  /** Armour another player wears (vanilla SetEquipment armour slots; item ids, 0 = empty). */
+  armorEquipment: [['id', 'i32'], ['feet', 'i16'], ['legs', 'i16'], ['chest', 'i16'], ['head', 'i16']],
+  /** A living entity starts/stops using an item (vanilla DATA_LIVING_ENTITY_FLAGS: eating, drinking, drawing a bow). */
+  livingUse: [['id', 'i32'], ['using', 'bool'], ['hand', 'u8'], ['item', 'i16']],
   /** A container window opened (vanilla OpenScreen): menu type ('crafting', 'generic_9x3', 'furnace'…) and title. */
   openWindow: [['windowId', 'u8'], ['type', 'str'], ['title', 'str']],
   /** Every slot of a window plus the carried stack last (vanilla ContainerSetContent); see encodeStacks. */
@@ -103,14 +113,8 @@ const S2C_SCHEMA = {
   /** Vanilla PlayerInfo UPDATE_LATENCY: a player's ping in milliseconds. */
   playerLatency: [['id', 'i32'], ['latency', 'varint']],
   // ---- status effects & enchantments (Phase 7) ----
-  /** Vanilla UpdateMobEffect: flags 1 ambient, 2 visible (particles), 4 show icon. */
-  updateEffect: [['id', 'i32'], ['effect', 'u8'], ['amplifier', 'u8'], ['duration', 'varint'], ['flags', 'u8']],
-  /** Vanilla RemoveMobEffect. */
-  removeEffect: [['id', 'i32'], ['effect', 'u8']],
   /** LivingEntity DATA_EFFECT_COLOR_ID / DATA_EFFECT_AMBIENCE_ID (potion swirl particles; 0 = none). */
   effectParticles: [['id', 'i32'], ['color', 'i32'], ['ambient', 'bool']],
-  /** Local player's max health (Health Boost) and absorption (golden hearts). */
-  playerAttributes: [['maxHealth', 'f32'], ['absorption', 'f32']],
   /** Item NBT for an inventory slot (sent after setSlot; '' = none): JSON of ItemTag. */
   slotTag: [['slot', 'i16'], ['tag', 'str']],
   /** Item NBT of an item entity (enchantment glint, potion colour); JSON of ItemTag. */
@@ -148,6 +152,10 @@ const C2S_SCHEMA = {
   respawn: [],
   /** Spectator menu "Teleport to Player" (vanilla TeleportToEntity). */
   spectate: [['target', 'i32']],
+  /** Right click with an item in the air, or after a block interaction passed (vanilla UseItem). */
+  useItem: [['hand', 'u8']],
+  /** Use key released while using an item: shoot the bow (vanilla PlayerAction RELEASE_USE_ITEM). */
+  releaseUseItem: [],
   /** Click in a window (vanilla ContainerClick): slot −999 = outside; clickType 0 PICKUP, 1 QUICK_MOVE, 2 SWAP, 3 CLONE, 4 THROW, 5 QUICK_CRAFT, 6 PICKUP_ALL. */
   clickWindow: [['windowId', 'u8'], ['slot', 'i16'], ['button', 'u8'], ['clickType', 'u8']],
   /** The player closed a window (0 = the inventory). */

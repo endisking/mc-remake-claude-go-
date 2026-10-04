@@ -14,8 +14,10 @@ import { isRainingAt } from '@shared/world/weather';
 import { soundTypeOf } from '@shared/world/soundtype';
 import { giveExperienceLevels, giveExperiencePoints, deathExperience } from '@shared/game/experience';
 import { CombatTracker, fallLocation, type CombatSource } from '@shared/game/combattracker';
-import { ActiveEffects, resistanceReduce } from '@shared/game/effects';
+import { EffectMap } from '@shared/game/effects';
+import { damageAfterArmor, damageAfterResistance } from '@shared/game/items';
 import { destroyVanishing } from './enchanthooks';
+import { syncSwirl } from './effectswirl';
 import { damageProtection, magicAbsorb, respirationKeepsAir, armorItems } from '@shared/game/enchantments';
 
 export interface DamageSource extends CombatSource {
@@ -28,6 +30,8 @@ export interface DamageSource extends CombatSource {
   bypassMagic?: boolean;
   magic?: boolean;
   explosion?: boolean;
+  /** DamageSource.getSourcePosition (the direct entity: arrow or attacker) for shield blocking */
+  pos?: { x: number; y: number; z: number };
   projectile?: boolean;
 }
 
@@ -48,6 +52,9 @@ export const DAMAGE = {
   freeze: { id: 'freeze', bypassArmor: true },
   lightningBolt: { id: 'lightningBolt' },
   playerAttack: { id: 'player' },
+  magic: { id: 'magic', bypassArmor: true },
+  wither: { id: 'wither', bypassArmor: true },
+  arrow: { id: 'arrow' },
 } as const satisfies Record<string, DamageSource>;
 
 export interface GameRules {
@@ -107,8 +114,9 @@ export class LivingState {
   timeSinceRest = 0;
   /** Entity.ticksFrozen (powder snow; 140 = fully frozen) */
   ticksFrozen = 0;
-  /** LivingEntity.activeEffects (Phase 7; see server/src/game/effects.ts) */
-  readonly effects = new ActiveEffects();
+  /** active status effects (LivingEntity.activeEffects) */
+  readonly effects = new EffectMap();
+  lastSentAbsorption = -1;
 
   get dead(): boolean {
     return this.health <= 0;
@@ -132,7 +140,7 @@ export class Survival {
   hurt(p: ServerPlayer, src: DamageSource, amount: number, attacker: ServerPlayer | null = null): boolean {
     const l = p.living;
     if (this.invulnerableTo(p, src) || l.dead) return false;
-    // LivingEntity.hurt: Fire Resistance ignores every fire source
+    // LivingEntity.hurt: fire resistance makes fire sources harmless
     if (src.fire && l.effects.has('fire_resistance')) return false;
     if (attacker) {
       src = { ...src, entity: { name: attacker.name, player: true } };
@@ -141,6 +149,12 @@ export class Survival {
     }
     if (l.spawnInvulnerableTime > 0 && src.id !== 'outOfWorld') return false;
     if (amount <= 0) return false;
+    // LivingEntity.isDamageSourceBlocked: a raised shield facing the source stops the hit
+    const srcPos = src.pos ?? (attacker ? { x: attacker.x, y: attacker.y, z: attacker.z } : null);
+    if (srcPos && !src.bypassArmor && this.s.items.blocksFrom(p, srcPos)) {
+      this.s.items.shieldBlocked(p, amount, src.projectile ? null : attacker);
+      return false;
+    }
     let fresh = true;
     if (l.invulnerableTime > 10) {
       if (amount <= l.lastHurt) return false;
@@ -168,11 +182,10 @@ export class Survival {
     const r = this.s.rand;
     const voice = (r.nextFloat() - r.nextFloat()) * 0.2 + 1;
     if (l.dead) {
-      // a Totem of Undying in either hand cancels the death
-      if (!this.s.effects.checkTotem(p, !!src.bypassInvul)) {
-        if (fresh) this.s.playSound(p, 'entity.player.death', 'player', p.x, p.y, p.z, 1, voice);
-        this.die(p, src);
-      }
+      // LivingEntity.checkTotemDeathProtection: a Totem of Undying in either hand saves us
+      if (this.s.items.useTotem(p, src)) return true;
+      if (fresh) this.s.playSound(p, 'entity.player.death', 'player', p.x, p.y, p.z, 1, voice);
+      this.die(p, src);
     } else if (fresh) {
       // Player.getHurtSound
       const ev = src.id === 'onFire' ? 'entity.player.hurt_on_fire' : src.id === 'drown' ? 'entity.player.hurt_drown'
@@ -184,13 +197,21 @@ export class Survival {
 
   private actuallyHurt(p: ServerPlayer, src: DamageSource, amount: number): void {
     const l = p.living;
-    // LivingEntity.getDamageAfterMagicAbsorb: Resistance, then enchantment protection (EPF)
+    // LivingEntity.getDamageAfterArmorAbsorb: armour loses durability, then reduces the damage
+    if (!src.bypassArmor) {
+      this.s.items.hurtArmor(p, src, amount);
+      const a = this.s.items.armorOf(p);
+      amount = damageAfterArmor(amount, a.armor, a.toughness);
+    }
+    // getDamageAfterMagicAbsorb: Resistance (not for starvation or the void), then enchantment protection (EPF)
     if (!src.bypassMagic) {
-      if (src.id !== 'outOfWorld') amount = resistanceReduce(amount, l.effects.amplifier('resistance'));
+      if (src.id !== 'outOfWorld') amount = damageAfterResistance(amount, l.effects.amplifier('resistance'));
       if (amount <= 0) return;
       const epf = damageProtection(armorItems(p.inventory), src);
       if (epf > 0) amount = magicAbsorb(amount, epf);
     }
+    if (amount <= 0) return;
+    // absorption first
     const absorbed = Math.min(l.absorption, amount);
     l.absorption -= absorbed;
     amount -= absorbed;
@@ -273,7 +294,7 @@ export class Survival {
     // LivingEntity.aiStep freezing: +1 per tick in powder snow (up to 140), −2 outside;
     // fully frozen players take 1 freeze damage every 2 s (leather armour protects — Phase 5)
     const before = l.ticksFrozen;
-    if (inPowderSnow && p.gameMode !== 3) l.ticksFrozen = Math.min(140, l.ticksFrozen + 1);
+    if (inPowderSnow && p.gameMode !== 3 && this.s.items.canFreeze(p)) l.ticksFrozen = Math.min(140, l.ticksFrozen + 1);
     else l.ticksFrozen = Math.max(0, l.ticksFrozen - 2);
     if (l.ticksFrozen !== before) p.stateDirty = true;
     if (this.s.gameTime % 40 === 0 && l.ticksFrozen >= 140 && p.gameMode !== 3) this.hurt(p, DAMAGE.freeze, 1);
@@ -289,7 +310,8 @@ export class Survival {
     l.combat.recheckStatus(this.s.gameTime, !l.dead);
 
     // LivingEntity.tickEffects
-    this.s.effects.tick(p);
+    if (l.effects.active.size) l.effects.tick(this.s.items.effectTarget(p));
+    syncSwirl(this.s, p);
     if (l.dead) {
       this.sync(p);
       return;
@@ -319,6 +341,10 @@ export class Survival {
       l.lastSentHealth = l.health;
       l.lastSentFood = l.food.foodLevel;
       l.lastSentSaturationZero = satZero;
+    }
+    if (l.absorption !== l.lastSentAbsorption) {
+      this.s.send(p, { t: 'absorption', amount: l.absorption });
+      l.lastSentAbsorption = l.absorption;
     }
     if (l.airSupply !== l.lastSentAir) {
       this.s.send(p, { t: 'air', air: l.airSupply });
@@ -436,7 +462,8 @@ export class Survival {
       }
       return;
     }
-    const dmg = Math.ceil((fallDistance - 3) * mult);
+    // LivingEntity.calculateFallDamage: Jump Boost raises the safe height by a block per level
+    const dmg = Math.ceil((fallDistance - 3 - (p.living.effects.amplifier('jump_boost') + 1)) * mult);
     if (dmg > 0) {
       this.fallSounds(p, dmg, below);
       this.hurt(p, DAMAGE.fall, dmg);
@@ -524,6 +551,7 @@ export class Survival {
     const keep = this.s.gameRules.keepInventory;
     const old = p.living;
     p.living = new LivingState();
+    p.living.effects.onChange = (e, removed) => this.s.items.sendEffect(p, e, removed);
     if (keep) {
       p.living.experienceLevel = old.experienceLevel;
       p.living.experienceProgress = old.experienceProgress;

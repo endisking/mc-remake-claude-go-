@@ -11,8 +11,6 @@ import { isPlayer } from './commands/source';
 import { enchLevel, entityEnchLevel, hurtItem, mendingRepair, randomItemWith, thornsShouldHit, thornsDamage, compatibleWithAll, enchByName, enchantStack, canEnchantItem } from '@shared/game/enchantments';
 import { ITEMS_BY_ID } from '@shared/data';
 import { FLUID } from '@shared/world/blockinfo';
-import { hardness } from '@shared/game/mining';
-import { blockNameOf } from '@shared/world/blockstate';
 import type { MinerState } from '@shared/game/mining';
 
 /** Player.getDestroySpeed inputs for the held item and active effects. */
@@ -54,39 +52,15 @@ export function hurtAndBreak(s: GameServer, p: ServerPlayer, slot: number, amoun
   s.syncSlot(p, slot);
 }
 
-/** Item.mineBlock durability: tools 1, swords/tridents 2, only for blocks that aren't instant. */
-export function afterMine(s: GameServer, p: ServerPlayer, state: number): void {
-  const held = p.inventory.selectedStack;
-  if (!held) return;
-  const n = ITEMS_BY_ID[held.id]?.name ?? '';
-  if (n === 'shears') {
-    if (!blockNameOf(state).endsWith('fire')) hurtAndBreak(s, p, p.inventory.selected, 1);
-    return;
-  }
-  if (hardness(state) === 0) return;
-  if (/_sword$/.test(n) || n === 'trident') hurtAndBreak(s, p, p.inventory.selected, 2);
-  else if (/_(pickaxe|axe|shovel|hoe)$/.test(n)) hurtAndBreak(s, p, p.inventory.selected, 1);
-}
-
-/** Melee extras for Player.attack: enchantment damage bonus, knockback levels, fire aspect, sweep ratio, attribute bonus. */
-export function attackExtras(p: ServerPlayer): { attackBonus: number; knockback: number; fireAspect: number; sweeping: number; blind: boolean } {
+/** Melee extras for Player.attack: Knockback and Fire Aspect levels, Sweeping Edge, blindness (no crits). */
+export function attackExtras(p: ServerPlayer): { knockback: number; fireAspect: number; sweeping: number; blind: boolean } {
   const fx = p.living.effects;
   return {
-    attackBonus: fx.attributeValue('attack_damage', 0),
     knockback: entityEnchLevel('knockback', p.inventory),
     fireAspect: entityEnchLevel('fire_aspect', p.inventory),
     sweeping: entityEnchLevel('sweeping', p.inventory),
     blind: fx.has('blindness'),
   };
-}
-
-/** Weapon wear after a hit (SwordItem/DiggerItem.hurtEnemy: swords 1, tools 2). */
-export function afterHit(s: GameServer, p: ServerPlayer): void {
-  const held = p.inventory.selectedStack;
-  if (!held) return;
-  const n = ITEMS_BY_ID[held.id]?.name ?? '';
-  if (/_sword$/.test(n) || n === 'trident') hurtAndBreak(s, p, p.inventory.selected, 1);
-  else if (/_(pickaxe|axe|shovel|hoe)$/.test(n)) hurtAndBreak(s, p, p.inventory.selected, 2);
 }
 
 /** ThornsEnchantment.doPostHurt (victim's armour hurts the attacker; the armour wears by 2). */
