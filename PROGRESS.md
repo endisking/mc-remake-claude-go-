@@ -364,3 +364,33 @@ Still not vanilla:
   - Removed: `client/src/audio/music.ts` (MusicManager), the `music.*` events and `music_*` clip sets, their
     soundgen sources, and the Music volume slider (the screen is now "Sound Options").
   - Jukebox discs (`record` category, not implemented yet) aren't part of this removal.
+
+## 2026-10-04 — Mobile touch controls (0.4.5)
+
+- `client/src/gui/touch.ts`: a DOM overlay laid out like the mobile edition's touch controls. Every control
+  becomes the same key or mouse-button press the keyboard makes (through `Input.press/release` and the key
+  bindings), so the game logic is unchanged.
+  - **Joystick:** appears under the thumb on the left 35% of the screen. W/A/S/D past 35% deflection; at 92% or
+    more mostly forward it adds the sprint key.
+  - **Look:** a drag elsewhere adds to the mouse delta (2.2 mouse counts per CSS px; the sensitivity option still
+    applies).
+  - **Tap** (under 12 px of travel): attack if an entity is targeted, otherwise use/place.
+  - **Hold** (280 ms still): holds use when the selected item has a use duration (food, potions, bows,
+    crossbows, tridents, shields, spyglass), otherwise attack (break). Dragging while holding keeps breaking.
+  - **Buttons:** jump (held), sneak (toggle), inventory, drop, chat (`prompt()`, so the phone keyboard can type),
+    perspective, fullscreen, pause. Tapping a hotbar slot selects it.
+  - **Menus:** only a ✕ button is shown; it sends Escape. Taps reach the menu as the browser's emulated mouse
+    clicks.
+- `Input.touchMode`: no pointer lock. `lock()`/`unlock()` just track whether a menu is open, so the "is playing"
+  checks work unchanged.
+  - Touch mode turns on with a touch. A mouse `pointerdown` switches back to pointer lock (touchscreen
+    Chromebooks).
+  - The viewport disables pinch zoom.
+- Verified in Chromium phone emulation (Pixel 7 landscape) with real touch events:
+  - joystick → W (+ sprint when pushed fully); a drag turns the camera; a hold presses attack
+  - the jump button holds Space; the inventory, ✕ and pause buttons work
+  - a hotbar tap selects the slot; tapping a creative-inventory block, then a hotbar slot, places it there
+  - chat via the prompt reaches the server
+  - touch ↔ mouse switching works on a touch-enabled desktop.
+- Not like vanilla Java (which has no touch controls): splitting stacks by dragging and right-click halving
+  aren't available by touch yet.

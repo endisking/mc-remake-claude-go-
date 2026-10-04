@@ -7,6 +7,8 @@ export class Input {
   mouseDY = 0;
   wheel = 0;
   locked = false;
+  /** playing with touch controls: there is no pointer lock, "locked" just means no menu is open */
+  touchMode = false;
   /** keys that have an F3 combo, and combos pressed since the last frame */
   debugKeys = new Set<string>();
   readonly debugQueue: string[] = [];
@@ -59,8 +61,28 @@ export class Input {
   }
 
   lock(): void {
+    if (this.touchMode) {
+      if (!this.locked) {
+        this.locked = true;
+        this.onLockChange?.(true);
+      }
+      return;
+    }
     const p = this.canvas.requestPointerLock() as unknown as Promise<void> | undefined;
     p?.catch?.(() => {});
+  }
+
+  /** release the mouse (a menu opened) */
+  unlock(): void {
+    if (this.touchMode) {
+      if (!this.locked) return;
+      this.locked = false;
+      this.down.clear();
+      this.mouseButtons.clear();
+      this.onLockChange?.(false);
+      return;
+    }
+    if (document.pointerLockElement) document.exitPointerLock();
   }
 
   /** Key or mouse button ("Mouse0".."Mouse4") pressed (also used by tests). */

@@ -1,21 +1,33 @@
-# Blockcraft 0.4.4 (pre-release)
+# Blockcraft 0.4.5 (pre-release)
 
 A browser voxel sandbox that plays like Minecraft Java Edition 1.17.1, with 100% original art, sounds and code.
 This is an early development snapshot. Expect bugs and missing features.
 
 ## Downloads
-- **Blockcraft-0.4.4-win32-x64.zip**: the Windows desktop app. Unzip it anywhere and run `Blockcraft.exe`.
+- **Blockcraft-0.4.5-win32-x64.zip**: the Windows desktop app. Unzip it anywhere and run `Blockcraft.exe`.
   Worlds are saved inside the app.
-- **Blockcraft-0.4.4-macos-arm64.zip**: macOS for Apple Silicon (M1/M2/M3/M4 Macs).
-- **Blockcraft-0.4.4-macos-x64.zip**: macOS for Intel Macs.
+- **Blockcraft-0.4.5-macos-arm64.zip**: macOS for Apple Silicon (M1/M2/M3/M4 Macs).
+- **Blockcraft-0.4.5-macos-x64.zip**: macOS for Intel Macs.
   Unzip, drag `Blockcraft.app` to Applications. The app isn't notarized by Apple, so the first launch is blocked:
   open it once, then go to System Settings → Privacy & Security and click **Open Anyway** (or run
   `xattr -cr /Applications/Blockcraft.app` in Terminal).
-- **Blockcraft-0.4.4-server.zip**: the dedicated server. Needs Node.js 20 or newer (https://nodejs.org). Unzip,
+- **Blockcraft-0.4.5-server.zip**: the dedicated server. Needs Node.js 20 or newer (https://nodejs.org). Unzip,
   run `start.bat` (Windows) or `./start.sh` (macOS/Linux). Friends open the address it prints
   (`http://<your IP>:8080/`) and click Join Server. README.txt inside covers settings, rooms, ops and internet play.
-- **Blockcraft-0.4.4-web.zip**: the web app. Serve the folder with any static web server (it must be http://,
+- **Blockcraft-0.4.5-web.zip**: the web app. Serve the folder with any static web server (it must be http://,
   not file://), for example `npx serve .`, then open it in Chrome, Edge or Firefox.
+
+## New in 0.4.5
+- **Mobile controls:** play on phones and tablets (landscape works best). They appear as soon as you touch the
+  screen:
+  - **Move and look:** a joystick on the left to walk (push it all the way forward to sprint); drag anywhere else
+    to look around.
+  - **Tap:** place or use the held item, or hit the mob you're aiming at.
+  - **Hold:** break blocks, or eat, draw a bow or block with a shield when holding one.
+  - **Buttons:** jump, sneak (tap to toggle), inventory, drop, chat (uses the phone's keyboard), change view,
+    fullscreen and pause. Tap a hotbar slot to select it.
+  - **Menus:** in menus, tap items and buttons, and use ✕ to close.
+  - **Touchscreen laptops:** using the mouse or trackpad switches back to mouse controls.
 
 ## New in 0.4.4
 - **Ctrl+W no longer closes the game in fullscreen:** Ctrl is the sprint key, so "sprint forward" is Ctrl+W. In

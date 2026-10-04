@@ -396,10 +396,71 @@ export class Game implements ScreenHost, ContainerHost {
     window.addEventListener('blur', () => {
       if (this.settings.pauseOnLostFocus && !this.screen && this.loggedIn && !this.dead) this.setScreen(new PauseScreen(this));
     });
+    // phones and tablets: touch controls appear with a touch; on touchscreen laptops (Chromebooks)
+    // using the mouse or trackpad again switches back to mouse controls
+    window.addEventListener('touchstart', () => {
+      if (!this.input.touchMode) void this.enableTouchControls();
+    }, { capture: true, passive: true });
+    window.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && this.input.touchMode) this.disableTouchControls();
+    }, { capture: true });
     // clicking the world while no screen is open grabs the mouse again
     canvas.addEventListener('mousedown', () => {
       if (!this.screen && !this.input.locked) this.input.lock();
     });
+  }
+
+  touch: import('./gui/touch').TouchControls | null = null;
+
+  /** Switch to touch play: on-screen joystick and buttons instead of pointer lock (gui/touch.ts). */
+  async enableTouchControls(): Promise<void> {
+    const input = this.input;
+    const { TouchControls } = await import('./gui/touch');
+    if (input.touchMode) return;
+    if (document.pointerLockElement) document.exitPointerLock();
+    input.touchMode = true;
+    input.locked = false;
+    document.documentElement.style.overscrollBehavior = 'none';
+    document.body.style.touchAction = 'none';
+    if (this.touch) {
+      this.touch.setVisible(true);
+      if (!this.screen && this.loggedIn) input.lock();
+      return;
+    }
+    const game = this;
+    this.touch = new TouchControls({
+      input,
+      gui: this.gui,
+      screenOpen: () => !!game.screen,
+      closeScreen: () => {
+        // exactly what a keyboard Escape does on the open screen
+        window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', key: 'Escape' }));
+        window.dispatchEvent(new KeyboardEvent('keyup', { code: 'Escape', key: 'Escape' }));
+      },
+      openPauseMenu: () => {
+        if (!game.screen && game.loggedIn) game.setScreen(new PauseScreen(game));
+      },
+      key: (id) => game.binds.key(id),
+      targetIsEntity: () => game.targetEntity !== null,
+      holdToUse: () => useDuration(game.interaction?.inventory.selectedStack?.id ?? 0) > 0,
+      sendChat: (message) => game.send({ t: 'chat', message }),
+      toggleFullscreen: () => toggleFullscreen(),
+    });
+    if (!this.screen && this.loggedIn) input.lock();
+  }
+
+  /** Back to mouse and keyboard (the mouse was used on a touchscreen laptop). */
+  disableTouchControls(): void {
+    const input = this.input;
+    if (!input.touchMode) return;
+    this.touch?.setVisible(false);
+    input.touchMode = false;
+    input.locked = false;
+    input.down.clear();
+    document.documentElement.style.overscrollBehavior = '';
+    document.body.style.touchAction = '';
+    // this click is a user gesture, so the pointer can be captured right away
+    if (!this.screen && this.loggedIn) input.lock();
   }
 
   // ------------------------------------------------------------------ screens (ScreenHost)
@@ -411,7 +472,7 @@ export class Game implements ScreenHost, ContainerHost {
     if (s) {
       s.init();
       this.gui.canvas.classList.add('interactive');
-      if (this.input.locked) document.exitPointerLock();
+      if (this.input.locked) this.input.unlock();
     } else {
       this.gui.canvas.classList.remove('interactive');
       if (new URLSearchParams(location.search).get('nolock') !== '1') this.input.lock();
@@ -1635,6 +1696,7 @@ export class Game implements ScreenHost, ContainerHost {
       this.tick();
     }
     const partial = this.tickAccum / 50;
+    this.touch?.update();
     this.handleFrameInput();
     const c0 = performance.now();
     this.render(partial);
