@@ -39,6 +39,7 @@ export class Commands {
   maxPlayers = 8;
 
   /** keep-alive bookkeeping and measured latency per player (vanilla ServerPlayer.latency) */
+  private readonly spam = new WeakMap<ServerPlayer, number>();
   private readonly pings = new WeakMap<ServerPlayer, { pending: number | null; sentAt: number; latency: number }>();
 
   constructor(readonly server: GameServer) {
@@ -75,6 +76,8 @@ export class Commands {
     const s = this.server;
     const now = Date.now();
     for (const p of s.players) {
+      const spam = this.spam.get(p);
+      if (spam) this.spam.set(p, spam - 1);
       let st = this.pings.get(p);
       if (!st) {
         st = { pending: null, sentAt: 0, latency: 0 };
@@ -138,6 +141,13 @@ export class Commands {
     // vanilla: StringUtils.normalizeSpace, 256 characters
     const msg = message.trim().replace(/\s+/g, ' ').slice(0, 256);
     if (!msg) return;
+    // ServerGamePacketListenerImpl.chatSpamTickCount: +20 per line, kicked above 200 unless op
+    const spam = (this.spam.get(p) ?? 0) + 20;
+    this.spam.set(p, spam);
+    if (spam > 200 && !this.access.isOp(p)) {
+      this.kick(p, 'Kicked for spamming');
+      return;
+    }
     if (msg.startsWith('/')) {
       this.perform(this.sourceFor(p), msg.slice(1));
       return;

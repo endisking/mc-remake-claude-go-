@@ -1187,9 +1187,10 @@ export class GameServer {
       this.raining = false;
       this.thundering = false;
     } else {
+      // ServerLevel.setWeatherParameters(0, duration, true, thunder): both timers get the duration
       this.clearWeatherTime = 0;
       this.rainTime = duration;
-      this.thunderTime = kind === 'thunder' ? duration : 0;
+      this.thunderTime = duration;
       this.raining = true;
       this.thundering = kind === 'thunder';
     }

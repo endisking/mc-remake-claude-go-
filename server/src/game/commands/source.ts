@@ -5,7 +5,7 @@
 import type { GameServer } from '../server';
 import { ServerPlayer } from '../player';
 import type { ServerEntity } from '../entity';
-import { ENTITIES_BY_NAME } from '@shared/data';
+import { ENTITIES_BY_NAME, ITEMS_BY_ID } from '@shared/data';
 
 /** Anything a selector can find. */
 export type Target = ServerPlayer | ServerEntity;
@@ -21,6 +21,9 @@ export function nameOf(t: Target): string {
   if (isPlayer(t)) return t.name;
   const custom = (t as { customName?: string }).customName;
   if (custom) return custom;
+  // ItemEntity.getName: the item's name
+  const stack = (t as { stack?: { id: number } }).stack;
+  if (t.type === 'item' && stack) return ITEMS_BY_ID[stack.id]?.displayName ?? 'Item';
   return ENTITIES_BY_NAME.get(t.type)?.displayName ?? t.type;
 }
 export function isAlive(t: Target): boolean {

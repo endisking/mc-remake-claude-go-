@@ -537,7 +537,7 @@ export function registerVanillaCommands(d: CommandDispatcher<S>): void {
       e = orb;
     }
     if (!e) throw new CommandError('Unable to summon entity');
-    c.source.sendSuccess(`Summoned new ${ENTITIES_BY_NAME.get(type)?.displayName ?? nameOf(e)}`, true);
+    c.source.sendSuccess(`Summoned new ${nameOf(e)}`, true);
     return 1;
   };
   d.register(

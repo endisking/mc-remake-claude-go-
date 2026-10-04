@@ -10,7 +10,7 @@
  * wss:// on port 443, which works on school networks.
  *
  * Env: PORT (default 8080), TLS_CERT, TLS_KEY, SEED, STATIC_DIR, WORLD_DIR (default ./worlds),
- *      OPS (comma-separated player names made operators of every room; "*" = everyone is an
+ *      PVP (default true), OPS (comma-separated player names made operators of every room; "*" = everyone is an
  *      operator), MAX_PLAYERS (default 20)
  *
  * Each room keeps ops.json, banned-players.json, banned-ips.json and whitelist.json in
@@ -85,6 +85,8 @@ function roomFor(code: string): GameServer {
   if (!r) {
     const seed = process.env.SEED ? BigInt(process.env.SEED) : BigInt.asIntN(64, BigInt(Math.floor(Math.random() * 2 ** 52)) * 4093n);
     const server = new GameServer({ seed, defaultGameMode: Number(process.env.GAMEMODE ?? 0), scene: process.env.SCENE, dedicated: true, access: jsonFileStore(join(WORLD_DIR, code)) });
+    // server.properties pvp (default true)
+    server.pvp = process.env.PVP !== 'false';
     if (process.env.MAX_PLAYERS) server.commands.maxPlayers = Math.max(1, Number(process.env.MAX_PLAYERS) || 20);
     if (process.env.OPS?.trim() === '*') server.commands.access.allOps = true;
     else for (const name of (process.env.OPS ?? '').split(',').map((n) => n.trim()).filter(Boolean)) server.commands.access.op(name);

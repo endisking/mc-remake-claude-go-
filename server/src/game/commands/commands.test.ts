@@ -297,7 +297,7 @@ describe('world commands', () => {
     expect(a.run('/gamemode spectator')).toEqual(['Set own game mode to Spectator Mode']);
     expect(a.run('/kill B')).toEqual(['B fell out of the world', 'Killed B']);
     server.popResource(0, 120, 0, { id: ITEMS_BY_NAME.get('stone')!.id, count: 1, damage: 0 });
-    expect(a.run('/kill @e[type=item]')).toEqual(['Killed Item']);
+    expect(a.run('/kill @e[type=item]')).toEqual(['Killed Stone']);
     expect(a.run('/kill @e[type=item]')).toEqual(['No entity was found']);
   });
 
@@ -307,7 +307,7 @@ describe('world commands', () => {
     expect(p.respawn).toMatchObject({ x: 1, y: 100, z: 2 });
     expect(a.run('/setworldspawn 5 90 5 45')).toEqual(['Set the world spawn point to 5, 90, 5 [45.0]']);
     expect(server.worldSpawn).toEqual([5, 90, 5]);
-    expect(a.run('/summon minecraft:item ~ ~ ~ {Item:{id:"minecraft:apple",Count:3b}}')).toEqual(['Summoned new Item']);
+    expect(a.run('/summon minecraft:item ~ ~ ~ {Item:{id:"minecraft:apple",Count:3b}}')).toEqual(['Summoned new Apple']);
     expect(a.run('/summon zombie')).toEqual(['Unable to summon entity']);
     expect(a.run('/summon unicorn')).toEqual(['Unknown entity: minecraft:unicorn']);
     expect(a.run('/locate village')).toEqual(['Could not find that structure nearby']);

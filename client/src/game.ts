@@ -82,6 +82,8 @@ export class Game implements ScreenHost {
   private readonly hud = new Hud();
   /** online players (vanilla PlayerInfo list) */
   readonly playerInfo = new Map<number, PlayerInfoEntry>();
+  /** operator permission level from the server (vanilla LocalPlayer.permissionLevel); integrated servers start at 4 */
+  permissionLevel = 4;
   /** ping per player id (vanilla PlayerInfo latency) */
   readonly playerLatency = new Map<number, number>();
   /** camera position of the last frame (nameplates project from it) */
@@ -1071,6 +1073,11 @@ export class Game implements ScreenHost {
 
   /** LivingEntity.handleEntityEvent: hurt animation and the hurt/death sound for the local player. */
   private entityEvent(id: number, event: number): void {
+    // 24–28: our operator permission level (vanilla ClientboundEntityEventPacket)
+    if (id === this.entityId && event >= 24 && event <= 28) {
+      this.permissionLevel = event - 24;
+      return;
+    }
     const hurt = event === 2 || event === 33 || event === 36 || event === 37 || event === 44 || event === 57;
     if (id !== this.entityId) {
       const rp = this.players.get(id);
@@ -1436,7 +1443,8 @@ export class Game implements ScreenHost {
         return true;
       case 'KeyN':
         // operators toggle between spectator and the previous game mode (creative if none)
-        if (this.gameMode !== 3) this.send({ t: 'chat', message: '/gamemode spectator' });
+        if (this.permissionLevel < 2) this.debugFeedback('Unable to switch gamemode; no permission');
+        else if (this.gameMode !== 3) this.send({ t: 'chat', message: '/gamemode spectator' });
         else this.send({ t: 'chat', message: `/gamemode ${GAME_MODE_NAMES[this.previousGameMode >= 0 && this.previousGameMode !== 3 ? this.previousGameMode : 1]}` });
         return true;
       case 'KeyP':
