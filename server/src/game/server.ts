@@ -18,6 +18,7 @@ import { AABB, noCollision } from '@shared/entity/aabb';
 import { ItemEntity, LightningBolt, ExperienceOrb, experienceOrbValue, type ServerEntity } from './entity';
 import { Sleep } from './sleep';
 import { FluidTicks } from './fluidticks';
+import { legacyBlock, FLUID_OF } from '@shared/game/fluids';
 import { isRainingAt } from '@shared/world/weather';
 import { stateForPlacement, updateShape, isReplaceable, companionPlacement, DIRS, DX, DY, DZ } from '@shared/game/placement';
 import { canSurvive } from '@shared/game/support';
@@ -447,9 +448,8 @@ export class GameServer {
     const state = this.world.getState(x, y, z);
     if (state === 0) return;
     const name = blockNameOf(state);
-    const waterlogged = getProp(state, 'waterlogged') === true;
-    const water = BLOCKS_BY_NAME.get('water')!.defaultState;
-    this.setBlock(x, y, z, waterlogged ? water : 0);
+    // Level.destroyBlock leaves the block's fluid behind (waterlogged blocks, kelp, seagrass)
+    this.setBlock(x, y, z, legacyBlock(FLUID_OF[state]!));
     // particles + sound for everyone else (the breaker plays them locally)
     for (const o of this.players) if (o !== breaker) this.send(o, { t: 'levelEvent', event: 2001, x, y, z, data: state });
     if (breaker && (breaker.gameMode === 0 || breaker.gameMode === 2)) breaker.living.food.addExhaustion(EXHAUSTION.breakBlock);

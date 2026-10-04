@@ -86,4 +86,18 @@ await place(page, [[0, Y + 1, 0, 'lava'], [8, Y + 1, 0, 'water'], [0, Y + 1, 2, 
 await page.waitForTimeout(8000);
 await shot('lava-water');
 for (let z = -2; z <= 2; z++) console.log(await row(page, Array.from({ length: 11 }, (_, i) => [-1 + i, Y + 1, z] as [number, number, number])));
+
+// 3) close-up of a source spreading on flat ground (corner heights, flow texture directions)
+await page.goto(`${base}?nolock=1&rd=3&gamemode=creative&x=0.5&y=${Y + 6}&z=-6.5&time=6000`);
+await ready();
+const flat: [number, number, number, string][] = [];
+for (let x = -9; x <= 9; x++) for (let z = -9; z <= 9; z++) flat.push([x, Y, z, 'stone']);
+flat.push([0, Y + 3, -6, 'stone']);
+await place(page, flat);
+await page.waitForTimeout(500);
+await pose(page, 0.5, Y + 4, -5.5, 0.5, Y, 1.5);
+await place(page, [[0, Y + 1, 0, 'water']]);
+await page.waitForTimeout(6000);
+await shot('flat');
+console.log(await row(page, Array.from({ length: 9 }, (_, i) => [i, Y + 1, 0] as [number, number, number])));
 await browser.close();
