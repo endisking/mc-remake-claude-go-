@@ -24,7 +24,7 @@ import { destroyProgress, hardness, canHarvest } from '@shared/game/mining';
 import { blockDrops, blockForItem, itemForBlock } from '@shared/game/loot';
 import { isEmpty, maxStackSize, itemName, type ItemStack } from '@shared/item/stack';
 import { collisionBoxes } from '@shared/world/shapes';
-import { getProp, blockNameOf } from '@shared/world/blockstate';
+import { getProp, blockNameOf, parseState } from '@shared/world/blockstate';
 import { FLUID } from '@shared/world/blockinfo';
 import { BLOCKS_BY_NAME, ITEMS_BY_NAME } from '@shared/data';
 import { Survival, DEFAULT_GAME_RULES, DAMAGE, type GameRules } from './survival';
@@ -1063,9 +1063,15 @@ export class GameServer {
     } else if (a[0] === 'setblock' && a.length >= 5) {
       const rel = (v: string, base: number) => (v.startsWith('~') ? Math.floor(base) + (Number(v.slice(1)) || 0) : Math.floor(Number(v)));
       const x = rel(a[1]!, p.x), y = rel(a[2]!, p.y), z = rel(a[3]!, p.z);
-      const b = BLOCKS_BY_NAME.get(a[4]!.replace(/^minecraft:/, ''));
-      if (!b || ![x, y, z].every(Number.isFinite)) return;
-      this.setBlock(x, y, z, b.defaultState);
+      let state: number;
+      try {
+        // block[prop=value,...] like vanilla's block state argument
+        state = parseState(a[4]!);
+      } catch {
+        return;
+      }
+      if (![x, y, z].every(Number.isFinite)) return;
+      this.setBlock(x, y, z, state);
       this.updateNeighbors(x, y, z);
     } else if (a[0] === 'summon' && a[1]?.replace(/^minecraft:/, '') === 'lightning_bolt') {
       const rel = (v: string | undefined, base: number) => (v === undefined ? base : v.startsWith('~') ? base + (Number(v.slice(1)) || 0) : Number(v));

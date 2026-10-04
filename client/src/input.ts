@@ -89,6 +89,11 @@ export class Input {
     return this.down.has(code);
   }
 
+  /** Forget presses not yet consumed (keys typed into a screen don't act on the world after it closes). */
+  clearPressed(): void {
+    this.pressed.clear();
+  }
+
   /** True once per key press (consumed). */
   consumePress(code: string): boolean {
     if (code.startsWith('Mouse')) this.mousePressed.delete(Number(code.slice(5)));

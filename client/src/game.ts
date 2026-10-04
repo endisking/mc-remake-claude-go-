@@ -58,9 +58,14 @@ import { JavaRandom } from '@shared/util/random';
 import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
+import { AbstractContainerScreen, InventoryScreen, screenForMenu, type ContainerHost } from './gui/containerscreen';
+import { CreativeScreen } from './gui/creative';
+import { InventoryMenu, createClientMenu, type Menu, type MenuType } from '@shared/menu/menu';
+import { InventoryContainer } from '@shared/menu/container';
+import { decodeStacks } from '@shared/protocol/packets';
 import { saveSettings } from './settings';
 
-export class Game implements ScreenHost {
+export class Game implements ScreenHost, ContainerHost {
   readonly gl: WebGL2RenderingContext;
   readonly world = new ClientWorld();
   readonly input: Input;
@@ -259,10 +264,12 @@ export class Game implements ScreenHost {
       toGui(e);
       this.screen?.mouseMove(this.mouseGX, this.mouseGY);
     });
-    window.addEventListener('mouseup', () => this.screen?.mouseUp());
+    window.addEventListener('mouseup', (e) => this.screen?.mouseUp(e.button));
     window.addEventListener('keydown', (e) => {
       if (this.screen) {
-        if (this.screen.keyDown(e.code)) e.preventDefault();
+        const sc = this.screen;
+        if (sc.keyDown(e.code)) e.preventDefault();
+        if (this.screen === sc && e.key.length === 1 && !e.ctrlKey && !e.metaKey && sc.charTyped(e.key)) e.preventDefault();
       }
     });
     this.input.onLockChange = (locked) => {
@@ -287,6 +294,8 @@ export class Game implements ScreenHost {
   setScreen(s: Screen | null): void {
     this.screen?.onClose();
     this.screen = s;
+    // keys and clicks made while a screen was up don't carry over to the world
+    this.input.clearPressed();
     if (s) {
       s.init();
       this.gui.canvas.classList.add('interactive');
@@ -458,6 +467,31 @@ export class Game implements ScreenHost {
     this.transport?.send(encodeC2S(p));
   }
 
+  // ------------------------------------------------------------------ containers (ContainerHost)
+  private invMenu: InventoryMenu | null = null;
+  /** The always-present player inventory menu (window 0). */
+  get inventoryMenu(): InventoryMenu {
+    if (!this.invMenu) this.invMenu = new InventoryMenu(new InventoryContainer(this.interaction.inventory));
+    return this.invMenu;
+  }
+  get playerInventory() {
+    return this.interaction.inventory;
+  }
+  isKeyDown(code: string): boolean {
+    return this.input.isDown(code);
+  }
+  /** E: the survival inventory, or the creative inventory in creative mode. */
+  openInventory(): void {
+    if (this.gameMode === 3) return;
+    if (this.gameMode === 1) this.setScreen(new CreativeScreen(this));
+    else this.setScreen(new InventoryScreen(this, this.inventoryMenu));
+  }
+  /** The menu a window id refers to (0 = inventory). */
+  private windowMenu(id: number): Menu | null {
+    if (id === 0) return this.inventoryMenu;
+    return this.screen instanceof AbstractContainerScreen && this.screen.menu.containerId === id ? this.screen.menu : null;
+  }
+
   private handle(p: S2C): void {
     switch (p.t) {
       case 'login':
@@ -585,6 +619,44 @@ export class Game implements ScreenHost {
       case 'setCamera':
         this.cameraEntity = p.id === this.entityId ? null : p.id;
         break;
+      case 'openWindow': {
+        const menu = createClientMenu(p.type as MenuType, p.windowId, new InventoryContainer(this.interaction.inventory));
+        this.setScreen(screenForMenu(this, menu, p.title));
+        break;
+      }
+      case 'windowItems': {
+        const m = this.windowMenu(p.windowId);
+        if (!m) break;
+        const list = decodeStacks(p.items);
+        for (let i = 0; i < m.slots.length && i < list.length - 1; i++) m.slots[i]!.container.setItem(m.slots[i]!.slot, list[i]!);
+        m.carried = list[list.length - 1] ?? null;
+        break;
+      }
+      case 'windowSlot': {
+        const st = p.item > 0 && p.count > 0 ? { id: p.item, count: p.count, damage: p.damage } : null;
+        if (p.windowId === -1) {
+          const sc = this.screen;
+          if (sc instanceof AbstractContainerScreen) sc.menu.carried = st;
+          break;
+        }
+        const m = this.windowMenu(p.windowId);
+        const sl = m?.slots[p.slot];
+        if (sl) sl.container.setItem(sl.slot, st);
+        break;
+      }
+      case 'windowData': {
+        const m = this.windowMenu(p.windowId);
+        if (m) m.data[p.property] = p.value;
+        break;
+      }
+      case 'closeWindow': {
+        const sc = this.screen;
+        if (sc instanceof AbstractContainerScreen && sc.menu.containerId === p.windowId) {
+          sc.closedByServer = true;
+          this.setScreen(null);
+        }
+        break;
+      }
       case 'entityMotion':
         // LocalPlayer.lerpMotion (knockback)
         if (p.id === this.entityId) {
@@ -890,6 +962,7 @@ export class Game implements ScreenHost {
         if (b.consume('pickItem')) ia.pickBlock(this.target);
         for (let d = 1; d <= 9; d++) if (b.consume(`hotbar.${d}`)) ia.select(d - 1);
       }
+      if (b.consume('inventory')) this.openInventory();
       // vanilla: Ctrl (Screen.hasControlDown) + drop throws the whole stack
       if (b.consume('swapOffhand')) ia.swapOffhand();
       if (b.consume('drop')) ia.drop(i.isDown('ControlLeft') || i.isDown('ControlRight') || i.isDown('MetaLeft'));
