@@ -342,9 +342,18 @@ function ore(c: J): Placer {
   };
 }
 
+let oreDone = new Uint32Array(0);
+let oreStamp = 0;
 function orePlace(lv: GenLevel, r: JavaRandom, size: number, discard: number, tg: { test: RuleTest; state: number }[], x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, minX: number, minY: number, minZ: number, width: number, height: number): boolean {
   let placed = 0;
-  const done = new Uint8Array(width * height * width);
+  // BitSet of visited blocks: a pooled stamp buffer instead of a fresh allocation per vein
+  const need = width * height * width;
+  if (oreDone.length < need) oreDone = new Uint32Array(need);
+  if (++oreStamp === 0xffffffff) {
+    oreDone.fill(0);
+    oreStamp = 1;
+  }
+  const done = oreDone, stamp = oreStamp;
   const ds = new Float64Array(size * 4);
   for (let k = 0; k < size; k++) {
     const t = f(k / size);
@@ -381,8 +390,8 @@ function orePlace(lv: GenLevel, r: JavaRandom, size: number, discard: number, tg
           const p = (e + 0.5 - cz) / d;
           if (v * v + q * q + p * p >= 1 || lv.isOutsideBuildHeight(w)) continue;
           const idx = u - minX + (w - minY) * width + (e - minZ) * width * height;
-          if (done[idx]) continue;
-          done[idx] = 1;
+          if (done[idx] === stamp) continue;
+          done[idx] = stamp;
           if (!lv.canWrite(u, e)) continue;
           const s = lv.getState(u, w, e);
           for (const t of tg) {

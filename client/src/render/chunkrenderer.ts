@@ -592,11 +592,14 @@ export class ChunkRenderer {
     gl.disable(gl.BLEND);
   }
 
-  /** Whether every section of a chunk column has its current mesh (loading screen progress). */
+  /**
+   * Whether every section of a chunk column has been meshed (is drawable), for the loading
+   * screen. Pending rebuilds (light updates from neighbours still generating) don't count.
+   */
   columnMeshed(cx: number, cz: number): boolean {
     for (let sy = 0; sy < 16; sy++) {
       const s = this.sections.get(this.key(cx, sy, cz));
-      if (!s || !s.hasMesh || s.dirty || s.building) return false;
+      if (!s || !s.hasMesh) return false;
     }
     return true;
   }

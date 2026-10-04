@@ -368,6 +368,14 @@ export class Game implements ScreenHost {
 
   async start(): Promise<void> {
     const q = new URLSearchParams(location.search);
+    // single-player: start the integrated server and join right away, so it generates the spawn
+    // chunks while textures and models load (packets are held until the client is ready)
+    const integratedP = q.has('server') || q.has('join') ? null : startIntegratedServer(BigInt(q.get('seed') ?? '12345'), q.get('scene') ?? '',
+      { survival: 0, creative: 1, adventure: 2, spectator: 3 }[q.get('gamemode') ?? 'survival'] ?? 0, q.get('world')).then((r) => {
+      this.preconnect(r.transport);
+      return r;
+    });
+    integratedP?.catch(() => {}); // reported where it is awaited
     await Promise.all([this.gui.load(), this.hud.load(), this.sound.load(), this.spectatorGui.load()]);
     void fetch('./textures/environment/powder_snow_outline.png').then((r) => r.blob()).then((b) => createImageBitmap(b)).then((bmp) => (this.frostOverlay = bmp));
     for (const [c, v] of Object.entries(this.settings.volumes)) this.sound.volumes[c as SoundCategory] = v;
@@ -495,10 +503,8 @@ export class Game implements ScreenHost {
         const { LanGuestTransport, signalingUrl } = await import('./net/lan');
         this.connect(new LanGuestTransport(q.get('join')!, signalingUrl(q.get('signal'))));
       } else {
-        const seed = BigInt(q.get('seed') ?? '12345');
-        const gm = { survival: 0, creative: 1, adventure: 2, spectator: 3 }[q.get('gamemode') ?? 'survival'] ?? 0;
         // ?world=<id>: a saved world from the launcher (IndexedDB); otherwise a transient one
-        const { server, transport } = await startIntegratedServer(seed, q.get('scene') ?? '', gm, q.get('world'));
+        const { server, transport } = await integratedP!;
         this.integrated = server;
         if (server.worldId) {
           // best effort: save when the tab is hidden or closed (the worker may not finish on close)
@@ -517,7 +523,30 @@ export class Game implements ScreenHost {
     requestAnimationFrame((t) => this.frame(t));
   }
 
+  /** Packets that arrived before the client finished loading (see preconnect). */
+  private earlyPackets: ArrayBuffer[] | null = null;
+
+  /** Join early and hold the server's packets until connect() is called with the same transport. */
+  private preconnect(t: ClientTransport): void {
+    const early: ArrayBuffer[] = [];
+    this.earlyPackets = early;
+    this.transport = t;
+    t.onMessage = (d) => early.push(d);
+    t.onClose = (r) => {
+      console.warn('disconnected', r);
+      this.showDisconnected(r);
+    };
+    this.send({ t: 'hello', protocol: PROTOCOL_VERSION, name: new URLSearchParams(location.search).get('name') ?? 'Player', viewDistance: this.settings.renderDistance, skin: '' });
+  }
+
   connect(t: ClientTransport): void {
+    if (this.earlyPackets && this.transport === t) {
+      const early = this.earlyPackets;
+      this.earlyPackets = null;
+      t.onMessage = (d) => this.handle(decodeS2C(d));
+      for (const d of early) this.handle(decodeS2C(d));
+      return;
+    }
     this.transport = t;
     t.onMessage = (d) => this.handle(decodeS2C(d));
     t.onClose = (r) => {
