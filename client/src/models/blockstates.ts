@@ -3,7 +3,10 @@
  * Block-specific models are registered into MODELS as `block/<name>`.
  */
 import type { BlockStateDef, ModelRef } from './format';
-import { MODELS } from './library';
+import { MODELS, box } from './library';
+import { NATURAL } from './natural';
+import { CRAFTED } from './crafted';
+import { TECH } from './tech';
 
 /** Register a model that inherits `parent` with the given texture variables. */
 function model(name: string, parent: string, textures: Record<string, string>): string {
@@ -170,6 +173,16 @@ const EXPLICIT: Record<string, () => BlockStateDef> = {
     return { variants };
   },
   ice: () => single({ model: model('ice', 'cube_all', { all: 'ice' }) }),
+  hay_block: () => column('hay_block', 'hay_block_side', 'hay_block_top'),
+  cobweb: () => single({ model: model('cobweb', 'cross', { cross: 'cobweb' }) }),
+  tnt: () => single({ model: model('tnt', 'cube_bottom_top', { side: 'tnt_side', top: 'tnt_top', bottom: 'tnt_bottom' }) }),
+  iron_bars: () => paneDef('iron_bars', 'iron_bars', 'iron_bars'),
+  dirt_path: () => {
+    MODELS.dirt_path_base = {
+      elements: [box([0, 0, 0], [16, 15, 16], { down: 'bottom', up: 'top', north: 'side', south: 'side', west: 'side', east: 'side' }, ['down', 'north', 'south', 'west', 'east'])],
+    };
+    return randomY(model('dirt_path', 'dirt_path_base', { top: 'dirt_path_top', side: 'dirt_path_side', bottom: 'dirt' }));
+  },
 };
 
 type Rot = 0 | 90 | 180 | 270;
@@ -342,10 +355,47 @@ function buttonDef(name: string, texture: string): BlockStateDef {
   return { variants };
 }
 
+/**
+ * Textures of the full block a slab/stairs/wall/fence/button is made of: planks for woods,
+ * `<base>s` for bricks, the sandstone top/bottom faces, smooth variants' top texture.
+ */
+function materialTextures(base: string, has: (t: string) => boolean): { top: string; bottom: string; side: string } | null {
+  const all = (t: string) => ({ top: t, bottom: t, side: t });
+  if (has(`${base}_planks`)) return all(`${base}_planks`);
+  if (base === 'smooth_stone' && has('smooth_stone_slab_side')) return { top: 'smooth_stone', bottom: 'smooth_stone', side: 'smooth_stone_slab_side' };
+  const sandstone = /^(smooth_|cut_)?(red_)?sandstone$/.exec(base);
+  if (sandstone) {
+    const top = `${sandstone[2] ?? ''}sandstone_top`;
+    if (sandstone[1] === 'smooth_') return all(top);
+    if (sandstone[1] === 'cut_') return { top, bottom: top, side: base };
+    return { top, bottom: `${sandstone[2] ?? ''}sandstone_bottom`, side: base };
+  }
+  for (const t of [base, `${base}s`, `${base}_block`]) if (has(t)) return all(t);
+  return null;
+}
+
 export function blockStateDef(name: string, hasTexture: (t: string) => boolean): BlockStateDef {
-  const ex = EXPLICIT[name];
+  const ex = EXPLICIT[name] ?? NATURAL[name] ?? CRAFTED[name] ?? TECH[name];
   if (ex) return ex();
   if (FLUID_BLOCKS.has(name)) return { variants: {} };
+  // waxed copper looks exactly like its unwaxed counterpart
+  if (name.startsWith('waxed_')) return blockStateDef(name === 'waxed_copper_block' ? 'copper_block' : name.slice(6), hasTexture);
+  if (name.endsWith('_door') && hasTexture(`${name}_top`)) return doorDef(name, `${name}_top`, `${name}_bottom`);
+  if (name.endsWith('_trapdoor') && hasTexture(name)) return trapdoorDef(name, name);
+  if (name.endsWith('_pressure_plate')) {
+    const base = name.slice(0, -'_pressure_plate'.length);
+    const tex = base === 'light_weighted' ? 'gold_block' : base === 'heavy_weighted' ? 'iron_block' : materialTextures(base, hasTexture)?.side;
+    if (tex && hasTexture(tex)) {
+      return {
+        variants: {
+          'powered=false': { model: model(name, 'pressure_plate_up', { texture: tex }) },
+          'powered=true': { model: model(`${name}_down`, 'pressure_plate_down', { texture: tex }) },
+          'power=0': { model: model(name, 'pressure_plate_up', { texture: tex }) },
+          '': { model: model(`${name}_down`, 'pressure_plate_down', { texture: tex }) },
+        },
+      };
+    }
+  }
   if (name.endsWith('_bed')) return bedDef(name);
   if (name === 'scaffolding') return scaffoldingDef();
   if (name.endsWith('_leaves')) return single({ model: model(name, 'leaves', { all: name }) });
@@ -354,15 +404,18 @@ export function blockStateDef(name: string, hasTexture: (t: string) => boolean):
     const log = name.replace(/_wood$/, '_log').replace(/_hyphae$/, '_stem');
     if (hasTexture(log)) return column(name, log, log);
   }
-  if (name.endsWith('_slab')) {
-    const base = name.replace(/_slab$/, '');
-    const tex = hasTexture(`${base}_planks`) ? `${base}_planks` : base;
-    if (hasTexture(tex)) return slab(name, { top: tex, bottom: tex, side: tex }, model(`${name}_double`, 'cube_all', { all: tex }));
-  }
-  if (name.endsWith('_stairs')) {
-    const base = name.replace(/_stairs$/, '');
-    const tex = hasTexture(`${base}_planks`) ? `${base}_planks` : base;
-    if (hasTexture(tex)) return stairs(name, { top: tex, bottom: tex, side: tex });
+  for (const suffix of ['_slab', '_stairs', '_wall', '_fence', '_button'] as const) {
+    if (!name.endsWith(suffix)) continue;
+    const tex = materialTextures(name.slice(0, -suffix.length), hasTexture);
+    if (!tex) break;
+    if (suffix === '_slab') {
+      const dbl = tex.top === tex.side ? model(`${name}_double`, 'cube_all', { all: tex.side }) : model(`${name}_double`, 'cube_bottom_top', tex);
+      return slab(name, tex, dbl);
+    }
+    if (suffix === '_stairs') return stairs(name, tex);
+    if (suffix === '_wall') return wallDef(name, tex.side);
+    if (suffix === '_fence') return fenceDef(name, tex.side);
+    return buttonDef(name, tex.side);
   }
   if (hasTexture(name)) return single({ model: model(name, 'cube_all', { all: name }) });
   return single({ model: 'missing' });

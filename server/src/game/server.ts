@@ -26,7 +26,7 @@ import { destroyProgress, hardness, canHarvest } from '@shared/game/mining';
 import { blockDrops, blockForItem, itemForBlock } from '@shared/game/loot';
 import { isEmpty, maxStackSize, itemName, type ItemStack } from '@shared/item/stack';
 import { collisionBoxes } from '@shared/world/shapes';
-import { getProp, blockNameOf } from '@shared/world/blockstate';
+import { getProp, blockNameOf, parseState } from '@shared/world/blockstate';
 import { FLUID } from '@shared/world/blockinfo';
 import { BLOCKS_BY_NAME, ITEMS_BY_NAME } from '@shared/data';
 import { Survival, DEFAULT_GAME_RULES, DAMAGE, type GameRules } from './survival';
@@ -38,6 +38,8 @@ import { StepTracker } from '@shared/entity/steps';
 import { ItemUse } from './itemuse';
 import { Arrow } from './arrow';
 import { Thrown } from './throwable';
+import { Containers } from './containers';
+import { takeGenBlockEntities } from '@shared/worldgen/features/underground';
 import { Commands, type AccessStore } from './commands';
 import { DEFAULT_ALL_GAME_RULES, type AllGameRules } from './commands/gamerules';
 
@@ -105,6 +107,8 @@ export class GameServer {
   /** server.properties pvp */
   pvp = true;
   readonly sleep = new Sleep(this);
+  /** container menus, block entities and furnaces */
+  readonly containers = new Containers(this);
   // ---- fluids (FlowingFluid ticks; see fluidticks.ts) ----
   readonly fluids: FluidTicks = new FluidTicks({
     getState: (x, y, z) => this.world.getState(x, y, z),
@@ -190,6 +194,7 @@ export class GameServer {
     if (i < 0) return;
     const [gone] = this.players.splice(i, 1);
     this.items.forget(gone!);
+    this.containers.closeAll(gone!);
     if (this.opts.storage) {
       const key = this.playerKey(gone!);
       const data = capturePlayer(gone!);
@@ -650,6 +655,18 @@ export class GameServer {
     this.spawnEntity(e);
   }
 
+  /** Spawn an item entity with a given motion (Containers.dropItemStack and friends). */
+  spawnItem(x: number, y: number, z: number, stack: ItemStack, vx: number, vy: number, vz: number): void {
+    const e = new ItemEntity(this.nextEntityId++, stack);
+    e.x = x;
+    e.y = y;
+    e.z = z;
+    e.vx = vx;
+    e.vy = vy;
+    e.vz = vz;
+    this.spawnEntity(e);
+  }
+
   /** Q / Ctrl+Q (vanilla Player.drop with traceItem). */
   private dropFromHand(p: ServerPlayer, all: boolean): void {
     const inv = p.inventory;
@@ -849,6 +866,8 @@ export class GameServer {
     if (mode === 3) p.flying = true;
     // leaving spectator stops looking through another entity
     if (mode !== 3) this.setCamera(p, null);
+    // spectators can't keep a container open
+    else this.containers.closeContainer(p, true);
     p.stateDirty = true;
     this.send(p, { t: 'gameMode', mode });
     this.sendAbilities(p);
@@ -932,6 +951,7 @@ export class GameServer {
   private useBlock(p: ServerPlayer, x: number, y: number, z: number): boolean {
     const st = this.world.getState(x, y, z);
     if (blockNameOf(st).endsWith('_bed')) return this.sleep.useBed(p, x, y, z);
+    if (this.containers.useBlock(p, x, y, z)) return true;
     return false;
   }
 
@@ -1077,9 +1097,20 @@ export class GameServer {
         this.syncSlot(p, 40);
         break;
       }
+      case 'clickWindow':
+        this.containers.handleClick(p, m);
+        break;
+      case 'closeWindow':
+        this.containers.handleClose(p, m.windowId);
+        break;
+      case 'menuButton':
+        this.containers.handleButton(p, m.windowId, m.button);
+        break;
       case 'creativeSlot':
+        // slot −1: the creative inventory throws the stack out of the window
+        if (p.gameMode === 1 && m.slot === -1 && m.item > 0 && m.count > 0) this.tossItem(p, { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) });
         if (p.gameMode === 1 && m.slot >= 0 && m.slot < 41) {
-          p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: 0 } : null);
+          p.inventory.set(m.slot, m.item > 0 && m.count > 0 ? { id: m.item, count: Math.min(m.count, maxStackSize(m.item)), damage: Math.max(0, m.damage) } : null);
         }
         break;
       case 'pickBlock':
@@ -1181,6 +1212,8 @@ export class GameServer {
       if (this.generator instanceof OverworldGenerator) {
         // springs schedule their fluid tick (delay 0); it runs once the chunk is full and ticking
         for (const [x, y, z] of this.generator.decorate(this.world, cx, cz)) this.fluids.scheduleFluidAt(x, y, z, 0);
+        // chests placed by features (dungeons) get their loot table
+        this.containers.attachGenerated(takeGenBlockEntities(this.world));
       }
       c.stage = 2;
     }
@@ -1486,6 +1519,7 @@ export class GameServer {
     if (y < 0 || y > 255) return;
     const old = this.world.setStateRaw(x, y, z, state);
     if (old === state) return;
+    this.containers.onBlockChanged(x, y, z, old, state);
     this.light.onBlockChanged(x, y, z, old, state);
     const key = chunkKey(x >> 4, z >> 4);
     for (const p of this.players) if (p.sent.has(key)) this.send(p, { t: 'blockChange', x, y, z, state });
@@ -1543,6 +1577,7 @@ export class GameServer {
       p.vx = p.vy = p.vz = 0;
     }
     this.tickEntities();
+    this.containers.tick();
     this.updateChunks();
     this.updateTracking();
     this.trackEntities();

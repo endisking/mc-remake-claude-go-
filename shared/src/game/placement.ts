@@ -7,6 +7,7 @@ import { BLOCKS_BY_NAME, BLOCKS } from '../data';
 import { STATE_TO_BLOCK, getProp, withProp, blockNameOf } from '../world/blockstate';
 import { FLUID, FLUID_LEVEL, FULL_COLLISION, IS_AIR } from '../world/blockinfo';
 import type { StateGetter } from '../world/raycast';
+import { isChest, chestStateForPlacement, chestUpdateShape } from './chest';
 
 export const DIRS = ['down', 'up', 'north', 'south', 'west', 'east'] as const;
 export type Dir = (typeof DIRS)[number];
@@ -119,6 +120,7 @@ function isLeavesOrShulker(n: string): boolean {
  */
 export function updateShape(world: StateGetter, x: number, y: number, z: number, state: number): number {
   const name = blockNameOf(state);
+  if (isChest(name)) return chestUpdateShape(world, x, y, z, state);
   const nb = (d: number) => world.getState(x + DX[d]!, y + DY[d]!, z + DZ[d]!);
   if (FENCES.has(name)) {
     for (let d = 2; d < 6; d++) state = withProp(state, DIRS[d]!, connectsFence(name, nb(d), OPP[d]!));
@@ -192,6 +194,7 @@ const AXIS_BLOCKS = (n: string) => has(n, 'axis') && !n.includes('portal');
 export function stateForPlacement(block: string, ctx: PlaceContext, existing: number): number | null {
   const b = BLOCKS_BY_NAME.get(block);
   if (!b) return null;
+  if (isChest(block)) return chestStateForPlacement(block, ctx, existing);
   let s = b.defaultState;
   const face = DIRS[ctx.face]!;
   const water = isWater(existing);
