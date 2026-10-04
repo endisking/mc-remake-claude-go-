@@ -122,6 +122,31 @@ const FREESOUND: Record<number, string> = {
   442772: 'qubodup', 433840: 'Archos', // slime squish
   536737: 'egomassive', // chain
   262635: 'j_p_higgins', // ice crack
+  // more mobs
+  277058: 'kwahmah_02', // single dog bark
+  118970: 'esperri', // dog whine
+  345733: 'noahpardo', // deep growl
+  110011: 'tuberatanka', 412017: 'skymary', 479272: 'steffcaffrey', // cat meows
+  528197: 'fthgurdy', 732521: 'Lukey1028', // cat meow / begging meow
+  521246: 'poodaddy69', // horse
+  868302: 'TheKingOfGeeks360', // horse snort
+  445958: 'Breviceps', 468442: 'Breviceps', // bat squeaks
+  417826: 'AntumDeluge', // witch cackle
+  754399: '3LMN_audio', // witch giggle
+  348142: 'NikoMyth', // witch's laugh
+  170768: 'esperar', // hmm question
+  165011: 'DAN2008', // hmmmm
+  697497: 'kanyonwyvern', 699008: 'kanyonwyvern', // hmm
+  683259: 'saha213131', 691476: 'saha213131', // goat
+  677218: 'satoristudios3', // mini goat baa
+  481647: 'JonCon_Library', // bee buzzing
+  150950: 'outroelison', // teleport
+  375972: 'Glitchedtones', // teleportation
+  329519: 'SirBedlam', // ghost moan
+  261336: 'Stereo Surgeon', // slowmo voice growl
+  530355: 'danielpodlovics', // fire whoosh
+  111331: 'j1987', // flame click
+  389634: '_stubb', 389633: '_stubb', // wing flaps
   // note block instruments (single notes, retuned to the vanilla base pitch by the build)
   68448: 'pinkyfinger', // piano G
   632255: 'Cloud-10', // piano bell sound (C3)
@@ -177,7 +202,7 @@ function freesound(id: number): string {
   const user = FREESOUND[id]!;
   const file = join(cache, `fs_${id}.ogg`);
   const meta = join(cache, `fs_${id}.json`);
-  const page = `https://freesound.org/people/${user}/sounds/${id}/`;
+  const page = `https://freesound.org/people/${encodeURIComponent(user)}/sounds/${id}/`;
   if (!existsSync(meta)) {
     const html = curlText(page);
     if (!/creativecommons\.org\/publicdomain\/zero/.test(html)) throw new Error(`freesound ${id} is not CC0`);
@@ -321,6 +346,25 @@ const SETS: Record<string, () => Clip[]> = {
   button: () => [...fsWhole(257357, 0.26), ...fsWhole(629020, 0.29)],
   pressure_plate: () => [...fsWhole(466272, 0.6), ...fsWhole(422870, 0.9)],
   portal: () => fsSections(685733, [[2, 4], [9, 4], [16, 4]], -6),
+  wolf_bark: () => fsWhole(277058, 0.4),
+  wolf_whine: () => fsWhole(118970, 2.6),
+  growl: () => fsWhole(345733, 2),
+  cat_meow: () => [...fsWhole(110011, 1.6), ...fsWhole(412017, 1.8), ...fsWhole(479272, 0.95)],
+  cat_hurt: () => fsWhole(528197, 0.6),
+  cat_beg: () => fsWhole(732521, 1.4),
+  horse_say: () => fsWhole(521246, 2.3),
+  horse_snort: () => fsWhole(868302, 0.7),
+  bat: () => [...fsWhole(445958, 0.45), ...fsWhole(468442, 0.2)],
+  witch_say: () => [...fsWhole(417826, 1.2), ...fsWhole(754399, 1.05)],
+  witch_laugh: () => fsWhole(348142, 3.6),
+  villager_say: () => [...fsWhole(170768, 0.75), ...fsWhole(697497, 0.75), ...fsWhole(699008, 0.8), ...fsWhole(165011, 1.3)],
+  goat_say: () => [...fsWhole(683259, 2.5), ...fsWhole(691476, 0.8), ...fsWhole(677218, 1.25)],
+  bee_loop: () => fsSections(481647, [[0.2, 2]], -6),
+  teleport: () => [...fsWhole(150950, 1.2), ...fsWhole(375972, 1)],
+  moan: () => fsWhole(329519, 3.1),
+  voice_growl: () => fsWhole(261336, 2.8),
+  whoosh: () => [...fsWhole(530355, 0.75), ...fsWhole(111331, 0.95)],
+  wings: () => [...fsWhole(389634, 0.95), ...fsWhole(389633, 1.2)],
   toast_in: () => kenney('interface-sounds', 'maximize_006'),
   toast_out: () => kenney('interface-sounds', 'minimize_006'),
 };
@@ -505,6 +549,149 @@ group5('netherite_block', 'metal_heavy', 'step_stone', 0.7, 0.8);
 group5('ancient_debris', 'metal_heavy', 'step_stone', 0.65, 0.7);
 Object.assign(EVENTS, {
   'block.bell.use': [{ set: 'bell' }],
+  'block.beacon.ambient': [{ set: 'portal', pitch: 1.5, volume: 0.6 }],
+  'block.conduit.ambient': [{ set: 'underwater_add', pitch: 0.6 }],
+  'block.end_portal.spawn': [{ set: 'portal', pitch: 0.5 }],
+  'block.respawn_anchor.ambient': [{ set: 'portal', pitch: 0.7, volume: 0.6 }],
+  'block.respawn_anchor.charge': [{ set: 'portal', pitch: 1.2 }],
+  'block.respawn_anchor.deplete': [{ set: 'extinguish', pitch: 0.6 }],
+  'block.respawn_anchor.set_spawn': [{ set: 'portal', pitch: 0.9 }],
+  'block.sculk_sensor.clicking': [{ set: 'button', pitch: 0.6 }],
+  'entity.ender_dragon.growl': [{ set: 'voice_growl', pitch: 0.6 }],
+  'entity.wither.spawn': [{ set: 'moan', pitch: 0.5 }],
+  'item.totem.use': [{ set: 'amethyst', pitch: 0.7 }],
+  // more mobs (shared recordings, pitched per mob)
+  'entity.wolf.ambient': [{ set: 'wolf_bark' }],
+  'entity.wolf.hurt': [{ set: 'wolf_bark', pitch: 1.3 }],
+  'entity.wolf.death': [{ set: 'wolf_whine', pitch: 0.8 }],
+  'entity.wolf.whine': [{ set: 'wolf_whine' }],
+  'entity.wolf.growl': [{ set: 'growl', pitch: 1.3 }],
+  'entity.wolf.pant': [{ set: 'wolf_whine', pitch: 1.2, volume: 0.5 }],
+  'entity.wolf.step': [{ set: 'mob_step_soft', pitch: 1.2 }],
+  'entity.wolf.shake': [{ set: 'swim', pitch: 1.2 }],
+  'entity.cat.ambient': [{ set: 'cat_meow' }],
+  'entity.cat.stray_ambient': [{ set: 'cat_meow', pitch: 0.9 }],
+  'entity.cat.beg_for_food': [{ set: 'cat_beg' }],
+  'entity.cat.hurt': [{ set: 'cat_hurt' }],
+  'entity.cat.death': [{ set: 'cat_beg', pitch: 0.8 }],
+  'entity.cat.hiss': [{ set: 'spider_say', pitch: 1.3 }],
+  'entity.cat.purr': [{ set: 'growl', pitch: 2, volume: 0.3 }],
+  'entity.cat.purreow': [{ set: 'cat_meow', pitch: 1.1 }],
+  'entity.ocelot.ambient': [{ set: 'cat_meow', pitch: 1.1 }],
+  'entity.ocelot.hurt': [{ set: 'cat_hurt', pitch: 1.1 }],
+  'entity.ocelot.death': [{ set: 'cat_beg', pitch: 0.9 }],
+  'entity.horse.ambient': [{ set: 'horse_say' }],
+  'entity.horse.angry': [{ set: 'horse_say', pitch: 1.1 }],
+  'entity.horse.hurt': [{ set: 'horse_snort' }],
+  'entity.horse.death': [{ set: 'horse_say', pitch: 0.8 }],
+  'entity.horse.breathe': [{ set: 'horse_snort', volume: 0.5 }],
+  'entity.horse.step': [{ set: 'mob_step_hard', pitch: 0.8 }],
+  'entity.horse.step_wood': [{ set: 'step_wood', pitch: 0.8 }],
+  'entity.horse.gallop': [{ set: 'mob_step_hard', pitch: 0.7 }],
+  'entity.horse.jump': [{ set: 'horse_snort', pitch: 1.1 }],
+  'entity.horse.land': [{ set: 'mob_step_hard', pitch: 0.6 }],
+  'entity.horse.saddle': [{ set: 'dig_cloth' }],
+  'entity.horse.armor': [{ set: 'metal_light' }],
+  'entity.horse.eat': [{ set: 'eat', pitch: 0.8 }],
+  'entity.donkey.ambient': [{ set: 'horse_say', pitch: 1.25 }],
+  'entity.donkey.angry': [{ set: 'horse_say', pitch: 1.3 }],
+  'entity.donkey.hurt': [{ set: 'horse_snort', pitch: 1.2 }],
+  'entity.donkey.death': [{ set: 'horse_say', pitch: 1 }],
+  'entity.mule.ambient': [{ set: 'horse_say', pitch: 1.15 }],
+  'entity.mule.hurt': [{ set: 'horse_snort', pitch: 1.1 }],
+  'entity.mule.death': [{ set: 'horse_say', pitch: 0.9 }],
+  'entity.bat.ambient': [{ set: 'bat' }],
+  'entity.bat.hurt': [{ set: 'bat', pitch: 1.2 }],
+  'entity.bat.death': [{ set: 'bat', pitch: 0.8 }],
+  'entity.bat.takeoff': [{ set: 'wings', pitch: 1.4 }],
+  'entity.witch.ambient': [{ set: 'witch_say' }],
+  'entity.witch.celebrate': [{ set: 'witch_laugh' }],
+  'entity.witch.hurt': [{ set: 'witch_say', pitch: 1.2 }],
+  'entity.witch.death': [{ set: 'witch_say', pitch: 0.8 }],
+  'entity.witch.drink': [{ set: 'drink' }],
+  'entity.witch.throw': [{ set: 'bow_shoot', pitch: 1.3, volume: 0.5 }],
+  'entity.villager.ambient': [{ set: 'villager_say' }],
+  'entity.villager.trade': [{ set: 'villager_say', pitch: 1.1 }],
+  'entity.villager.yes': [{ set: 'villager_say', pitch: 1.2 }],
+  'entity.villager.no': [{ set: 'villager_say', pitch: 0.8 }],
+  'entity.villager.hurt': [{ set: 'villager_say', pitch: 1.3 }],
+  'entity.villager.death': [{ set: 'villager_say', pitch: 0.7 }],
+  'entity.villager.celebrate': [{ set: 'villager_say', pitch: 1.4 }],
+  'entity.wandering_trader.ambient': [{ set: 'villager_say', pitch: 0.9 }],
+  'entity.wandering_trader.trade': [{ set: 'villager_say', pitch: 1 }],
+  'entity.wandering_trader.yes': [{ set: 'villager_say', pitch: 1.1 }],
+  'entity.wandering_trader.no': [{ set: 'villager_say', pitch: 0.75 }],
+  'entity.wandering_trader.hurt': [{ set: 'villager_say', pitch: 1.2 }],
+  'entity.wandering_trader.death': [{ set: 'villager_say', pitch: 0.65 }],
+  'entity.goat.ambient': [{ set: 'goat_say' }],
+  'entity.goat.hurt': [{ set: 'goat_say', pitch: 1.2 }],
+  'entity.goat.death': [{ set: 'goat_say', pitch: 0.85 }],
+  'entity.goat.step': [{ set: 'mob_step_hard', pitch: 1.1 }],
+  'entity.goat.screaming.ambient': [{ set: 'goat_say', pitch: 1.4 }],
+  'entity.bee.loop': [{ set: 'bee_loop' }],
+  'entity.bee.loop_aggressive': [{ set: 'bee_loop', pitch: 1.3 }],
+  'entity.bee.hurt': [{ set: 'bee_loop', pitch: 1.5, volume: 0.7 }],
+  'entity.bee.death': [{ set: 'bee_loop', pitch: 0.8, volume: 0.7 }],
+  'entity.bee.sting': [{ set: 'arrow_hit', pitch: 1.6 }],
+  'entity.bee.pollinate': [{ set: 'bee_loop', pitch: 1.2, volume: 0.5 }],
+  'block.beehive.work': [{ set: 'bee_loop', pitch: 0.9, volume: 0.4 }],
+  'entity.enderman.ambient': [{ set: 'moan', pitch: 1.4 }],
+  'entity.enderman.hurt': [{ set: 'voice_growl', pitch: 1.5 }],
+  'entity.enderman.death': [{ set: 'moan', pitch: 1.1 }],
+  'entity.enderman.scream': [{ set: 'voice_growl', pitch: 1.8 }],
+  'entity.enderman.stare': [{ set: 'voice_growl', pitch: 1.2 }],
+  'entity.enderman.teleport': [{ set: 'teleport' }],
+  'item.chorus_fruit.teleport': [{ set: 'teleport' }],
+  'entity.ghast.ambient': [{ set: 'moan' }],
+  'entity.ghast.hurt': [{ set: 'moan', pitch: 1.4 }],
+  'entity.ghast.death': [{ set: 'moan', pitch: 0.8 }],
+  'entity.ghast.scream': [{ set: 'moan', pitch: 1.6 }],
+  'entity.ghast.warn': [{ set: 'moan', pitch: 1.2 }],
+  'entity.ghast.shoot': [{ set: 'whoosh' }],
+  'entity.blaze.ambient': [{ set: 'whoosh', pitch: 0.7 }],
+  'entity.blaze.burn': [{ set: 'fire' }],
+  'entity.blaze.hurt': [{ set: 'whoosh', pitch: 1.2 }],
+  'entity.blaze.death': [{ set: 'whoosh', pitch: 0.6 }],
+  'entity.blaze.shoot': [{ set: 'whoosh' }],
+  'item.firecharge.use': [{ set: 'whoosh' }],
+  'entity.phantom.ambient': [{ set: 'voice_growl', pitch: 1.6 }],
+  'entity.phantom.swoop': [{ set: 'attack_sweep', pitch: 0.7 }],
+  'entity.phantom.flap': [{ set: 'wings', pitch: 0.8 }],
+  'entity.phantom.bite': [{ set: 'attack_strong', pitch: 1.3 }],
+  'entity.phantom.hurt': [{ set: 'voice_growl', pitch: 1.8 }],
+  'entity.phantom.death': [{ set: 'voice_growl', pitch: 1.3 }],
+  'entity.parrot.fly': [{ set: 'wings', pitch: 1.3 }],
+  'entity.zombified_piglin.ambient': [{ set: 'pig_say', pitch: 0.7 }],
+  'entity.zombified_piglin.angry': [{ set: 'pig_say', pitch: 0.6 }],
+  'entity.zombified_piglin.hurt': [{ set: 'pig_hurt', pitch: 0.7 }],
+  'entity.zombified_piglin.death': [{ set: 'pig_hurt', pitch: 0.55 }],
+  'entity.piglin.ambient': [{ set: 'pig_say', pitch: 0.85 }],
+  'entity.piglin.angry': [{ set: 'pig_say', pitch: 0.75 }],
+  'entity.piglin.hurt': [{ set: 'pig_hurt', pitch: 0.85 }],
+  'entity.piglin.death': [{ set: 'pig_hurt', pitch: 0.7 }],
+  'entity.piglin.step': [{ set: 'mob_step_hard', pitch: 0.95 }],
+  'entity.piglin.admiring_item': [{ set: 'pig_say', pitch: 1 }],
+  'entity.hoglin.ambient': [{ set: 'pig_say', pitch: 0.55 }],
+  'entity.hoglin.angry': [{ set: 'pig_say', pitch: 0.5 }],
+  'entity.hoglin.hurt': [{ set: 'pig_hurt', pitch: 0.55 }],
+  'entity.hoglin.death': [{ set: 'pig_hurt', pitch: 0.5 }],
+  'entity.hoglin.step': [{ set: 'mob_step_hard', pitch: 0.7 }],
+  'entity.iron_golem.step': [{ set: 'metal_heavy', pitch: 0.7, volume: 0.6 }],
+  'entity.iron_golem.hurt': [{ set: 'metal_heavy', pitch: 0.9 }],
+  'entity.iron_golem.death': [{ set: 'metal_heavy', pitch: 0.6 }],
+  'entity.iron_golem.attack': [{ set: 'metal_heavy', pitch: 0.8 }],
+  'entity.iron_golem.repair': [{ set: 'metal_light', pitch: 0.9 }],
+  'entity.squid.ambient': [{ set: 'underwater_add', pitch: 1.2 }],
+  'entity.squid.hurt': [{ set: 'slime', pitch: 1.3 }],
+  'entity.squid.death': [{ set: 'slime', pitch: 1 }],
+  'entity.squid.squirt': [{ set: 'bucket_empty', pitch: 1.3 }],
+  'entity.glow_squid.ambient': [{ set: 'underwater_add', pitch: 1.4 }],
+  'entity.glow_squid.hurt': [{ set: 'slime', pitch: 1.5 }],
+  'entity.glow_squid.death': [{ set: 'slime', pitch: 1.2 }],
+  'entity.glow_squid.squirt': [{ set: 'bucket_empty', pitch: 1.5 }],
+  'entity.cod.flop': [{ set: 'slime', pitch: 1.6, volume: 0.6 }],
+  'entity.salmon.flop': [{ set: 'slime', pitch: 1.5, volume: 0.6 }],
+  'entity.tropical_fish.flop': [{ set: 'slime', pitch: 1.7, volume: 0.6 }],
   'block.candle.ambient': [{ set: 'fire', volume: 0.5, pitch: 1.2 }],
   'block.candle.extinguish': [{ set: 'extinguish', volume: 0.6 }],
   'block.portal.ambient': [{ set: 'portal' }],
@@ -775,9 +962,6 @@ function scanSourceEvents(): string[] {
  * `placeholder` entry in sounds.json (silent; the engine logs them once at debug level).
  */
 const PLACEHOLDERS = [
-  'entity.zombified_piglin.ambient', 'entity.zombified_piglin.hurt', 'entity.zombified_piglin.death', 'entity.enderman.ambient',
-  'entity.enderman.hurt', 'entity.enderman.death', 'entity.enderman.teleport', 'entity.wolf.ambient', 'entity.wolf.hurt',
-  'entity.wolf.death', 'entity.cat.ambient', 'entity.cat.hurt', 'entity.cat.death', 'entity.villager.ambient', 'entity.villager.hurt',
   'entity.villager.death', 'entity.villager.trade', 'entity.horse.ambient', 'entity.horse.hurt', 'entity.horse.death',
   'entity.slime.squish', 'entity.slime.hurt', 'entity.slime.death', 'entity.slime.jump', 'entity.witch.ambient', 'entity.witch.hurt',
   'entity.witch.death', 'entity.ender_dragon.growl', 'entity.wither.spawn', 'entity.phantom.ambient', 'entity.bat.ambient',

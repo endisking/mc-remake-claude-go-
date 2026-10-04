@@ -46,11 +46,17 @@ All recordings are CC0. They are trimmed, cut into single events, converted to m
 
 | Source | Author | URL | License | Used for (clip sets) |
 |---|---|---|---|---|
+| cat meow by tuberatanka | tuberatanka | https://freesound.org/people/tuberatanka/sounds/110011/ | CC0 1.0 | cat_meow |
+| flameclic.wav by j1987 | j1987 | https://freesound.org/people/j1987/sounds/111331/ | CC0 1.0 | whoosh |
 | footsteps - gravel pavement.wav by soundmary | soundmary | https://freesound.org/people/soundmary/sounds/117627/ | CC0 1.0 | step_gravel |
+| Dog Whine 5.wav by esperri | esperri | https://freesound.org/people/esperri/sounds/118970/ | CC0 1.0 | wolf_whine |
 | KleAudio_CrackingBone2_msST.wav by kleanthism | kleanthism | https://freesound.org/people/kleanthism/sounds/145363/ | CC0 1.0 | skeleton_hurt |
 | Bone Cracking.wav by bewareofkites20 | bewareofkites20 | https://freesound.org/people/bewareofkites20/sounds/147993/ | CC0 1.0 | skeleton_hurt, creeper_hurt |
+| teleport.mp3 by outroelison | outroelison | https://freesound.org/people/outroelison/sounds/150950/ | CC0 1.0 | teleport |
 | Metal Lever 1.aif by timgormly | timgormly | https://freesound.org/people/timgormly/sounds/151271/ | CC0 1.0 | lever |
 | Zombie Hit by Under7dude | Under7dude | https://freesound.org/people/Under7dude/sounds/163447/ | CC0 1.0 | zombie_hurt |
+| hmmmm by DAN2008 | DAN2008 | https://freesound.org/people/DAN2008/sounds/165011/ | CC0 1.0 | villager_say |
+| Hmm question.wav by esperar | esperar | https://freesound.org/people/esperar/sounds/170768/ | CC0 1.0 | villager_say |
 | sheep 3.mp3 by esperar | esperar | https://freesound.org/people/esperar/sounds/171149/ | CC0 1.0 | sheep_say |
 | sheep 2.mp3 by esperar | esperar | https://freesound.org/people/esperar/sounds/171151/ | CC0 1.0 | sheep_say |
 | cave wind 10.wav by yottasounds | yottasounds | https://freesound.org/people/yottasounds/sounds/174458/ | CC0 1.0 | cave |
@@ -71,29 +77,39 @@ All recordings are CC0. They are trimmed, cut into single events, converted to m
 | Button click.wav by brnck | brnck | https://freesound.org/people/brnck/sounds/257357/ | CC0 1.0 | button |
 | Bones Crack 2.wav by Kane53126 | Kane53126 | https://freesound.org/people/Kane53126/sounds/257927/ | CC0 1.0 | skeleton_hurt, item_break |
 | overall quality of single note - flute - D4 by sastesty | sastesty | https://freesound.org/people/sastesty/sounds/258199/ | CC0 1.0 | note_flute |
+| Slowmo Voice Growl.wav by Stereo Surgeon | Stereo Surgeon | https://freesound.org/people/Stereo%20Surgeon/sounds/261336/ | CC0 1.0 | voice_growl |
 | Bow_release.wav by PorkMuncher | PorkMuncher | https://freesound.org/people/PorkMuncher/sounds/263675/ | CC0 1.0 | bow_shoot |
 | Water Flowing by lextrack | lextrack | https://freesound.org/people/lextrack/sounds/265305/ | CC0 1.0 | water_ambient |
 | Anvil Hit 2 by michorvath | michorvath | https://freesound.org/people/michorvath/sounds/270588/ | CC0 1.0 | anvil_land |
 | Anvil Hit 1 by michorvath | michorvath | https://freesound.org/people/michorvath/sounds/270589/ | CC0 1.0 | anvil_land |
 | Bite (Apple) by wadaltmon | wadaltmon | https://freesound.org/people/wadaltmon/sounds/275015/ | CC0 1.0 | eat |
+| Single Dog Bark by kwahmah_02 | kwahmah_02 | https://freesound.org/people/kwahmah_02/sounds/277058/ | CC0 1.0 | wolf_bark |
 | Tiny Splash by dslrguide | dslrguide | https://freesound.org/people/dslrguide/sounds/321490/ | CC0 1.0 | bucket_fill |
 | mouth pop.wav by Reitanna | Reitanna | https://freesound.org/people/Reitanna/sounds/323741/ | CC0 1.0 | pop |
 | Bush Cut.wav by Kreastricon62 | Kreastricon62 | https://freesound.org/people/Kreastricon62/sounds/327894/ | CC0 1.0 | dig_grass |
+| Ghost Moan 1.wav by SirBedlam | SirBedlam | https://freesound.org/people/SirBedlam/sounds/329519/ | CC0 1.0 | moan |
 | Soda can - Short fizz by Khrinx | Khrinx | https://freesound.org/people/Khrinx/sounds/333698/ | CC0 1.0 | extinguish |
 | Burp.wav by jawbutch | jawbutch | https://freesound.org/people/jawbutch/sounds/344406/ | CC0 1.0 | burp |
+| Deep Growl 1.wav by noahpardo | noahpardo | https://freesound.org/people/noahpardo/sounds/345733/ | CC0 1.0 | growl |
+| Witch's Laugh.wav by NikoMyth | NikoMyth | https://freesound.org/people/NikoMyth/sounds/348142/ | CC0 1.0 | witch_laugh |
 | gockenspiel_A.aif by joseph.larralde | joseph.larralde | https://freesound.org/people/joseph.larralde/sounds/352493/ | CC0 1.0 | note_bell |
 | Rustling Grass by alegemaate | alegemaate | https://freesound.org/people/alegemaate/sounds/364712/ | CC0 1.0 | dig_grass |
 | Glass Break 1.wav by mccormick_iain | mccormick_iain | https://freesound.org/people/mccormick_iain/sounds/371094/ | CC0 1.0 | glass_break |
 | FUSE.wav by Seidolon | Seidolon | https://freesound.org/people/Seidolon/sounds/372186/ | CC0 1.0 | fuse |
 | Xylophone - F#5 (Xylo_Medium_G5_ff_01_far.wav) by sgossner | sgossner | https://freesound.org/people/sgossner/sounds/374705/ | CC0 1.0 | note_xylophone |
+| Teleportation 02.wav by Glitchedtones | Glitchedtones | https://freesound.org/people/Glitchedtones/sounds/375972/ | CC0 1.0 | teleport |
 | Footstep in the snow_01 [RAW] by cabled_mess | cabled_mess | https://freesound.org/people/cabled_mess/sounds/384423/ | CC0 1.0 | dig_snow |
 | Swing Woosh by Jofae | Jofae | https://freesound.org/people/Jofae/sounds/389590/ | CC0 1.0 | attack_sweep |
+| Wing Flap 2.wav by _stubb | _stubb | https://freesound.org/people/_stubb/sounds/389633/ | CC0 1.0 | wings |
+| Wing Flap 1.wav by _stubb | _stubb | https://freesound.org/people/_stubb/sounds/389634/ | CC0 1.0 | wings |
 | Ambience INT water drip dropping cave grotto spooky (quinta da regaleira portugal).flac by corkob | corkob | https://freesound.org/people/corkob/sounds/392668/ | CC0 1.0 | cave |
 | Splash by swordofkings128 | swordofkings128 | https://freesound.org/people/swordofkings128/sounds/398032/ | CC0 1.0 | splash |
 | water splash 2 by swordofkings128 | swordofkings128 | https://freesound.org/people/swordofkings128/sounds/398039/ | CC0 1.0 | bucket_empty |
 | Subby Kick Drum by Mattc90 | Mattc90 | https://freesound.org/people/Mattc90/sounds/400707/ | CC0 1.0 | note_basedrum |
 | 43.Spider_steps.wav by miguelab1998 | miguelab1998 | https://freesound.org/people/miguelab1998/sounds/408572/ | CC0 1.0 | spider_step |
 | Bubble Pop by TheBuilder15 | TheBuilder15 | https://freesound.org/people/TheBuilder15/sounds/411462/ | CC0 1.0 | bubble_pop |
+| cat meow short by skymary | skymary | https://freesound.org/people/skymary/sounds/412017/ | CC0 1.0 | cat_meow |
+| Witch Cackle by AntumDeluge | AntumDeluge | https://freesound.org/people/AntumDeluge/sounds/417826/ | CC0 1.0 | witch_say |
 | Pressure_Plate_Stone.wav by IPaddeh | IPaddeh | https://freesound.org/people/IPaddeh/sounds/422870/ | CC0 1.0 | pressure_plate |
 | chicken sound - clucking.wav by chanyatenn | chanyatenn | https://freesound.org/people/chanyatenn/sounds/424076/ | CC0 1.0 | chicken_say |
 | Slime 27.wav by Archos | Archos | https://freesound.org/people/Archos/sounds/433840/ | CC0 1.0 | slime |
@@ -105,12 +121,16 @@ All recordings are CC0. They are trimmed, cut into single events, converted to m
 | Pig Grunt by qubodup | qubodup | https://freesound.org/people/qubodup/sounds/442907/ | CC0 1.0 | pig_say |
 | 40 Soltar Flecha.wav by checholio | checholio | https://freesound.org/people/checholio/sounds/443819/ | CC0 1.0 | bow_shoot |
 | 42 Disparar Flecha.wav by checholio | checholio | https://freesound.org/people/checholio/sounds/443832/ | CC0 1.0 | bow_shoot |
+| Cartoon - Bat / Mouse Squeak by Breviceps | Breviceps | https://freesound.org/people/Breviceps/sounds/445958/ | CC0 1.0 | bat |
 | explosion2.wav by IdkMrGarcia | IdkMrGarcia | https://freesound.org/people/IdkMrGarcia/sounds/446624/ | CC0 1.0 | explode |
 | Small Bell #2 by steffcaffrey | steffcaffrey | https://freesound.org/people/steffcaffrey/sounds/452379/ | CC0 1.0 | levelup |
 | Hot Bubbling Mud by Breviceps | Breviceps | https://freesound.org/people/Breviceps/sounds/456806/ | CC0 1.0 | bucket_lava |
 | Pressure Plate by proolsen | proolsen | https://freesound.org/people/proolsen/sounds/466272/ | CC0 1.0 | pressure_plate |
+| Video Game Squeak by Breviceps | Breviceps | https://freesound.org/people/Breviceps/sounds/468442/ | CC0 1.0 | bat |
 | bones.mp3 by Kneeling | Kneeling | https://freesound.org/people/Kneeling/sounds/473526/ | CC0 1.0 | skeleton_say |
 | Lava Loop 1 by Fission9 | Fission9 | https://freesound.org/people/Fission9/sounds/474849/ | CC0 1.0 | lava_ambient |
+| New Cat Meow 1 by steffcaffrey | steffcaffrey | https://freesound.org/people/steffcaffrey/sounds/479272/ | CC0 1.0 | cat_meow |
+| Bee Buzzing by JonCon_Library | JonCon_Library | https://freesound.org/people/JonCon_Library/sounds/481647/ | CC0 1.0 | bee_loop |
 | large explosion 1 by V-ktor | V-ktor | https://freesound.org/people/V-ktor/sounds/482993/ | CC0 1.0 | explode |
 | BODY FALL - V HVY - DIRT by leonelmail | leonelmail | https://freesound.org/people/leonelmail/sounds/504626/ | CC0 1.0 | fall_big |
 | Underwater Ambience by Fission9 | Fission9 | https://freesound.org/people/Fission9/sounds/504641/ | CC0 1.0 | underwater_loop |
@@ -120,8 +140,11 @@ All recordings are CC0. They are trimmed, cut into single events, converted to m
 | ding2.wav by MashedTatoes2 | MashedTatoes2 | https://freesound.org/people/MashedTatoes2/sounds/515643/ | CC0 1.0 | orb |
 | Short Burp by danlucaz | danlucaz | https://freesound.org/people/danlucaz/sounds/517672/ | CC0 1.0 | burp |
 | HEN - 1 by SamuelGremaud | SamuelGremaud | https://freesound.org/people/SamuelGremaud/sounds/517778/ | CC0 1.0 | chicken_say |
+| Horse by poodaddy69 | poodaddy69 | https://freesound.org/people/poodaddy69/sounds/521246/ | CC0 1.0 | horse_say |
 | Arrow Impact by omerbhatti34 | omerbhatti34 | https://freesound.org/people/omerbhatti34/sounds/521552/ | CC0 1.0 | arrow_hit |
 | Hiking Boot Footsteps on Gravel by Fission9 | Fission9 | https://freesound.org/people/Fission9/sounds/521588/ | CC0 1.0 | dig_gravel |
+| Cat meow 1 by fthgurdy | fthgurdy | https://freesound.org/people/fthgurdy/sounds/528197/ | CC0 1.0 | cat_hurt |
+| Fire.wav by danielpodlovics | danielpodlovics | https://freesound.org/people/danielpodlovics/sounds/530355/ | CC0 1.0 | whoosh |
 | Gulp - Hard Swallow by magnuswaker | magnuswaker | https://freesound.org/people/magnuswaker/sounds/531755/ | CC0 1.0 | drink |
 | Drink_Gulp.mp3 by Defaultv | Defaultv | https://freesound.org/people/Defaultv/sounds/534336/ | CC0 1.0 | drink |
 | Bow Impact by EminYILDIRIM | EminYILDIRIM | https://freesound.org/people/EminYILDIRIM/sounds/536066/ | CC0 1.0 | arrow_hit |
@@ -157,23 +180,30 @@ All recordings are CC0. They are trimmed, cut into single events, converted to m
 | Spider Attack by kongg_ | kongg_ | https://freesound.org/people/kongg_/sounds/672710/ | CC0 1.0 | spider_hurt |
 | Spider Attack 2 by kongg_ | kongg_ | https://freesound.org/people/kongg_/sounds/672712/ | CC0 1.0 | spider_say |
 | Hi-Hat Closed Hit - Clean by TheEndOfACycle | TheEndOfACycle | https://freesound.org/people/TheEndOfACycle/sounds/674296/ | CC0 1.0 | note_hat |
+| mini Goat Baa by satoristudios3 | satoristudios3 | https://freesound.org/people/satoristudios3/sounds/677218/ | CC0 1.0 | goat_say |
 | Ewe baa by satoristudios3 | satoristudios3 | https://freesound.org/people/satoristudios3/sounds/677221/ | CC0 1.0 | sheep_say |
 | Calming Piano Loop 60bpm by Seth_Makes_Sounds | Seth_Makes_Sounds | https://freesound.org/people/Seth_Makes_Sounds/sounds/679738/ | CC0 1.0 | music_calm1 |
+| goat.mp3 by saha213131 | saha213131 | https://freesound.org/people/saha213131/sounds/683259/ | CC0 1.0 | goat_say |
 | Short_Thunder_Mid.wav by SholeColtis | SholeColtis | https://freesound.org/people/SholeColtis/sounds/683421/ | CC0 1.0 | thunder |
 | Bubble Pop by YehawSnail | YehawSnail | https://freesound.org/people/YehawSnail/sounds/683587/ | CC0 1.0 | lava_pop |
 | Piano G.wav by pinkyfinger | pinkyfinger | https://freesound.org/people/pinkyfinger/sounds/68448/ | CC0 1.0 | note_harp |
 | Drone underwater slow by xkeril | xkeril | https://freesound.org/people/xkeril/sounds/685733/ | CC0 1.0 | portal, music_deep |
-| Snare Drum.wav by Shōtotsu | Shōtotsu | https://freesound.org/people/Shōtotsu/sounds/689553/ | CC0 1.0 | note_snare |
+| Snare Drum.wav by Shōtotsu | Shōtotsu | https://freesound.org/people/Sh%C5%8Dtotsu/sounds/689553/ | CC0 1.0 | note_snare |
+| goat2.mp3 by saha213131 | saha213131 | https://freesound.org/people/saha213131/sounds/691476/ | CC0 1.0 | goat_say |
 | thunder11 by saha213131 | saha213131 | https://freesound.org/people/saha213131/sounds/696550/ | CC0 1.0 | thunder |
 | lever.wav by Krokulator | Krokulator | https://freesound.org/people/Krokulator/sounds/696746/ | CC0 1.0 | lever |
+| hmm.wav by kanyonwyvern | kanyonwyvern | https://freesound.org/people/kanyonwyvern/sounds/697497/ | CC0 1.0 | villager_say |
+| hmm2.wav by kanyonwyvern | kanyonwyvern | https://freesound.org/people/kanyonwyvern/sounds/699008/ | CC0 1.0 | villager_say |
 | Ambient Piano Guitar Texture G Sharp by deadrobotmusic | deadrobotmusic | https://freesound.org/people/deadrobotmusic/sounds/703138/ | CC0 1.0 | music_texture |
 | Sheep baaing 5 - Norwegian sheep expressing itself concisely by michaelperfect | michaelperfect | https://freesound.org/people/michaelperfect/sounds/710300/ | CC0 1.0 | sheep_say |
 | Fire Crackling - Cozy Campfire & Fireplace SFX by LilMati | LilMati | https://freesound.org/people/LilMati/sounds/714566/ | CC0 1.0 | furnace |
 | Oof (original) by unfa | unfa | https://freesound.org/people/unfa/sounds/719053/ | CC0 1.0 | player_hurt |
 | 3_GLASS_BELL_TAPPING_GLASS_CEILING_LIGHT_FIXTURE_WITH_FINGER by PaperMacheToothPicksSeaAnenome | PaperMacheToothPicksSeaAnenome | https://freesound.org/people/PaperMacheToothPicksSeaAnenome/sounds/728699/ | CC0 1.0 | amethyst |
+| Begging Meow by Lukey1028 | Lukey1028 | https://freesound.org/people/Lukey1028/sounds/732521/ | CC0 1.0 | cat_beg |
 | Bubble_Pop by arttim | arttim | https://freesound.org/people/arttim/sounds/733264/ | CC0 1.0 | lava_pop |
 | SFX_HOT_BALL_LAVA_SHORT by tiagusilva37 | tiagusilva37 | https://freesound.org/people/tiagusilva37/sounds/737659/ | CC0 1.0 | bucket_lava |
 | Cowbell2.wav by Neotone | Neotone | https://freesound.org/people/Neotone/sounds/75339/ | CC0 1.0 | note_cow_bell |
+| laugh_giggle_man_witch_cartoon by 3LMN_audio | 3LMN_audio | https://freesound.org/people/3LMN_audio/sounds/754399/ | CC0 1.0 | witch_say |
 | Zombie Groan 0 by OwNathan | OwNathan | https://freesound.org/people/OwNathan/sounds/754438/ | CC0 1.0 | zombie_say |
 | Zombie Groan 3 by OwNathan | OwNathan | https://freesound.org/people/OwNathan/sounds/754441/ | CC0 1.0 | zombie_say |
 | Insect by NoisyRedFox | NoisyRedFox | https://freesound.org/people/NoisyRedFox/sounds/760564/ | CC0 1.0 | spider_say |
@@ -188,8 +218,9 @@ All recordings are CC0. They are trimmed, cut into single events, converted to m
 | Small Puddle Splash by Robo9418 | Robo9418 | https://freesound.org/people/Robo9418/sounds/841834/ | CC0 1.0 | bucket_empty |
 | Decayed Zombie Death 3 by scorpion67890 | scorpion67890 | https://freesound.org/people/scorpion67890/sounds/851775/ | CC0 1.0 | zombie_death |
 | Decayed Zombie Hurt 2 by scorpion67890 | scorpion67890 | https://freesound.org/people/scorpion67890/sounds/851777/ | CC0 1.0 | zombie_hurt |
+| Horses - Snort; Distant by TheKingOfGeeks360 | TheKingOfGeeks360 | https://freesound.org/people/TheKingOfGeeks360/sounds/868302/ | CC0 1.0 | horse_snort |
 | Digital Audio (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/digital-audio | CC0 1.0 | note_bit |
-| Impact Sounds (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/impact-sounds | CC0 1.0 | dig_wood, step_wood, step_grass, dig_stone, step_stone, step_cloth, dig_snow, step_snow, step_ladder, metal_heavy, metal_light, chain, plate, attack_strong, attack_weak, attack_knockback, attack_nodamage, bell, chop, mob_step_soft, mob_step_hard |
+| Impact Sounds (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/impact-sounds | CC0 1.0 | dig_wood, step_wood, step_grass, dig_stone, step_stone, step_cloth, dig_snow, step_snow, step_ladder, metal_heavy, metal_light, chain, plate, attack_strong, attack_weak, attack_knockback, attack_nodamage, bell, mob_step_soft, mob_step_hard, chop |
 | Interface Sounds (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/interface-sounds | CC0 1.0 | toast_in, toast_out |
 | RPG Audio (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/rpg-audio | CC0 1.0 | dig_cloth, door_open, door_close, metal_latch, chest_creak, book_flip, book_place, chop |
 | UI Audio (Kenney) | Kenney (www.kenney.nl) | https://kenney.nl/assets/ui-audio | CC0 1.0 | click |
