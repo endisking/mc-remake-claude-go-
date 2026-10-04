@@ -55,7 +55,7 @@ function buildPortal(design: number, giant: boolean, airPocket: boolean): Model 
   m.set(fx1 + 1, 1, fz + 1, rack);
   if (design % 3 === 0) m.set(fx1 + 1, 1, fz - 1, gold);
   // the chest beside the portal
-  m.chest(fx0 - 1, 1, fz + 1, 'minecraft:chests/ruined_portal', S('chest[facing=south]'));
+  m.chest(fx0 - 1, 1, fz + 1, 'chests/ruined_portal', S('chest[facing=south]'));
   if (design % 4 === 1) m.set(fx1, 1, fz - 1, S('lava'));
   return m;
 }

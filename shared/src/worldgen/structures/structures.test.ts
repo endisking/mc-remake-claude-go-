@@ -11,6 +11,9 @@ import { BlockWorld } from '../../world/world';
 import { takeGenBlockEntities } from '../features/underground';
 import { JavaRandom } from '../../util/random';
 import { regionSeed } from '../rand';
+import { fillWithLoot } from '../../menu/chestloot';
+import { CHEST_LOOT } from '../features/chest-loot';
+import type { ItemStack } from '../../item/stack';
 
 const SEED = 20211n;
 const gen = new OverworldGenerator(SEED);
@@ -109,7 +112,7 @@ describe('structure pieces', () => {
 
   it('desert pyramid: four loot chests over the TNT trap', () => {
     const { bes, world } = build('desert_pyramid');
-    const chests = bes.filter((e) => e.kind === 'chest' && e.lootTable === 'minecraft:chests/desert_pyramid');
+    const chests = bes.filter((e) => e.kind === 'chest' && e.lootTable === 'chests/desert_pyramid');
     expect(chests.length).toBe(4);
     for (const c of chests) expect(blockNameOf(world.getState(c.x, c.y, c.z))).toBe('chest');
     const c0 = chests[0]!;
@@ -162,7 +165,7 @@ describe('more structures', () => {
     expect(p).not.toBeNull();
     const s = structureStart(gen, 'pillager_outpost', p.x >> 4, p.z >> 4)!;
     const tower = s.pieces[0] as unknown as { model: { chests: { loot: string }[] } };
-    expect(tower.model.chests.map((c) => c.loot)).toContain('minecraft:chests/pillager_outpost');
+    expect(tower.model.chests.map((c) => c.loot)).toContain('chests/pillager_outpost');
   });
 
   it('monument and mansion obey their extra biome checks', () => {
@@ -179,12 +182,20 @@ describe('structure loot', () => {
   });
 
   it('fills a chest deterministically from its seed into 27 slots', () => {
-    const a = fillChestLoot('minecraft:chests/desert_pyramid', 123456789n);
-    const b = fillChestLoot('minecraft:chests/desert_pyramid', 123456789n);
+    const a = fillChestLoot('chests/desert_pyramid', 123456789n);
+    const b = fillChestLoot('chests/desert_pyramid', 123456789n);
     expect(a).toEqual(b);
     expect(a.length).toBe(27);
     expect(a.filter(Boolean).length).toBeGreaterThan(0);
     for (const it of a) if (it) expect(ITEMS_BY_NAME.has(it.item), it.item).toBe(true);
+  });
+
+  it('the container loot roller (CHEST_LOOT) fills structure chests with counts', () => {
+    const items: (ItemStack | null)[] = new Array(27).fill(null);
+    fillWithLoot(items, 'chests/shipwreck_supply', 42n);
+    const got = items.filter(Boolean) as ItemStack[];
+    expect(got.length).toBeGreaterThan(2);
+    for (const k of Object.keys(STRUCTURE_LOOT)) expect(CHEST_LOOT[k], k).toBeDefined();
   });
 
   it('buried treasure always has a heart of the sea', () => {

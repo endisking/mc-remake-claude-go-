@@ -63,9 +63,9 @@ function buildShip(wood: string, trim: string, mast: boolean, section: Section, 
     m.set(x, 9, 18, stairsN('south'));
   }
   // map chest in the captain's cabin, supply chest in the bow hold, treasure chest amidships below deck
-  m.chest(2, 6, 23, 'minecraft:chests/shipwreck_map', S('chest[facing=east]'));
-  m.chest(4, 2, 4, 'minecraft:chests/shipwreck_supply', S('chest[facing=south]'));
-  m.chest(4, 1, 14, 'minecraft:chests/shipwreck_treasure', S('chest[facing=north]'));
+  m.chest(2, 6, 23, 'chests/shipwreck_map', S('chest[facing=east]'));
+  m.chest(4, 2, 4, 'chests/shipwreck_supply', S('chest[facing=south]'));
+  m.chest(4, 1, 14, 'chests/shipwreck_treasure', S('chest[facing=north]'));
   m.set(3, 1, 13, S('barrel[facing=up]'));
   m.set(5, 1, 15, S('barrel[facing=up]'));
   if (mast) {
@@ -152,7 +152,7 @@ function smallRuin(temp: Temp, design: number): Model {
   m.fill(w >> 1, 1, 0, w >> 1, 2, 0, VOID);
   if (design & 1) m.fill(0, h - 1, 0, (w >> 1), h - 1, d - 1, p.slab);
   m.set(w - 2, 1, d - 2, S('chest[facing=west]'));
-  m.chests.push({ x: w - 2, y: 1, z: d - 2, loot: 'minecraft:chests/underwater_ruin_small', state: S('chest[facing=west]') });
+  m.chests.push({ x: w - 2, y: 1, z: d - 2, loot: 'chests/underwater_ruin_small', state: S('chest[facing=west]') });
   return m;
 }
 
@@ -182,10 +182,10 @@ function bigRuin(temp: Temp, design: number): Model {
   m.fill(5, 7, 8, 9, 7, 12, p.slab);
   m.set(7, 3, 12, p.accent);
   // chests: one in the shrine, one in the corner room
-  m.chest(7, 2, 11, 'minecraft:chests/underwater_ruin_big', S('chest[facing=north]'));
+  m.chest(7, 2, 11, 'chests/underwater_ruin_big', S('chest[facing=north]'));
   m.box(1, 2, 1, 4, 4, 3, p.wall[1]!);
   m.fill(2, 2, 3, 3, 3, 3, VOID);
-  m.chest(2, 2, 2, 'minecraft:chests/underwater_ruin_big', S('chest[facing=south]'));
+  m.chest(2, 2, 2, 'chests/underwater_ruin_big', S('chest[facing=south]'));
   if (design & 1) m.fill(0, 6, 0, W - 1, 8, W - 1, VOID); // a lower ruin
   return m;
 }
@@ -275,7 +275,7 @@ class BuriedChest extends Piece {
     return true;
   }
   place(c: PlaceContext): boolean {
-    return this.chest(c, 0, 0, 0, 'minecraft:chests/buried_treasure');
+    return this.chest(c, 0, 0, 0, 'chests/buried_treasure');
   }
 }
 

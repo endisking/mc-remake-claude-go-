@@ -203,7 +203,7 @@ class Corridor extends MinePiece {
   /** MineShaftCorridor.createChest: a chest minecart on a rail, here a chest on the floor */
   private minecartChest(c: PlaceContext, x: number, y: number, z: number): void {
     if (!this.isInside(c, x, y, z) || IS_AIR[this.get(c, x, y, z)] !== 1 || IS_AIR[this.get(c, x, y - 1, z)] === 1) return;
-    this.chest(c, x, y, z, 'minecraft:chests/abandoned_mineshaft');
+    this.chest(c, x, y, z, 'chests/abandoned_mineshaft');
   }
 
   private cobweb(c: PlaceContext, p: number, x: number, y: number, z: number): void {

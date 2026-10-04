@@ -173,7 +173,7 @@ function buildKind(kind: Kind, p: Palette, r: JavaRandom): Model {
       return house(p, 5 + 2 * r.nextInt(2), 5 + r.nextInt(3), 3, (m, air) => {
         m.set(1, 1, m.sz - 2, S(`${p.bed}[part=head,facing=south]`));
         m.set(1, 1, m.sz - 3 > 0 ? m.sz - 3 : 1, S(`${p.bed}[part=foot,facing=south]`));
-        if (r.nextInt(2) === 0) m.chest(m.sx - 2, 1, m.sz - 2, `minecraft:chests/village/${p.house}`, S('chest[facing=north]'));
+        if (r.nextInt(2) === 0) m.chest(m.sx - 2, 1, m.sz - 2, `chests/village/${p.house}`, S('chest[facing=north]'));
         else m.set(m.sx - 2, 1, m.sz - 2, S('crafting_table'));
         void air;
       });
@@ -183,7 +183,7 @@ function buildKind(kind: Kind, p: Palette, r: JavaRandom): Model {
           m.set(x, 1, 5, S(`${p.bed}[part=head,facing=south]`));
           m.set(x, 1, 4, S(`${p.bed}[part=foot,facing=south]`));
         }
-        m.chest(7, 1, 5, `minecraft:chests/village/${p.house}`, S('chest[facing=west]'));
+        m.chest(7, 1, 5, `chests/village/${p.house}`, S('chest[facing=west]'));
         m.set(7, 1, 1, S('furnace[facing=west]'));
         m.set(6, 1, 5, S('crafting_table'));
       });
@@ -197,7 +197,7 @@ function buildKind(kind: Kind, p: Palette, r: JavaRandom): Model {
           m.set(3, 1, m.sz - 3, S('lectern[facing=north]'));
           m.set(1, 1, m.sz - 2, S('bookshelf'));
         }
-        if (j.loot) m.chest(m.sx - 2, 1, m.sz - 2, `minecraft:chests/village/${j.loot}`, S('chest[facing=north]'));
+        if (j.loot) m.chest(m.sx - 2, 1, m.sz - 2, `chests/village/${j.loot}`, S('chest[facing=north]'));
         m.set(m.sx - 2, 1, 1, S(`${p.bed}[part=head,facing=north]`));
         m.set(m.sx - 2, 1, 2, S(`${p.bed}[part=foot,facing=north]`));
       });

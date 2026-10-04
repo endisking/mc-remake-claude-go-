@@ -5,7 +5,7 @@
  */
 import { JavaRandom } from '../../util/random';
 import { ENCHANTMENTS, ITEMS_BY_NAME, type EnchantmentData } from '../../data';
-import { CHEST_LOOT, type LootTable } from '../features/chest-loot';
+import { CHEST_LOOT, type LootEntry, type LootTable } from '../features/chest-loot';
 
 type Range = number | [number, number];
 type Fn =
@@ -248,7 +248,15 @@ for (const [id, t] of Object.entries(STRUCTURE_LOOT)) {
     type: 'minecraft:chest',
     pools: t.pools.map((p) => ({
       rolls: typeof p.rolls === 'number' ? p.rolls : { type: 'minecraft:uniform' as const, min: p.rolls[0], max: p.rolls[1] },
-      entries: p.entries.map((en) => (en.item ? { type: 'minecraft:item' as const, name: `minecraft:${en.item}`, weight: en.weight } : { type: 'minecraft:empty' as const, weight: en.weight })),
+      entries: p.entries.map((en): LootEntry => {
+        if (!en.item) return { type: 'minecraft:empty', weight: en.weight };
+        const functions: NonNullable<LootEntry['functions']> = [];
+        for (const fn of en.fns ?? []) {
+          if ('count' in fn) functions.push({ function: 'minecraft:set_count', count: typeof fn.count === 'number' ? fn.count : { type: 'minecraft:uniform', min: fn.count[0], max: fn.count[1] } });
+          else if ('enchantRandomly' in fn || 'enchantLevels' in fn) functions.push({ function: 'minecraft:enchant_randomly' });
+        }
+        return { type: 'minecraft:item', name: `minecraft:${en.item}`, weight: en.weight, ...(functions.length ? { functions } : {}) };
+      }),
     })),
   };
   CHEST_LOOT[id] = table;

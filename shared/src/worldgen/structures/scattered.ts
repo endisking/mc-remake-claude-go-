@@ -90,7 +90,7 @@ class DesertPyramidPiece extends Piece {
     this.fill(c, 9, -13, 9, 11, -13, 11, S('tnt'));
     this.set(c, S('stone_pressure_plate'), 10, -11, 10);
     // four chests two blocks out from the centre (vanilla: east, south, west, north)
-    for (const [dx, dz] of [[2, 0], [0, 2], [-2, 0], [0, -2]] as const) this.chest(c, 10 + dx, -11, 10 + dz, 'minecraft:chests/desert_pyramid');
+    for (const [dx, dz] of [[2, 0], [0, 2], [-2, 0], [0, -2]] as const) this.chest(c, 10 + dx, -11, 10 + dz, 'chests/desert_pyramid');
     return true;
   }
 }
@@ -165,7 +165,7 @@ class JungleTemplePiece extends Piece {
     this.set(c, S('redstone_wire[north=side,south=side]'), 9, -3, 6);
     this.set(c, S('redstone_wire[north=side,south=side]'), 9, -3, 5);
     this.set(c, S('dispenser[facing=north]'), 9, -2, 4);
-    this.chest(c, 9, -2, 4, 'minecraft:chests/jungle_temple_dispenser', S('dispenser[facing=north]'));
+    this.chest(c, 9, -2, 4, 'chests/jungle_temple_dispenser', S('dispenser[facing=north]'));
     this.set(c, stone(), 9, -1, 4);
     // second trap: tripwire in the far corridor, dispenser firing along it
     this.set(c, S('tripwire_hook[facing=south,attached=true]'), 4, -3, 7);
@@ -174,12 +174,12 @@ class JungleTemplePiece extends Piece {
     this.set(c, S('redstone_wire[east=side,west=side]'), 4, -3, 10);
     this.set(c, S('redstone_wire[north=side,south=side]'), 4, -3, 11);
     this.set(c, S('dispenser[facing=north]'), 4, -2, 12);
-    this.chest(c, 4, -2, 12, 'minecraft:chests/jungle_temple_dispenser', S('dispenser[facing=north]'));
+    this.chest(c, 4, -2, 12, 'chests/jungle_temple_dispenser', S('dispenser[facing=north]'));
     this.fill(c, 4, -3, 10, 4, -1, 11, air);
     this.set(c, S('redstone_wire[north=side,south=side]'), 4, -3, 10);
     this.set(c, S('redstone_wire[north=side,south=side]'), 4, -3, 11);
     // the trap corridor ends in a chest behind the tripwire
-    this.chest(c, 3, -3, 1, 'minecraft:chests/jungle_temple', S('chest[facing=south]'));
+    this.chest(c, 3, -3, 1, 'chests/jungle_temple', S('chest[facing=south]'));
     // lever puzzle on the basement wall (three levers), sticky pistons hiding the second chest
     this.set(c, S('lever[face=wall,facing=north]'), 8, -3, 12);
     this.set(c, S('lever[face=wall,facing=north]'), 6, -3, 12);
@@ -194,7 +194,7 @@ class JungleTemplePiece extends Piece {
     this.set(c, S('chiseled_stone_bricks'), 9, -2, 12);
     this.set(c, S('chiseled_stone_bricks'), 9, -3, 12);
     this.set(c, air, 9, -3, 11);
-    this.chest(c, 9, -3, 10, 'minecraft:chests/jungle_temple', S('chest[facing=west]'));
+    this.chest(c, 9, -3, 10, 'chests/jungle_temple', S('chest[facing=west]'));
     this.set(c, S('vine[south=true]'), 9, -2, 10);
     return true;
   }
@@ -346,7 +346,7 @@ class IglooPiece extends Piece {
     // lab: brewing stand, cauldron, chest, a sign and cobwebs
     this.set(c, S('brewing_stand'), 1, 1, 1);
     this.set(c, S('cauldron'), 2, 1, 1);
-    this.chest(c, 5, 1, 1, 'minecraft:chests/igloo_chest', S('chest[facing=south]'));
+    this.chest(c, 5, 1, 1, 'chests/igloo_chest', S('chest[facing=south]'));
     this.set(c, S('cobweb'), 1, 4, 7);
     this.set(c, S('cobweb'), 5, 4, 7);
     this.set(c, S('oak_wall_sign[facing=north]'), 4, 2, 1);

@@ -65,7 +65,7 @@ function tower(): Model {
     }
   }
   m.fill(4, 22, 4, 6, 22, 6, S('dark_oak_slab[type=bottom]'));
-  m.chest(7, 17, 7, 'minecraft:chests/pillager_outpost', S('chest[facing=west]'));
+  m.chest(7, 17, 7, 'chests/pillager_outpost', S('chest[facing=west]'));
   m.set(3, 17, 7, S('white_carpet'));
   m.set(5, 17, 1, S('wall_torch[facing=south]'));
   m.set(5, 18, 5, S('white_banner[rotation=0]'));

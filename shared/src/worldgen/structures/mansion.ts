@@ -80,8 +80,8 @@ function build(r: JavaRandom): Model {
             m.set(x + 3, y0 + 1, zm, S('lectern[facing=north]'));
             break;
           case 2: // storeroom with the loot chests
-            m.chest(x + 1, y0 + 1, z0, 'minecraft:chests/woodland_mansion', S('chest[facing=south]'));
-            if (r.nextBoolean()) m.chest(x + 5, y0 + 1, z1, 'minecraft:chests/woodland_mansion', S('chest[facing=north]'));
+            m.chest(x + 1, y0 + 1, z0, 'chests/woodland_mansion', S('chest[facing=south]'));
+            if (r.nextBoolean()) m.chest(x + 5, y0 + 1, z1, 'chests/woodland_mansion', S('chest[facing=north]'));
             m.set(x + 3, y0 + 1, zm, S('dark_oak_log[axis=x]'));
             break;
           case 3: // dining room: tables of fences with pressure plates

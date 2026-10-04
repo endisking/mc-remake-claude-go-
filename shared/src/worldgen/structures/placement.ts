@@ -20,6 +20,8 @@ import { village } from './village';
 import { pillagerOutpost } from './outpost';
 import { oceanMonument } from './monument';
 import { woodlandMansion } from './mansion';
+// registers the structure loot tables in CHEST_LOOT (the chest roller reads them from there)
+import './loot';
 
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 

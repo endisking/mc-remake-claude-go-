@@ -194,7 +194,7 @@ class ChestCorridor extends SPiece {
     for (let z = 2; z <= 4; z++) this.set(c, S('stone_brick_slab'), 2, 1, z);
     if (!this.hasPlacedChest && this.isInside(c, 3, 2, 3)) {
       this.hasPlacedChest = true;
-      this.chest(c, 3, 2, 3, 'minecraft:chests/stronghold_corridor', S('chest[facing=west]'));
+      this.chest(c, 3, 2, 3, 'chests/stronghold_corridor', S('chest[facing=west]'));
     }
     return true;
   }
@@ -321,7 +321,7 @@ class RoomCrossing extends SPiece {
         this.set(c, S('wall_torch[facing=south]'), 5, 3, 5);
         for (let x = 2; x <= 8; x++) for (let z = 2; z <= 8; z++) this.set(c, planks, x, 4, z);
         for (let y = 1; y <= 4; y++) this.set(c, S('ladder[facing=west]'), 9, y, 3);
-        this.chest(c, 3, 5, 3, 'minecraft:chests/stronghold_crossing', S('chest[facing=south]'));
+        this.chest(c, 3, 5, 3, 'chests/stronghold_crossing', S('chest[facing=south]'));
         break;
       }
       default:
@@ -505,10 +505,10 @@ class Library extends SPiece {
       this.set(c, S('wall_torch[facing=south]'), 6, 8, 8);
     }
     this.fill(c, 2, 1, 1, 2, 1, 1, air);
-    this.chest(c, 3, 3, 5, 'minecraft:chests/stronghold_library', S('chest[facing=west]'));
+    this.chest(c, 3, 3, 5, 'chests/stronghold_library', S('chest[facing=west]'));
     if (this.tall) {
       this.set(c, air, 12, 9, 1);
-      this.chest(c, 12, 8, 1, 'minecraft:chests/stronghold_library', S('chest[facing=west]'));
+      this.chest(c, 12, 8, 1, 'chests/stronghold_library', S('chest[facing=west]'));
     }
     return true;
   }

@@ -185,7 +185,11 @@ export class Containers {
       if (g.kind !== 'chest') continue;
       const c = this.server.world.getChunk(g.x >> 4, g.z >> 4);
       if (!c) continue;
-      c.blockEntities.set(blockEntityKey(g.x & 15, g.y, g.z & 15), { id: 'chest', items: new Array(27).fill(null), lootTable: g.lootTable, lootSeed: g.lootSeed.toString() });
+      // structures also give loot to barrels and (jungle temple) dispensers
+      const block = blockNameOf(this.server.world.getState(g.x, g.y, g.z));
+      const small = block === 'dispenser' || block === 'dropper';
+      const id = small || block === 'barrel' ? block : 'chest';
+      c.blockEntities.set(blockEntityKey(g.x & 15, g.y, g.z & 15), { id, items: new Array(small ? 9 : 27).fill(null), lootTable: g.lootTable, lootSeed: g.lootSeed.toString() });
       c.version++;
     }
   }
