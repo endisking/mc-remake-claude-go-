@@ -59,6 +59,8 @@ import { EntityRenderer, recycleHeld } from './render/entities/entityrenderer';
 import type { Screen } from './gui/screen';
 import { PauseScreen, type ScreenHost } from './gui/screens';
 import { saveSettings } from './settings';
+import { ItemTextures } from './render/itemtextures';
+import { setItemIconBackend, spriteLayerFor, drawItemStack, itemAnim } from './gui/itemicons';
 
 export class Game implements ScreenHost {
   readonly gl: WebGL2RenderingContext;
@@ -145,6 +147,9 @@ export class Game implements ScreenHost {
   attackStrengthTicker = 0;
   particles!: ParticleEngine;
   blockItems!: BlockItemRenderer;
+  itemTextures!: ItemTextures;
+  /** where the compass points (vanilla: world spawn; approximated by where we first joined) */
+  compassTarget: [number, number] | null = null;
   private bake!: BakeResult;
   /** Dropped item entities: id → state for rendering. */
   readonly items = new Map<number, { x: number; y: number; z: number; xo: number; yo: number; zo: number; lx: number; ly: number; lz: number; steps: number; item: number; count: number; age: number; bobOffs: number; pickup?: { collector: number; life: number }; orb?: number }>();
@@ -386,6 +391,28 @@ export class Game implements ScreenHost {
       const t = flatItemTexture(blockNameOf(st));
       return t === null ? null : (mainBake.textures.get(t)?.layer ?? mainBake.textures.get('missing')!.layer);
     }, (layer) => this.textures.alpha[layer]);
+    // item sprites: extruded 3D models (BlockItemRenderer) and GUI icons (gui/itemicons)
+    this.itemTextures = await ItemTextures.load();
+    const sprites = this.itemTextures;
+    this.blockItems.sprites = {
+      texture: () => sprites.texture(this.gl),
+      alpha: (l) => sprites.alpha[l],
+      layerFor: (id) => spriteLayerFor(sprites, id),
+      layerByName: (name) => sprites.layer(name),
+      handheld: (l) => sprites.handheld(l),
+    };
+    this.blockItems.blockOf = (id) => {
+      const b = blockForItem(id);
+      return b ? BLOCKS_BY_NAME.get(b)!.defaultState : null;
+    };
+    setItemIconBackend({
+      sprites,
+      blockIcon: (id) => {
+        const st = this.blockItems.blockOf(id);
+        const ic = st === null ? null : this.blockItems.icon(st);
+        return ic ? [this.blockItems.iconCanvas, ic[0], ic[1], ic[2]] : null;
+      },
+    });
     this.lightning = new LightningRenderer(this.gl);
     this.orbRenderer = new OrbRenderer(this.gl);
     this.entityRenderer.bedFacing = (rp) => {
@@ -394,9 +421,10 @@ export class Game implements ScreenHost {
       return ({ south: 0, west: 90, north: 180, east: 270 } as Record<string, number>)[getProp(st, 'facing') as string] ?? null;
     };
     this.entityRenderer.itemModel = (item) => {
-      const block = blockForItem(item);
-      if (!block) return null;
-      return { flat: this.blockItems.isFlat(BLOCKS_BY_NAME.get(block)!.defaultState) };
+      const key = this.blockItems.modelKey(item);
+      if (key === null) return null;
+      const d = this.blockItems.display(key);
+      return { flat: d !== 'block', handheld: d === 'handheld' || d === 'handheld_rod' };
     };
     this.hand = new HandRenderer(this.gl, this.entityRenderer, this.blockItems, () => this.textures.tex, mainBake.textures.get('fire_1')!.layer);
     this.interaction = new Interaction({
@@ -1576,20 +1604,20 @@ export class Game implements ScreenHost {
     this.applyHurtBob(hb, partial);
     if (this.settings.viewBobbing && !this.player.abilities.flying) multiply(hb, hb, this.bobMat);
     const st = this.handItem;
-    const block = st ? blockForItem(st.id) : null;
+    const key = st ? this.blockItems.modelKey(st.id) : null;
     const sw = this.attackAnim - this.attackAnimO;
     const swingNow = this.attackAnimO + (sw < 0 ? sw + 1 : sw) * partial;
     const offSt = this.offHandItem;
-    const offBlock = offSt ? blockForItem(offSt.id) : null;
+    const offKey = offSt ? this.blockItems.modelKey(offSt.id) : null;
     const eyeX = Math.floor(this.x), eyeY = Math.floor(this.y), eyeZ = Math.floor(this.z);
     this.hand.render({
       stack: st,
-      blockState: block ? BLOCKS_BY_NAME.get(block)!.defaultState : null,
+      blockState: key,
       swing: this.swingingHand === 0 ? swingNow : 0,
       off: offSt
         ? {
             stack: offSt,
-            blockState: offBlock ? BLOCKS_BY_NAME.get(offBlock)!.defaultState : null,
+            blockState: offKey,
             swing: this.swingingHand === 1 ? swingNow : 0,
             equip: 1 - (this.oOffHandHeight + (this.offHandHeight - this.oOffHandHeight) * partial),
           }
@@ -1643,9 +1671,8 @@ export class Game implements ScreenHost {
       // Entity.shouldRenderAtSqrDistance: bounding-box size (0.25) × 64 × entity distance
       const ed = 0.25 * 64 * this.settings.entityDistance;
       if ((it.x - cx) ** 2 + (it.y - cy) ** 2 + (it.z - cz) ** 2 >= ed * ed) continue;
-      const block = blockForItem(it.item);
-      if (!block) continue;
-      const state = BLOCKS_BY_NAME.get(block)!.defaultState;
+      const state = this.blockItems.modelKey(it.item);
+      if (state === null) continue;
       let x = it.xo + (it.x - it.xo) * partial, y = it.yo + (it.y - it.yo) * partial, z = it.zo + (it.z - it.zo) * partial;
       if (it.pickup) {
         const tgt = this.collectorPos(it.pickup.collector, partial);
@@ -1854,8 +1881,8 @@ export class Game implements ScreenHost {
     }
     // items in players' hands (ItemInHandLayer), queued by the entity renderer
     for (const h of this.entityRenderer.held) {
-      const block = blockForItem(h.item);
-      if (block) this.blockItems.draw(BLOCKS_BY_NAME.get(block)!.defaultState, this.viewProj, h.matrix, h.light, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
+      const key = this.blockItems.modelKey(h.item);
+      if (key !== null) this.blockItems.draw(key, this.viewProj, h.matrix, h.light, this.lightmap.tex, { color: fog, start: fogStart, end: fogEnd });
     }
     recycleHeld(this.entityRenderer);
     this.renderItems(cx, cy, cz, partial, fog, fogStart, fogEnd);
@@ -1897,6 +1924,8 @@ export class Game implements ScreenHost {
     if (this.showHitboxes) this.renderHitboxes(cx, cy, cz, partial);
     if (this.showChunkBorders) this.renderChunkBorders(cx, cy, cz, camEnt ? camEnt.x : this.player.x, camEnt ? camEnt.z : this.player.z);
     this.renderHand(partial, medium);
+    this.updateItemAnim(partial);
+    this.guiPartial = partial;
     this.renderGui(cx, cy, cz);
   }
 
@@ -1925,7 +1954,7 @@ export class Game implements ScreenHost {
         g.ctx.drawImage(this.frostOverlay, 0, 0, g.width, g.height);
         g.ctx.restore();
       }
-      this.hud.render(g, this.hudState(), (id, c, x, y) => this.renderGuiItem(id, c, x, y));
+      this.hud.render(g, this.hudState(), (id, c, x, y, dmg, pop) => this.renderGuiItem(id, c, x, y, dmg, pop), this.guiPartial);
       if (this.gameMode === 3) {
         this.spectatorGui.renderHotbar(g);
         this.spectatorGui.renderTooltip(g);
@@ -1941,22 +1970,23 @@ export class Game implements ScreenHost {
   }
 
   /** A 16×16 item in the GUI with its stack count (vanilla ItemRenderer.renderGuiItem + decorations). */
-  renderGuiItem(id: number, count: number, x: number, y: number): void {
-    const g = this.gui;
-    const block = blockForItem(id);
-    const icon = block ? this.blockItems.icon(BLOCKS_BY_NAME.get(block)!.defaultState) : null;
-    if (icon) g.blit(this.blockItems.iconCanvas, icon[0], icon[1], icon[2], icon[2], x, y, 16, 16);
-    else {
-      // no item texture yet: magenta/black "missing" square like vanilla's missing texture
-      g.fill(x, y, 8, 8, 0xfff800f8);
-      g.fill(x + 8, y + 8, 8, 8, 0xfff800f8);
-      g.fill(x + 8, y, 8, 8, 0xff000000);
-      g.fill(x, y + 8, 8, 8, 0xff000000);
-    }
-    if (count !== 1) {
-      const s = String(count);
-      g.text(s, x + 19 - 2 - g.font.width(s), y + 6 + 3, 0xffffff, true);
-    }
+  renderGuiItem(id: number, count: number, x: number, y: number, damage = 0, pop = 0): void {
+    drawItemStack(this.gui, { id, count, damage }, x, y, undefined, pop);
+  }
+
+  /** partial tick of the frame being drawn (GUI animations) */
+  private guiPartial = 0;
+
+  /** Compass needle and clock dial frames for item icons/models (vanilla item property functions). */
+  private updateItemAnim(partial: number): void {
+    const dayTime = this.world.dayTime + (this.world.doDaylightCycle ? partial : 0);
+    itemAnim.clock = Math.floor(timeOfDay(dayTime) * 64) & 63;
+    if (!this.compassTarget) this.compassTarget = [Math.floor(this.x) + 0.5, Math.floor(this.z) + 0.5];
+    const dx = this.compassTarget[0] - this.x, dz = this.compassTarget[1] - this.z;
+    // bearing in Minecraft yaw degrees (0 = +Z/south, 90 = −X/west), relative to where we look
+    const bearing = (Math.atan2(-dx, dz) * 180) / Math.PI;
+    const rel = dx * dx + dz * dz < 1e-4 ? (Date.now() / 20) % 360 : bearing - this.yaw;
+    itemAnim.compass = Math.round((((rel % 360) + 360) % 360) / 360 * 32) & 31;
   }
 
   private debugLines(x: number, y: number, z: number): { left: string[]; right: string[] } {
