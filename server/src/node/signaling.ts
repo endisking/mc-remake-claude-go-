@@ -30,6 +30,8 @@ export class SignalingHub {
   accept(ws: WebSocket): void {
     const peer: Peer = { id: this.nextId++, ws };
     this.peers.set(peer.id, peer);
+    // a malformed frame or a reset connection: ws closes the socket after this, which runs 'close' below
+    ws.on('error', () => {});
     ws.on('message', (raw) => {
       let m: { type: string; code?: string; to?: number; data?: unknown; name?: unknown };
       try {

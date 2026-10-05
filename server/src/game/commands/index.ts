@@ -41,7 +41,9 @@ export class Commands {
 
   /** keep-alive bookkeeping and measured latency per player (vanilla ServerPlayer.latency) */
   private readonly spam = new WeakMap<ServerPlayer, number>();
-  private readonly pings = new WeakMap<ServerPlayer, { pending: number | null; sentAt: number; latency: number }>();
+  private readonly pings = new WeakMap<ServerPlayer, { pending: number | null; sentAt: number; sentTick: number; latency: number }>();
+  /** server ticks run so far (keep-alive timeouts also need this many ticks, so a frozen tab resuming kicks nobody) */
+  private ticks = 0;
 
   constructor(readonly server: GameServer) {
     registerVanillaCommands(this.dispatcher);
@@ -72,23 +74,33 @@ export class Commands {
     return this.pings.get(p)?.latency ?? 0;
   }
 
-  /** Per tick: keep-alives every 15 s, latency broadcast every 600 ticks (PlayerList.tick). */
+  /**
+   * Per tick: keep-alives every 15 s, and a player who leaves one unanswered for another 15 s is
+   * disconnected with "Timed out" (ServerGamePacketListenerImpl.tick), so a dropped connection
+   * (lid closed, Wi-Fi lost) doesn't leave their body in the world. The host's own connection
+   * lives in the same tab and is never timed out. Latency broadcast every 600 ticks (PlayerList.tick).
+   */
   tick(): void {
     const s = this.server;
     const now = Date.now();
-    for (const p of s.allPlayers) {
+    this.ticks++;
+    for (const p of [...s.allPlayers]) {
       const spam = this.spam.get(p);
       if (spam) this.spam.set(p, spam - 1);
       let st = this.pings.get(p);
       if (!st) {
-        st = { pending: null, sentAt: 0, latency: 0 };
+        st = { pending: null, sentAt: now, sentTick: this.ticks, latency: 0 };
         this.pings.set(p, st);
       }
-      if (st.pending === null && now - st.sentAt >= 15000) {
-        st.pending = now;
-        st.sentAt = now;
-        s.send(p, { t: 'keepAlive', id: now });
+      if (now - st.sentAt < 15000) continue;
+      if (st.pending !== null) {
+        if (!p.isOwner && this.ticks - st.sentTick >= 15 * 20) this.kick(p, 'Timed out');
+        continue;
       }
+      st.pending = now;
+      st.sentAt = now;
+      st.sentTick = this.ticks;
+      s.send(p, { t: 'keepAlive', id: now });
     }
     if (s.gameTime % 600 === 0 || s.gameTime === 20) {
       for (const p of s.allPlayers) {

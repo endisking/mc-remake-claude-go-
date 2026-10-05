@@ -34,7 +34,7 @@ import { DiskStorage } from '../storage/disk';
 
 const here = dirname(fileURLToPath(import.meta.url));
 // the release build (tools/package.ts) puts the client next to the bundled server in web/
-const STATIC_DIR = process.env.STATIC_DIR ?? [join(here, 'web'), join(here, '..', '..', '..', 'client', 'dist')].find((d) => existsSync(d))!;
+const STATIC_DIR: string | undefined = process.env.STATIC_DIR ?? [join(here, 'web'), join(here, '..', '..', '..', 'client', 'dist')].find((d) => existsSync(d));
 const PORT = Number(process.env.PORT ?? 8080);
 
 const MIME: Record<string, string> = {
@@ -43,13 +43,35 @@ const MIME: Record<string, string> = {
 };
 
 function serveStatic(req: IncomingMessage, res: ServerResponse): void {
+  // a bad request (malformed URL, unreadable file...) must never take the whole server down
+  try {
+    serveStaticUnsafe(req, res);
+  } catch (e) {
+    console.warn(`[http] ${req.method} ${req.url}: ${(e as Error).message}`);
+    if (!res.headersSent) res.writeHead(400);
+    res.end();
+  }
+}
+
+function serveStaticUnsafe(req: IncomingMessage, res: ServerResponse): void {
   const url = new URL(req.url ?? '/', 'http://x');
   if (url.pathname === '/server-info') {
     // lets the launcher served from here fill in this server's address
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify({ server: 'blockcraft' }));
     return;
   }
-  let path = normalize(decodeURIComponent(url.pathname)).replace(/^(\.\.[/\\])+/, '');
+  if (!STATIC_DIR) {
+    res.writeHead(404).end('Client not built. Run: pnpm build');
+    return;
+  }
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(url.pathname);
+  } catch {
+    res.writeHead(400).end('Bad request');
+    return;
+  }
+  let path = normalize(decoded).replace(/^(\.\.[/\\])+/, '');
   if (path.endsWith('/')) path += 'index.html';
   let file = join(STATIC_DIR, path);
   if (!file.startsWith(STATIC_DIR) || !existsSync(file) || !statSync(file).isFile()) file = join(STATIC_DIR, 'index.html');
@@ -57,8 +79,14 @@ function serveStatic(req: IncomingMessage, res: ServerResponse): void {
     res.writeHead(404).end('Client not built. Run: pnpm build');
     return;
   }
+  const stream = createReadStream(file);
+  stream.on('error', (e) => {
+    console.warn(`[http] ${file}: ${e.message}`);
+    if (!res.headersSent) res.writeHead(500);
+    res.end();
+  });
   res.writeHead(200, { 'content-type': MIME[extname(file)] ?? 'application/octet-stream' });
-  createReadStream(file).pipe(res);
+  stream.pipe(res);
 }
 
 const tls = process.env.TLS_CERT && process.env.TLS_KEY;
@@ -145,6 +173,9 @@ async function shutdown(signal: string): Promise<void> {
   process.exit(0);
 }
 process.on('SIGINT', () => void shutdown('SIGINT'));
+// last resort: one bad request or connection is logged instead of stopping every room
+process.on('uncaughtException', (e) => console.error('[server] unexpected error (server keeps running):', e));
+process.on('unhandledRejection', (e) => console.error('[server] unhandled rejection (server keeps running):', e));
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
 export function validRoomCode(code: string | null): code is string {
@@ -155,8 +186,21 @@ const wssPlay = new WebSocketServer({ noServer: true, maxPayload: 1 << 20 });
 const signaling = new SignalingHub();
 const wssSignal = new WebSocketServer({ noServer: true, maxPayload: 64 << 10 });
 
+// a connection dropped mid-handshake or a garbled request just closes that socket
+http.on('clientError', (_e, socket) => {
+  if (socket.writable) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+  else socket.destroy();
+});
+
 http.on('upgrade', (req, socket, head) => {
-  const url = new URL(req.url ?? '/', 'http://x');
+  socket.on('error', () => socket.destroy());
+  let url: URL;
+  try {
+    url = new URL(req.url ?? '/', 'http://x');
+  } catch {
+    socket.destroy();
+    return;
+  }
   if (url.pathname === '/play') {
     const room = url.searchParams.get('room') ?? 'default';
     if (!validRoomCode(room)) {
@@ -177,6 +221,8 @@ function onPlay(ws: WebSocket, room: string, address: string | undefined): void 
     ws.close(1001, 'Server closed');
     return;
   }
+  // a malformed frame or a reset connection: ws closes the socket after this, which runs 'close' below
+  ws.on('error', (e) => console.warn(`[room ${room}] connection error from ${address ?? 'unknown'}: ${e.message}`));
   const r = roomFor(room);
   r.clients++;
   ws.binaryType = 'arraybuffer';
