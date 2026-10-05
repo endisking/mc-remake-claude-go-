@@ -422,3 +422,20 @@ Still not vanilla:
   rooms running.
 - Checked by hand: requests with no client build, `https://` sent to the plain-HTTP port, a malformed URL, garbage
   HTTP, and unmasked WebSocket frames on `/play` and `/signal`. The server keeps serving after each one.
+
+## 2026-10-05 — Players who drop out no longer leave their body behind
+
+- **Keep-alive timeout** (`commands/index.ts`): the server sent a keep-alive every 15 s but never acted on a
+  missing reply. A player whose connection died without a clean close (lid closed, Wi-Fi lost, phone app
+  switched, tab frozen) stayed online forever, and their body stayed in the world. Now, like vanilla
+  `ServerGamePacketListenerImpl.tick`, a keep-alive unanswered for 15 s disconnects that player with
+  "Timed out" (so 15–30 s of silence). They leave the player list, others get `removeEntities`, and their
+  data is saved.
+  - The first keep-alive now goes out 15 s after joining, not on the first tick (vanilla timing).
+  - The host's own connection (same tab) is never timed out.
+  - The timeout also needs 300 server ticks since the keep-alive was sent, so a host tab that was frozen in
+    the background and then resumes doesn't kick every guest before they can answer.
+- **Duplicate login** (`server.ts`): rejoining with a name that's already online (case-insensitive), e.g.
+  after a dropped connection, used to add a second body and leave the ghost. Now the old session is
+  disconnected first with "You logged in from another location" (vanilla `PlayerList` duplicate login).
+- Tests: timeout and body removal, no timeout for the host, frozen-then-resumed server, duplicate login.

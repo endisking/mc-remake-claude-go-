@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { GameServer, type Connection } from './server';
 import { ItemEntity } from './entity';
 import { encodeC2S, decodeS2C, PROTOCOL_VERSION, type S2C } from '@shared/protocol/packets';
@@ -61,6 +61,77 @@ describe('multiplayer server', () => {
     // into the ground: rejected
     a.send({ t: 'move', x: p.x, y: p.y - 3, z: p.z, yaw: 0, pitch: 0, onGround: true });
     expect(p.rejectedMoves).toBe(2);
+  });
+
+  it('times out a player who stops answering keep-alives (dropped connection) and removes their body', () => {
+    let now = 1_000_000;
+    const clock = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    try {
+      const server = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true });
+      const hostConn: Connection = { send: () => {}, close: () => {} };
+      server.connect(hostConn, true)(encodeC2S({ t: 'hello', protocol: PROTOCOL_VERSION, name: 'Host', viewDistance: 2, skin: '' }));
+      const a = client(server, 'A');
+      const b = client(server, 'B');
+      server.tick();
+      const bId = server.allPlayers.find((p) => p.name === 'B')!.id;
+      // run `seconds` of game time at 20 TPS; A answers every keep-alive, B's connection is gone
+      let answered = 0;
+      const run = (seconds: number) => {
+        for (let i = 0; i < seconds * 20; i++) {
+          now += 50;
+          server.tick();
+          for (const p of a.received.slice(answered)) if (p.t === 'keepAlive') a.send({ t: 'keepAlive', id: p.id });
+          answered = a.received.length;
+        }
+      };
+      run(15.5);
+      expect(b.received.some((p) => p.t === 'keepAlive')).toBe(true);
+      run(10);
+      expect(server.allPlayers.map((p) => p.name)).toEqual(['Host', 'A', 'B']);
+      run(10);
+      expect(b.received.some((p) => p.t === 'disconnect' && p.reason === 'Timed out')).toBe(true);
+      expect(server.allPlayers.map((p) => p.name)).toEqual(['Host', 'A']);
+      // B's body disappears for A and B leaves the player list
+      expect(a.received.some((p) => p.t === 'removeEntities' && p.ids.includes(bId))).toBe(true);
+      expect(a.received.some((p) => p.t === 'playerInfo' && p.action === 4 && p.name === 'B')).toBe(true);
+      // the host never answered either (no client attached here) but is never timed out
+      run(60);
+      expect(server.allPlayers.map((p) => p.name)).toEqual(['Host', 'A']);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it('a frozen server (tab suspended) resuming does not time anyone out before they can answer', () => {
+    let now = 1_000_000;
+    const clock = vi.spyOn(Date, 'now').mockImplementation(() => now);
+    try {
+      const server = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true });
+      const a = client(server, 'A');
+      for (let i = 0; i < 320; i++) {
+        now += 50;
+        server.tick();
+      }
+      expect(a.received.some((p) => p.t === 'keepAlive')).toBe(true);
+      now += 10 * 60_000; // ten minutes frozen, then a few catch-up ticks
+      for (let i = 0; i < 10; i++) server.tick();
+      expect(server.allPlayers.map((p) => p.name)).toEqual(['A']);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it('logging in with a name already online disconnects the old session ("logged in from another location")', () => {
+    const server = new GameServer({ seed: 7n, chunkGenBudget: 100, devTerrain: true });
+    const watcher = client(server, 'W');
+    const old = client(server, 'Steve');
+    server.tick();
+    const oldId = server.allPlayers.find((p) => p.name === 'Steve')!.id;
+    const fresh = client(server, 'steve');
+    expect(old.received.at(-1)).toMatchObject({ t: 'disconnect', reason: 'You logged in from another location' });
+    expect(server.allPlayers.map((p) => p.name)).toEqual(['W', 'steve']);
+    expect(watcher.received.some((p) => p.t === 'removeEntities' && p.ids.includes(oldId))).toBe(true);
+    expect(fresh.received.some((p) => p.t === 'login')).toBe(true);
   });
 
   it('shows players to each other and removes them when they leave', () => {

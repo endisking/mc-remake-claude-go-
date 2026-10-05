@@ -312,6 +312,12 @@ export class GameServer {
           conn.close(refused);
           return;
         }
+        // the same name already online (e.g. a ghost of a dropped connection): the old session is
+        // disconnected first, like vanilla's duplicate login (PlayerList.canPlayerLogin)
+        if (!owner) {
+          const name = (p.name.slice(0, 16) || 'Player').toLowerCase();
+          for (const old of this.allPlayers.filter((o) => !o.isOwner && o.name.toLowerCase() === name)) this.commands.kick(old, 'You logged in from another location');
+        }
         player = this.join(conn, p, owner);
         this.commands.joined(player);
         return;
