@@ -406,3 +406,19 @@ Still not vanilla:
     mouse controls and a touch switches back (tablets with a mouse).
 - Unit tests cover the user agents. Phone emulation (Pixel 7, iPad) shows the controls at start; the touch-enabled
   Chromebook and Windows contexts show none, even after a tap.
+
+## 2026-10-05 — Dedicated server no longer crashes on stray requests
+
+- Opening the server's address in a browser could stop the whole server, so every room had to be restarted.
+  Three causes, each reproduced and then fixed in `server/src/node/main.ts` / `signaling.ts`:
+  - **No client build found:** `STATIC_DIR` was `undefined`, so any page request threw in `path.join`. Now the
+    request gets a 404 "Client not built" reply.
+  - **Malformed URL** (e.g. `/%E0%A4%A`, sent by scanners and some browsers): `decodeURIComponent` threw. Now the
+    reply is a 400.
+  - **Bad WebSocket frame or reset connection** on `/play` or `/signal`: `ws` emitted `'error'` with no listener.
+    Now it's logged and only that connection closes.
+- Also added: a try/catch around static serving; read-stream errors give a 500; `clientError` and upgrade-socket
+  errors close only that socket; a last-resort `uncaughtException` / `unhandledRejection` logger keeps the other
+  rooms running.
+- Checked by hand: requests with no client build, `https://` sent to the plain-HTTP port, a malformed URL, garbage
+  HTTP, and unmasked WebSocket frames on `/play` and `/signal`. The server keeps serving after each one.
